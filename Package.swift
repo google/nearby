@@ -74,13 +74,13 @@ let package = Package(
       sources: [
         "ukey2/src/securemessage/src/securemessage",
         "ukey2/src/main/cpp/src/securegcm",
-        "compiled_proto",
+        "ukey2/protoc_out",
       ],
       publicHeadersPath: "include",
       cSettings: [
         .headerSearchPath("ukey2/"),
-        .headerSearchPath("compiled_proto/"),
-        .headerSearchPath("compiled_proto/src/main/proto"),
+        .headerSearchPath("ukey2/protoc_out/"),
+        .headerSearchPath("ukey2/protoc_out/src/main/proto"),
       ]
     ),
     .target(
@@ -94,7 +94,7 @@ let package = Package(
       dependencies: [
         .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
       ],
-      path: "third_party/protobuf/third_party/utf8_range",
+      path: "google-protobuf/third_party/utf8_range",
       sources: [
         "utf8_validity.h",
         "utf8_range.h",
@@ -110,7 +110,7 @@ let package = Package(
       dependencies: [
         "protobuf-utf8",
       ],
-      path: "third_party/protobuf/src",
+      path: "google-protobuf/src",
       exclude: [
         "google/protobuf/bridge",
         "google/protobuf/compiler",
@@ -535,7 +535,7 @@ let package = Package(
         "internal/platform/medium_environment.cc",
       ],
       sources: [
-        "compiled_proto",
+        "protoc_out",
         "connections",
         "internal",
         "proto",
@@ -543,9 +543,10 @@ let package = Package(
       publicHeadersPath: "connections",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("protoc_out/"),
         .headerSearchPath("third_party/ukey2/ukey2/"),
-        .headerSearchPath("third_party/ukey2/compiled_proto/src/main/proto"),
+        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/"),
+        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/src/main/proto"),
         .define("NO_WEBRTC"),
       ]
     ),
@@ -562,7 +563,7 @@ let package = Package(
       publicHeadersPath: "connections/c",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("protoc_out/"),
         .define("NO_WEBRTC"),
       ]
     ),
@@ -575,7 +576,7 @@ let package = Package(
       publicHeadersPath: "connections/swift/NearbyCoreAdapter/Sources/Public",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("protoc_out/"),
         .define("NO_WEBRTC"),
       ]
     ),
