@@ -10,10 +10,6 @@
 	path = third_party/absl
 	url = https://github.com/abseil/abseil-cpp
 	branch = master
-[submodule "third_party/depot_tools"]
-	path = third_party/depot_tools
-	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
-	branch = main
 [submodule "third_party/ukey2/ukey2"]
 	path = third_party/ukey2/ukey2
 	url = https://github.com/google/ukey2
