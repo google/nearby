@@ -17,8 +17,10 @@
 namespace nearby {
 namespace linux {
 
-TEST(LinuxStubTests, Placeholder) {
-  GTEST_SKIP() << "Stub test placeholder to mirror Windows coverage.";
+TEST(TaskSchedulerTest, PlaceholderTest) {
+  // Linux doesn't have a separate task scheduler implementation like Windows
+  // Task scheduling is handled through executors
+  SUCCEED();
 }
 
 }  // namespace linux

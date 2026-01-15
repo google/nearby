@@ -70,6 +70,7 @@ bool ThreadPool::Run(Runnable &&task) {
     LOG(ERROR) << __func__ << "thread pool has shut down";
     return false;
   }
+  if (task == nullptr) return false;
 
   {
     absl::ReaderMutexLock l(&threads_mutex_);

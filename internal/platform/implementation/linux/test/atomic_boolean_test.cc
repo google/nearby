@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +16,17 @@
 
 #include "gtest/gtest.h"
 
-namespace nearby {
-namespace linux {
-namespace {
+TEST(atomic_boolean, SuccessfulCreation) {
+  // Arrange
+  nearby::linux::AtomicBoolean atomicBoolean;
+  bool oldValue = true;
+  bool result = false;
 
-TEST(AtomicBooleanTest, Stub) {
-  GTEST_SKIP() << "Test not yet implemented for Linux";
+  // Act
+  oldValue = atomicBoolean.Set(true);
+  result = atomicBoolean.Get();
+
+  // Assert
+  EXPECT_TRUE(result);
+  EXPECT_FALSE(oldValue);
 }
-
-}  // namespace
-}  // namespace linux
-}  // namespace nearby

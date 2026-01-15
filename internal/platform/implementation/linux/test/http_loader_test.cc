@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,14 +14,36 @@
 
 #include "internal/platform/implementation/linux/http_loader.h"
 
+#include <string>
+
 #include "gtest/gtest.h"
 
 namespace nearby {
 namespace linux {
 namespace {
+using ::nearby::api::WebRequest;
 
-TEST(HttpLoaderTest, Stub) {
-  GTEST_SKIP() << "Test not yet implemented for Linux";
+TEST(HttpLoader, DISABLED_TestGetUrl) {
+  WebRequest request;
+  request.url = "https://www.google.com?id=456#fragment";
+  request.method = "GET";
+  auto response = HttpLoader(request).GetResponse();
+  ASSERT_TRUE(response.ok());
+  EXPECT_EQ(response->status_code, 200);
+}
+
+TEST(HttpLoader, DISABLED_TestGetNotExistingUrl) {
+  WebRequest request;
+  request.url = "https://www.abcdefgabcdefg.com";
+  request.method = "GET";
+  EXPECT_FALSE(HttpLoader(request).GetResponse().ok());
+}
+
+TEST(HttpLoader, DISABLED_TestInvalidUrl) {
+  WebRequest request;
+  request.url = "https:/www.abcdefgabcdefg.com/name?id=456";
+  request.method = "GET";
+  EXPECT_FALSE(HttpLoader(request).GetResponse().ok());
 }
 
 }  // namespace

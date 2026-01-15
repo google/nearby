@@ -36,7 +36,6 @@
   "sapien luctus dictum ac vel ligula."
 
 namespace test_utils {
-std::wstring StringToWideString(const std::string& s);
 std::string GetPayloadPath(nearby::PayloadId payload_id);
 }  // namespace test_utils
 

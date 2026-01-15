@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/linux/file.h"
 
 #include <algorithm>
+#include <chrono>
 #include <codecvt>
 #include <cstddef>
 #include <filesystem>
@@ -25,6 +26,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/linux/utils.h"
 
@@ -39,8 +41,7 @@ std::unique_ptr<IOFile> IOFile::CreateInputFile(
 
 IOFile::IOFile(const absl::string_view file_path, size_t size)
     : path_(file_path) {
-  // Always open input file path as wide string on Linux platform.
-  file_.open(std::filesystem::path(linux::string_to_wstring(path_)),
+  file_.open(std::filesystem::path(path_),
              std::ios::binary | std::ios::in | std::ios::ate);
 
   total_size_ = file_.tellg();
@@ -53,9 +54,7 @@ std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
 
 IOFile::IOFile(const absl::string_view file_path)
     : file_(), path_(file_path), total_size_(0) {
-  // Always open input file path as wide string on Windows platform.
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  file_.open(std::filesystem::path(converter.from_bytes(path_)),
+  file_.open(std::filesystem::path(path_),
              std::ios::binary | std::ios::out);
 }
 
@@ -88,6 +87,29 @@ Exception IOFile::Close() {
     file_.close();
   }
   return {Exception::kSuccess};
+}
+
+absl::Time IOFile::GetLastModifiedTime() const {
+  std::filesystem::path file_path(path_);
+  if (!std::filesystem::exists(file_path)) {
+    return absl::InfinitePast();
+  }
+  auto ftime = std::filesystem::last_write_time(file_path);
+  auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+      ftime - std::filesystem::file_time_type::clock::now() +
+      std::chrono::system_clock::now());
+  return absl::FromChrono(sctp);
+}
+
+void IOFile::SetLastModifiedTime(absl::Time last_modified_time) {
+  std::filesystem::path file_path(path_);
+  if (!std::filesystem::exists(file_path)) {
+    return;
+  }
+  auto chrono_time = absl::ToChronoTime(last_modified_time);
+  auto ftime = std::filesystem::file_time_type::clock::now() +
+               (chrono_time - std::chrono::system_clock::now());
+  std::filesystem::last_write_time(file_path, ftime);
 }
 
 Exception IOFile::Write(const ByteArray& data) {

@@ -16,188 +16,43 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
-# Core platform tests
 cc_test(
-    name = "atomic_boolean_test",
+    name = "linux_test",
     size = "small",
-    srcs = ["atomic_boolean_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
+    srcs = [
+        "atomic_boolean_test.cc",
+        "atomic_reference_test.cc",
+        "count_down_latch_test.cc",
+        "crypto_test.cc",
+        "device_info_test.cc",
+        "device_paths_test.cc",
+        "executor_test.cc",
+        "file_test.cc",
+        "http_loader_test.cc",
+        "platform_test.cc",
+        "preferences_manager_test.cc",
+        "preferences_repository_test.cc",
+        "scheduled_executor_test.cc",
+        "string_utils_test.cc",
+        "submittable_executor_test.cc",
+        "task_scheduler_test.cc",
+        "thread_pool_test.cc",
+        "timer_test.cc",
+        "utils_test.cc",
     ],
-)
-
-cc_test(
-    name = "atomic_reference_test",
-    size = "small",
-    srcs = ["atomic_reference_test.cc"],
     deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "count_down_latch_test",
-    size = "small",
-    srcs = ["count_down_latch_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "crypto_test",
-    size = "small",
-    srcs = ["crypto_test.cc"],
-    deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation/linux:comm",
         "//internal/platform/implementation/linux:crypto",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "device_info_test",
-    size = "small",
-    srcs = ["device_info_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "device_paths_test",
-    size = "small",
-    srcs = ["device_paths_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "executor_test",
-    size = "small",
-    srcs = ["executor_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "file_test",
-    size = "small",
-    srcs = ["file_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "http_loader_test",
-    size = "small",
-    srcs = ["http_loader_test.cc"],
-    deps = [
         "//internal/platform/implementation/linux:linux",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "platform_test",
-    size = "small",
-    srcs = ["platform_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "preferences_manager_test",
-    size = "small",
-    srcs = ["preferences_manager_test.cc"],
-    deps = [
         "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "preferences_repository_test",
-    size = "small",
-    srcs = ["preferences_repository_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "scheduled_executor_test",
-    size = "small",
-    srcs = ["scheduled_executor_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "string_utils_test",
-    size = "small",
-    srcs = ["string_utils_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "submittable_executor_test",
-    size = "small",
-    srcs = ["submittable_executor_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "task_scheduler_test",
-    size = "small",
-    srcs = ["task_scheduler_test.cc"],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "thread_pool_test",
-    size = "small",
-    srcs = ["thread_pool_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "timer_test",
-    size = "small",
-    srcs = ["timer_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "utils_test",
-    size = "small",
-    srcs = ["utils_test.cc"],
-    deps = [
-        "//internal/platform/implementation/linux:types",
-        "@com_github_google_googletest//:gtest_main",
+        "//internal/platform/implementation/linux:test_utils",
+        "@com_google_googletest//:gtest_main",
+        "@nlohmann_json//:json",
+        "@sdbus_cpp//:sdbus_cpp",
     ],
 )
 

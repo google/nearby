@@ -17,8 +17,10 @@
 namespace nearby {
 namespace linux {
 
-TEST(LinuxStubTests, Placeholder) {
-  GTEST_SKIP() << "Stub test placeholder to mirror Windows coverage.";
+TEST(StringUtilsTest, PlaceholderTest) {
+  // Linux doesn't have a separate string_utils like Windows
+  // String conversion functionality is integrated into other modules
+  SUCCEED();
 }
 
 }  // namespace linux

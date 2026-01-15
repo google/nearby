@@ -21,18 +21,16 @@
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/implementation/linux/test_utils.h"
 
+#include "dbus.h"
+
 namespace test_utils {
-std::wstring StringToWideString(const std::string& s) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.from_bytes(s);
-}
-
 std::string GetPayloadPath(nearby::PayloadId payload_id) {
-  std::filesystem::path path =
-      nearby::linux::DeviceInfo().GetDownloadPath().value_or(
-          std::string(getenv("HOME")).append("Downloads"));
+  auto bus = nearby::linux::getSystemBusConnection();
+  std::optional<nearby::FilePath> path =
+      nearby::linux::DeviceInfo(bus).GetDownloadPath();
+  if (!path.has_value()) { return std::string(getenv("HOME")).append("Downloads");}
 
-  return path.string();
+  return path.value().ToString();
 }
 
 }  // namespace test_utils

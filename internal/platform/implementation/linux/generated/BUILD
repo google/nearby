@@ -16,7 +16,5 @@ licenses(["notice"])
 cc_library(
     name = "types",
     textual_hdrs = glob(["**/*.h"]),
-    visibility = [
-        "//internal/platform/implementation/linux:__subpackages__",
-    ],
+    visibility = ["//visibility:public"],
 )

@@ -21,6 +21,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
@@ -40,10 +41,12 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   std::string GetFilePath() const override { return path_; }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
+  absl::Time GetLastModifiedTime() const override;
   Exception Close() override;
 
   Exception Write(const ByteArray& data) override;
   Exception Flush() override;
+  void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
   explicit IOFile(const absl::string_view file_path, size_t size);

@@ -17,8 +17,10 @@
 namespace nearby {
 namespace linux {
 
-TEST(LinuxStubTests, Placeholder) {
-  GTEST_SKIP() << "Stub test placeholder to mirror Windows coverage.";
+TEST(DevicePathsTest, PlaceholderTest) {
+  // Linux doesn't have device paths like Windows
+  // This test exists for parity but has no meaningful implementation
+  SUCCEED();
 }
 
 }  // namespace linux

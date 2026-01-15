@@ -30,17 +30,19 @@ cc_library(
         "scheduled_executor.h",
         "submittable_executor.h",
         "timer.h",
+        "file.h",
         "thread_pool.h",
         #"log_message.h",
         "utils.h",
+        "http_loader.h"
     ],
     srcs = [
         "device_info.cc",
         #"log_message.cc",
         "timer.cc",
     ],
-    copts = ["-lrt"],
-    visibility = ["//third_party/nearby/sharing/internal/impl/linux:__pkg__"],
+    copts = ["-lrt", "-lcurl"],
+    visibility = ["//visibility:public"],
     deps = [
         ":comm",
         "//internal/platform/implementation:types",
@@ -79,7 +81,7 @@ cc_library(
         "@sdbus_cpp//:libsystemd",
         "@sdbus_cpp//:sdbus_cpp",
     ],
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:private", '//internal/platform/implementation/linux:__subpackages__'],
 )
 
 cc_library(
@@ -109,9 +111,12 @@ cc_library(
         "system_clock.cc",
         "thread_pool.cc",
         "utils.cc",
+        "file.cc",
+        "http_loader.cc"
     ],
     linkopts = ["-lcurl"],
     visibility = [
+        "//internal/platform/implementation/linux:__subpackages__",
         "//connections:__subpackages__",
         "//fastpair:__subpackages__",
         "//location/nearby:__subpackages__",
@@ -163,7 +168,8 @@ cc_library(
         "test_utils.h",
     ],
     visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+        "//visibility:private",
+        "//internal/platform/implementation/linux:__subpackages__"
     ],
     deps = [
         "//internal/platform:base",
