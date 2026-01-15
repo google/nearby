@@ -3,10 +3,10 @@
     {
       "identity" : "abseil-cpp-swiftpm",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+      "location" : "https://github.com/firebase/abseil-cpp-SwiftPM.git",
       "state" : {
-        "branch" : "cxx17-test",
-        "revision" : "f2c56293ba0c7dc4fed62c38dfea5c5c2d632166"
+        "branch" : "main",
+        "revision" : "1c50c2cd0bffe5a03cde6fe17129334dcf05071b"
       }
     },
     {
