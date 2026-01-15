@@ -149,10 +149,7 @@ cc_library(
         "WINVER=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows"],
-    visibility = [
-        "//:__subpackages__",
-        "//location/nearby:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":socket_address",
         ":string_utils",
