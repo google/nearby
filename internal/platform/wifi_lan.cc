@@ -20,12 +20,11 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/implementation/upgrade_address_info.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 
 namespace nearby {
@@ -193,17 +192,13 @@ WifiLanSocket WifiLanMedium::ConnectToService(
 }
 
 WifiLanSocket WifiLanMedium::ConnectToService(
-    const ServiceAddress& service_address,
+    const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "WifiLanMedium::ConnectToService: ip address="
-            << service_address;
+            << WifiUtils::GetHumanReadableIpAddress(ip_address)
+            << ", port=" << port;
   return WifiLanSocket(
-      impl_->ConnectToService(service_address, cancellation_flag));
-}
-
-api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
-    const WifiLanServerSocket& server_socket) {
-  return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
+      impl_->ConnectToService(ip_address, port, cancellation_flag));
 }
 
 }  // namespace nearby
