@@ -20,11 +20,12 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 
 namespace nearby {
@@ -155,10 +156,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
     service_type_to_services_map_.insert(
         {service_type, absl::flat_hash_set<std::string>()});
   }
-  LOG(INFO)<< " : Before calling Start discovery";
-  for (const auto& [key, value] : service_type_to_callback_map_) {
-    LOG(INFO) << "key=" << key << " value=" << value;
-  }
+
   bool success = impl_->StartDiscovery(service_type, std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.
@@ -195,13 +193,17 @@ WifiLanSocket WifiLanMedium::ConnectToService(
 }
 
 WifiLanSocket WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "WifiLanMedium::ConnectToService: ip address="
-            << WifiUtils::GetHumanReadableIpAddress(ip_address)
-            << ", port=" << port;
+            << service_address;
   return WifiLanSocket(
-      impl_->ConnectToService(ip_address, port, cancellation_flag));
+      impl_->ConnectToService(service_address, cancellation_flag));
+}
+
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
+    const WifiLanServerSocket& server_socket) {
+  return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
 }
 
 }  // namespace nearby
