@@ -2770,9 +2770,6 @@ TEST_F(BasePcpHandlerTest, TestNeedsToTurnOffAdvertisingMedium) {
 
 TEST_F(BasePcpHandlerTest, TestUpdateAdvertisingOptionsWorks) {
   env_.Start();
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
-      true);
   AdvertisingOptions old_options{
       {},
       true,   // auto_upgrade_bandwidth

@@ -95,11 +95,6 @@ constexpr absl::string_view kAdvertisingTimestamp = "nc.advertising.timestamp";
 
 constexpr absl::Duration kAdvertisingKeepAliveDuration = absl::Seconds(30);
 
-bool IsFeatureUseStableEndpointIdEnabled() {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-      connections::config_package_nearby::nearby_connections_feature::
-          kUseStableEndpointId);
-}
 }  // namespace
 
 ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
@@ -214,26 +209,14 @@ void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
 }
 
 std::string ClientProxy::GenerateLocalEndpointId() {
-  if (IsFeatureUseStableEndpointIdEnabled()) {
-    if (!cached_endpoint_id_.empty()) {
-      if (stable_endpoint_id_mode_) {
-        LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                     "endpoint id due to in stable endpoint id mode]: "
-                     "client="
-                  << GetClientId()
-                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
-        return cached_endpoint_id_;
-      }
-    }
-  } else {
-    if (high_vis_mode_) {
-      if (!cached_endpoint_id_.empty()) {
-        LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                     "endpoint id]: client="
-                  << GetClientId()
-                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
-        return cached_endpoint_id_;
-      }
+  if (!cached_endpoint_id_.empty()) {
+    if (stable_endpoint_id_mode_) {
+      LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
+                    "endpoint id due to in stable endpoint id mode]: "
+                    "client="
+                << GetClientId()
+                << "; cached_endpoint_id_=" << cached_endpoint_id_;
+      return cached_endpoint_id_;
     }
   }
   std::string id;
@@ -252,11 +235,7 @@ void ClientProxy::Reset() {
   StoppedAdvertising();
   StoppedDiscovery();
   RemoveAllEndpoints();
-  if (IsFeatureUseStableEndpointIdEnabled()) {
-    ExitStableEndpointIdMode();
-  } else {
-    ExitHighVisibilityMode();
-  }
+  ExitStableEndpointIdMode();
 }
 
 void ClientProxy::StartedAdvertising(
@@ -269,23 +248,13 @@ void ClientProxy::StartedAdvertising(
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [StartedAdvertising]: client=" << GetClientId();
 
-  if (IsFeatureUseStableEndpointIdEnabled()) {
-    if (stable_endpoint_id_mode_) {
-      cached_endpoint_id_ = local_endpoint_id_;
-    } else {
-      cached_endpoint_id_.clear();
-    }
-
-    CancelClearCachedEndpointIdAlarm();
+  if (stable_endpoint_id_mode_) {
+    cached_endpoint_id_ = local_endpoint_id_;
   } else {
-    if (high_vis_mode_) {
-      cached_endpoint_id_ = local_endpoint_id_;
-      LOG(INFO)
-          << "ClientProxy [High Visibility Mode Adv, Cache EndpointId]: client="
-          << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
-      CancelClearCachedEndpointIdAlarm();
-    }
+    cached_endpoint_id_.clear();
   }
+
+  CancelClearCachedEndpointIdAlarm();
 
   advertising_info_ = {service_id, listener};
   advertising_options_ = advertising_options;
@@ -313,11 +282,7 @@ void ClientProxy::StoppedAdvertising() {
   // advertising_options_ is purposefully not cleared here.
   OnSessionComplete();
 
-  if (IsFeatureUseStableEndpointIdEnabled()) {
-    ExitStableEndpointIdMode();
-  } else {
-    ExitHighVisibilityMode();
-  }
+  ExitStableEndpointIdMode();
 }
 
 bool ClientProxy::IsAdvertising() const {
@@ -640,10 +605,8 @@ void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
 
   CancelEndpoint(endpoint_id);
 
-  if (IsFeatureUseStableEndpointIdEnabled()) {
-    if (!stable_endpoint_id_mode_ && !HasOngoingConnection()) {
-      ScheduleClearCachedEndpointIdAlarm();
-    }
+  if (!stable_endpoint_id_mode_ && !HasOngoingConnection()) {
+    ScheduleClearCachedEndpointIdAlarm();
   }
 }
 
@@ -1158,22 +1121,6 @@ v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
   return listening_options_;
 }
 
-void ClientProxy::EnterHighVisibilityMode() {
-  MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [EnterHighVisibilityMode]: client="
-            << GetClientId();
-
-  high_vis_mode_ = true;
-}
-
-void ClientProxy::ExitHighVisibilityMode() {
-  MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [ExitHighVisibilityMode]: client=" << GetClientId();
-
-  high_vis_mode_ = false;
-  ScheduleClearCachedEndpointIdAlarm();
-}
-
 void ClientProxy::EnterStableEndpointIdMode() {
   MutexLock lock(&mutex_);
   VLOG(1) << "ClientProxy [EnterStableEndpointIdMode]: client="
@@ -1200,7 +1147,7 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
     return;
   }
 
-  if (IsFeatureUseStableEndpointIdEnabled() && HasOngoingConnection()) {
+  if (HasOngoingConnection()) {
     VLOG(1) << "ClientProxy [Handle clearing cached endpoint ID "
                "during disconnection]: client="
             << GetClientId();
@@ -1468,7 +1415,6 @@ std::string ClientProxy::Dump() {
   sstream << "  Client ID: " << GetClientId() << std::endl;
   sstream << "  Local Endpoint ID: " << GetLocalEndpointId() << std::endl;
   sstream << std::boolalpha;
-  sstream << "  High Visibility Mode: " << high_vis_mode_ << std::endl;
   sstream << "  Is Advertising: " << IsAdvertising() << std::endl;
   sstream << "  Is Discovering: " << IsDiscovering() << std::endl;
   sstream << std::noboolalpha;

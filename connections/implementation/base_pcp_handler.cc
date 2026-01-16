@@ -250,21 +250,8 @@ Status BasePcpHandler::StartAdvertising(
         if (compatible_advertising_options.force_new_endpoint_id) {
           client->ClearCachedLocalEndpointId();
         }
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                connections::config_package_nearby::nearby_connections_feature::
-                    kUseStableEndpointId)) {
-          if (ShouldEnterStableEndpointIdMode(compatible_advertising_options)) {
-            client->EnterStableEndpointIdMode();
-          }
-        } else {
-          // The endpoint id inside of the advertisement is different to high
-          // visibility and low visibility mode. In order to decide if client
-          // should grab the high visibility or low visibility id, it needs to
-          // tell client which one right now, before
-          // client#StartedAdvertising.
-          if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
-            client->EnterHighVisibilityMode();
-          }
+        if (ShouldEnterStableEndpointIdMode(compatible_advertising_options)) {
+          client->EnterStableEndpointIdMode();
         }
 
         if (client->IsDctEnabled()) {
@@ -283,13 +270,7 @@ Status BasePcpHandler::StartAdvertising(
             client, service_id, client->GetLocalEndpointId(),
             info.endpoint_info, compatible_advertising_options);
         if (!result.status.Ok()) {
-          if (NearbyFlags::GetInstance().GetBoolFlag(
-                  connections::config_package_nearby::
-                      nearby_connections_feature::kUseStableEndpointId)) {
-            client->ExitStableEndpointIdMode();
-          } else {
-            client->ExitHighVisibilityMode();
-          }
+          client->ExitStableEndpointIdMode();
           response.Set(result.status);
           return;
         }

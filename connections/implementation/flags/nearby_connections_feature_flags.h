@@ -123,9 +123,6 @@ constexpr auto kRefactorBleL2cap =
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
-// When true, use stable endpoint ID.
-constexpr auto kUseStableEndpointId =
-    flags::Flag<bool>(kConfigPackage, "45639298", false);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

@@ -266,15 +266,6 @@ class ClientProxy final {
   DiscoveryOptions GetDiscoveryOptions() const;
   v3::ConnectionListeningOptions GetListeningOptions() const;
 
-  // The endpoint id will be stable for 30 seconds after high visibility mode
-  // (high power and Bluetooth Classic) advertisement stops.
-  // If client re-enters high visibility mode within 30 seconds, he is going to
-  // have the same endpoint id.
-  void EnterHighVisibilityMode();
-  // Cleans up any modifications in high visibility mode. The endpoint id always
-  // rotates.
-  void ExitHighVisibilityMode();
-
   // Enters stable endpoint ID mode.
   void EnterStableEndpointIdMode();
   // Cleans up any modifications in stable endpoint ID mode. The endpoint id
@@ -472,11 +463,6 @@ class ClientProxy final {
   std::int64_t client_id_;
   std::string local_endpoint_id_;
   std::string local_endpoint_info_;
-  // If currently is advertising in high visibility mode is true: high power and
-  // Bluetooth Classic enabled. When high_visibility_mode_ is true, the endpoint
-  // id is stable for 30s. When high_visibility_mode_ is false, the endpoint id
-  // always rotates.
-  bool high_vis_mode_ = false;
 
   // If advertising is in stable endpoint ID mode, the endpoint ID is stable
   // for 30s after advertising or disconnection. When stable_endpoint_id_mode_
