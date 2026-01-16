@@ -754,14 +754,10 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
 
   // Report a nearby legacy device is found when advertisement header doesn't
   // support extended advertisement.
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kDisableBluetoothClassicScanning)) {
-    if (!advertisement_header.IsSupportExtendedAdvertisement()) {
-      for (auto& item : service_id_infos_) {
-        item.second.discovered_peripheral_callback
-            .legacy_device_discovered_cb();
-      }
+  if (!advertisement_header.IsSupportExtendedAdvertisement()) {
+    for (auto& item : service_id_infos_) {
+      item.second.discovered_peripheral_callback
+          .legacy_device_discovered_cb();
     }
   }
 

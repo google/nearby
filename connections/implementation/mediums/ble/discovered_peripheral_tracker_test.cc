@@ -192,10 +192,6 @@ class DiscoveredPeripheralTrackerTest
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kDisableBluetoothClassicScanning,
-        false);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         false);
     bool enable_read_gatt_for_extended_advertisement = std::get<0>(GetParam());
@@ -283,13 +279,6 @@ class DiscoveredPeripheralTrackerTest
   int GetFetchAdvertisementCallbackCount() const {
     MutexLock lock(&mutex_);
     return fetch_count_;
-  }
-
-  void DisableBluetoothScanning() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kDisableBluetoothClassicScanning,
-        true);
   }
 
   void EnableInstantOnLost() {
@@ -423,7 +412,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, DctAdvertisementPeripheralDiscovered) {
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        ReportFoundLegacyDeviceWhenFoundBleAdvertisementPeripheralDiscovered) {
-  DisableBluetoothScanning();
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);

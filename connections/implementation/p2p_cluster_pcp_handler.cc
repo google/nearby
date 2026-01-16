@@ -789,12 +789,6 @@ void P2pClusterPcpHandler::BleInstantLostHandler(
 }
 
 void P2pClusterPcpHandler::BleLegacyDeviceDiscoveredHandler() {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kDisableBluetoothClassicScanning)) {
-    return;
-  }
-
   RunOnPcpHandlerThread(
       "p2p-ble-legacy-peripheral-discovered",
       [this]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -1119,31 +1113,9 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   if (discovery_options.allowed.bluetooth) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kDisableBluetoothClassicScanning)) {
-      StartBluetoothDiscoveryWithPause(
-          client, service_id, discovery_options, mediums_started_successfully,
-          operation_result_with_mediums, /*update_index=*/0);
-    } else {
-      ErrorOr<Medium> bluetooth_result =
-          StartBluetoothDiscovery(client, service_id);
-      if (bluetooth_result.has_value()) {
-        LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: BT added";
-        mediums_started_successfully.push_back(*bluetooth_result);
-        bluetooth_classic_client_id_to_service_id_map_.insert(
-            {client->GetClientId(), service_id});
-      }
-      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
-          operation_result_with_medium =
-              GetOperationResultWithMediumByResultCode(
-                  client, BLUETOOTH,
-                  /*update_index=*/0,
-                  bluetooth_result.has_error()
-                      ? bluetooth_result.error().operation_result_code().value()
-                      : OperationResultCode::DETAIL_SUCCESS);
-      operation_result_with_mediums.push_back(*operation_result_with_medium);
-    }
+    StartBluetoothDiscoveryWithPause(
+        client, service_id, discovery_options, mediums_started_successfully,
+        operation_result_with_mediums, /*update_index=*/0);
   }
 
   if (mediums_started_successfully.empty()) {
@@ -1186,13 +1158,8 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
 
   ble_medium_.StopScanning(client->GetDiscoveryServiceId());
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kDisableBluetoothClassicScanning)) {
-    paused_bluetooth_clients_discoveries_.erase(
-        client->GetDiscoveryServiceId());
-  }
-
+  paused_bluetooth_clients_discoveries_.erase(
+      client->GetDiscoveryServiceId());
   return {Status::kSuccess};
 }
 
@@ -1742,32 +1709,9 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
                   OperationResultCode::DETAIL_SUCCESS);
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     } else {
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kDisableBluetoothClassicScanning)) {
-        StartBluetoothDiscoveryWithPause(
-            client, std::string(service_id), discovery_options,
-            restarted_mediums, operation_result_with_mediums, update_index);
-      } else {
-        ErrorOr<Medium> bluetooth_result =
-            StartBluetoothDiscovery(client, std::string(service_id));
-        if (bluetooth_result.has_value()) {
-          restarted_mediums.push_back(BLUETOOTH);
-        } else {
-          LOG(WARNING)
-              << "UpdateDiscoveryOptionsImpl: unable to restart bt scanning";
-        }
-        std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
-            operation_result_with_medium =
-                GetOperationResultWithMediumByResultCode(
-                    client, BLUETOOTH, update_index,
-                    bluetooth_result.has_error()
-                        ? bluetooth_result.error()
-                              .operation_result_code()
-                              .value()
-                        : OperationResultCode::DETAIL_SUCCESS);
-        operation_result_with_mediums.push_back(*operation_result_with_medium);
-      }
+      StartBluetoothDiscoveryWithPause(
+          client, std::string(service_id), discovery_options, restarted_mediums,
+          operation_result_with_mediums, update_index);
     }
   }
   // awdl (note: keep the awdl logic before the wifi lan logic)

@@ -31,9 +31,6 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
-// When true, disable Bluetooth classic scanning.
-constexpr auto kDisableBluetoothClassicScanning =
-    flags::Flag<bool>(kConfigPackage, "45639961", false);
 // Disable instant on lost on BLE without extended feature.
 constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);

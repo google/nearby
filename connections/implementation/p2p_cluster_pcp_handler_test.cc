@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <string>
-#include <tuple>
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
@@ -90,18 +89,10 @@ class P2pClusterPcpHandlerTest : public testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     SetBleExtendedAdvertisementsAvailable(true);
-    SetDisableBluetoothClassicScanning(true);
   }
 
   void SetBleExtendedAdvertisementsAvailable(bool available) {
     env_.SetBleExtendedAdvertisementsAvailable(false);
-  }
-
-  void SetDisableBluetoothClassicScanning(bool disable) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kDisableBluetoothClassicScanning,
-        disable);
   }
 
   AdvertisingOptions GetBluetoothOnlyAdvertisingOptions() {
@@ -240,20 +231,13 @@ TEST_F(P2pClusterPcpHandlerTest,
 }
 
 class P2pClusterPcpHandlerTestWithParam
-    : public testing::TestWithParam<
-          /*mediums=*/std::tuple<BooleanMediumSelector,
-                                 /*disable_bluetooth_scanning*/ bool>> {
+    : public testing::TestWithParam</*mediums=*/BooleanMediumSelector> {
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
     env_.SetBleExtendedAdvertisementsAvailable(false);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
-    bool is_disable_bluetooth_scanning = std::get<1>(GetParam());
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kDisableBluetoothClassicScanning,
-        is_disable_bluetooth_scanning);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableDct, true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -277,8 +261,6 @@ class P2pClusterPcpHandlerTestWithParam
     if (advertising_options_.allowed.awdl) {
       LOG(INFO) << "SetUp: Awdl enabled";
     }
-    LOG(INFO) << "SetUp: is_disable_bluetooth_scanning: "
-              << is_disable_bluetooth_scanning;
     LOG(INFO) << "SetUp: end";
   }
 
@@ -288,19 +270,19 @@ class P2pClusterPcpHandlerTestWithParam
   ConnectionOptions connection_options_{
       {
           Strategy::kP2pCluster,
-          std::get<0>(GetParam()),
+          GetParam(),
       },
   };
   AdvertisingOptions advertising_options_{
       {
           Strategy::kP2pCluster,
-          std::get<0>(GetParam()),
+          GetParam(),
       },
   };
   DiscoveryOptions discovery_options_{
       {
           Strategy::kP2pCluster,
-          std::get<0>(GetParam()),
+          GetParam(),
       },
   };
   MediumEnvironment& env_{MediumEnvironment::Instance()};
@@ -385,11 +367,11 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, AdvertiseForLegacyDeviceWithBt) {
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
   // advertising for legacy device depends on both BT and BLE enabled.
-  if (std::get<0>(GetParam()).bluetooth) {
+  if (GetParam().bluetooth) {
     EXPECT_TRUE(mediums_a.GetBle().IsAdvertisingForLegacyDevice(service_id_));
   }
   handler_a.StopAdvertising(&client_a_);
-  if (std::get<0>(GetParam()).bluetooth) {
+  if (GetParam().bluetooth) {
     EXPECT_FALSE(mediums_a.GetBle().IsAdvertisingForLegacyDevice(service_id_));
   }
   env_.Stop();
@@ -619,7 +601,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
-  if (!std::get<1>(GetParam()) || !advertising_options_.allowed.bluetooth ||
+  if (!advertising_options_.allowed.bluetooth ||
       !advertising_options_.allowed.ble) {
     return;
   }
@@ -648,7 +630,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
-  if (!std::get<1>(GetParam()) || !advertising_options_.allowed.bluetooth ||
+  if (!advertising_options_.allowed.bluetooth ||
       !advertising_options_.allowed.ble) {
     return;
   }
@@ -802,14 +784,14 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
   EXPECT_EQ(
       handler_a.StartDiscovery(&client_a_, service_id_, discovery_options_, {}),
       Status{Status::kSuccess});
-  BooleanMediumSelector enabled = std::get<0>(GetParam());
+  BooleanMediumSelector enabled = GetParam();
   EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   DiscoveryOptions new_options{
       {
           Strategy::kP2pCluster,
-          std::get<0>(GetParam()),
+          GetParam(),
       },
       false,  // auto_upgrade_bandwidth
       false,  // enforce_topology_constraints
@@ -1665,10 +1647,6 @@ class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     env_.SetBleExtendedAdvertisementsAvailable(true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kDisableBluetoothClassicScanning,
-        false);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -1808,10 +1786,9 @@ TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
   env_.SetBleExtendedAdvertisementsAvailable(false);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTestWithParam,
-    ::testing::Combine(/*mediums=*/::testing::ValuesIn(kTestCases),
-                       /*disable_bluetooth_scanning=*/::testing::Bool()));
+INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest,
+                         P2pClusterPcpHandlerTestWithParam,
+                         ::testing::ValuesIn(kTestCases));
 INSTANTIATE_TEST_SUITE_P(ParametrisedP2pLostHandlerTest,
                          P2pLostHandlerTestWithParam, testing::Bool());
 
