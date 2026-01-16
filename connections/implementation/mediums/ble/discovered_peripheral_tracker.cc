@@ -65,18 +65,10 @@ constexpr absl::Duration kAdvertisementHeaderExpiry = absl::Seconds(15);
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
-    : is_read_gatt_for_extended_advertisement_enabled_(
-          NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableReadGattForExtendedAdvertisement)),
-      is_extended_advertisement_available_(
+    : is_extended_advertisement_available_(
           is_extended_advertisement_available) {
-  LOG(INFO) << __func__ << ": read GATT for extended advertisement: "
-            << is_read_gatt_for_extended_advertisement_enabled_;
   executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
-    executor_->Execute([this]() { GattFetchingLoop(); });
-  }
+  executor_->Execute([this]() { GattFetchingLoop(); });
 }
 
 DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
@@ -93,7 +85,7 @@ void DiscoveredPeripheralTracker::Shutdown() {
     executor_to_shutdown = std::move(executor_);
   }
 
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
+  {
     MutexLock lock(&task_mutex_);
     cond_.Notify();
   }
@@ -328,21 +320,16 @@ bool DiscoveredPeripheralTracker::IsSkippableGattAdvertisement(
   BleAdvertisementHeader advertisement_header(
       ExtractAdvertisementHeaderBytes(advertisement_data));
 
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
-    if (!advertisement_header.IsValid()) {
-      return false;
-    }
-
-    if (advertisement_header.IsSupportExtendedAdvertisement() &&
-        (SystemClock::ElapsedRealtime() - medium_start_scanning_time_) <
-            kExtendedAdvertisementHeaderDelay) {
-      return true;
-    }
+  if (!advertisement_header.IsValid()) {
     return false;
-  } else {
-    return advertisement_header.IsValid() &&
-           advertisement_header.IsSupportExtendedAdvertisement();
   }
+
+  if (advertisement_header.IsSupportExtendedAdvertisement() &&
+      (SystemClock::ElapsedRealtime() - medium_start_scanning_time_) <
+          kExtendedAdvertisementHeaderDelay) {
+    return true;
+  }
+  return false;
 }
 
 void DiscoveredPeripheralTracker::ClearGattAdvertisement(
@@ -771,7 +758,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     return;
   }
 
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
+  {
     MutexLock lock(&task_mutex_);
     if (advertisement_header.IsSupportExtendedAdvertisement() &&
         is_extended_advertisement_available_) {
@@ -806,13 +793,6 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
       });
     }
     cond_.Notify();
-  } else {
-    executor_->Execute(
-        [this, peripheral, advertisement_header,
-          advertisement_fetcher = std::move(advertisement_fetcher)]() mutable {
-          FetchRawAdvertisementsInThread(peripheral, advertisement_header,
-                                          std::move(advertisement_fetcher));
-        });
   }
 
   // Regardless of whether or not we read a new GATT advertisement, the maps

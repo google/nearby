@@ -60,6 +60,7 @@ namespace connections {
 namespace mediums {
 
 namespace {
+using ::testing::UnorderedElementsAre;
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kFastAdvertisementServiceUuid = "FE2C";
@@ -188,24 +189,21 @@ class MockDiscoveredPeripheralCallback : public DiscoveredPeripheralCallback {
 
 class DiscoveredPeripheralTrackerTest
     : public testing::TestWithParam<
-          std::tuple</*kEnableReadGattForExtendedAdvertisement=*/bool>> {
+          std::tuple</*is_extended_advertisement_available=*/bool>> {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         false);
-    bool enable_read_gatt_for_extended_advertisement = std::get<0>(GetParam());
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableReadGattForExtendedAdvertisement,
-        enable_read_gatt_for_extended_advertisement);
+    bool is_extended_advertisement_available = std::get<0>(GetParam());
     EnvironmentConfig config{
         .webrtc_enabled = false,
-        .use_simulated_clock = enable_read_gatt_for_extended_advertisement};
+        .use_simulated_clock = true,
+    };
     MediumEnvironment::Instance().Start(config);
     discovered_peripheral_tracker_ =
         std::make_unique<DiscoveredPeripheralTracker>(
-            enable_read_gatt_for_extended_advertisement);
+            is_extended_advertisement_available);
     adapter_peripheral_ = std::make_unique<BluetoothAdapter>();
     adapter_central_ = std::make_unique<BluetoothAdapter>();
     ble_peripheral_ = std::make_unique<BleMedium>(*adapter_peripheral_);
@@ -1675,69 +1673,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 }
 
 TEST_P(DiscoveredPeripheralTrackerTest,
-       GattAdvertisementGotEarlierThanExtendedAdvertisement) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableReadGattForExtendedAdvertisement)) {
-    return;
-  }
-
-  std::vector<std::string> service_ids = {std::string(kServiceIdA)};
-  ByteArray advertisement_hash = GenerateRandomAdvertisementHash();
-  ByteArray advertisement_header_bytes =
-      CreateExtendedBleAdvertisementHeader(advertisement_hash, service_ids);
-  ByteArray advertisement_bytes = CreateBleAdvertisement(
-      std::string(kServiceIdA), ByteArray(std::string(kData)),
-      ByteArray(std::string(kDeviceToken)));
-  CountDownLatch found_latch(1);
-  CountDownLatch fetch_latch(2);
-
-  discovered_peripheral_tracker_->StartTracking(
-      std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
-      {
-          .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral peripheral,
-                             const std::string& service_id,
-                             const ByteArray& advertisement_bytes,
-                             bool fast_advertisement) {
-                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
-                EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
-              },
-      },
-      bleutils::kCopresenceServiceUuid);
-
-  // 1. First receive a GATT advertisement data, it should be skipped.
-  api::ble::BleAdvertisementData advertisement_data{};
-  if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_data.insert(
-        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
-  }
-
-  FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
-
-  // 2. Receive extended advertisement data first.
-  api::ble::BleAdvertisementData extended_advertisement_data{};
-  extended_advertisement_data.is_extended_advertisement = true;
-  extended_advertisement_data.service_data.insert(
-      {bleutils::kCopresenceServiceUuid, advertisement_bytes});
-
-  FindExtendedAdvertisement(extended_advertisement_data, fetch_latch);
-
-  // We should receive a client callback of a peripheral discovery.
-  fetch_latch.Await(kWaitDuration);
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 0);
-}
-
-TEST_P(DiscoveredPeripheralTrackerTest,
        OnlyGattAdvertisementReceivedOnDeviceWithExtended) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableReadGattForExtendedAdvertisement)) {
-    return;
-  }
-
   std::optional<FakeClock*> fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock();
 
@@ -1787,12 +1723,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 }
 
 TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableReadGattForExtendedAdvertisement)) {
-    return;
-  }
-
   std::optional<FakeClock*> fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock();
 
@@ -1843,12 +1773,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        DiscoveredOnceWhenGattAndExtendedAdvertisementReceived) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableReadGattForExtendedAdvertisement)) {
-    return;
-  }
-
   std::optional<FakeClock*> fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock();
 
@@ -1903,12 +1827,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        FindGattAdvertisementInHigherPriorityThanExtendedGattAdvertisement) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableReadGattForExtendedAdvertisement)) {
-    return;
-  }
-
   std::optional<FakeClock*> fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock();
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
@@ -1932,17 +1850,17 @@ TEST_P(DiscoveredPeripheralTrackerTest,
       ByteArray(std::string(kDeviceToken)));
   CountDownLatch found_latch(3);
   CountDownLatch fetch_latch(3);
-  std::vector<std::string> discovered_peripheral_order;
+  std::vector<std::string> discovered_peripheral;
 
   discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
-              [&found_latch, &discovered_peripheral_order](
+              [&found_latch, &discovered_peripheral](
                   BlePeripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                discovered_peripheral_order.push_back(
+                discovered_peripheral.push_back(
                     std::string(advertisement_bytes));
                 found_latch.CountDown();
               },
@@ -1971,16 +1889,16 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
   EXPECT_TRUE(fetch_latch.Await(kWaitDuration).ok());
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  ASSERT_EQ(discovered_peripheral_order.size(), 3);
-  EXPECT_EQ(discovered_peripheral_order[0], "advertisement_a");
-  EXPECT_EQ(discovered_peripheral_order[1], "advertisement_c");
-  EXPECT_EQ(discovered_peripheral_order[2], "advertisement_b");
+  ASSERT_EQ(discovered_peripheral.size(), 3);
+  EXPECT_THAT(discovered_peripheral,
+              UnorderedElementsAre("advertisement_a", "advertisement_c",
+                                   "advertisement_b"));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     DiscoveredPeripheralTrackerFlagsTest, DiscoveredPeripheralTrackerTest,
     ::testing::Combine(
-        /*kEnableReadGattForExtendedAdvertisement=*/testing::Bool()));
+        /*is_extended_advertisement_available=*/testing::Bool()));
 
 }  // namespace
 

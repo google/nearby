@@ -85,9 +85,6 @@ constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
 // Enable/Disable payload-received-ack feature.
 constexpr auto kEnablePayloadReceivedAck =
     flags::Flag<bool>(kConfigPackage, "45425840", false);
-// Enable/Disable GATT query for extended advertisement.
-constexpr auto kEnableReadGattForExtendedAdvertisement =
-    flags::Flag<bool>(kConfigPackage, "45718229", false);
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
