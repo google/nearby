@@ -1639,20 +1639,13 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectBleEndpoint) {
   env_.Stop();
 }
 
-class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
+class P2pLostHandlerTest : public testing::Test{
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     env_.SetBleExtendedAdvertisementsAvailable(true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
-        GetParam());
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableAdvertisingForInstantOnLost,
-        true);
   }
 
   AdvertisingOptions GetBleOnlyAdvertisingOptions() {
@@ -1679,7 +1672,7 @@ class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
+TEST_F(P2pLostHandlerTest, CanConnect) {
   env_.Start();
 
   std::string endpoint_name_a{"endpoint_name"};
@@ -1789,8 +1782,6 @@ TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
 INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest,
                          P2pClusterPcpHandlerTestWithParam,
                          ::testing::ValuesIn(kTestCases));
-INSTANTIATE_TEST_SUITE_P(ParametrisedP2pLostHandlerTest,
-                         P2pLostHandlerTestWithParam, testing::Bool());
 
 }  // namespace
 }  // namespace nearby::connections

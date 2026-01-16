@@ -234,10 +234,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
           if (gatt_advertisement.IsValid()) {
             if (NearbyFlags::GetInstance().GetBoolFlag(
                     config_package_nearby::nearby_connections_feature::
-                        kEnableInstantOnLost) ||
-                NearbyFlags::GetInstance().GetBoolFlag(
-                    config_package_nearby::nearby_connections_feature::
-                        kEnableScanningForInstantOnLost)) {
+                        kEnableInstantOnLost)) {
               AddInstantLostAdvertisement(it.second.advertisement_header);
               discovery_cb_it->second.discovered_peripheral_callback
                   .instant_lost_cb(lost_peripheral, it.second.service_id,
