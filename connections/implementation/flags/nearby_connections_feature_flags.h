@@ -61,9 +61,6 @@ constexpr auto kEnableDynamicRoleSwitch =
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
-// Disable/Enable GATT query in thread in BLE V2.
-constexpr auto kEnableGattQueryInThread =
-    flags::Flag<bool>(kConfigPackage, "45415261", true);
 // When true, enable instant on lost feature.
 constexpr auto kEnableInstantOnLost =
     flags::Flag<bool>(kConfigPackage, "45642180", false);

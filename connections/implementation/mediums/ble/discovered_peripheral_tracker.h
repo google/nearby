@@ -306,7 +306,6 @@ class DiscoveredPeripheralTracker {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
-  bool is_fetching_in_thread_ = false;
   bool is_read_gatt_for_extended_advertisement_enabled_ = true;
   bool is_extended_advertisement_available_;
 
