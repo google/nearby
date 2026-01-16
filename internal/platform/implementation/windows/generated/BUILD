@@ -43,6 +43,7 @@ cc_library(
         "wlanapi.lib",
         "shlwapi.lib",
         "runtimeobject.lib",
+        "setupapi.lib",
     ],
     visibility = [
         "//internal:__subpackages__",
