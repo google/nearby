@@ -1,26 +1,10 @@
-// Copyright 2023 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include <filesystem>
 #include <memory>
 #include <string>
 
-#include <curl/curl.h>
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/Types.h>
 
-#include "device_info.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -29,16 +13,8 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
-//#include "internal/platform/implementation/linux/ble_v2_medium.h"
 #include "internal/platform/implementation/linux/condition_variable.h"
-#include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/mutex.h"
-#include "internal/platform/implementation/linux/preferences_manager.h"
-#include "internal/platform/implementation/linux/submittable_executor.h"
-#include "internal/platform/implementation/linux/timer.h"
-// #include "internal/platform/implementation/linux/wifi_direct.h"
-// #include "internal/platform/implementation/linux/wifi_hotspot.h"
-// #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 
 #include "absl/strings/str_cat.h"
@@ -49,8 +25,7 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/payload_id.h"
-#include "scheduled_executor.h"
-
+#include "internal/platform/logging.h"
 namespace nearby {
 namespace api {
 std::string ImplementationPlatform::GetCustomSavePath(
@@ -189,18 +164,18 @@ std::unique_ptr<api::LogMessage> ImplementationPlatform::CreateLogMessage(
 
 std::unique_ptr<api::SubmittableExecutor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
-  return std::make_unique<linux::SubmittableExecutor>();
+  return nullptr;
 }
 
 std::unique_ptr<api::SubmittableExecutor>
 ImplementationPlatform::CreateMultiThreadExecutor(
     std::int32_t max_concurrency) {
-  return std::make_unique<linux::SubmittableExecutor>(max_concurrency);
+  return nullptr;
 }
 
 std::unique_ptr<ScheduledExecutor>
 ImplementationPlatform::CreateScheduledExecutor() {
-  return std::make_unique<linux::ScheduledExecutor>();
+  return nullptr;
 }
 
 std::unique_ptr<api::BluetoothAdapter>
@@ -244,11 +219,11 @@ ImplementationPlatform::CreateWifiDirectMedium() {
 }
 
 std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {
-  return std::make_unique<linux::Timer>();
+  return nullptr;
 }
 
 std::unique_ptr<api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
-  return std::make_unique<linux::DeviceInfo>(linux::getSystemBusConnection());
+  return nullptr;
 }
 
   std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
@@ -257,77 +232,13 @@ std::unique_ptr<api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
 
 absl::StatusOr<api::WebResponse> ImplementationPlatform::SendRequest(
     const WebRequest &request) {
-  if (request.body.size() >= (8 * 1024 * 1024)) {
-    return absl::Status(absl::StatusCode::kResourceExhausted,
-                        "request body too large");
-  }
-
-  CURL *handle = curl_easy_init();
-  char errbuf[CURL_ERROR_SIZE];
-  errbuf[0] = '\0';
-
-  curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str());
-  curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errbuf);
-
-  if (request.method == "GET")
-    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-  else if (request.method == "POST")
-    curl_easy_setopt(handle, CURLOPT_POST, 1L);
-  else
-    curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, request.method.c_str());
-
-  curl_easy_setopt(handle, CURLOPT_UPLOAD, request.body.c_str());
-
-  struct curl_slist *headers_slist = nullptr;
-
-  for (auto &[key, value] : request.headers) {
-    auto hdr = absl::StrCat(key, ": ", value);
-    auto temp = curl_slist_append(headers_slist, hdr.c_str());
-    if (temp == nullptr) {
-      if (headers_slist != nullptr) {
-        curl_slist_free_all(headers_slist);
-      }
-      return absl::Status(absl::StatusCode::kResourceExhausted,
-                          "failed to append header to slist");
-    }
-  }
-
-  curl_easy_setopt(handle, CURLOPT_HTTPHEADER, headers_slist);
-
-  api::WebResponse response;
-
-  if (curl_easy_perform(handle) != CURLE_OK) {
-    LOG(ERROR) << __func__
-                       << ": Error performing HTTP request: " << errbuf;
-    return absl::Status(absl::StatusCode::kUnknown, errbuf);
-  }
-
-  struct curl_header *prev = nullptr;
-  struct curl_header *h;
-
-  h = curl_easy_nextheader(handle, CURLH_HEADER, 0, prev);
-  while (h != nullptr) {
-    response.headers.emplace(h->name, h->value);
-  }
-
-  auto writefn = [](char *ptr, size_t size, size_t nmemb, void *userdata) {
-    std::string *body = static_cast<std::string *>(userdata);
-    body->append(ptr, size * nmemb);
-  };
-
-  curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writefn);
-  curl_easy_setopt(handle, CURLOPT_WRITEDATA,
-                   static_cast<void *>(&response.body));
-  long status;
-  curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &status);
-  response.status_code = status;
-  return response;
+ return absl::UnimplementedError("SendRequest not implemented");
 }
 
 #ifndef NEARBY_CHROMIUM
 std::unique_ptr<nearby::api::PreferencesManager>
 ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
-  return std::make_unique<linux::PreferencesManager>(path);
+  return nullptr;
 }
 #endif
 

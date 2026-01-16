@@ -10,12 +10,6 @@ bazel_dep(name = "protobuf", version = "32.0", repo_name = "com_google_protobuf"
 bazel_dep(name = "googletest", version = "1.17.0", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
 
-#bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
-#git_override(
-#         module_name = "hedron_compile_commands",
-#         remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
-#         commit = "02d15621b528efd877f5d5657c4b738523a0eb17",
-#         )
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
