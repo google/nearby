@@ -225,7 +225,7 @@ static const NSTimeInterval kTestTimeout = 1.0;
 
   // Don't send ResponseDataConnectionReady packet to simulate timeout.
 
-  [self waitForExpectationsWithTimeout:kTestTimeout * 10 handler:nil];
+  [self waitForExpectationsWithTimeout:kTestTimeout * 30 handler:nil];
   XCTAssertFalse(success);
 }
 

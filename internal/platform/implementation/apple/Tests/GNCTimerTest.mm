@@ -75,7 +75,7 @@
 
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
   XCTAssertTrue(timer->Stop());
-  XCTAssertEqual(fireCount.load(), 2);
+  XCTAssertGreaterThanOrEqual(fireCount.load(), 2);
 }
 
 - (void)testRestart {

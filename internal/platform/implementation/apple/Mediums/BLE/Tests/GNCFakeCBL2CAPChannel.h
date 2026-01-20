@@ -20,16 +20,16 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * A fake CBL2CAPChannel for testing.
  */
-@interface GNCFakeCBL2CAPChannel : NSObject
+@interface GNCFakeCBL2CAPChannel : CBL2CAPChannel
 
 /** The input stream for the L2CAP channel. */
-@property(nonatomic, nullable) NSInputStream *inputStream;
+@property(nonatomic, readwrite, nullable) NSInputStream *inputStream;
 /** The output stream for the L2CAP channel. */
-@property(nonatomic, nullable) NSOutputStream *outputStream;
+@property(nonatomic, readwrite, nullable) NSOutputStream *outputStream;
 /** The socket file descriptor for the L2CAP channel. */
-@property(nonatomic, readonly) int socketFD;
+@property(nonatomic, readwrite) int socketFD;
 /** The PSM (Protocol/Service Multiplexer) of the L2CAP channel. */
-@property(nonatomic, readonly) CBL2CAPPSM PSM;
+@property(nonatomic, readwrite) CBL2CAPPSM PSM;
 
 @end
 

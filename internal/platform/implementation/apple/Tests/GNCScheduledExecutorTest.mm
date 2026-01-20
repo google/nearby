@@ -82,15 +82,16 @@ using ::nearby::api::ScheduledExecutor;
   dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0);
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
 
-  const NSTimeInterval delay = 0.1;
-  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay));
+  const int delay_ms = 100;
+  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay_ms));
 
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * 2 * NSEC_PER_SEC)), queue, ^{
-    XCTAssertEqual(self.counter, 0);
-    [expectation fulfill];
-  });
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay_ms / 1000.0 * 2 * NSEC_PER_SEC)),
+                 queue, ^{
+                   XCTAssertEqual(self.counter, 0);
+                   [expectation fulfill];
+                 });
 
-  [self waitForExpectationsWithTimeout:delay * 5 handler:nil];
+  [self waitForExpectationsWithTimeout:delay_ms / 1000.0 * 5 handler:nil];
 }
 
 // Tests that fails to cancel when the executor is shut down.
@@ -99,7 +100,8 @@ using ::nearby::api::ScheduledExecutor;
 
   executor->Shutdown();
 
-  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Seconds(0.1));
+  const int delay_ms = 100;
+  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay_ms));
 
   XCTAssert(cancelable.get() == nullptr);
 }
@@ -111,17 +113,18 @@ using ::nearby::api::ScheduledExecutor;
   dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0);
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
 
-  const NSTimeInterval delay = 0.1;
-  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay));
+  const int delay_ms = 100;
+  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay_ms));
 
   executor->Shutdown();
 
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * 2 * NSEC_PER_SEC)), queue, ^{
-    XCTAssertEqual(self.counter, 0);
-    [expectation fulfill];
-  });
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay_ms / 1000.0 * 2 * NSEC_PER_SEC)),
+                 queue, ^{
+                   XCTAssertEqual(self.counter, 0);
+                   [expectation fulfill];
+                 });
 
-  [self waitForExpectationsWithTimeout:delay * 5 handler:nil];
+  [self waitForExpectationsWithTimeout:delay_ms / 1000.0 * 5 handler:nil];
 }
 
 // Tests that a canceled runnable doesn't run.
@@ -130,15 +133,15 @@ using ::nearby::api::ScheduledExecutor;
 
   // This runnable should run but not increment the counter because it sleeps for longer than the
   // cancel below.
-  const NSTimeInterval delay = 0.1;
-  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Seconds(delay));
+  const int delay_ms = 100;
+  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay_ms));
   XCTAssert(cancelable.get() != nullptr);
 
   // Cancel the runnable.
   cancelable->Cancel();
 
   // Wait for the time interval to pass and verify that it didn't run.
-  [NSThread sleepForTimeInterval:delay * 1.1];
+  [NSThread sleepForTimeInterval:delay_ms / 1000.0 * 1.1];
   XCTAssertEqual(self.counter, 0);
 }
 
