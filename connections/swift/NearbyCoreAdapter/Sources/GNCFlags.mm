@@ -24,12 +24,13 @@
 @implementation GNCFlags
 
 + (BOOL)enableBLEV2 {
-  // This is deprecated. It's a no-op.
-  return true;
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleV2);
 }
 
 + (void)setEnableBLEV2:(BOOL)value {
-  // This is deprecated. It's a no-op.
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleV2, value);
 }
 
 @end

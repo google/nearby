@@ -49,6 +49,9 @@ constexpr auto kEnableBleL2cap =
 // Enable/Disable BLE medium injection.
 constexpr auto kEnableBleMediumInjection =
     flags::Flag<bool>(kConfigPackage, "45743128", false);
+// Disable/Enable BLE v2 in Nearby Connections SDK.
+constexpr auto kEnableBleV2 =
+    flags::Flag<bool>(kConfigPackage, "45401515", true);
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
