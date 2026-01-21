@@ -425,7 +425,6 @@ bool WifiDirectMedium::StopWifiDirect() {
     server_socket_ptr_ = nullptr;
     ip_address_local_.clear();
     ip_address_remote_.clear();
-    listener_executor_.Shutdown();
     return true;
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. Exception: "
@@ -785,7 +784,7 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
     session_ = nullptr;
     ip_address_local_.clear();
     ip_address_remote_.clear();
-  return true;
+    return true;
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Stop WifiDirect GC failed. Exception: "
                << exception.what();
