@@ -192,9 +192,6 @@ class DiscoveredPeripheralTrackerTest
           std::tuple</*is_extended_advertisement_available=*/bool>> {
  public:
   void SetUp() override {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
-        false);
     bool is_extended_advertisement_available = std::get<0>(GetParam());
     EnvironmentConfig config{
         .webrtc_enabled = false,
@@ -277,12 +274,6 @@ class DiscoveredPeripheralTrackerTest
   int GetFetchAdvertisementCallbackCount() const {
     MutexLock lock(&mutex_);
     return fetch_count_;
-  }
-
-  void EnableInstantOnLost() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
-        true);
   }
 
  protected:
@@ -1190,73 +1181,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
 }
 
-TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
-  std::vector<std::string> service_ids = {std::string(kServiceIdA)};
-  ByteArray advertisement_hash = GenerateRandomAdvertisementHash();
-  ByteArray advertisement_header_bytes =
-      CreateBleAdvertisementHeader(advertisement_hash, service_ids);
-  ByteArray advertisement_bytes = CreateBleAdvertisement(
-      std::string(kServiceIdA), ByteArray(std::string(kData)),
-      ByteArray(std::string(kDeviceToken)));
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
-  CountDownLatch fetch_latch(1);
-
-  discovered_peripheral_tracker_->StartTracking(
-      std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
-      {
-          .peripheral_discovered_cb =
-              [&found_latch](BlePeripheral peripheral,
-                             const std::string& service_id,
-                             const ByteArray& advertisement_bytes,
-                             bool fast_advertisement) {
-                EXPECT_EQ(advertisement_bytes, ByteArray(std::string(kData)));
-                EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
-              },
-          .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
-      },
-      {});
-
-  api::ble::BleAdvertisementData advertisement_data{};
-  if (!advertisement_header_bytes.Empty()) {
-    advertisement_data.service_data.insert(
-        {bleutils::kCopresenceServiceUuid, advertisement_header_bytes});
-  }
-
-  FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
-
-  // We should receive a client callback of a peripheral discovery.
-  fetch_latch.Await(kWaitDuration);
-  ASSERT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
-
-  auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
-      std::list<std::string>({std::string(
-          bleutils::GenerateAdvertisementHash(advertisement_bytes))}));
-  ASSERT_OK(advertisement);
-  api::ble::BleAdvertisementData loss_advertisement_data{};
-  loss_advertisement_data.service_data.insert(
-      {bleutils::kCopresenceServiceUuid, ByteArray(advertisement->ToBytes())});
-
-  FindAdvertisement(loss_advertisement_data,
-                    {ByteArray(advertisement->ToBytes())}, fetch_latch);
-
-  // Then, go through a cycle of onLost. Since we triggered a forced loss via
-  // the instant on los advertisement, the lost call should trigger the onLost
-  // client callback.
-  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
-
-  // We should receive a client callback of a lost peripheral
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
-}
-
 TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
-  EnableInstantOnLost();
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_hash = GenerateRandomAdvertisementHash();
   ByteArray advertisement_header_bytes =
@@ -1323,7 +1248,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        IgnoreFoundAdvertisementForInstantOnLost) {
-  EnableInstantOnLost();
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_hash = GenerateRandomAdvertisementHash();
   ByteArray advertisement_header_bytes =
@@ -1429,7 +1353,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                 EXPECT_TRUE(fast_advertisement);
                 found_latch.CountDown();
               },
-          .peripheral_lost_cb =
+          .instant_lost_cb =
               [&lost_latch](
                   BlePeripheral peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,

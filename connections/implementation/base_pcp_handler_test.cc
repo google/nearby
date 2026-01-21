@@ -458,10 +458,6 @@ class BasePcpHandlerTest
   }
 
   void SetUp() override {
-    // Disable instant on lost for all tests by default.
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
-        false);
     MacAddress::FromString("12:34:56:78:9a:bc", remote_mac_address_);
   }
 
@@ -900,13 +896,6 @@ class BasePcpHandlerTest
     };
   }
 
-  void EnableInstantOnLostFeature() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        connections::config_package_nearby::nearby_connections_feature::
-            kEnableInstantOnLost,
-        true);
-  }
-
   SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
@@ -1045,7 +1034,6 @@ TEST_P(BasePcpHandlerTest, StartStopStartDiscoveryClearsEndpoints) {
 }
 
 TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
-  EnableInstantOnLostFeature();
   env_.Start({.use_simulated_clock = true});
   BooleanMediumSelector allowed{
       .bluetooth = true,
@@ -1077,7 +1065,6 @@ TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
 }
 
 TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
-  EnableInstantOnLostFeature();
   env_.Start({.use_simulated_clock = true});
   BooleanMediumSelector allowed{
       .bluetooth = true,

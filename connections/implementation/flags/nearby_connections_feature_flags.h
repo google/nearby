@@ -36,7 +36,7 @@ constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);
 // When true, enable advertising for instant on lost feature.
 constexpr auto kEnableAdvertisingForInstantOnLost =
-    flags::Flag<bool>(kConfigPackage, "45708614", false);
+    flags::Flag<bool>(kConfigPackage, "45708614", true);
 // Enable/Disable auto_reconnect feature.
 constexpr auto kEnableAutoReconnect =
     flags::Flag<bool>(kConfigPackage, "45427690", false);
@@ -59,8 +59,6 @@ constexpr auto kEnableDynamicRoleSwitch =
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
 // When true, enable instant on lost feature.
-constexpr auto kEnableInstantOnLost =
-    flags::Flag<bool>(kConfigPackage, "45642180", false);
 // When true, enable multiplexing in NC.
 constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45647946", false);
@@ -87,7 +85,7 @@ constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
 // When true, enable scanning for instant on lost feature.
 constexpr auto kEnableScanningForInstantOnLost =
-    flags::Flag<bool>(kConfigPackage, "45708613", false);
+    flags::Flag<bool>(kConfigPackage, "45708613", true);
 // Stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
 constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
