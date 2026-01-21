@@ -34,7 +34,6 @@
 #include "connections/connection_options.h"
 #include "connections/core.h"
 #include "connections/discovery_options.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -801,10 +800,6 @@ int NcGetLocalEndpointId(NC_INSTANCE instance) {
 
 void NcEnableBleV2(NC_INSTANCE instance, bool enable,
                    NcCallbackResult result_callback, CALLER_CONTEXT context) {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleV2,
-      enable);
   result_callback(NC_STATUS_SUCCESS, context);
 }
 
