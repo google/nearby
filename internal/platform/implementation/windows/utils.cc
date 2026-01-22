@@ -19,9 +19,12 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
+#include <setupapi.h>
+#include <devguid.h>
 // clang-format on
 
 // Standard C/C++ headers
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -349,6 +352,100 @@ std::optional<std::wstring> GetDnsHostName() {
 
   LOG(ERROR) << ": Failed to get device dns name, error:" << GetLastError();
   return std::nullopt;
+}
+
+bool IsIntelWifiAdapter() {
+  bool found_intel = false;
+  LOG(INFO) << "Starting scan for Intel Wi-Fi adapters...";
+
+  // 1. Get a handle to all network adapters present in the system
+  HDEVINFO h_dev_info =
+      SetupDiGetClassDevsW(&GUID_DEVCLASS_NET, nullptr, nullptr, DIGCF_PRESENT);
+  // SetupDiDestroyDeviceInfoList needs to be called in the end of this function
+  if (h_dev_info == INVALID_HANDLE_VALUE) {
+    LOG(ERROR) << "Failed to get Class Devs handle. Error: " << GetLastError();
+    return false;
+  }
+
+  SP_DEVINFO_DATA dev_info_data;
+  dev_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
+
+  // 2. Enumerate through the devices
+  for (DWORD i = 0; SetupDiEnumDeviceInfo(h_dev_info, i, &dev_info_data); i++) {
+    // 3. Get the Hardware ID property (contains VEN_XXXX and DEV_XXXX)
+    DWORD hardware_id_size = 0;
+    if (!SetupDiGetDeviceRegistryPropertyW(h_dev_info, &dev_info_data,
+                                           SPDRP_HARDWAREID, nullptr, nullptr,
+                                           0, &hardware_id_size) &&
+        GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+      LOG(ERROR) << "Failed to get Hardware ID size. Error: " << GetLastError();
+      continue;
+    }
+    std::wstring hardware_id;
+    hardware_id.resize((hardware_id_size + sizeof(wchar_t) - 1) /
+                       sizeof(wchar_t));
+    if (SetupDiGetDeviceRegistryPropertyW(
+            h_dev_info, &dev_info_data, SPDRP_HARDWAREID, nullptr,
+            reinterpret_cast<BYTE*>(hardware_id.data()),
+            hardware_id.size() * sizeof(wchar_t), nullptr)) {
+      // REG_MULTI_SZ contains multiple null-terminated strings.
+      // We search the whole buffer for the Intel Vendor ID (8086).
+      // 4. Check for Intel Vendor ID: 8086
+      // On you Windows computer, go to "Device Manager" --> "Network adapters"
+      // --> Right click Wifi device
+      // --> click "properties" --> click "Details" --> In "Property" dropdown
+      // list, choose "Hardware ID", then you will see:
+      // Hardware IDs look like: PCI\VEN_8086&DEV_2723...,
+      // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/identifiers-for-pci-devices
+      // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-models-section
+      if (hardware_id.find(L"VEN_8086") !=  // NOLINT - ClangTidy asks to replace
+                                      // find() with absl::StrContains(), but
+                                      // this is not applicable to wide string
+                                      // and will cause compile error.
+          std::wstring::npos) {
+        // 5. Ensure it's a Wi-Fi/Wireless device
+        // We check the description to make sure we aren't flagging an Intel
+        // Ethernet chip
+        std::wstring to_log_hw_id = hardware_id;
+        // Replace all null characters with spaces to avoid truncation.
+        std::replace(to_log_hw_id.begin(), to_log_hw_id.end(), L'\0', L' ');
+        LOG(INFO) << "  - Hardware ID: "
+                  << string_utils::WideStringToString(to_log_hw_id);
+
+        DWORD desc_buf_size = 0;
+        if (!SetupDiGetDeviceRegistryPropertyW(h_dev_info, &dev_info_data,
+                                               SPDRP_DEVICEDESC, nullptr,
+                                               nullptr, 0, &desc_buf_size) &&
+            GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+          continue;
+        }
+
+        std::wstring name;
+        name.resize((desc_buf_size + sizeof(wchar_t) - 1) / sizeof(wchar_t));
+        if (SetupDiGetDeviceRegistryPropertyW(
+                h_dev_info, &dev_info_data, SPDRP_DEVICEDESC, nullptr,
+                reinterpret_cast<BYTE*>(name.data()),
+                name.size() * sizeof(wchar_t), nullptr)) {
+          if (name.find(L"Wi-Fi") !=  // NOLINT - ClangTidy asks to replace
+                                      // find() with absl::StrContains(), but
+                                      // this is not applicable to wide string
+                                      // and will cause compile error.
+                  std::wstring::npos ||
+              name.find(L"Wireless") !=  // NOLINT
+                  std::wstring::npos ||
+              name.find(L"Killer") !=  // NOLINT
+                  std::wstring::npos) {
+            LOG(INFO) << "Found Intel Wi-Fi: " << name;
+            found_intel = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  SetupDiDestroyDeviceInfoList(h_dev_info);
+  return found_intel;
 }
 
 }  // namespace nearby::windows

@@ -174,5 +174,10 @@ TEST(UtilsTests, GetDnsHostName) {
              << nearby::windows::string_utils::WideStringToString(*host_name);
 }
 
+TEST(UtilsTests, IsIntelWifiAdapter) {
+  bool is_intel_wifi_adapter = IsIntelWifiAdapter();
+  LOG(ERROR) << "is_intel_wifi_adapter: " << is_intel_wifi_adapter;
+}
+
 }  // namespace windows
 }  // namespace nearby

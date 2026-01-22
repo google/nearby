@@ -31,6 +31,7 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/socket_address.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
@@ -73,6 +74,12 @@ WifiDirectMedium::~WifiDirectMedium() {
 }
 
 bool WifiDirectMedium::IsWifiDirectServiceSupported() {
+  if (!IsIntelWifiAdapter()) {
+    LOG(INFO) << "Intel Wifi adapter is not found, WifiDirectService is not "
+                 "supported.";
+    return false;
+  }
+
   HANDLE wifi_direct_handle = nullptr;
   DWORD negotiated_version = 0;
   DWORD result = 0;
@@ -85,63 +92,7 @@ bool WifiDirectMedium::IsWifiDirectServiceSupported() {
   }
   LOG(INFO) << "WiFi can support WifiDirect";
   WFDCloseHandle(wifi_direct_handle);
-
-  // Check if device support WinRT WiFiDirectService
-  bool support_wifi_direct_service = false;
-  std::string service_name = "NC-validation";
-
-  // Create Advertiser object
-  WiFiDirectServiceAdvertiser advertiser =
-      WiFiDirectServiceAdvertiser(winrt::to_hstring(service_name));
-  if (advertiser == nullptr) {
-    LOG(ERROR) << "Failed to create WiFiDirectServiceAdvertiser";
-    return false;
-  }
-
-  advertiser.AutoAcceptSession(true);
-  advertiser.PreferGroupOwnerMode(true);
-  advertiser.ServiceStatus(WiFiDirectServiceStatus::Available);
-  // Config Methods
-  WiFiDirectServiceConfigurationMethod config_method =
-      WiFiDirectServiceConfigurationMethod::Default;  // NOLINT
-
-  advertiser.PreferredConfigurationMethods().Clear();
-  advertiser.PreferredConfigurationMethods().Append(config_method);
-
-  try {
-    advertiser.Start();
-    LOG(INFO) << "Start WifiDirect GO Status: "
-              << (int)advertiser.AdvertisementStatus();
-    if (advertiser.AdvertisementStatus() ==
-        WiFiDirectServiceAdvertisementStatus::Created) {
-      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
-      support_wifi_direct_service = true;
-    } else if (advertiser.AdvertisementStatus() ==
-               WiFiDirectServiceAdvertisementStatus::Started) {
-      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
-      advertiser.Stop();
-      support_wifi_direct_service = true;
-    } else {
-      if (advertiser.AdvertisementStatus() ==
-          WiFiDirectServiceAdvertisementStatus::Aborted) {
-        LOG(INFO) << "Failed to start WifiDirect GO with error code: "
-                  << (int)advertiser.ServiceError();
-      }
-      LOG(INFO) << "WinRT WiFiDirectService is not supported on this device.";
-      support_wifi_direct_service = false;
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. Exception: "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-  advertiser = nullptr;
-
-  return support_wifi_direct_service;
+  return true;
 }
 
 bool WifiDirectMedium::IsInterfaceValid() const {
