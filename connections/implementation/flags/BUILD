@@ -23,7 +23,6 @@ cc_library(
     # Flags should not be visible to external users. Only for internal use.
     visibility = [
         "//connections:__subpackages__",
-        "//connections:partners",
         "//internal/platform:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
