@@ -113,16 +113,32 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
   for (int i = 0; i < ip_address_max_retries; i++) {
     for (const auto& net_interface :
         NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+      // service_addresses should only have addresses from a single interface.
+      service_addresses.clear();
       if (net_interface.type == InterfaceType::kWifiHotspot) {
         LOG(INFO) << "Found Wifi Hotspot interface, index: "
                   << net_interface.index;
         for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
           service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
         }
+        bool has_ipv4_address = false;
         for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
+          // Skip link-local IPv4 addresses.  This shouldn't really happen since
+          // we are the DHCP server and most implementations sets a static IP.
+          // However, it seems that on some ARM(?) devices, the interface gets
+          // assigned a link-local address.  See b/475473742.
+          if (ipaddress.IsV4LinkLocal()) {
+            continue;
+          }
+          has_ipv4_address = true;
           service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
         }
-        break;
+        // We assume there is only one Wifi Hotspot interface.  So stop looking
+        // once we've found a hotspot interface with a non-link-local IPv4
+        // address.
+        if (has_ipv4_address) {
+          break;
+        }
       }
     }
     if (!service_addresses.empty()) {
