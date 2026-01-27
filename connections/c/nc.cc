@@ -256,37 +256,6 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
   ::nearby::apple::EnableOsLog("com.google.nearby.connections");
 #endif  // TARGET_OS_IOS
 
-#if defined(NC_IOS_SDK)
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleV2,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableDct,
-      false);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableDynamicRoleSwitch,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleL2cap,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableAwdl,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableStopBleScanningOnWifiUpgrade,
-      true);
-#endif
-
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
   nc_context.event_logger =
       event_logger == nullptr ? nullptr : new NcEventLogger(event_logger);
