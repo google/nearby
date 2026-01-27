@@ -1400,9 +1400,9 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
   MockDeviceProvider provider;
   client1()->RegisterDeviceProvider(&provider);
   ASSERT_NE(client1()->GetLocalDeviceProvider(), nullptr);
-  EXPECT_CALL(
-      *(down_cast<MockDeviceProvider*>(client1()->GetLocalDeviceProvider())),
-      GetLocalDevice);
+  EXPECT_CALL(*(absl::down_cast<MockDeviceProvider*>(
+                  client1()->GetLocalDeviceProvider())),
+              GetLocalDevice);
   client1()->GetLocalDevice();
 }
 
