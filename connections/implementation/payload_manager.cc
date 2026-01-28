@@ -1036,13 +1036,7 @@ bool PayloadManager::WaitForReceivedAck(
 bool PayloadManager::IsPayloadReceivedAckEnabled(
     ClientProxy* client, const std::string& endpoint_id,
     PendingPayload& pending_payload) {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnablePayloadReceivedAck) &&
-         client->IsPayloadReceivedAckEnabled(endpoint_id) &&
-         (pending_payload.GetInternalPayload()->GetType() !=
-          nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
-              PayloadHeader::BYTES);
+  return false;
 }
 
 void PayloadManager::HandleFinishedOutgoingPayload(

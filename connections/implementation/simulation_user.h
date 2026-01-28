@@ -56,10 +56,6 @@ class SetSafeToDisconnect {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAutoReconnect,
         auto_reconnect);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnablePayloadReceivedAck,
-        payload_received_ack);
     NearbyFlags::GetInstance().OverrideInt64FlagValue(
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
