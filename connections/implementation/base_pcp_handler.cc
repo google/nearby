@@ -877,10 +877,7 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     connection_info.supported_wifi_direct_auth_types = {};
   }
 
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableWifiHotspotClient) ||
-      connection_options.non_disruptive_hotspot_mode) {
+  if (connection_options.non_disruptive_hotspot_mode) {
     // Remove Wi-Fi Hotspot if WiFi LAN is available.
     StripOutWifiHotspotMedium(connection_info);
   }
