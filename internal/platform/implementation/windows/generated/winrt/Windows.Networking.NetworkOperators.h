@@ -1397,24 +1397,6 @@ namespace winrt::impl
             _winrt_abi_type->remove_Updated(impl::bind_in(token));
         }
     }
-    template <typename D> auto consume_Windows_Networking_NetworkOperators_IFdnAccessManagerStatics<D>::RequestUnlockAsync(param::hstring const& contactListId) const
-    {
-        void* returnValue{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->RequestUnlockAsync(*(void**)(&contactListId), &returnValue));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>**)this;
-            check_hresult(_winrt_abi_type->RequestUnlockAsync(*(void**)(&contactListId), &returnValue));
-        }
-        return winrt::Windows::Foundation::IAsyncOperation<bool>{ returnValue, take_ownership_from_abi };
-    }
     template <typename D> auto consume_Windows_Networking_NetworkOperators_IHotspotAuthenticationContext<D>::WirelessNetworkId() const
     {
         uint32_t value_impl_size{};
@@ -8677,20 +8659,6 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>
-    {
-        int32_t __stdcall RequestUnlockAsync(void* contactListId, void** returnValue) noexcept final try
-        {
-            clear_abi(returnValue);
-            typename D::abi_guard guard(this->shim());
-            *returnValue = detach_from<winrt::Windows::Foundation::IAsyncOperation<bool>>(this->shim().RequestUnlockAsync(*reinterpret_cast<hstring const*>(&contactListId)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-    };
-#endif
-#ifndef WINRT_LEAN_AND_MEAN
-    template <typename D>
     struct produce<D, winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext> : produce_base<D, winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext>
     {
         int32_t __stdcall get_WirelessNetworkId(uint32_t* __valueSize, uint8_t** value) noexcept final try
@@ -12153,10 +12121,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
     {
         impl::call_factory<ESimManager, IESimManagerStatics>([&](IESimManagerStatics const& f) { return f.ServiceInfoChanged(token); });
     }
-    inline auto FdnAccessManager::RequestUnlockAsync(param::hstring const& contactListId)
-    {
-        return impl::call_factory<FdnAccessManager, IFdnAccessManagerStatics>([&](IFdnAccessManagerStatics const& f) { return f.RequestUnlockAsync(contactListId); });
-    }
     inline auto HotspotAuthenticationContext::TryGetAuthenticationContext(param::hstring const& evenToken, winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationContext& context)
     {
         return impl::call_factory<HotspotAuthenticationContext, IHotspotAuthenticationContextStatics>([&](IHotspotAuthenticationContextStatics const& f) { return f.TryGetAuthenticationContext(evenToken, context); });
@@ -12342,7 +12306,6 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IESimServiceInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IESimUpdatedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IESimWatcher> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContextStatics> : winrt::impl::hash_base {};
@@ -12459,7 +12422,6 @@ namespace std
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::ESimServiceInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::ESimUpdatedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::ESimWatcher> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Networking::NetworkOperators::FdnAccessManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationContext> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationEventDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Networking::NetworkOperators::HotspotCredentialsAuthenticationResult> : winrt::impl::hash_base {};

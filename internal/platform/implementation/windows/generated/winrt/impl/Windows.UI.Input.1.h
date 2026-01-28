@@ -188,12 +188,29 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input
         IMouseWheelParameters(std::nullptr_t = nullptr) noexcept {}
         IMouseWheelParameters(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IPhysicalGestureRecognizer
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPhysicalGestureRecognizer> {
+      IPhysicalGestureRecognizer(std::nullptr_t = nullptr) noexcept {}
+      IPhysicalGestureRecognizer(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IPointerPoint :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IPointerPoint>
     {
         IPointerPoint(std::nullptr_t = nullptr) noexcept {}
         IPointerPoint(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IPointerPointPhysicalPosition
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPointerPointPhysicalPosition> {
+      IPointerPointPhysicalPosition(std::nullptr_t = nullptr) noexcept {}
+      IPointerPointPhysicalPosition(void* ptr,
+                                    take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IPointerPointProperties :
         winrt::Windows::Foundation::IInspectable,
@@ -481,6 +498,32 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input
     {
         ITappedEventArgs2(std::nullptr_t = nullptr) noexcept {}
         ITappedEventArgs2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES ITouchpadGesturesController
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<ITouchpadGesturesController> {
+      ITouchpadGesturesController(std::nullptr_t = nullptr) noexcept {}
+      ITouchpadGesturesController(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES ITouchpadGesturesControllerStatics
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<ITouchpadGesturesControllerStatics> {
+      ITouchpadGesturesControllerStatics(std::nullptr_t = nullptr) noexcept {}
+      ITouchpadGesturesControllerStatics(void* ptr,
+                                         take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES ITouchpadGlobalActionEventArgs
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<ITouchpadGlobalActionEventArgs> {
+      ITouchpadGlobalActionEventArgs(std::nullptr_t = nullptr) noexcept {}
+      ITouchpadGlobalActionEventArgs(void* ptr,
+                                     take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
 }
 #endif

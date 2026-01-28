@@ -47,15 +47,15 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Contacts
         Work = 1,
         Other = 2,
     };
-    enum class ContactAnnotationOperations : uint32_t
-    {
-        None = 0,
-        ContactProfile = 0x1,
-        Message = 0x2,
-        AudioCall = 0x4,
-        VideoCall = 0x8,
-        SocialFeeds = 0x10,
-        Share = 0x20,
+    enum class ContactAnnotationOperations : uint32_t {
+      None = 0,
+      ContactProfile = 0x1,
+      Message = 0x2,
+      AudioCall = 0x4,
+      VideoCall = 0x8,
+      SocialFeeds = 0x10,
+      Share = 0x20,
+      Activity = 0x40,
     };
     enum class ContactAnnotationStoreAccessType : int32_t
     {

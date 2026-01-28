@@ -64,11 +64,6 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
         static auto Unregister();
         static auto GetInstances();
     };
-    struct CameraApplicationManager
-    {
-        CameraApplicationManager() = delete;
-        static auto ShowInstalledApplicationsUI();
-    };
     struct DesignMode
     {
         DesignMode() = delete;

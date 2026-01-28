@@ -109,16 +109,5 @@ WINRT_EXPORT namespace winrt::Windows::Media::SpeechRecognition
         SpeechRecognizerUIOptions(std::nullptr_t) noexcept {}
         SpeechRecognizerUIOptions(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions(ptr, take_ownership_from_abi) {}
     };
-    struct VoiceCommandManager
-    {
-        VoiceCommandManager() = delete;
-        static auto InstallCommandSetsFromStorageFileAsync(winrt::Windows::Storage::StorageFile const& file);
-        [[nodiscard]] static auto InstalledCommandSets();
-    };
-    struct WINRT_IMPL_EMPTY_BASES VoiceCommandSet : winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet
-    {
-        VoiceCommandSet(std::nullptr_t) noexcept {}
-        VoiceCommandSet(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet(ptr, take_ownership_from_abi) {}
-    };
 }
 #endif

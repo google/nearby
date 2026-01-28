@@ -10542,170 +10542,6 @@ namespace winrt::impl
         }
         return value;
     }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::AudioSource() const
-    {
-        void* value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_AudioSource(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            check_hresult(_winrt_abi_type->get_AudioSource(&value));
-        }
-        return winrt::Windows::Media::Core::IMediaSource{ value, take_ownership_from_abi };
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::VideoSource() const
-    {
-        void* value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_VideoSource(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            check_hresult(_winrt_abi_type->get_VideoSource(&value));
-        }
-        return winrt::Windows::Media::Core::IMediaSource{ value, take_ownership_from_abi };
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::IsAudioSuspended() const
-    {
-        bool value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_IsAudioSuspended(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            check_hresult(_winrt_abi_type->get_IsAudioSuspended(&value));
-        }
-        return value;
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::IsVideoSuspended() const
-    {
-        bool value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_IsVideoSuspended(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            check_hresult(_winrt_abi_type->get_IsVideoSuspended(&value));
-        }
-        return value;
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::SourceSuspensionChanged(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Capture::ScreenCapture, winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> const& handler) const
-    {
-        winrt::event_token token{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->add_SourceSuspensionChanged(*(void**)(&handler), put_abi(token)));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            check_hresult(_winrt_abi_type->add_SourceSuspensionChanged(*(void**)(&handler), put_abi(token)));
-        }
-        return token;
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::SourceSuspensionChanged(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Capture::ScreenCapture, winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> const& handler) const
-    {
-        return impl::make_event_revoker<D, SourceSuspensionChanged_revoker>(this, SourceSuspensionChanged(handler));
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCapture<D>::SourceSuspensionChanged(winrt::event_token const& token) const noexcept
-    {
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCapture>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCapture, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)&_winrt_casted_result;
-            _winrt_abi_type->remove_SourceSuspensionChanged(impl::bind_in(token));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCapture>**)this;
-            _winrt_abi_type->remove_SourceSuspensionChanged(impl::bind_in(token));
-        }
-    }
-    template <typename D> auto consume_Windows_Media_Capture_IScreenCaptureStatics<D>::GetForCurrentView() const
-    {
-        void* value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::IScreenCaptureStatics>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::IScreenCaptureStatics, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCaptureStatics>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->GetForCurrentView(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::IScreenCaptureStatics>**)this;
-            check_hresult(_winrt_abi_type->GetForCurrentView(&value));
-        }
-        return winrt::Windows::Media::Capture::ScreenCapture{ value, take_ownership_from_abi };
-    }
-    template <typename D> auto consume_Windows_Media_Capture_ISourceSuspensionChangedEventArgs<D>::IsAudioSuspended() const
-    {
-        bool value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_IsAudioSuspended(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>**)this;
-            check_hresult(_winrt_abi_type->get_IsAudioSuspended(&value));
-        }
-        return value;
-    }
-    template <typename D> auto consume_Windows_Media_Capture_ISourceSuspensionChangedEventArgs<D>::IsVideoSuspended() const
-    {
-        bool value{};
-        if constexpr (!std::is_same_v<D, winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->get_IsVideoSuspended(&value));
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>**)this;
-            check_hresult(_winrt_abi_type->get_IsVideoSuspended(&value));
-        }
-        return value;
-    }
     template <typename D> auto consume_Windows_Media_Capture_IVideoStreamConfiguration<D>::InputProperties() const
     {
         void* value{};
@@ -15789,90 +15625,6 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Media::Capture::IScreenCapture> : produce_base<D, winrt::Windows::Media::Capture::IScreenCapture>
-    {
-        int32_t __stdcall get_AudioSource(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Media::Core::IMediaSource>(this->shim().AudioSource());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_VideoSource(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Media::Core::IMediaSource>(this->shim().VideoSource());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_IsAudioSuspended(bool* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<bool>(this->shim().IsAudioSuspended());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_IsVideoSuspended(bool* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<bool>(this->shim().IsVideoSuspended());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall add_SourceSuspensionChanged(void* handler, winrt::event_token* token) noexcept final try
-        {
-            zero_abi<winrt::event_token>(token);
-            typename D::abi_guard guard(this->shim());
-            *token = detach_from<winrt::event_token>(this->shim().SourceSuspensionChanged(*reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Capture::ScreenCapture, winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> const*>(&handler)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall remove_SourceSuspensionChanged(winrt::event_token token) noexcept final
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().SourceSuspensionChanged(*reinterpret_cast<winrt::event_token const*>(&token));
-            return 0;
-        }
-    };
-#endif
-#ifndef WINRT_LEAN_AND_MEAN
-    template <typename D>
-    struct produce<D, winrt::Windows::Media::Capture::IScreenCaptureStatics> : produce_base<D, winrt::Windows::Media::Capture::IScreenCaptureStatics>
-    {
-        int32_t __stdcall GetForCurrentView(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Media::Capture::ScreenCapture>(this->shim().GetForCurrentView());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-    };
-#endif
-#ifndef WINRT_LEAN_AND_MEAN
-    template <typename D>
-    struct produce<D, winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs> : produce_base<D, winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>
-    {
-        int32_t __stdcall get_IsAudioSuspended(bool* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<bool>(this->shim().IsAudioSuspended());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_IsVideoSuspended(bool* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<bool>(this->shim().IsVideoSuspended());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-    };
-#endif
-#ifndef WINRT_LEAN_AND_MEAN
-    template <typename D>
     struct produce<D, winrt::Windows::Media::Capture::IVideoStreamConfiguration> : produce_base<D, winrt::Windows::Media::Capture::IVideoStreamConfiguration>
     {
         int32_t __stdcall get_InputProperties(void** value) noexcept final try
@@ -15975,10 +15727,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
     inline MediaCaptureInitializationSettings::MediaCaptureInitializationSettings() :
         MediaCaptureInitializationSettings(impl::call_factory_cast<MediaCaptureInitializationSettings(*)(winrt::Windows::Foundation::IActivationFactory const&), MediaCaptureInitializationSettings>([](winrt::Windows::Foundation::IActivationFactory const& f) { return f.template ActivateInstance<MediaCaptureInitializationSettings>(); }))
     {
-    }
-    inline auto ScreenCapture::GetForCurrentView()
-    {
-        return impl::call_factory_cast<winrt::Windows::Media::Capture::ScreenCapture(*)(IScreenCaptureStatics const&), ScreenCapture, IScreenCaptureStatics>([](IScreenCaptureStatics const& f) { return f.GetForCurrentView(); });
     }
     template <typename L> MediaCaptureFailedEventHandler::MediaCaptureFailedEventHandler(L handler) :
         MediaCaptureFailedEventHandler(impl::make_delegate<MediaCaptureFailedEventHandler>(std::forward<L>(handler)))
@@ -16168,9 +15916,6 @@ namespace std
     template<> struct hash<winrt::Windows::Media::Capture::IOptionalReferencePhotoCapturedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::IPhotoCapturedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Media::Capture::IScreenCapture> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Media::Capture::IScreenCaptureStatics> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::IVideoStreamConfiguration> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::AdvancedCapturedPhoto> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::AdvancedPhotoCapture> : winrt::impl::hash_base {};
@@ -16243,8 +15988,6 @@ namespace std
     template<> struct hash<winrt::Windows::Media::Capture::OptionalReferencePhotoCapturedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::PhotoCapturedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::PhotoConfirmationCapturedEventArgs> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Media::Capture::ScreenCapture> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Capture::VideoStreamConfiguration> : winrt::impl::hash_base {};
 #endif
 #ifdef __cpp_lib_format

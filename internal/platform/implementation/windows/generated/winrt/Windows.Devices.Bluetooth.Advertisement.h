@@ -1068,6 +1068,123 @@ namespace winrt::impl
             check_hresult(_winrt_abi_type->put_IncludeTransmitPowerLevel(value));
         }
     }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementPublisher3<
+        D>::PrimaryPhy() const {
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPhyType value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementPublisher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementPublisher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementPublisher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_PrimaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementPublisher3>**)this;
+        check_hresult(_winrt_abi_type->get_PrimaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementPublisher3<
+        D>::PrimaryPhy(winrt::Windows::Devices::Bluetooth::Advertisement::
+                           BluetoothLEAdvertisementPhyType const& value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementPublisher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementPublisher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementPublisher3>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->put_PrimaryPhy(static_cast<int32_t>(value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementPublisher3>**)this;
+        check_hresult(
+            _winrt_abi_type->put_PrimaryPhy(static_cast<int32_t>(value)));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementPublisher3<
+        D>::SecondaryPhy() const {
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPhyType value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementPublisher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementPublisher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementPublisher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_SecondaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementPublisher3>**)this;
+        check_hresult(_winrt_abi_type->get_SecondaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementPublisher3<
+        D>::SecondaryPhy(winrt::Windows::Devices::Bluetooth::Advertisement::
+                             BluetoothLEAdvertisementPhyType const& value)
+        const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementPublisher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementPublisher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementPublisher3>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->put_SecondaryPhy(static_cast<int32_t>(value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementPublisher3>**)this;
+        check_hresult(
+            _winrt_abi_type->put_SecondaryPhy(static_cast<int32_t>(value)));
+      }
+    }
     template <typename D> auto consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementPublisherFactory<D>::Create(winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement const& advertisement) const
     {
         void* value{};
@@ -1355,6 +1472,180 @@ namespace winrt::impl
             check_hresult(_winrt_abi_type->get_IsScanResponse(&value));
         }
         return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementReceivedEventArgs3<
+        D>::PrimaryPhy() const {
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPhyType value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementReceivedEventArgs3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementReceivedEventArgs3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementReceivedEventArgs3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_PrimaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementReceivedEventArgs3>**)this;
+        check_hresult(_winrt_abi_type->get_PrimaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementReceivedEventArgs3<
+        D>::SecondaryPhy() const {
+      winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementPhyType value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementReceivedEventArgs3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementReceivedEventArgs3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementReceivedEventArgs3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_SecondaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementReceivedEventArgs3>**)this;
+        check_hresult(_winrt_abi_type->get_SecondaryPhy(
+            reinterpret_cast<int32_t*>(&value)));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementScanParameters<
+        D>::ScanWindow() const {
+      uint16_t value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementScanParameters>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementScanParameters,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParameters>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_ScanWindow(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementScanParameters>**)this;
+        check_hresult(_winrt_abi_type->get_ScanWindow(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementScanParameters<
+        D>::ScanInterval() const {
+      uint16_t value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementScanParameters>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementScanParameters,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParameters>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_ScanInterval(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementScanParameters>**)this;
+        check_hresult(_winrt_abi_type->get_ScanInterval(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementScanParametersStatics<
+        D>::CoexistenceOptimized() const {
+      void* parameters{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Devices::Bluetooth::Advertisement::
+                            IBluetoothLEAdvertisementScanParametersStatics>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementScanParametersStatics,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParametersStatics>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->CoexistenceOptimized(&parameters));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementScanParametersStatics>**)this;
+        check_hresult(_winrt_abi_type->CoexistenceOptimized(&parameters));
+      }
+      return winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementScanParameters{parameters,
+                                                 take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementScanParametersStatics<
+        D>::LowLatency() const {
+      void* parameters{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Devices::Bluetooth::Advertisement::
+                            IBluetoothLEAdvertisementScanParametersStatics>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementScanParametersStatics,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParametersStatics>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->LowLatency(&parameters));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementScanParametersStatics>**)this;
+        check_hresult(_winrt_abi_type->LowLatency(&parameters));
+      }
+      return winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementScanParameters{parameters,
+                                                 take_ownership_from_abi};
     }
     template <typename D> auto consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher<D>::MinSamplingInterval() const
     {
@@ -1689,6 +1980,218 @@ namespace winrt::impl
             auto const _winrt_abi_type = *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcher2>**)this;
             check_hresult(_winrt_abi_type->put_AllowExtendedAdvertisements(value));
         }
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseUncoded1MPhy() const {
+      bool value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_UseUncoded1MPhy(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->get_UseUncoded1MPhy(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseUncoded1MPhy(bool value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_UseUncoded1MPhy(value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->put_UseUncoded1MPhy(value));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseCodedPhy() const {
+      bool value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_UseCodedPhy(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->get_UseCodedPhy(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseCodedPhy(bool value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_UseCodedPhy(value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->put_UseCodedPhy(value));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::ScanParameters() const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_ScanParameters(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->get_ScanParameters(&value));
+      }
+      return winrt::Windows::Devices::Bluetooth::Advertisement::
+          BluetoothLEAdvertisementScanParameters{value,
+                                                 take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::ScanParameters(winrt::Windows::Devices::Bluetooth::Advertisement::
+                               BluetoothLEAdvertisementScanParameters const&
+                                   value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_ScanParameters(*(void**)(&value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->put_ScanParameters(*(void**)(&value)));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseHardwareFilter() const {
+      bool value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_UseHardwareFilter(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->get_UseHardwareFilter(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcher3<
+        D>::UseHardwareFilter(bool value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                               IBluetoothLEAdvertisementWatcher3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                IBluetoothLEAdvertisementWatcher3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_UseHardwareFilter(value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::Advertisement::
+                        IBluetoothLEAdvertisementWatcher3>**)this;
+        check_hresult(_winrt_abi_type->put_UseHardwareFilter(value));
+      }
     }
     template <typename D> auto consume_Windows_Devices_Bluetooth_Advertisement_IBluetoothLEAdvertisementWatcherFactory<D>::Create(winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementFilter const& advertisementFilter) const
     {
@@ -2303,16 +2806,70 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisherFactory> : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisherFactory>
-    {
-        int32_t __stdcall Create(void* advertisement, void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementPublisher>(this->shim().Create(*reinterpret_cast<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisement const*>(&advertisement)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementPublisher3>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementPublisher3> {
+      int32_t __stdcall get_PrimaryPhy(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementPhyType>(
+            this->shim().PrimaryPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_PrimaryPhy(int32_t value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().PrimaryPhy(
+            *reinterpret_cast<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementPhyType const*>(&value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_SecondaryPhy(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementPhyType>(
+            this->shim().SecondaryPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_SecondaryPhy(int32_t value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().SecondaryPhy(
+            *reinterpret_cast<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementPhyType const*>(&value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementPublisherFactory>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementPublisherFactory> {
+      int32_t __stdcall Create(void* advertisement, void** value) noexcept final
+          try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementPublisher>(
+            this->shim().Create(
+                *reinterpret_cast<
+                    winrt::Windows::Devices::Bluetooth::Advertisement::
+                        BluetoothLEAdvertisement const*>(&advertisement)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -2450,133 +3007,261 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcher> : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcher>
-    {
-        int32_t __stdcall get_MinSamplingInterval(int64_t* value) noexcept final try
-        {
-            zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Foundation::TimeSpan>(this->shim().MinSamplingInterval());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_MaxSamplingInterval(int64_t* value) noexcept final try
-        {
-            zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Foundation::TimeSpan>(this->shim().MaxSamplingInterval());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_MinOutOfRangeTimeout(int64_t* value) noexcept final try
-        {
-            zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Foundation::TimeSpan>(this->shim().MinOutOfRangeTimeout());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_MaxOutOfRangeTimeout(int64_t* value) noexcept final try
-        {
-            zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Foundation::TimeSpan>(this->shim().MaxOutOfRangeTimeout());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_Status(int32_t* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcherStatus>(this->shim().Status());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_ScanningMode(int32_t* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEScanningMode>(this->shim().ScanningMode());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall put_ScanningMode(int32_t value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().ScanningMode(*reinterpret_cast<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEScanningMode const*>(&value));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_SignalStrengthFilter(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter>(this->shim().SignalStrengthFilter());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall put_SignalStrengthFilter(void* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().SignalStrengthFilter(*reinterpret_cast<winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter const*>(&value));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_AdvertisementFilter(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementFilter>(this->shim().AdvertisementFilter());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall put_AdvertisementFilter(void* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().AdvertisementFilter(*reinterpret_cast<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementFilter const*>(&value));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall Start() noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().Start();
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall Stop() noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().Stop();
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall add_Received(void* handler, winrt::event_token* token) noexcept final try
-        {
-            zero_abi<winrt::event_token>(token);
-            typename D::abi_guard guard(this->shim());
-            *token = detach_from<winrt::event_token>(this->shim().Received(*reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcher, winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementReceivedEventArgs> const*>(&handler)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall remove_Received(winrt::event_token token) noexcept final
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().Received(*reinterpret_cast<winrt::event_token const*>(&token));
-            return 0;
-        }
-        int32_t __stdcall add_Stopped(void* handler, winrt::event_token* token) noexcept final try
-        {
-            zero_abi<winrt::event_token>(token);
-            typename D::abi_guard guard(this->shim());
-            *token = detach_from<winrt::event_token>(this->shim().Stopped(*reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcher, winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcherStoppedEventArgs> const*>(&handler)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall remove_Stopped(winrt::event_token token) noexcept final
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().Stopped(*reinterpret_cast<winrt::event_token const*>(&token));
-            return 0;
-        }
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementReceivedEventArgs3>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementReceivedEventArgs3> {
+      int32_t __stdcall get_PrimaryPhy(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementPhyType>(
+            this->shim().PrimaryPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_SecondaryPhy(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementPhyType>(
+            this->shim().SecondaryPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementScanParameters>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementScanParameters> {
+      int32_t __stdcall get_ScanWindow(uint16_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<uint16_t>(this->shim().ScanWindow());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_ScanInterval(uint16_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<uint16_t>(this->shim().ScanInterval());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementScanParametersStatics>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementScanParametersStatics> {
+      int32_t __stdcall CoexistenceOptimized(void** parameters) noexcept final
+          try {
+        clear_abi(parameters);
+        typename D::abi_guard guard(this->shim());
+        *parameters =
+            detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                            BluetoothLEAdvertisementScanParameters>(
+                this->shim().CoexistenceOptimized());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall LowLatency(void** parameters) noexcept final try {
+        clear_abi(parameters);
+        typename D::abi_guard guard(this->shim());
+        *parameters =
+            detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                            BluetoothLEAdvertisementScanParameters>(
+                this->shim().LowLatency());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementWatcher>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementWatcher> {
+      int32_t __stdcall get_MinSamplingInterval(int64_t* value) noexcept final
+          try {
+        zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Foundation::TimeSpan>(
+            this->shim().MinSamplingInterval());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_MaxSamplingInterval(int64_t* value) noexcept final
+          try {
+        zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Foundation::TimeSpan>(
+            this->shim().MaxSamplingInterval());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_MinOutOfRangeTimeout(int64_t* value) noexcept final
+          try {
+        zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Foundation::TimeSpan>(
+            this->shim().MinOutOfRangeTimeout());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_MaxOutOfRangeTimeout(int64_t* value) noexcept final
+          try {
+        zero_abi<winrt::Windows::Foundation::TimeSpan>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Foundation::TimeSpan>(
+            this->shim().MaxOutOfRangeTimeout());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Status(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementWatcherStatus>(
+            this->shim().Status());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_ScanningMode(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEScanningMode>(
+            this->shim().ScanningMode());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_ScanningMode(int32_t value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().ScanningMode(
+            *reinterpret_cast<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEScanningMode const*>(&value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_SignalStrengthFilter(void** value) noexcept final
+          try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<
+            winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter>(
+            this->shim().SignalStrengthFilter());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_SignalStrengthFilter(void* value) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().SignalStrengthFilter(
+            *reinterpret_cast<winrt::Windows::Devices::Bluetooth::
+                                  BluetoothSignalStrengthFilter const*>(
+                &value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_AdvertisementFilter(void** value) noexcept final
+          try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementFilter>(
+            this->shim().AdvertisementFilter());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_AdvertisementFilter(void* value) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().AdvertisementFilter(
+            *reinterpret_cast<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementFilter const*>(&value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall Start() noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Start();
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall Stop() noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Stop();
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall add_Received(void* handler,
+                                     winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Received(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementWatcher,
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementReceivedEventArgs> const*>(
+                &handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Received(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Received(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+      int32_t __stdcall add_Stopped(void* handler,
+                                    winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Stopped(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementWatcher,
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementWatcherStoppedEventArgs> const*>(
+                &handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Stopped(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Stopped(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -2601,16 +3286,95 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcherFactory> : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcherFactory>
-    {
-        int32_t __stdcall Create(void* advertisementFilter, void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcher>(this->shim().Create(*reinterpret_cast<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementFilter const*>(&advertisementFilter)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementWatcher3>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementWatcher3> {
+      int32_t __stdcall get_UseUncoded1MPhy(bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().UseUncoded1MPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_UseUncoded1MPhy(bool value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().UseUncoded1MPhy(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_UseCodedPhy(bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().UseCodedPhy());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_UseCodedPhy(bool value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().UseCodedPhy(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_ScanParameters(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementScanParameters>(
+            this->shim().ScanParameters());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_ScanParameters(void* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().ScanParameters(
+            *reinterpret_cast<
+                winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementScanParameters const*>(&value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_UseHardwareFilter(bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().UseHardwareFilter());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_UseHardwareFilter(bool value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().UseHardwareFilter(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                          IBluetoothLEAdvertisementWatcherFactory>
+        : produce_base<D, winrt::Windows::Devices::Bluetooth::Advertisement::
+                              IBluetoothLEAdvertisementWatcherFactory> {
+      int32_t __stdcall Create(void* advertisementFilter,
+                               void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Devices::Bluetooth::Advertisement::
+                                 BluetoothLEAdvertisementWatcher>(
+            this->shim().Create(
+                *reinterpret_cast<
+                    winrt::Windows::Devices::Bluetooth::Advertisement::
+                        BluetoothLEAdvertisementFilter const*>(
+                    &advertisementFilter)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -2829,6 +3593,28 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::Advertisement
         BluetoothLEAdvertisementPublisher(impl::call_factory<BluetoothLEAdvertisementPublisher, IBluetoothLEAdvertisementPublisherFactory>([&](IBluetoothLEAdvertisementPublisherFactory const& f) { return f.Create(advertisement); }))
     {
     }
+    inline auto BluetoothLEAdvertisementScanParameters::CoexistenceOptimized() {
+      return impl::call_factory_cast<
+          winrt::Windows::Devices::Bluetooth::Advertisement::
+              BluetoothLEAdvertisementScanParameters (*)(
+                  IBluetoothLEAdvertisementScanParametersStatics const&),
+          BluetoothLEAdvertisementScanParameters,
+          IBluetoothLEAdvertisementScanParametersStatics>(
+          [](IBluetoothLEAdvertisementScanParametersStatics const& f) {
+            return f.CoexistenceOptimized();
+          });
+    }
+    inline auto BluetoothLEAdvertisementScanParameters::LowLatency() {
+      return impl::call_factory_cast<
+          winrt::Windows::Devices::Bluetooth::Advertisement::
+              BluetoothLEAdvertisementScanParameters (*)(
+                  IBluetoothLEAdvertisementScanParametersStatics const&),
+          BluetoothLEAdvertisementScanParameters,
+          IBluetoothLEAdvertisementScanParametersStatics>(
+          [](IBluetoothLEAdvertisementScanParametersStatics const& f) {
+            return f.LowLatency();
+          });
+    }
     inline BluetoothLEAdvertisementWatcher::BluetoothLEAdvertisementWatcher() :
         BluetoothLEAdvertisementWatcher(impl::call_factory_cast<BluetoothLEAdvertisementWatcher(*)(winrt::Windows::Foundation::IActivationFactory const&), BluetoothLEAdvertisementWatcher>([](winrt::Windows::Foundation::IActivationFactory const& f) { return f.template ActivateInstance<BluetoothLEAdvertisementWatcher>(); }))
     {
@@ -2858,13 +3644,33 @@ namespace std
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementFilter> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisher> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisher2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementPublisher3>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisherFactory> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisherStatusChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementPublisherStatusChangedEventArgs2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementReceivedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementReceivedEventArgs2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementReceivedEventArgs3>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParameters>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementScanParametersStatics>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcher> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcher2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    IBluetoothLEAdvertisementWatcher3>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcherFactory> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementWatcherStoppedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEManufacturerData> : winrt::impl::hash_base {};
@@ -2877,6 +3683,10 @@ namespace std
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementPublisher> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementPublisherStatusChangedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementReceivedEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::
+                    BluetoothLEAdvertisementScanParameters>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcher> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementWatcherStoppedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEManufacturerData> : winrt::impl::hash_base {};

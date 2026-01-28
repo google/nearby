@@ -142,9 +142,11 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfi
     struct IGattReliableWriteTransaction2;
     struct IGattRequestStateChangedEventArgs;
     struct IGattServiceProvider;
+    struct IGattServiceProvider2;
     struct IGattServiceProviderAdvertisementStatusChangedEventArgs;
     struct IGattServiceProviderAdvertisingParameters;
     struct IGattServiceProviderAdvertisingParameters2;
+    struct IGattServiceProviderAdvertisingParameters3;
     struct IGattServiceProviderResult;
     struct IGattServiceProviderStatics;
     struct IGattServiceUuidsStatics;
@@ -239,9 +241,20 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattReliableWriteTransaction2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattRequestStateChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProvider>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Devices::Bluetooth::
+                        GenericAttributeProfile::IGattServiceProvider2> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisementStatusChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters2>{ using type = interface_category; };
+    template <>
+    struct category<
+        winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+            IGattServiceProviderAdvertisingParameters3> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderResult>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceUuidsStatics>{ using type = interface_category; };
@@ -390,9 +403,21 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattReliableWriteTransaction2> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattReliableWriteTransaction2";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattRequestStateChangedEventArgs> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattRequestStateChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProvider> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProvider";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProvider2> =
+            L"Windows.Devices.Bluetooth.GenericAttributeProfile."
+            L"IGattServiceProvider2";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisementStatusChangedEventArgs> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProviderAdvertisementStatusChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProviderAdvertisingParameters";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters2> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProviderAdvertisingParameters2";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProviderAdvertisingParameters3> =
+            L"Windows.Devices.Bluetooth.GenericAttributeProfile."
+            L"IGattServiceProviderAdvertisingParameters3";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderResult> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProviderResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderStatics> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceProviderStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceUuidsStatics> = L"Windows.Devices.Bluetooth.GenericAttributeProfile.IGattServiceUuidsStatics";
@@ -447,9 +472,27 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattReliableWriteTransaction2>{ 0x51113987,0xEF12,0x462F,{ 0x9F,0xB2,0xA1,0xA4,0x3A,0x67,0x94,0x16 } }; // 51113987-EF12-462F-9FB2-A1A43A679416
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattRequestStateChangedEventArgs>{ 0xE834D92C,0x27BE,0x44B3,{ 0x9D,0x0D,0x4F,0xC6,0xE8,0x08,0xDD,0x3F } }; // E834D92C-27BE-44B3-9D0D-4FC6E808DD3F
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProvider>{ 0x7822B3CD,0x2889,0x4F86,{ 0xA0,0x51,0x3F,0x0A,0xED,0x1C,0x27,0x60 } }; // 7822B3CD-2889-4F86-A051-3F0AED1C2760
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProvider2>{
+            0x9EF531A9,
+            0xCF12,
+            0x59A3,
+            {0xA8, 0x1C, 0x36, 0x2F, 0x4A, 0xAB, 0xAA,
+             0xCF}};  // 9EF531A9-CF12-59A3-A81C-362F4AABAACF
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisementStatusChangedEventArgs>{ 0x59A5AA65,0xFA21,0x4FFC,{ 0xB1,0x55,0x04,0xD9,0x28,0x01,0x26,0x86 } }; // 59A5AA65-FA21-4FFC-B155-04D928012686
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters>{ 0xE2CE31AB,0x6315,0x4C22,{ 0x9B,0xD7,0x78,0x1D,0xBC,0x3D,0x8D,0x82 } }; // E2CE31AB-6315-4C22-9BD7-781DBC3D8D82
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisingParameters2>{ 0xFF68468D,0xCA92,0x4434,{ 0x97,0x43,0x0E,0x90,0x98,0x8A,0xD8,0x79 } }; // FF68468D-CA92-4434-9743-0E90988AD879
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProviderAdvertisingParameters3>{
+            0xA23546B2,
+            0xB216,
+            0x5929,
+            {0x90, 0x55, 0xF1, 0x31, 0x3D, 0xD5, 0x3E,
+             0x2A}};  // A23546B2-B216-5929-9055-F1313DD53E2A
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderResult>{ 0x764696D8,0xC53E,0x428C,{ 0x8A,0x48,0x67,0xAF,0xE0,0x2C,0x3A,0xE6 } }; // 764696D8-C53E-428C-8A48-67AFE02C3AE6
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderStatics>{ 0x31794063,0x5256,0x4054,{ 0xA4,0xF4,0x7B,0xBE,0x77,0x55,0xA5,0x7E } }; // 31794063-5256-4054-A4F4-7BBE7755A57E
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceUuidsStatics>{ 0x6DC57058,0x9ABA,0x4417,{ 0xB8,0xF2,0xDC,0xE0,0x16,0xD3,0x4E,0xE2 } }; // 6DC57058-9ABA-4417-B8F2-DCE016D34EE2
@@ -1041,6 +1084,14 @@ namespace winrt::impl
             virtual int32_t __stdcall StopAdvertising() noexcept = 0;
         };
     };
+    template <>
+    struct abi<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProvider2> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall UpdateAdvertisingParameters(
+            void*) noexcept = 0;
+      };
+    };
     template <> struct abi<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisementStatusChangedEventArgs>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -1066,6 +1117,20 @@ namespace winrt::impl
             virtual int32_t __stdcall put_ServiceData(void*) noexcept = 0;
             virtual int32_t __stdcall get_ServiceData(void**) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                   IGattServiceProviderAdvertisingParameters3> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_UseLowEnergyUncoded1MPhyAsSecondaryPhy(
+            bool*) noexcept = 0;
+        virtual int32_t __stdcall put_UseLowEnergyUncoded1MPhyAsSecondaryPhy(
+            bool) noexcept = 0;
+        virtual int32_t __stdcall get_UseLowEnergyUncoded2MPhyAsSecondaryPhy(
+            bool*) noexcept = 0;
+        virtual int32_t __stdcall put_UseLowEnergyUncoded2MPhyAsSecondaryPhy(
+            bool) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderResult>
     {
@@ -1844,10 +1909,25 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProvider<D>;
     };
     template <typename D>
-    struct consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderAdvertisementStatusChangedEventArgs
-    {
-        [[nodiscard]] auto Error() const;
-        [[nodiscard]] auto Status() const;
+    struct
+        consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProvider2 {
+      auto UpdateAdvertisingParameters(
+          winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+              GattServiceProviderAdvertisingParameters const& parameters) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                       IGattServiceProvider2> {
+      template <typename D>
+      using type =
+          consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProvider2<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderAdvertisementStatusChangedEventArgs {
+      [[nodiscard]] auto Error() const;
+      [[nodiscard]] auto Status() const;
     };
     template <> struct consume<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderAdvertisementStatusChangedEventArgs>
     {
@@ -1876,10 +1956,26 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderAdvertisingParameters2<D>;
     };
     template <typename D>
-    struct consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderResult
-    {
-        [[nodiscard]] auto Error() const;
-        [[nodiscard]] auto ServiceProvider() const;
+    struct
+        consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderAdvertisingParameters3 {
+      [[nodiscard]] auto UseLowEnergyUncoded1MPhyAsSecondaryPhy() const;
+      auto UseLowEnergyUncoded1MPhyAsSecondaryPhy(bool value) const;
+      [[nodiscard]] auto UseLowEnergyUncoded2MPhyAsSecondaryPhy() const;
+      auto UseLowEnergyUncoded2MPhyAsSecondaryPhy(bool value) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+                       IGattServiceProviderAdvertisingParameters3> {
+      template <typename D>
+      using type =
+          consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderAdvertisingParameters3<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Devices_Bluetooth_GenericAttributeProfile_IGattServiceProviderResult {
+      [[nodiscard]] auto Error() const;
+      [[nodiscard]] auto ServiceProvider() const;
     };
     template <> struct consume<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::IGattServiceProviderResult>
     {

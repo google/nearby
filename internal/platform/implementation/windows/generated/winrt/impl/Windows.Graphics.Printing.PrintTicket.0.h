@@ -12,6 +12,7 @@ WINRT_EXPORT namespace winrt::Windows::Foundation
     struct HResult;
     struct IAsyncAction;
 }
+WINRT_EXPORT namespace winrt::Windows::Storage::Streams { struct IInputStream; }
 WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::PrintTicket
 {
     enum class PrintTicketFeatureSelectionType : int32_t
@@ -38,6 +39,7 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::PrintTicket
     struct IPrintTicketParameterInitializer;
     struct IPrintTicketValue;
     struct IWorkflowPrintTicket;
+    struct IWorkflowPrintTicketFactory;
     struct IWorkflowPrintTicketValidationResult;
     struct PrintTicketCapabilities;
     struct PrintTicketFeature;
@@ -57,6 +59,11 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketParameterInitializer>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketValue>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicket>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Graphics::Printing::PrintTicket::
+                        IWorkflowPrintTicketFactory> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicketValidationResult>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::PrintTicketCapabilities>{ using type = class_category; };
     template <> struct category<winrt::Windows::Graphics::Printing::PrintTicket::PrintTicketFeature>{ using type = class_category; };
@@ -87,6 +94,11 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketParameterInitializer> = L"Windows.Graphics.Printing.PrintTicket.IPrintTicketParameterInitializer";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketValue> = L"Windows.Graphics.Printing.PrintTicket.IPrintTicketValue";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicket> = L"Windows.Graphics.Printing.PrintTicket.IWorkflowPrintTicket";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::Graphics::Printing::PrintTicket::
+            IWorkflowPrintTicketFactory> =
+        L"Windows.Graphics.Printing.PrintTicket.IWorkflowPrintTicketFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicketValidationResult> = L"Windows.Graphics.Printing.PrintTicket.IWorkflowPrintTicketValidationResult";
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketCapabilities>{ 0x8C45508B,0xBBDC,0x4256,{ 0xA1,0x42,0x2F,0xD6,0x15,0xEC,0xB4,0x16 } }; // 8C45508B-BBDC-4256-A142-2FD615ECB416
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketFeature>{ 0xE7607D6A,0x59F5,0x4103,{ 0x88,0x58,0xB9,0x77,0x10,0x96,0x3D,0x39 } }; // E7607D6A-59F5-4103-8858-B97710963D39
@@ -95,6 +107,14 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketParameterInitializer>{ 0x5E3335BB,0xA0A5,0x48B1,{ 0x9D,0x5C,0x07,0x11,0x6D,0xDC,0x59,0x7A } }; // 5E3335BB-A0A5-48B1-9D5C-07116DDC597A
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketValue>{ 0x66B30A32,0x244D,0x4E22,{ 0xA9,0x8B,0xBB,0x3C,0xF1,0xF2,0xDD,0x91 } }; // 66B30A32-244D-4E22-A98B-BB3CF1F2DD91
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicket>{ 0x41D52285,0x35E8,0x448E,{ 0xA8,0xC5,0xE4,0xB6,0xA2,0xCF,0x82,0x6C } }; // 41D52285-35E8-448E-A8C5-E4B6A2CF826C
+    template <>
+    inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::
+                                     PrintTicket::IWorkflowPrintTicketFactory>{
+        0x966D1166,
+        0xD9C7,
+        0x569E,
+        {0xB7, 0xD8, 0xF2, 0xB3, 0x41, 0xC8, 0xF9,
+         0x76}};  // 966D1166-D9C7-569E-B7D8-F2B341C8F976
     template <> inline constexpr guid guid_v<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicketValidationResult>{ 0x0AD1F392,0xDA7B,0x4A36,{ 0xBF,0x36,0x6A,0x99,0xA6,0x2E,0x20,0x59 } }; // 0AD1F392-DA7B-4A36-BF36-6A99A62E2059
     template <> struct default_interface<winrt::Windows::Graphics::Printing::PrintTicket::PrintTicketCapabilities>{ using type = winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketCapabilities; };
     template <> struct default_interface<winrt::Windows::Graphics::Printing::PrintTicket::PrintTicketFeature>{ using type = winrt::Windows::Graphics::Printing::PrintTicket::IPrintTicketFeature; };
@@ -223,6 +243,14 @@ namespace winrt::impl
             virtual int32_t __stdcall SetParameterInitializerAsString(void*, void*, void*, void**) noexcept = 0;
             virtual int32_t __stdcall MergeAndValidateTicket(void*, void**) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Graphics::Printing::PrintTicket::
+                   IWorkflowPrintTicketFactory> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall CreateInstance(void*, void*,
+                                                 void**) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicketValidationResult>
     {
@@ -367,10 +395,25 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Graphics_Printing_PrintTicket_IWorkflowPrintTicket<D>;
     };
     template <typename D>
-    struct consume_Windows_Graphics_Printing_PrintTicket_IWorkflowPrintTicketValidationResult
-    {
-        [[nodiscard]] auto Validated() const;
-        [[nodiscard]] auto ExtendedError() const;
+    struct
+        consume_Windows_Graphics_Printing_PrintTicket_IWorkflowPrintTicketFactory {
+      auto CreateInstance(param::hstring const& printerName,
+                          winrt::Windows::Storage::Streams::IInputStream const&
+                              printTicketStream) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Graphics::Printing::PrintTicket::
+                       IWorkflowPrintTicketFactory> {
+      template <typename D>
+      using type =
+          consume_Windows_Graphics_Printing_PrintTicket_IWorkflowPrintTicketFactory<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Graphics_Printing_PrintTicket_IWorkflowPrintTicketValidationResult {
+      [[nodiscard]] auto Validated() const;
+      [[nodiscard]] auto ExtendedError() const;
     };
     template <> struct consume<winrt::Windows::Graphics::Printing::PrintTicket::IWorkflowPrintTicketValidationResult>
     {

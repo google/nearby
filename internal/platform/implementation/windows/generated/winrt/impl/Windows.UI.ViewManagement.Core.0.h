@@ -15,59 +15,57 @@ WINRT_EXPORT namespace winrt::Windows::UI
 }
 WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement::Core
 {
-    enum class CoreInputViewKind : int32_t
-    {
-        Default = 0,
-        Keyboard = 1,
-        Handwriting = 2,
-        Emoji = 3,
-        Symbols = 4,
-        Clipboard = 5,
-        Dictation = 6,
-    };
-    enum class CoreInputViewOcclusionKind : int32_t
-    {
-        Docked = 0,
-        Floating = 1,
-        Overlay = 2,
-    };
-    enum class CoreInputViewXYFocusTransferDirection : int32_t
-    {
-        Up = 0,
-        Right = 1,
-        Down = 2,
-        Left = 3,
-    };
-    struct ICoreFrameworkInputView;
-    struct ICoreFrameworkInputViewAnimationStartingEventArgs;
-    struct ICoreFrameworkInputViewOcclusionsChangedEventArgs;
-    struct ICoreFrameworkInputViewStatics;
-    struct ICoreInputView;
-    struct ICoreInputView2;
-    struct ICoreInputView3;
-    struct ICoreInputView4;
-    struct ICoreInputView5;
-    struct ICoreInputViewAnimationStartingEventArgs;
-    struct ICoreInputViewHidingEventArgs;
-    struct ICoreInputViewOcclusion;
-    struct ICoreInputViewOcclusionsChangedEventArgs;
-    struct ICoreInputViewShowingEventArgs;
-    struct ICoreInputViewStatics;
-    struct ICoreInputViewStatics2;
-    struct ICoreInputViewTransferringXYFocusEventArgs;
-    struct IUISettingsController;
-    struct IUISettingsControllerStatics;
-    struct CoreFrameworkInputView;
-    struct CoreFrameworkInputViewAnimationStartingEventArgs;
-    struct CoreFrameworkInputViewOcclusionsChangedEventArgs;
-    struct CoreInputView;
-    struct CoreInputViewAnimationStartingEventArgs;
-    struct CoreInputViewHidingEventArgs;
-    struct CoreInputViewOcclusion;
-    struct CoreInputViewOcclusionsChangedEventArgs;
-    struct CoreInputViewShowingEventArgs;
-    struct CoreInputViewTransferringXYFocusEventArgs;
-    struct UISettingsController;
+  enum class CoreInputViewKind : int32_t {
+    Default = 0,
+    Keyboard = 1,
+    Handwriting = 2,
+    Emoji = 3,
+    Symbols = 4,
+    Clipboard = 5,
+    Dictation = 6,
+    Gamepad = 7,
+  };
+  enum class CoreInputViewOcclusionKind : int32_t {
+    Docked = 0,
+    Floating = 1,
+    Overlay = 2,
+  };
+  enum class CoreInputViewXYFocusTransferDirection : int32_t {
+    Up = 0,
+    Right = 1,
+    Down = 2,
+    Left = 3,
+  };
+  struct ICoreFrameworkInputView;
+  struct ICoreFrameworkInputViewAnimationStartingEventArgs;
+  struct ICoreFrameworkInputViewOcclusionsChangedEventArgs;
+  struct ICoreFrameworkInputViewStatics;
+  struct ICoreInputView;
+  struct ICoreInputView2;
+  struct ICoreInputView3;
+  struct ICoreInputView4;
+  struct ICoreInputView5;
+  struct ICoreInputViewAnimationStartingEventArgs;
+  struct ICoreInputViewHidingEventArgs;
+  struct ICoreInputViewOcclusion;
+  struct ICoreInputViewOcclusionsChangedEventArgs;
+  struct ICoreInputViewShowingEventArgs;
+  struct ICoreInputViewStatics;
+  struct ICoreInputViewStatics2;
+  struct ICoreInputViewTransferringXYFocusEventArgs;
+  struct IUISettingsController;
+  struct IUISettingsControllerStatics;
+  struct CoreFrameworkInputView;
+  struct CoreFrameworkInputViewAnimationStartingEventArgs;
+  struct CoreFrameworkInputViewOcclusionsChangedEventArgs;
+  struct CoreInputView;
+  struct CoreInputViewAnimationStartingEventArgs;
+  struct CoreInputViewHidingEventArgs;
+  struct CoreInputViewOcclusion;
+  struct CoreInputViewOcclusionsChangedEventArgs;
+  struct CoreInputViewShowingEventArgs;
+  struct CoreInputViewTransferringXYFocusEventArgs;
+  struct UISettingsController;
 }
 namespace winrt::impl
 {

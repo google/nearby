@@ -142,14 +142,31 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input
         MouseWheelParameters(std::nullptr_t) noexcept {}
         MouseWheelParameters(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Input::IMouseWheelParameters(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES PointerPoint : winrt::Windows::UI::Input::IPointerPoint
-    {
-        PointerPoint(std::nullptr_t) noexcept {}
-        PointerPoint(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Input::IPointerPoint(ptr, take_ownership_from_abi) {}
-        static auto GetCurrentPoint(uint32_t pointerId);
-        static auto GetIntermediatePoints(uint32_t pointerId);
-        static auto GetCurrentPoint(uint32_t pointerId, winrt::Windows::UI::Input::IPointerPointTransform const& transform);
-        static auto GetIntermediatePoints(uint32_t pointerId, winrt::Windows::UI::Input::IPointerPointTransform const& transform);
+    struct WINRT_IMPL_EMPTY_BASES PhysicalGestureRecognizer
+        : winrt::Windows::UI::Input::IPhysicalGestureRecognizer {
+      PhysicalGestureRecognizer(std::nullptr_t) noexcept {}
+      PhysicalGestureRecognizer(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::UI::Input::IPhysicalGestureRecognizer(
+                ptr, take_ownership_from_abi) {}
+      PhysicalGestureRecognizer();
+    };
+    struct WINRT_IMPL_EMPTY_BASES PointerPoint
+        : winrt::Windows::UI::Input::IPointerPoint,
+          impl::require<
+              PointerPoint,
+              winrt::Windows::UI::Input::IPointerPointPhysicalPosition> {
+      PointerPoint(std::nullptr_t) noexcept {}
+      PointerPoint(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::UI::Input::IPointerPoint(ptr,
+                                                     take_ownership_from_abi) {}
+      static auto GetCurrentPoint(uint32_t pointerId);
+      static auto GetIntermediatePoints(uint32_t pointerId);
+      static auto GetCurrentPoint(
+          uint32_t pointerId,
+          winrt::Windows::UI::Input::IPointerPointTransform const& transform);
+      static auto GetIntermediatePoints(
+          uint32_t pointerId,
+          winrt::Windows::UI::Input::IPointerPointTransform const& transform);
     };
     struct WINRT_IMPL_EMPTY_BASES PointerPointProperties : winrt::Windows::UI::Input::IPointerPointProperties,
         impl::require<PointerPointProperties, winrt::Windows::UI::Input::IPointerPointProperties2>
@@ -285,6 +302,23 @@ WINRT_EXPORT namespace winrt::Windows::UI::Input
     {
         TappedEventArgs(std::nullptr_t) noexcept {}
         TappedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::Input::ITappedEventArgs(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES TouchpadGesturesController
+        : winrt::Windows::UI::Input::ITouchpadGesturesController {
+      TouchpadGesturesController(std::nullptr_t) noexcept {}
+      TouchpadGesturesController(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::UI::Input::ITouchpadGesturesController(
+                ptr, take_ownership_from_abi) {}
+      static auto IsSupported();
+      static auto CreateForProcess();
+    };
+    struct WINRT_IMPL_EMPTY_BASES TouchpadGlobalActionEventArgs
+        : winrt::Windows::UI::Input::ITouchpadGlobalActionEventArgs {
+      TouchpadGlobalActionEventArgs(std::nullptr_t) noexcept {}
+      TouchpadGlobalActionEventArgs(void* ptr,
+                                    take_ownership_from_abi_t) noexcept
+          : winrt::Windows::UI::Input::ITouchpadGlobalActionEventArgs(
+                ptr, take_ownership_from_abi) {}
     };
 }
 #endif

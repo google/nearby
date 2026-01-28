@@ -107,14 +107,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Effects
         IProcessVideoFrameContext(std::nullptr_t = nullptr) noexcept {}
         IProcessVideoFrameContext(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES ISlowMotionEffectDefinition :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<ISlowMotionEffectDefinition>,
-        impl::require<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition, winrt::Windows::Media::Effects::IVideoEffectDefinition>
-    {
-        ISlowMotionEffectDefinition(std::nullptr_t = nullptr) noexcept {}
-        ISlowMotionEffectDefinition(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES IVideoCompositor :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IVideoCompositor>,

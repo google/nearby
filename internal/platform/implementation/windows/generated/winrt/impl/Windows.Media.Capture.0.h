@@ -520,9 +520,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
     struct IOptionalReferencePhotoCapturedEventArgs;
     struct IPhotoCapturedEventArgs;
     struct IPhotoConfirmationCapturedEventArgs;
-    struct IScreenCapture;
-    struct IScreenCaptureStatics;
-    struct ISourceSuspensionChangedEventArgs;
     struct IVideoStreamConfiguration;
     struct AdvancedCapturedPhoto;
     struct AdvancedPhotoCapture;
@@ -595,8 +592,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
     struct OptionalReferencePhotoCapturedEventArgs;
     struct PhotoCapturedEventArgs;
     struct PhotoConfirmationCapturedEventArgs;
-    struct ScreenCapture;
-    struct SourceSuspensionChangedEventArgs;
     struct VideoStreamConfiguration;
     struct WhiteBalanceGain;
     struct MediaCaptureFailedEventHandler;
@@ -717,9 +712,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Capture::IOptionalReferencePhotoCapturedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Capture::IPhotoCapturedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::Capture::IScreenCapture>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::Capture::IScreenCaptureStatics>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Capture::IVideoStreamConfiguration>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Capture::AdvancedCapturedPhoto>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Capture::AdvancedPhotoCapture>{ using type = class_category; };
@@ -792,8 +784,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Capture::OptionalReferencePhotoCapturedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Capture::PhotoCapturedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Capture::PhotoConfirmationCapturedEventArgs>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Media::Capture::ScreenCapture>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Capture::VideoStreamConfiguration>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Capture::AppBroadcastCameraCaptureState>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::Capture::AppBroadcastCameraOverlayLocation>{ using type = enum_category; };
@@ -913,8 +903,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::OptionalReferencePhotoCapturedEventArgs> = L"Windows.Media.Capture.OptionalReferencePhotoCapturedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::PhotoCapturedEventArgs> = L"Windows.Media.Capture.PhotoCapturedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::PhotoConfirmationCapturedEventArgs> = L"Windows.Media.Capture.PhotoConfirmationCapturedEventArgs";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::ScreenCapture> = L"Windows.Media.Capture.ScreenCapture";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> = L"Windows.Media.Capture.SourceSuspensionChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::VideoStreamConfiguration> = L"Windows.Media.Capture.VideoStreamConfiguration";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::AppBroadcastCameraCaptureState> = L"Windows.Media.Capture.AppBroadcastCameraCaptureState";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::AppBroadcastCameraOverlayLocation> = L"Windows.Media.Capture.AppBroadcastCameraOverlayLocation";
@@ -1069,9 +1057,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IOptionalReferencePhotoCapturedEventArgs> = L"Windows.Media.Capture.IOptionalReferencePhotoCapturedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IPhotoCapturedEventArgs> = L"Windows.Media.Capture.IPhotoCapturedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs> = L"Windows.Media.Capture.IPhotoConfirmationCapturedEventArgs";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IScreenCapture> = L"Windows.Media.Capture.IScreenCapture";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IScreenCaptureStatics> = L"Windows.Media.Capture.IScreenCaptureStatics";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs> = L"Windows.Media.Capture.ISourceSuspensionChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::IVideoStreamConfiguration> = L"Windows.Media.Capture.IVideoStreamConfiguration";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::MediaCaptureFailedEventHandler> = L"Windows.Media.Capture.MediaCaptureFailedEventHandler";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Capture::RecordLimitationExceededEventHandler> = L"Windows.Media.Capture.RecordLimitationExceededEventHandler";
@@ -1188,9 +1173,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IOptionalReferencePhotoCapturedEventArgs>{ 0x470F88B3,0x1E6D,0x4051,{ 0x9C,0x8B,0xF1,0xD8,0x5A,0xF0,0x47,0xB7 } }; // 470F88B3-1E6D-4051-9C8B-F1D85AF047B7
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IPhotoCapturedEventArgs>{ 0x373BFBC1,0x984E,0x4FF0,{ 0xBF,0x85,0x1C,0x00,0xAA,0xBC,0x5A,0x45 } }; // 373BFBC1-984E-4FF0-BF85-1C00AABC5A45
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs>{ 0xAB473672,0xC28A,0x4827,{ 0x8F,0x8D,0x36,0x36,0xD3,0xBE,0xB5,0x1E } }; // AB473672-C28A-4827-8F8D-3636D3BEB51E
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IScreenCapture>{ 0x89179EF7,0xCD12,0x4E0E,{ 0xA6,0xD4,0x5B,0x3D,0xE9,0x8B,0x2E,0x9B } }; // 89179EF7-CD12-4E0E-A6D4-5B3DE98B2E9B
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IScreenCaptureStatics>{ 0xC898C3B0,0xC8A5,0x11E2,{ 0x8B,0x8B,0x08,0x00,0x20,0x0C,0x9A,0x66 } }; // C898C3B0-C8A5-11E2-8B8B-0800200C9A66
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>{ 0x2ECE7B5E,0xD49B,0x4394,{ 0xBC,0x32,0xF9,0x7D,0x6C,0xED,0xEC,0x1C } }; // 2ECE7B5E-D49B-4394-BC32-F97D6CEDEC1C
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::IVideoStreamConfiguration>{ 0xD8770A6F,0x4390,0x4B5E,{ 0xAD,0x3E,0x0F,0x8A,0xF0,0x96,0x34,0x90 } }; // D8770A6F-4390-4B5E-AD3E-0F8AF0963490
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::MediaCaptureFailedEventHandler>{ 0x2014EFFB,0x5CD8,0x4F08,{ 0xA3,0x14,0x0D,0x36,0x0D,0xA5,0x9F,0x14 } }; // 2014EFFB-5CD8-4F08-A314-0D360DA59F14
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Capture::RecordLimitationExceededEventHandler>{ 0x3FAE8F2E,0x4FE1,0x4FFD,{ 0xAA,0xBA,0xE1,0xF1,0x33,0x7D,0x4E,0x53 } }; // 3FAE8F2E-4FE1-4FFD-AABA-E1F1337D4E53
@@ -1262,8 +1244,6 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Media::Capture::OptionalReferencePhotoCapturedEventArgs>{ using type = winrt::Windows::Media::Capture::IOptionalReferencePhotoCapturedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Capture::PhotoCapturedEventArgs>{ using type = winrt::Windows::Media::Capture::IPhotoCapturedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Capture::PhotoConfirmationCapturedEventArgs>{ using type = winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs; };
-    template <> struct default_interface<winrt::Windows::Media::Capture::ScreenCapture>{ using type = winrt::Windows::Media::Capture::IScreenCapture; };
-    template <> struct default_interface<winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs>{ using type = winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::Capture::VideoStreamConfiguration>{ using type = winrt::Windows::Media::Capture::IVideoStreamConfiguration; };
     template <> struct abi<winrt::Windows::Media::Capture::IAdvancedCapturedPhoto>
     {
@@ -2506,33 +2486,6 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_Frame(void**) noexcept = 0;
             virtual int32_t __stdcall get_CaptureTimeOffset(int64_t*) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::Capture::IScreenCapture>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall get_AudioSource(void**) noexcept = 0;
-            virtual int32_t __stdcall get_VideoSource(void**) noexcept = 0;
-            virtual int32_t __stdcall get_IsAudioSuspended(bool*) noexcept = 0;
-            virtual int32_t __stdcall get_IsVideoSuspended(bool*) noexcept = 0;
-            virtual int32_t __stdcall add_SourceSuspensionChanged(void*, winrt::event_token*) noexcept = 0;
-            virtual int32_t __stdcall remove_SourceSuspensionChanged(winrt::event_token) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::Capture::IScreenCaptureStatics>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall GetForCurrentView(void**) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall get_IsAudioSuspended(bool*) noexcept = 0;
-            virtual int32_t __stdcall get_IsVideoSuspended(bool*) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Media::Capture::IVideoStreamConfiguration>
@@ -4093,41 +4046,6 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs>
     {
         template <typename D> using type = consume_Windows_Media_Capture_IPhotoConfirmationCapturedEventArgs<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_Capture_IScreenCapture
-    {
-        [[nodiscard]] auto AudioSource() const;
-        [[nodiscard]] auto VideoSource() const;
-        [[nodiscard]] auto IsAudioSuspended() const;
-        [[nodiscard]] auto IsVideoSuspended() const;
-        auto SourceSuspensionChanged(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Capture::ScreenCapture, winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> const& handler) const;
-        using SourceSuspensionChanged_revoker = impl::event_revoker<winrt::Windows::Media::Capture::IScreenCapture, &impl::abi_t<winrt::Windows::Media::Capture::IScreenCapture>::remove_SourceSuspensionChanged>;
-        [[nodiscard]] auto SourceSuspensionChanged(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::Media::Capture::ScreenCapture, winrt::Windows::Media::Capture::SourceSuspensionChangedEventArgs> const& handler) const;
-        auto SourceSuspensionChanged(winrt::event_token const& token) const noexcept;
-    };
-    template <> struct consume<winrt::Windows::Media::Capture::IScreenCapture>
-    {
-        template <typename D> using type = consume_Windows_Media_Capture_IScreenCapture<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_Capture_IScreenCaptureStatics
-    {
-        auto GetForCurrentView() const;
-    };
-    template <> struct consume<winrt::Windows::Media::Capture::IScreenCaptureStatics>
-    {
-        template <typename D> using type = consume_Windows_Media_Capture_IScreenCaptureStatics<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_Capture_ISourceSuspensionChangedEventArgs
-    {
-        [[nodiscard]] auto IsAudioSuspended() const;
-        [[nodiscard]] auto IsVideoSuspended() const;
-    };
-    template <> struct consume<winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs>
-    {
-        template <typename D> using type = consume_Windows_Media_Capture_ISourceSuspensionChangedEventArgs<D>;
     };
     template <typename D>
     struct consume_Windows_Media_Capture_IVideoStreamConfiguration

@@ -62,12 +62,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Effects
         ProcessVideoFrameContext(std::nullptr_t) noexcept {}
         ProcessVideoFrameContext(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Effects::IProcessVideoFrameContext(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES SlowMotionEffectDefinition : winrt::Windows::Media::Effects::ISlowMotionEffectDefinition
-    {
-        SlowMotionEffectDefinition(std::nullptr_t) noexcept {}
-        SlowMotionEffectDefinition(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Effects::ISlowMotionEffectDefinition(ptr, take_ownership_from_abi) {}
-        SlowMotionEffectDefinition();
-    };
     struct WINRT_IMPL_EMPTY_BASES VideoCompositorDefinition : winrt::Windows::Media::Effects::IVideoCompositorDefinition
     {
         VideoCompositorDefinition(std::nullptr_t) noexcept {}

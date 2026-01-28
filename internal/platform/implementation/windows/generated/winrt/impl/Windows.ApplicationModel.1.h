@@ -76,13 +76,6 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
         IAppInstanceStatics(std::nullptr_t = nullptr) noexcept {}
         IAppInstanceStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES ICameraApplicationManagerStatics :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<ICameraApplicationManagerStatics>
-    {
-        ICameraApplicationManagerStatics(std::nullptr_t = nullptr) noexcept {}
-        ICameraApplicationManagerStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES IDesignModeStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IDesignModeStatics>

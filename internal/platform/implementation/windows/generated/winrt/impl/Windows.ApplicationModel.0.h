@@ -114,7 +114,6 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
     struct IAppInstallerInfo2;
     struct IAppInstance;
     struct IAppInstanceStatics;
-    struct ICameraApplicationManagerStatics;
     struct IDesignModeStatics;
     struct IDesignModeStatics2;
     struct IEnteredBackgroundEventArgs;
@@ -169,7 +168,6 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
     struct AppInfo;
     struct AppInstallerInfo;
     struct AppInstance;
-    struct CameraApplicationManager;
     struct DesignMode;
     struct EnteredBackgroundEventArgs;
     struct FindRelatedPackagesOptions;
@@ -215,7 +213,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::IAppInstallerInfo2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInstance>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IAppInstanceStatics>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IDesignModeStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IDesignModeStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::IEnteredBackgroundEventArgs>{ using type = interface_category; };
@@ -270,7 +267,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::AppInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::AppInstallerInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::AppInstance>{ using type = class_category; };
-    template <> struct category<winrt::Windows::ApplicationModel::CameraApplicationManager>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DesignMode>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::EnteredBackgroundEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::FindRelatedPackagesOptions>{ using type = class_category; };
@@ -315,7 +311,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::AppInfo> = L"Windows.ApplicationModel.AppInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::AppInstallerInfo> = L"Windows.ApplicationModel.AppInstallerInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::AppInstance> = L"Windows.ApplicationModel.AppInstance";
-    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::CameraApplicationManager> = L"Windows.ApplicationModel.CameraApplicationManager";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DesignMode> = L"Windows.ApplicationModel.DesignMode";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::EnteredBackgroundEventArgs> = L"Windows.ApplicationModel.EnteredBackgroundEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::FindRelatedPackagesOptions> = L"Windows.ApplicationModel.FindRelatedPackagesOptions";
@@ -366,7 +361,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInstallerInfo2> = L"Windows.ApplicationModel.IAppInstallerInfo2";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInstance> = L"Windows.ApplicationModel.IAppInstance";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IAppInstanceStatics> = L"Windows.ApplicationModel.IAppInstanceStatics";
-    template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics> = L"Windows.ApplicationModel.ICameraApplicationManagerStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IDesignModeStatics> = L"Windows.ApplicationModel.IDesignModeStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IDesignModeStatics2> = L"Windows.ApplicationModel.IDesignModeStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::IEnteredBackgroundEventArgs> = L"Windows.ApplicationModel.IEnteredBackgroundEventArgs";
@@ -429,7 +423,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInstallerInfo2>{ 0xD20F1388,0x8256,0x597C,{ 0x85,0x11,0xC8,0x4E,0xC5,0x0D,0x5E,0x2B } }; // D20F1388-8256-597C-8511-C84EC50D5E2B
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInstance>{ 0x675F2B47,0xF25F,0x4532,{ 0x9F,0xD6,0x36,0x33,0xE0,0x63,0x4D,0x01 } }; // 675F2B47-F25F-4532-9FD6-3633E0634D01
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IAppInstanceStatics>{ 0x9D11E77F,0x9EA6,0x47AF,{ 0xA6,0xEC,0x46,0x78,0x4C,0x5B,0xA2,0x54 } }; // 9D11E77F-9EA6-47AF-A6EC-46784C5BA254
-    template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>{ 0x9599DDCE,0x9BD3,0x435C,{ 0x80,0x54,0xC1,0xAD,0xD5,0x00,0x28,0xFE } }; // 9599DDCE-9BD3-435C-8054-C1ADD50028FE
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IDesignModeStatics>{ 0x2C3893CC,0xF81A,0x4E7A,{ 0xB8,0x57,0x76,0xA8,0x08,0x87,0xE1,0x85 } }; // 2C3893CC-F81A-4E7A-B857-76A80887E185
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IDesignModeStatics2>{ 0x80CF8137,0xB064,0x4858,{ 0xBE,0xC8,0x3E,0xBA,0x22,0x35,0x75,0x35 } }; // 80CF8137-B064-4858-BEC8-3EBA22357535
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::IEnteredBackgroundEventArgs>{ 0xF722DCC2,0x9827,0x403D,{ 0xAA,0xED,0xEC,0xCA,0x9A,0xC1,0x73,0x98 } }; // F722DCC2-9827-403D-AAED-ECCA9AC17398
@@ -604,13 +597,6 @@ namespace winrt::impl
             virtual int32_t __stdcall FindOrRegisterInstanceForKey(void*, void**) noexcept = 0;
             virtual int32_t __stdcall Unregister() noexcept = 0;
             virtual int32_t __stdcall GetInstances(void**) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall ShowInstalledApplicationsUI() noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::ApplicationModel::IDesignModeStatics>
@@ -1197,15 +1183,6 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::ApplicationModel::IAppInstanceStatics>
     {
         template <typename D> using type = consume_Windows_ApplicationModel_IAppInstanceStatics<D>;
-    };
-    template <typename D>
-    struct consume_Windows_ApplicationModel_ICameraApplicationManagerStatics
-    {
-        auto ShowInstalledApplicationsUI() const;
-    };
-    template <> struct consume<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>
-    {
-        template <typename D> using type = consume_Windows_ApplicationModel_ICameraApplicationManagerStatics<D>;
     };
     template <typename D>
     struct consume_Windows_ApplicationModel_IDesignModeStatics

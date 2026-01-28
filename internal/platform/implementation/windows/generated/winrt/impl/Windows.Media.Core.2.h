@@ -184,6 +184,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
         [[nodiscard]] static auto AudioFormatWMAudioLossless();
         [[nodiscard]] static auto AudioFormatWMAudioV8();
         [[nodiscard]] static auto AudioFormatWMAudioV9();
+        [[nodiscard]] static auto VideoFormatAv1();
     };
     struct WINRT_IMPL_EMPTY_BASES DataCue : winrt::Windows::Media::Core::IDataCue,
         impl::require<DataCue, winrt::Windows::Media::Core::IDataCue2>

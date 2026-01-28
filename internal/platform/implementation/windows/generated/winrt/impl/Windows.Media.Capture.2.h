@@ -441,17 +441,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Capture
         PhotoConfirmationCapturedEventArgs(std::nullptr_t) noexcept {}
         PhotoConfirmationCapturedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Capture::IPhotoConfirmationCapturedEventArgs(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES ScreenCapture : winrt::Windows::Media::Capture::IScreenCapture
-    {
-        ScreenCapture(std::nullptr_t) noexcept {}
-        ScreenCapture(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Capture::IScreenCapture(ptr, take_ownership_from_abi) {}
-        static auto GetForCurrentView();
-    };
-    struct WINRT_IMPL_EMPTY_BASES SourceSuspensionChangedEventArgs : winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs
-    {
-        SourceSuspensionChangedEventArgs(std::nullptr_t) noexcept {}
-        SourceSuspensionChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Media::Capture::ISourceSuspensionChangedEventArgs(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES VideoStreamConfiguration : winrt::Windows::Media::Capture::IVideoStreamConfiguration
     {
         VideoStreamConfiguration(std::nullptr_t) noexcept {}

@@ -8,6 +8,7 @@ WINRT_EXPORT namespace winrt::Windows::Foundation
     struct Deferral;
     template <typename T> struct WINRT_IMPL_EMPTY_BASES EventHandler;
     struct EventRegistrationToken;
+    struct HResult;
     template <typename T> struct WINRT_IMPL_EMPTY_BASES IReference;
     struct Rect;
     template <typename TSender, typename TResult> struct WINRT_IMPL_EMPTY_BASES TypedEventHandler;
@@ -34,6 +35,7 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Streams
 WINRT_EXPORT namespace winrt::Windows::UI
 {
     struct Color;
+    struct WindowId;
 }
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
 {
@@ -110,6 +112,14 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
     struct IStandardDataFormatsStatics2;
     struct IStandardDataFormatsStatics3;
     struct ITargetApplicationChosenEventArgs;
+    struct ITransferTarget;
+    struct ITransferTargetChangedEventArgs;
+    struct ITransferTargetDiscoveryOptions;
+    struct ITransferTargetDiscoveryOptionsFactory;
+    struct ITransferTargetInvokeResult;
+    struct ITransferTargetStatics;
+    struct ITransferTargetWatcher;
+    struct ITransferTargetWatcherStatics;
     struct Clipboard;
     struct ClipboardContentOptions;
     struct ClipboardHistoryChangedEventArgs;
@@ -136,6 +146,11 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
     struct SharedStorageAccessManager;
     struct StandardDataFormats;
     struct TargetApplicationChosenEventArgs;
+    struct TransferTarget;
+    struct TransferTargetChangedEventArgs;
+    struct TransferTargetDiscoveryOptions;
+    struct TransferTargetInvokeResult;
+    struct TransferTargetWatcher;
     struct DataProviderHandler;
     struct ShareProviderHandler;
 }
@@ -189,6 +204,46 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs>{ using type = interface_category; };
+    template <>
+    struct category<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetChangedEventArgs> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptionsFactory> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetInvokeResult> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetStatics> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcherStatics> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::Clipboard>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::ClipboardContentOptions>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::ClipboardHistoryChangedEventArgs>{ using type = class_category; };
@@ -215,6 +270,31 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::SharedStorageAccessManager>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::StandardDataFormats>{ using type = class_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs>{ using type = class_category; };
+    template <>
+    struct category<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTarget> {
+      using type = class_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        TransferTargetChangedEventArgs> {
+      using type = class_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        TransferTargetDiscoveryOptions> {
+      using type = class_category;
+    };
+    template <>
+    struct category<winrt::Windows::ApplicationModel::DataTransfer::
+                        TransferTargetInvokeResult> {
+      using type = class_category;
+    };
+    template <>
+    struct category<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTargetWatcher> {
+      using type = class_category;
+    };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::ClipboardHistoryItemsResultStatus>{ using type = enum_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::DataPackageOperation>{ using type = enum_category; };
     template <> struct category<winrt::Windows::ApplicationModel::DataTransfer::SetHistoryItemAsContentStatus>{ using type = enum_category; };
@@ -247,6 +327,29 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::SharedStorageAccessManager> = L"Windows.ApplicationModel.DataTransfer.SharedStorageAccessManager";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::StandardDataFormats> = L"Windows.ApplicationModel.DataTransfer.StandardDataFormats";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> = L"Windows.ApplicationModel.DataTransfer.TargetApplicationChosenEventArgs";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::ApplicationModel::DataTransfer::TransferTarget> =
+            L"Windows.ApplicationModel.DataTransfer.TransferTarget";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::
+            TransferTargetChangedEventArgs> =
+        L"Windows.ApplicationModel.DataTransfer.TransferTargetChangedEventArgs";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::
+            TransferTargetDiscoveryOptions> =
+        L"Windows.ApplicationModel.DataTransfer.TransferTargetDiscoveryOptions";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   TransferTargetInvokeResult> =
+            L"Windows.ApplicationModel.DataTransfer.TransferTargetInvokeResult";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTargetWatcher> =
+        L"Windows.ApplicationModel.DataTransfer.TransferTargetWatcher";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::ClipboardHistoryItemsResultStatus> = L"Windows.ApplicationModel.DataTransfer.ClipboardHistoryItemsResultStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::DataPackageOperation> = L"Windows.ApplicationModel.DataTransfer.DataPackageOperation";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::SetHistoryItemAsContentStatus> = L"Windows.ApplicationModel.DataTransfer.SetHistoryItemAsContentStatus";
@@ -299,6 +402,46 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics2> = L"Windows.ApplicationModel.DataTransfer.IStandardDataFormatsStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics3> = L"Windows.ApplicationModel.DataTransfer.IStandardDataFormatsStatics3";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs> = L"Windows.ApplicationModel.DataTransfer.ITargetApplicationChosenEventArgs";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget> =
+        L"Windows.ApplicationModel.DataTransfer.ITransferTarget";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetChangedEventArgs> =
+            L"Windows.ApplicationModel.DataTransfer."
+            L"ITransferTargetChangedEventArgs";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptions> =
+            L"Windows.ApplicationModel.DataTransfer."
+            L"ITransferTargetDiscoveryOptions";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptionsFactory> =
+            L"Windows.ApplicationModel.DataTransfer."
+            L"ITransferTargetDiscoveryOptionsFactory";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::
+            ITransferTargetInvokeResult> =
+        L"Windows.ApplicationModel.DataTransfer.ITransferTargetInvokeResult";
+    template <>
+    inline constexpr auto& name_v<winrt::Windows::ApplicationModel::
+                                      DataTransfer::ITransferTargetStatics> =
+        L"Windows.ApplicationModel.DataTransfer.ITransferTargetStatics";
+    template <>
+    inline constexpr auto& name_v<winrt::Windows::ApplicationModel::
+                                      DataTransfer::ITransferTargetWatcher> =
+        L"Windows.ApplicationModel.DataTransfer.ITransferTargetWatcher";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::ApplicationModel::DataTransfer::
+            ITransferTargetWatcherStatics> =
+        L"Windows.ApplicationModel.DataTransfer.ITransferTargetWatcherStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler> = L"Windows.ApplicationModel.DataTransfer.DataProviderHandler";
     template <> inline constexpr auto& name_v<winrt::Windows::ApplicationModel::DataTransfer::ShareProviderHandler> = L"Windows.ApplicationModel.DataTransfer.ShareProviderHandler";
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::IClipboardContentOptions>{ 0xE888A98C,0xAD4B,0x5447,{ 0xA0,0x56,0xAB,0x35,0x56,0x27,0x6D,0x2B } }; // E888A98C-AD4B-5447-A056-AB3556276D2B
@@ -349,6 +492,74 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics2>{ 0x42A254F4,0x9D76,0x42E8,{ 0x86,0x1B,0x47,0xC2,0x5D,0xD0,0xCF,0x71 } }; // 42A254F4-9D76-42E8-861B-47C25DD0CF71
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics3>{ 0x3B57B069,0x01D4,0x474C,{ 0x8B,0x5F,0xBC,0x8E,0x27,0xF3,0x8B,0x21 } }; // 3B57B069-01D4-474C-8B5F-BC8E27F38B21
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs>{ 0xCA6FB8AC,0x2987,0x4EE3,{ 0x9C,0x54,0xD8,0xAF,0xBC,0xB8,0x6C,0x1D } }; // CA6FB8AC-2987-4EE3-9C54-D8AFBCB86C1D
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget>{
+            0x897E04E5,
+            0x60C2,
+            0x5EAE,
+            {0x90, 0x9F, 0xE6, 0x25, 0x7E, 0x32, 0xC6,
+             0x44}};  // 897E04E5-60C2-5EAE-909F-E6257E32C644
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetChangedEventArgs>{
+            0xD513D198,
+            0x4174,
+            0x53CF,
+            {0xA0, 0x6E, 0x4C, 0xD2, 0x63, 0xD0, 0xDF,
+             0xEF}};  // D513D198-4174-53CF-A06E-4CD263D0DFEF
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptions>{
+            0x712FE3B5,
+            0x644F,
+            0x5F6B,
+            {0x97, 0xB6, 0x3A, 0x34, 0x00, 0x99, 0x9E,
+             0xD7}};  // 712FE3B5-644F-5F6B-97B6-3A3400999ED7
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptionsFactory>{
+            0xEC4B7FFC,
+            0xCBC6,
+            0x5E12,
+            {0x8E, 0x9B, 0xD5, 0xE8, 0x92, 0xF2, 0xC6,
+             0xF8}};  // EC4B7FFC-CBC6-5E12-8E9B-D5E892F2C6F8
+    template <>
+    inline constexpr guid guid_v<winrt::Windows::ApplicationModel::
+                                     DataTransfer::ITransferTargetInvokeResult>{
+        0x15F220A6,
+        0xCFFE,
+        0x56F5,
+        {0xB4, 0x03, 0xED, 0x44, 0xE9, 0xC3, 0xAD,
+         0x38}};  // 15F220A6-CFFE-56F5-B403-ED44E9C3AD38
+    template <>
+    inline constexpr guid guid_v<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetStatics>{
+        0x815B8804,
+        0xE7F1,
+        0x5F37,
+        {0xB5, 0x2F, 0xBE, 0x1C, 0xEB, 0xA9, 0xA5,
+         0x9E}};  // 815B8804-E7F1-5F37-B52F-BE1CEBA9A59E
+    template <>
+    inline constexpr guid guid_v<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetWatcher>{
+        0x2F85CA29,
+        0x0100,
+        0x5D09,
+        {0x90, 0x7C, 0xFE, 0x55, 0x4D, 0x2F, 0xCD,
+         0x1A}};  // 2F85CA29-0100-5D09-907C-FE554D2FCD1A
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetWatcherStatics>{
+            0xA24B3528,
+            0xDB4E,
+            0x5BDD,
+            {0x9D, 0x30, 0xDC, 0xB1, 0x92, 0xC7, 0x01,
+             0xF5}};  // A24B3528-DB4E-5BDD-9D30-DCB192C701F5
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler>{ 0xE7ECD720,0xF2F4,0x4A2D,{ 0x92,0x0E,0x17,0x0A,0x2F,0x48,0x2A,0x27 } }; // E7ECD720-F2F4-4A2D-920E-170A2F482A27
     template <> inline constexpr guid guid_v<winrt::Windows::ApplicationModel::DataTransfer::ShareProviderHandler>{ 0xE7F9D9BA,0xE1BA,0x4E4D,{ 0xBD,0x65,0xD4,0x38,0x45,0xD3,0x21,0x2F } }; // E7F9D9BA-E1BA-4E4D-BD65-D43845D3212F
     template <> struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::ClipboardContentOptions>{ using type = winrt::Windows::ApplicationModel::DataTransfer::IClipboardContentOptions; };
@@ -373,6 +584,36 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::ShareTargetInfo>{ using type = winrt::Windows::ApplicationModel::DataTransfer::IShareTargetInfo; };
     template <> struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::ShareUIOptions>{ using type = winrt::Windows::ApplicationModel::DataTransfer::IShareUIOptions; };
     template <> struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs>{ using type = winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs; };
+    template <>
+    struct default_interface<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTarget> {
+      using type =
+          winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget;
+    };
+    template <>
+    struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::
+                                 TransferTargetChangedEventArgs> {
+      using type = winrt::Windows::ApplicationModel::DataTransfer::
+          ITransferTargetChangedEventArgs;
+    };
+    template <>
+    struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::
+                                 TransferTargetDiscoveryOptions> {
+      using type = winrt::Windows::ApplicationModel::DataTransfer::
+          ITransferTargetDiscoveryOptions;
+    };
+    template <>
+    struct default_interface<winrt::Windows::ApplicationModel::DataTransfer::
+                                 TransferTargetInvokeResult> {
+      using type = winrt::Windows::ApplicationModel::DataTransfer::
+          ITransferTargetInvokeResult;
+    };
+    template <>
+    struct default_interface<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTargetWatcher> {
+      using type = winrt::Windows::ApplicationModel::DataTransfer::
+          ITransferTargetWatcher;
+    };
     template <> struct abi<winrt::Windows::ApplicationModel::DataTransfer::IClipboardContentOptions>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -831,6 +1072,95 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_ApplicationName(void**) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_Id(void**) noexcept = 0;
+        virtual int32_t __stdcall get_Label(void**) noexcept = 0;
+        virtual int32_t __stdcall get_DisplayIcon(void**) noexcept = 0;
+        virtual int32_t __stdcall get_IsEnabled(bool*) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetChangedEventArgs> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_Target(void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptions> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_DataPackage(void**) noexcept = 0;
+        virtual int32_t __stdcall get_MaxAppTargets(int32_t*) noexcept = 0;
+        virtual int32_t __stdcall put_MaxAppTargets(int32_t) noexcept = 0;
+        virtual int32_t __stdcall get_AllowedTargetAppIds(uint32_t* __valueSize,
+                                                          void***) noexcept = 0;
+        virtual int32_t __stdcall put_AllowedTargetAppIds(uint32_t,
+                                                          void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetDiscoveryOptionsFactory> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall CreateInstance(void*, void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetInvokeResult> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_Succeeded(bool*) noexcept = 0;
+        virtual int32_t __stdcall get_ExtendedError(
+            winrt::hresult*) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetStatics> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall CreateWatcher(void*, void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetWatcher> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall Start() noexcept = 0;
+        virtual int32_t __stdcall Stop() noexcept = 0;
+        virtual int32_t __stdcall TransferToAsync(
+            void*, struct struct_Windows_UI_WindowId, void**) noexcept = 0;
+        virtual int32_t __stdcall add_Added(void*,
+                                            winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_Added(winrt::event_token) noexcept = 0;
+        virtual int32_t __stdcall add_Removed(void*,
+                                              winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_Removed(
+            winrt::event_token) noexcept = 0;
+        virtual int32_t __stdcall add_Updated(void*,
+                                              winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_Updated(
+            winrt::event_token) noexcept = 0;
+        virtual int32_t __stdcall add_EnumerationCompleted(
+            void*, winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_EnumerationCompleted(
+            winrt::event_token) noexcept = 0;
+        virtual int32_t __stdcall add_Stopped(void*,
+                                              winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_Stopped(
+            winrt::event_token) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::ApplicationModel::DataTransfer::
+                   ITransferTargetWatcherStatics> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall IsSupported(void*, bool*) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler>
     {
@@ -1422,6 +1752,216 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs>
     {
         template <typename D> using type = consume_Windows_ApplicationModel_DataTransfer_ITargetApplicationChosenEventArgs<D>;
+    };
+    template <typename D>
+    struct consume_Windows_ApplicationModel_DataTransfer_ITransferTarget {
+      [[nodiscard]] auto Id() const;
+      [[nodiscard]] auto Label() const;
+      [[nodiscard]] auto DisplayIcon() const;
+      [[nodiscard]] auto IsEnabled() const;
+    };
+    template <>
+    struct consume<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTarget<D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetChangedEventArgs {
+      [[nodiscard]] auto Target() const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetChangedEventArgs> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetChangedEventArgs<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions {
+      [[nodiscard]] auto DataPackage() const;
+      [[nodiscard]] auto MaxAppTargets() const;
+      auto MaxAppTargets(int32_t value) const;
+      [[nodiscard]] auto AllowedTargetAppIds() const;
+      auto AllowedTargetAppIds(array_view<hstring const> value) const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetDiscoveryOptions> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptionsFactory {
+      auto CreateInstance(
+          winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+              dataPackage) const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetDiscoveryOptionsFactory> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptionsFactory<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetInvokeResult {
+      [[nodiscard]] auto Succeeded() const;
+      [[nodiscard]] auto ExtendedError() const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetInvokeResult> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetInvokeResult<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetStatics {
+      auto CreateWatcher(
+          winrt::Windows::ApplicationModel::DataTransfer::
+              TransferTargetDiscoveryOptions const& options) const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetStatics> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetStatics<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher {
+      auto Start() const;
+      auto Stop() const;
+      auto TransferToAsync(
+          winrt::Windows::ApplicationModel::DataTransfer::TransferTarget const&
+              target,
+          winrt::Windows::UI::WindowId const& parentWindowHandle) const;
+      auto Added(winrt::Windows::Foundation::TypedEventHandler<
+                 winrt::Windows::ApplicationModel::DataTransfer::
+                     TransferTargetWatcher,
+                 winrt::Windows::ApplicationModel::DataTransfer::
+                     TransferTargetChangedEventArgs> const& handler) const;
+      using Added_revoker = impl::event_revoker<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher,
+          &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                           ITransferTargetWatcher>::remove_Added>;
+      [[nodiscard]] auto Added(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetChangedEventArgs> const& handler) const;
+      auto Added(winrt::event_token const& token) const noexcept;
+      auto Removed(winrt::Windows::Foundation::TypedEventHandler<
+                   winrt::Windows::ApplicationModel::DataTransfer::
+                       TransferTargetWatcher,
+                   winrt::Windows::ApplicationModel::DataTransfer::
+                       TransferTargetChangedEventArgs> const& handler) const;
+      using Removed_revoker = impl::event_revoker<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher,
+          &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                           ITransferTargetWatcher>::remove_Removed>;
+      [[nodiscard]] auto Removed(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetChangedEventArgs> const& handler) const;
+      auto Removed(winrt::event_token const& token) const noexcept;
+      auto Updated(winrt::Windows::Foundation::TypedEventHandler<
+                   winrt::Windows::ApplicationModel::DataTransfer::
+                       TransferTargetWatcher,
+                   winrt::Windows::ApplicationModel::DataTransfer::
+                       TransferTargetChangedEventArgs> const& handler) const;
+      using Updated_revoker = impl::event_revoker<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher,
+          &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                           ITransferTargetWatcher>::remove_Updated>;
+      [[nodiscard]] auto Updated(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetChangedEventArgs> const& handler) const;
+      auto Updated(winrt::event_token const& token) const noexcept;
+      auto EnumerationCompleted(
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      using EnumerationCompleted_revoker = impl::event_revoker<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher,
+          &impl::abi_t<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  ITransferTargetWatcher>::remove_EnumerationCompleted>;
+      [[nodiscard]] auto EnumerationCompleted(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      auto EnumerationCompleted(winrt::event_token const& token) const noexcept;
+      auto Stopped(
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      using Stopped_revoker = impl::event_revoker<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher,
+          &impl::abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                           ITransferTargetWatcher>::remove_Stopped>;
+      [[nodiscard]] auto Stopped(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      auto Stopped(winrt::event_token const& token) const noexcept;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetWatcher> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcherStatics {
+      auto IsSupported(
+          winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+              dataPackage) const;
+    };
+    template <>
+    struct consume<winrt::Windows::ApplicationModel::DataTransfer::
+                       ITransferTargetWatcherStatics> {
+      template <typename D>
+      using type =
+          consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcherStatics<
+              D>;
     };
 }
 #endif

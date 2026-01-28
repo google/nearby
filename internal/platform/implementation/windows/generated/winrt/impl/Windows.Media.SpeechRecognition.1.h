@@ -194,19 +194,5 @@ WINRT_EXPORT namespace winrt::Windows::Media::SpeechRecognition
         ISpeechRecognizerUIOptions(std::nullptr_t = nullptr) noexcept {}
         ISpeechRecognizerUIOptions(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES IVoiceCommandManager :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IVoiceCommandManager>
-    {
-        IVoiceCommandManager(std::nullptr_t = nullptr) noexcept {}
-        IVoiceCommandManager(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
-    struct WINRT_IMPL_EMPTY_BASES IVoiceCommandSet :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IVoiceCommandSet>
-    {
-        IVoiceCommandSet(std::nullptr_t = nullptr) noexcept {}
-        IVoiceCommandSet(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
 }
 #endif

@@ -1413,6 +1413,29 @@ namespace winrt::impl
         }
         return hstring{ value, take_ownership_from_abi };
     }
+    template <typename D>
+    auto consume_Windows_Media_Core_ICodecSubtypesStatics2<D>::VideoFormatAv1()
+        const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Media::Core::ICodecSubtypesStatics2>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Media::Core::ICodecSubtypesStatics2, D const*>(
+            static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Media::Core::
+                        ICodecSubtypesStatics2>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_VideoFormatAv1(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Media::Core::ICodecSubtypesStatics2>**)this;
+        check_hresult(_winrt_abi_type->get_VideoFormatAv1(&value));
+      }
+      return hstring{value, take_ownership_from_abi};
+    }
     template <typename D> auto consume_Windows_Media_Core_IDataCue<D>::Data(winrt::Windows::Storage::Streams::IBuffer const& value) const
     {
         if constexpr (!std::is_same_v<D, winrt::Windows::Media::Core::IDataCue>)
@@ -8899,23 +8922,40 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Media::Core::IDataCue> : produce_base<D, winrt::Windows::Media::Core::IDataCue>
-    {
-        int32_t __stdcall put_Data(void* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().Data(*reinterpret_cast<winrt::Windows::Storage::Streams::IBuffer const*>(&value));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_Data(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Storage::Streams::IBuffer>(this->shim().Data());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Media::Core::ICodecSubtypesStatics2>
+        : produce_base<D, winrt::Windows::Media::Core::ICodecSubtypesStatics2> {
+      int32_t __stdcall get_VideoFormatAv1(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().VideoFormatAv1());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Media::Core::IDataCue>
+        : produce_base<D, winrt::Windows::Media::Core::IDataCue> {
+      int32_t __stdcall put_Data(void* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Data(
+            *reinterpret_cast<winrt::Windows::Storage::Streams::IBuffer const*>(
+                &value));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Data(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Storage::Streams::IBuffer>(
+            this->shim().Data());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -12561,6 +12601,11 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
     {
         return impl::call_factory_cast<hstring(*)(ICodecSubtypesStatics const&), CodecSubtypes, ICodecSubtypesStatics>([](ICodecSubtypesStatics const& f) { return f.AudioFormatWMAudioV9(); });
     }
+    inline auto CodecSubtypes::VideoFormatAv1() {
+      return impl::call_factory_cast<hstring (*)(ICodecSubtypesStatics2 const&),
+                                     CodecSubtypes, ICodecSubtypesStatics2>(
+          [](ICodecSubtypesStatics2 const& f) { return f.VideoFormatAv1(); });
+    }
     inline DataCue::DataCue() :
         DataCue(impl::call_factory_cast<DataCue(*)(winrt::Windows::Foundation::IActivationFactory const&), DataCue>([](winrt::Windows::Foundation::IActivationFactory const& f) { return f.template ActivateInstance<DataCue>(); }))
     {
@@ -12756,6 +12801,9 @@ namespace std
     template<> struct hash<winrt::Windows::Media::Core::ICodecInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ICodecQuery> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::ICodecSubtypesStatics> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Media::Core::ICodecSubtypesStatics2>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::IDataCue> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::IDataCue2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Media::Core::IFaceDetectedEventArgs> : winrt::impl::hash_base {};

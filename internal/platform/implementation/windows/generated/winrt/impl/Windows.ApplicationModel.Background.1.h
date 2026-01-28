@@ -295,6 +295,16 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Background
         IBluetoothLEAdvertisementPublisherTrigger2(std::nullptr_t = nullptr) noexcept {}
         IBluetoothLEAdvertisementPublisherTrigger2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IBluetoothLEAdvertisementPublisherTrigger3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IBluetoothLEAdvertisementPublisherTrigger3> {
+      IBluetoothLEAdvertisementPublisherTrigger3(
+          std::nullptr_t = nullptr) noexcept {}
+      IBluetoothLEAdvertisementPublisherTrigger3(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IBluetoothLEAdvertisementWatcherTrigger :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IBluetoothLEAdvertisementWatcherTrigger>,
@@ -309,6 +319,16 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Background
     {
         IBluetoothLEAdvertisementWatcherTrigger2(std::nullptr_t = nullptr) noexcept {}
         IBluetoothLEAdvertisementWatcherTrigger2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IBluetoothLEAdvertisementWatcherTrigger3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IBluetoothLEAdvertisementWatcherTrigger3> {
+      IBluetoothLEAdvertisementWatcherTrigger3(
+          std::nullptr_t = nullptr) noexcept {}
+      IBluetoothLEAdvertisementWatcherTrigger3(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES ICachedFileUpdaterTrigger :
         winrt::Windows::Foundation::IInspectable,

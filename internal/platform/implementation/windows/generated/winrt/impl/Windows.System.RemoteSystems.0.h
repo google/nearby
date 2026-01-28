@@ -39,10 +39,10 @@ WINRT_EXPORT namespace winrt::Windows::System::RemoteSystems
         DeniedByUser = 2,
         DeniedBySystem = 3,
     };
-    enum class RemoteSystemAuthorizationKind : int32_t
-    {
-        SameUser = 0,
-        Anonymous = 1,
+    enum class RemoteSystemAuthorizationKind : int32_t {
+      SameUser = 0,
+      Anonymous = 1,
+      SameFamily = 2,
     };
     enum class RemoteSystemDiscoveryType : int32_t
     {

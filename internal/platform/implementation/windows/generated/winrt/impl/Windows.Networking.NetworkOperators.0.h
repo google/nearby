@@ -378,7 +378,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
     struct IESimServiceInfo;
     struct IESimUpdatedEventArgs;
     struct IESimWatcher;
-    struct IFdnAccessManagerStatics;
     struct IHotspotAuthenticationContext;
     struct IHotspotAuthenticationContext2;
     struct IHotspotAuthenticationContextStatics;
@@ -495,7 +494,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
     struct ESimServiceInfo;
     struct ESimUpdatedEventArgs;
     struct ESimWatcher;
-    struct FdnAccessManager;
     struct HotspotAuthenticationContext;
     struct HotspotAuthenticationEventDetails;
     struct HotspotCredentialsAuthenticationResult;
@@ -567,7 +565,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
     struct ESimProfileInstallProgress;
     struct ProfileUsage;
     struct LegacyNetworkOperatorsContract;
-    struct NetworkOperatorsFdnContract;
 }
 namespace winrt::impl
 {
@@ -588,7 +585,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IESimServiceInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IESimUpdatedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IESimWatcher>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContextStatics>{ using type = interface_category; };
@@ -705,7 +701,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Networking::NetworkOperators::ESimServiceInfo>{ using type = class_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::ESimUpdatedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::ESimWatcher>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Networking::NetworkOperators::FdnAccessManager>{ using type = class_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationContext>{ using type = class_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationEventDetails>{ using type = class_category; };
     template <> struct category<winrt::Windows::Networking::NetworkOperators::HotspotCredentialsAuthenticationResult>{ using type = class_category; };
@@ -825,7 +820,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::ESimServiceInfo> = L"Windows.Networking.NetworkOperators.ESimServiceInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::ESimUpdatedEventArgs> = L"Windows.Networking.NetworkOperators.ESimUpdatedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::ESimWatcher> = L"Windows.Networking.NetworkOperators.ESimWatcher";
-    template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::FdnAccessManager> = L"Windows.Networking.NetworkOperators.FdnAccessManager";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationContext> = L"Windows.Networking.NetworkOperators.HotspotAuthenticationContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::HotspotAuthenticationEventDetails> = L"Windows.Networking.NetworkOperators.HotspotAuthenticationEventDetails";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::HotspotCredentialsAuthenticationResult> = L"Windows.Networking.NetworkOperators.HotspotCredentialsAuthenticationResult";
@@ -947,7 +941,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IESimServiceInfo> = L"Windows.Networking.NetworkOperators.IESimServiceInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IESimUpdatedEventArgs> = L"Windows.Networking.NetworkOperators.IESimUpdatedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IESimWatcher> = L"Windows.Networking.NetworkOperators.IESimWatcher";
-    template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics> = L"Windows.Networking.NetworkOperators.IFdnAccessManagerStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext> = L"Windows.Networking.NetworkOperators.IHotspotAuthenticationContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext2> = L"Windows.Networking.NetworkOperators.IHotspotAuthenticationContext2";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContextStatics> = L"Windows.Networking.NetworkOperators.IHotspotAuthenticationContextStatics";
@@ -1050,7 +1043,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IUssdSession> = L"Windows.Networking.NetworkOperators.IUssdSession";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::IUssdSessionStatics> = L"Windows.Networking.NetworkOperators.IUssdSessionStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::LegacyNetworkOperatorsContract> = L"Windows.Networking.NetworkOperators.LegacyNetworkOperatorsContract";
-    template <> inline constexpr auto& name_v<winrt::Windows::Networking::NetworkOperators::NetworkOperatorsFdnContract> = L"Windows.Networking.NetworkOperators.NetworkOperatorsFdnContract";
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESim>{ 0x6F6E6E26,0xF123,0x437D,{ 0x8C,0xED,0xDC,0x1D,0x2B,0xC0,0xC3,0xA9 } }; // 6F6E6E26-F123-437D-8CED-DC1D2BC0C3A9
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESim2>{ 0xBD4FD0A0,0xC68F,0x56EB,{ 0xB9,0x9B,0x8F,0x34,0xB8,0x10,0x02,0x99 } }; // BD4FD0A0-C68F-56EB-B99B-8F34B8100299
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESim3>{ 0xFE1EDF45,0x01B8,0x5D31,{ 0xB8,0xD3,0xD9,0xCB,0xEB,0xB2,0xB8,0x31 } }; // FE1EDF45-01B8-5D31-B8D3-D9CBEBB2B831
@@ -1068,7 +1060,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESimServiceInfo>{ 0xF16AABCF,0x7F59,0x4A51,{ 0x84,0x94,0xBD,0x89,0xD5,0xFF,0x50,0xEE } }; // F16AABCF-7F59-4A51-8494-BD89D5FF50EE
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESimUpdatedEventArgs>{ 0x4C125CEC,0x508D,0x4B88,{ 0x83,0xCB,0x68,0xBE,0xF8,0x16,0x8D,0x12 } }; // 4C125CEC-508D-4B88-83CB-68BEF8168D12
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IESimWatcher>{ 0xC1F84CEB,0xA28D,0x4FBF,{ 0x97,0x71,0x6E,0x31,0xB8,0x1C,0xCF,0x22 } }; // C1F84CEB-A28D-4FBF-9771-6E31B81CCF22
-    template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>{ 0xF2AA4395,0xF1E6,0x4319,{ 0xAA,0x3E,0x47,0x7C,0xA6,0x4B,0x2B,0xDF } }; // F2AA4395-F1E6-4319-AA3E-477CA64B2BDF
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext>{ 0xE756C791,0x1003,0x4DE5,{ 0x83,0xC7,0xDE,0x61,0xD8,0x88,0x31,0xD0 } }; // E756C791-1003-4DE5-83C7-DE61D88831D0
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext2>{ 0xE756C791,0x1004,0x4DE5,{ 0x83,0xC7,0xDE,0x61,0xD8,0x88,0x31,0xD0 } }; // E756C791-1004-4DE5-83C7-DE61D88831D0
     template <> inline constexpr guid guid_v<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContextStatics>{ 0xE756C791,0x1002,0x4DE5,{ 0x83,0xC7,0xDE,0x61,0xD8,0x88,0x31,0xD0 } }; // E756C791-1002-4DE5-83C7-DE61D88831D0
@@ -1424,13 +1415,6 @@ namespace winrt::impl
             virtual int32_t __stdcall remove_Stopped(winrt::event_token) noexcept = 0;
             virtual int32_t __stdcall add_Updated(void*, winrt::event_token*) noexcept = 0;
             virtual int32_t __stdcall remove_Updated(winrt::event_token) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall RequestUnlockAsync(void*, void**) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext>
@@ -2634,15 +2618,6 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Networking::NetworkOperators::IESimWatcher>
     {
         template <typename D> using type = consume_Windows_Networking_NetworkOperators_IESimWatcher<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Networking_NetworkOperators_IFdnAccessManagerStatics
-    {
-        auto RequestUnlockAsync(param::hstring const& contactListId) const;
-    };
-    template <> struct consume<winrt::Windows::Networking::NetworkOperators::IFdnAccessManagerStatics>
-    {
-        template <typename D> using type = consume_Windows_Networking_NetworkOperators_IFdnAccessManagerStatics<D>;
     };
     template <typename D>
     struct consume_Windows_Networking_NetworkOperators_IHotspotAuthenticationContext

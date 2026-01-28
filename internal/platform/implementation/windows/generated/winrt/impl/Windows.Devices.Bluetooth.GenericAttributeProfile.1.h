@@ -305,6 +305,14 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfi
         IGattServiceProvider(std::nullptr_t = nullptr) noexcept {}
         IGattServiceProvider(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IGattServiceProvider2
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IGattServiceProvider2> {
+      IGattServiceProvider2(std::nullptr_t = nullptr) noexcept {}
+      IGattServiceProvider2(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IGattServiceProviderAdvertisementStatusChangedEventArgs :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IGattServiceProviderAdvertisementStatusChangedEventArgs>
@@ -325,6 +333,16 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfi
     {
         IGattServiceProviderAdvertisingParameters2(std::nullptr_t = nullptr) noexcept {}
         IGattServiceProviderAdvertisingParameters2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IGattServiceProviderAdvertisingParameters3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IGattServiceProviderAdvertisingParameters3> {
+      IGattServiceProviderAdvertisingParameters3(
+          std::nullptr_t = nullptr) noexcept {}
+      IGattServiceProviderAdvertisingParameters3(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IGattServiceProviderResult :
         winrt::Windows::Foundation::IInspectable,

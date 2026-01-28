@@ -70,6 +70,15 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
         IPrintWorkflowJobBackgroundSession2(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowJobBackgroundSession2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowJobBackgroundSession3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowJobBackgroundSession3> {
+      IPrintWorkflowJobBackgroundSession3(std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowJobBackgroundSession3(void* ptr,
+                                          take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowJobIssueDetectedEventArgs :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IPrintWorkflowJobIssueDetectedEventArgs>
@@ -119,6 +128,15 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
         IPrintWorkflowJobUISession2(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowJobUISession2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowObjectModelProvider
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowObjectModelProvider> {
+      IPrintWorkflowObjectModelProvider(std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowObjectModelProvider(void* ptr,
+                                        take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowObjectModelSourceFileContent :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IPrintWorkflowObjectModelSourceFileContent>
@@ -154,6 +172,14 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
         IPrintWorkflowPdlConverter2(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowPdlConverter2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowPdlConverter3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowPdlConverter3> {
+      IPrintWorkflowPdlConverter3(std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowPdlConverter3(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowPdlDataAvailableEventArgs :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IPrintWorkflowPdlDataAvailableEventArgs>
@@ -174,6 +200,17 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
     {
         IPrintWorkflowPdlModificationRequestedEventArgs2(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowPdlModificationRequestedEventArgs2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES
+        IPrintWorkflowPdlModificationRequestedEventArgs3
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowPdlModificationRequestedEventArgs3> {
+      IPrintWorkflowPdlModificationRequestedEventArgs3(
+          std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowPdlModificationRequestedEventArgs3(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowPdlSourceContent :
         winrt::Windows::Foundation::IInspectable,
@@ -202,6 +239,16 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
     {
         IPrintWorkflowPrinterJob2(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowPrinterJob2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowPrinterJobStatusChangedEventArgs
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowPrinterJobStatusChangedEventArgs> {
+      IPrintWorkflowPrinterJobStatusChangedEventArgs(
+          std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowPrinterJobStatusChangedEventArgs(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowSourceContent :
         winrt::Windows::Foundation::IInspectable,
@@ -301,6 +348,15 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
     {
         IPrintWorkflowXpsDataAvailableEventArgs(std::nullptr_t = nullptr) noexcept {}
         IPrintWorkflowXpsDataAvailableEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IPrintWorkflowXpsObjectModelProvider
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IPrintWorkflowXpsObjectModelProvider> {
+      IPrintWorkflowXpsObjectModelProvider(std::nullptr_t = nullptr) noexcept {}
+      IPrintWorkflowXpsObjectModelProvider(void* ptr,
+                                           take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
 }
 #endif

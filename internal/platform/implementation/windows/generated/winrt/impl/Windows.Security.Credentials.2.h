@@ -6,17 +6,60 @@
 #include "winrt/impl/Windows.Foundation.1.h"
 #include "winrt/impl/Windows.Foundation.Collections.1.h"
 #include "winrt/impl/Windows.Security.Credentials.1.h"
+#include "winrt/impl/Windows.Storage.Streams.1.h"
+#include "winrt/impl/Windows.UI.1.h"
 WINRT_EXPORT namespace winrt::Windows::Security::Credentials
 {
-    struct WINRT_IMPL_EMPTY_BASES KeyCredential : winrt::Windows::Security::Credentials::IKeyCredential
-    {
-        KeyCredential(std::nullptr_t) noexcept {}
-        KeyCredential(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Security::Credentials::IKeyCredential(ptr, take_ownership_from_abi) {}
-    };
+  struct AttestationChallengeHandler : winrt::Windows::Foundation::IUnknown {
+    AttestationChallengeHandler(std::nullptr_t = nullptr) noexcept {}
+    AttestationChallengeHandler(void* ptr, take_ownership_from_abi_t) noexcept
+        : winrt::Windows::Foundation::IUnknown(ptr, take_ownership_from_abi) {}
+    template <typename L>
+    AttestationChallengeHandler(L lambda);
+    template <typename F>
+    AttestationChallengeHandler(F* function);
+    template <typename O, typename M>
+    AttestationChallengeHandler(O* object, M method);
+    template <typename O, typename M>
+    AttestationChallengeHandler(com_ptr<O>&& object, M method);
+    template <typename O, typename LM>
+    AttestationChallengeHandler(weak_ref<O>&& object, LM&& lambda_or_method);
+    template <typename O, typename M>
+    AttestationChallengeHandler(std::shared_ptr<O>&& object, M method);
+    template <typename O, typename LM>
+    AttestationChallengeHandler(std::weak_ptr<O>&& object,
+                                LM&& lambda_or_method);
+    auto operator()(
+        winrt::Windows::Storage::Streams::IBuffer const& challenge) const;
+  };
+  struct WINRT_IMPL_EMPTY_BASES KeyCredential
+      : winrt::Windows::Security::Credentials::IKeyCredential,
+        impl::require<KeyCredential,
+                      winrt::Windows::Security::Credentials::IKeyCredential2> {
+    KeyCredential(std::nullptr_t) noexcept {}
+    KeyCredential(void* ptr, take_ownership_from_abi_t) noexcept
+        : winrt::Windows::Security::Credentials::IKeyCredential(
+              ptr, take_ownership_from_abi) {}
+  };
     struct WINRT_IMPL_EMPTY_BASES KeyCredentialAttestationResult : winrt::Windows::Security::Credentials::IKeyCredentialAttestationResult
     {
         KeyCredentialAttestationResult(std::nullptr_t) noexcept {}
         KeyCredentialAttestationResult(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Security::Credentials::IKeyCredentialAttestationResult(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES KeyCredentialCacheConfiguration
+        : winrt::Windows::Security::Credentials::
+              IKeyCredentialCacheConfiguration {
+      KeyCredentialCacheConfiguration(std::nullptr_t) noexcept {}
+      KeyCredentialCacheConfiguration(void* ptr,
+                                      take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Security::Credentials::
+                IKeyCredentialCacheConfiguration(ptr, take_ownership_from_abi) {
+      }
+      KeyCredentialCacheConfiguration(
+          winrt::Windows::Security::Credentials::KeyCredentialCacheOption const&
+              cacheOption,
+          winrt::Windows::Foundation::TimeSpan const& timeout,
+          uint32_t usageCount);
     };
     struct KeyCredentialManager
     {
@@ -26,6 +69,24 @@ WINRT_EXPORT namespace winrt::Windows::Security::Credentials
         static auto RequestCreateAsync(param::hstring const& name, winrt::Windows::Security::Credentials::KeyCredentialCreationOption const& option);
         static auto OpenAsync(param::hstring const& name);
         static auto DeleteAsync(param::hstring const& name);
+        static auto RequestCreateAsync(
+            param::hstring const& name,
+            winrt::Windows::Security::Credentials::
+                KeyCredentialCreationOption const& option,
+            param::hstring const& algorithm, param::hstring const& message,
+            winrt::Windows::Security::Credentials::
+                KeyCredentialCacheConfiguration const& cacheConfiguration,
+            winrt::Windows::UI::WindowId const& windowId,
+            winrt::Windows::Security::Credentials::ChallengeResponseKind const&
+                callbackType,
+            winrt::Windows::Security::Credentials::
+                AttestationChallengeHandler const& attestationCallback);
+        static auto OpenAsync(
+            param::hstring const& name,
+            winrt::Windows::Security::Credentials::ChallengeResponseKind const&
+                callbackType,
+            winrt::Windows::Security::Credentials::
+                AttestationChallengeHandler const& attestationCallback);
     };
     struct WINRT_IMPL_EMPTY_BASES KeyCredentialOperationResult : winrt::Windows::Security::Credentials::IKeyCredentialOperationResult
     {

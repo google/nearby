@@ -31,6 +31,13 @@ WINRT_EXPORT namespace winrt::Windows::Security::Authentication::Web::Core
         NotSupportedByProvider = 2,
         ProviderError = 3,
     };
+    enum class WebAuthenticationAddAccountStatus : int32_t {
+      Success = 0,
+      Error = 1,
+      NotSupportedByProvider = 2,
+      ServiceConnectionError = 3,
+      ProviderError = 4,
+    };
     enum class WebTokenRequestPromptType : int32_t
     {
         Default = 0,
@@ -49,10 +56,16 @@ WINRT_EXPORT namespace winrt::Windows::Security::Authentication::Web::Core
     struct IWebAccountEventArgs;
     struct IWebAccountMonitor;
     struct IWebAccountMonitor2;
+    struct IWebAuthenticationAddAccountResponse;
+    struct IWebAuthenticationAddAccountResponseFactory;
+    struct IWebAuthenticationAddAccountResult;
     struct IWebAuthenticationCoreManagerStatics;
     struct IWebAuthenticationCoreManagerStatics2;
     struct IWebAuthenticationCoreManagerStatics3;
     struct IWebAuthenticationCoreManagerStatics4;
+    struct IWebAuthenticationCoreManagerStatics5;
+    struct IWebAuthenticationTransferTokenRequest;
+    struct IWebAuthenticationTransferTokenRequestFactory;
     struct IWebProviderError;
     struct IWebProviderErrorFactory;
     struct IWebTokenRequest;
@@ -65,7 +78,10 @@ WINRT_EXPORT namespace winrt::Windows::Security::Authentication::Web::Core
     struct FindAllAccountsResult;
     struct WebAccountEventArgs;
     struct WebAccountMonitor;
+    struct WebAuthenticationAddAccountResponse;
+    struct WebAuthenticationAddAccountResult;
     struct WebAuthenticationCoreManager;
+    struct WebAuthenticationTransferTokenRequest;
     struct WebProviderError;
     struct WebTokenRequest;
     struct WebTokenRequestResult;
@@ -77,10 +93,40 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAccountEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor2>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationAddAccountResponse> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationAddAccountResponseFactory> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationAddAccountResult> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics4>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationCoreManagerStatics5> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationTransferTokenRequest> {
+      using type = interface_category;
+    };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        IWebAuthenticationTransferTokenRequestFactory> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebProviderError>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebProviderErrorFactory>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::IWebTokenRequest>{ using type = interface_category; };
@@ -93,33 +139,113 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::FindAllAccountsResult>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebAccountEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebAccountMonitor>{ using type = class_category; };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        WebAuthenticationAddAccountResponse> {
+      using type = class_category;
+    };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        WebAuthenticationAddAccountResult> {
+      using type = class_category;
+    };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebAuthenticationCoreManager>{ using type = class_category; };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        WebAuthenticationTransferTokenRequest> {
+      using type = class_category;
+    };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebProviderError>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestResult>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebTokenResponse>{ using type = class_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::FindAllWebAccountsStatus>{ using type = enum_category; };
+    template <>
+    struct category<winrt::Windows::Security::Authentication::Web::Core::
+                        WebAuthenticationAddAccountStatus> {
+      using type = enum_category;
+    };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestPromptType>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestStatus>{ using type = enum_category; };
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::FindAllAccountsResult> = L"Windows.Security.Authentication.Web.Core.FindAllAccountsResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebAccountEventArgs> = L"Windows.Security.Authentication.Web.Core.WebAccountEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebAccountMonitor> = L"Windows.Security.Authentication.Web.Core.WebAccountMonitor";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   WebAuthenticationAddAccountResponse> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"WebAuthenticationAddAccountResponse";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   WebAuthenticationAddAccountResult> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"WebAuthenticationAddAccountResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebAuthenticationCoreManager> = L"Windows.Security.Authentication.Web.Core.WebAuthenticationCoreManager";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   WebAuthenticationTransferTokenRequest> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"WebAuthenticationTransferTokenRequest";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebProviderError> = L"Windows.Security.Authentication.Web.Core.WebProviderError";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest> = L"Windows.Security.Authentication.Web.Core.WebTokenRequest";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestResult> = L"Windows.Security.Authentication.Web.Core.WebTokenRequestResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebTokenResponse> = L"Windows.Security.Authentication.Web.Core.WebTokenResponse";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::FindAllWebAccountsStatus> = L"Windows.Security.Authentication.Web.Core.FindAllWebAccountsStatus";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   WebAuthenticationAddAccountStatus> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"WebAuthenticationAddAccountStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestPromptType> = L"Windows.Security.Authentication.Web.Core.WebTokenRequestPromptType";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestStatus> = L"Windows.Security.Authentication.Web.Core.WebTokenRequestStatus";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IFindAllAccountsResult> = L"Windows.Security.Authentication.Web.Core.IFindAllAccountsResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountEventArgs> = L"Windows.Security.Authentication.Web.Core.IWebAccountEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor> = L"Windows.Security.Authentication.Web.Core.IWebAccountMonitor";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor2> = L"Windows.Security.Authentication.Web.Core.IWebAccountMonitor2";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponse> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationAddAccountResponse";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponseFactory> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationAddAccountResponseFactory";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResult> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationAddAccountResult";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics> = L"Windows.Security.Authentication.Web.Core.IWebAuthenticationCoreManagerStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics2> = L"Windows.Security.Authentication.Web.Core.IWebAuthenticationCoreManagerStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics3> = L"Windows.Security.Authentication.Web.Core.IWebAuthenticationCoreManagerStatics3";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics4> = L"Windows.Security.Authentication.Web.Core.IWebAuthenticationCoreManagerStatics4";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationCoreManagerStatics5> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationCoreManagerStatics5";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequest> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationTransferTokenRequest";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequestFactory> =
+            L"Windows.Security.Authentication.Web.Core."
+            L"IWebAuthenticationTransferTokenRequestFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebProviderError> = L"Windows.Security.Authentication.Web.Core.IWebProviderError";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebProviderErrorFactory> = L"Windows.Security.Authentication.Web.Core.IWebProviderErrorFactory";
     template <> inline constexpr auto& name_v<winrt::Windows::Security::Authentication::Web::Core::IWebTokenRequest> = L"Windows.Security.Authentication.Web.Core.IWebTokenRequest";
@@ -133,10 +259,63 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountEventArgs>{ 0x6FB7037D,0x424E,0x44EC,{ 0x97,0x7C,0xEF,0x24,0x15,0x46,0x2A,0x5A } }; // 6FB7037D-424E-44EC-977C-EF2415462A5A
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor>{ 0x7445F5FD,0xAA9D,0x4619,{ 0x8D,0x5D,0xC1,0x38,0xA4,0xED,0xE3,0xE5 } }; // 7445F5FD-AA9D-4619-8D5D-C138A4EDE3E5
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor2>{ 0xA7ADC1F8,0x24B8,0x4F01,{ 0x9A,0xE5,0x24,0x54,0x5E,0x71,0x23,0x3A } }; // A7ADC1F8-24B8-4F01-9AE5-24545E71233A
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponse>{
+            0x7FB013E8,
+            0x0BD8,
+            0x542B,
+            {0xB4, 0x86, 0x83, 0x23, 0x16, 0x3A, 0x4B,
+             0x85}};  // 7FB013E8-0BD8-542B-B486-8323163A4B85
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponseFactory>{
+            0x325F903E,
+            0x77BE,
+            0x5365,
+            {0x81, 0xD9, 0x03, 0x21, 0xCD, 0xD8, 0x21,
+             0x95}};  // 325F903E-77BE-5365-81D9-0321CDD82195
+    template <>
+    inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::
+                                     Core::IWebAuthenticationAddAccountResult>{
+        0x88FAD03C,
+        0x901D,
+        0x5FFA,
+        {0x92, 0x59, 0x70, 0x1D, 0x3C, 0xA0, 0x8E,
+         0xF2}};  // 88FAD03C-901D-5FFA-9259-701D3CA08EF2
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics>{ 0x6ACA7C92,0xA581,0x4479,{ 0x9C,0x10,0x75,0x2E,0xFF,0x44,0xFD,0x34 } }; // 6ACA7C92-A581-4479-9C10-752EFF44FD34
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics2>{ 0xF584184A,0x8B57,0x4820,{ 0xB6,0xA4,0x70,0xA5,0xB6,0xFC,0xF4,0x4A } }; // F584184A-8B57-4820-B6A4-70A5B6FCF44A
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics3>{ 0x2404EEB2,0x8924,0x4D93,{ 0xAB,0x3A,0x99,0x68,0x8B,0x41,0x9D,0x56 } }; // 2404EEB2-8924-4D93-AB3A-99688B419D56
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics4>{ 0x54E633FE,0x96E0,0x41E8,{ 0x98,0x32,0x12,0x98,0x89,0x7C,0x2A,0xAF } }; // 54E633FE-96E0-41E8-9832-1298897C2AAF
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationCoreManagerStatics5>{
+            0xD07C1DED,
+            0x270F,
+            0x4554,
+            {0x99, 0x66, 0x27, 0xB7, 0xDF, 0x05, 0xB9,
+             0x65}};  // D07C1DED-270F-4554-9966-27B7DF05B965
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequest>{
+            0x7ACFA5B6,
+            0x529D,
+            0x5E76,
+            {0x98, 0x46, 0xF3, 0xFD, 0x99, 0x93, 0x04,
+             0xD0}};  // 7ACFA5B6-529D-5E76-9846-F3FD999304D0
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequestFactory>{
+            0x5F16B627,
+            0x04C4,
+            0x5F0B,
+            {0x86, 0x83, 0x8B, 0xAB, 0x58, 0x96, 0x56,
+             0x56}};  // 5F16B627-04C4-5F0B-8683-8BAB58965656
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebProviderError>{ 0xDB191BB1,0x50C5,0x4809,{ 0x8D,0xCA,0x09,0xC9,0x94,0x10,0x24,0x5C } }; // DB191BB1-50C5-4809-8DCA-09C99410245C
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebProviderErrorFactory>{ 0xE3C40A2D,0x89EF,0x4E37,{ 0x84,0x7F,0xA8,0xB9,0xD5,0xA3,0x29,0x10 } }; // E3C40A2D-89EF-4E37-847F-A8B9D5A32910
     template <> inline constexpr guid guid_v<winrt::Windows::Security::Authentication::Web::Core::IWebTokenRequest>{ 0xB77B4D68,0xADCB,0x4673,{ 0xB3,0x64,0x0C,0xF7,0xB3,0x5C,0xAF,0x97 } }; // B77B4D68-ADCB-4673-B364-0CF7B35CAF97
@@ -149,6 +328,24 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::FindAllAccountsResult>{ using type = winrt::Windows::Security::Authentication::Web::Core::IFindAllAccountsResult; };
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::WebAccountEventArgs>{ using type = winrt::Windows::Security::Authentication::Web::Core::IWebAccountEventArgs; };
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::WebAccountMonitor>{ using type = winrt::Windows::Security::Authentication::Web::Core::IWebAccountMonitor; };
+    template <>
+    struct default_interface<winrt::Windows::Security::Authentication::Web::
+                                 Core::WebAuthenticationAddAccountResponse> {
+      using type = winrt::Windows::Security::Authentication::Web::Core::
+          IWebAuthenticationAddAccountResponse;
+    };
+    template <>
+    struct default_interface<winrt::Windows::Security::Authentication::Web::
+                                 Core::WebAuthenticationAddAccountResult> {
+      using type = winrt::Windows::Security::Authentication::Web::Core::
+          IWebAuthenticationAddAccountResult;
+    };
+    template <>
+    struct default_interface<winrt::Windows::Security::Authentication::Web::
+                                 Core::WebAuthenticationTransferTokenRequest> {
+      using type = winrt::Windows::Security::Authentication::Web::Core::
+          IWebAuthenticationTransferTokenRequest;
+    };
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::WebProviderError>{ using type = winrt::Windows::Security::Authentication::Web::Core::IWebProviderError; };
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest>{ using type = winrt::Windows::Security::Authentication::Web::Core::IWebTokenRequest; };
     template <> struct default_interface<winrt::Windows::Security::Authentication::Web::Core::WebTokenRequestResult>{ using type = winrt::Windows::Security::Authentication::Web::Core::IWebTokenRequestResult; };
@@ -189,6 +386,30 @@ namespace winrt::impl
             virtual int32_t __stdcall remove_AccountPictureUpdated(winrt::event_token) noexcept = 0;
         };
     };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponse> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_WebAccount(void**) noexcept = 0;
+        virtual int32_t __stdcall get_Properties(void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResponseFactory> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall CreateWithAccount(void*, void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationAddAccountResult> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_ResponseData(void**) noexcept = 0;
+        virtual int32_t __stdcall get_ResponseStatus(int32_t*) noexcept = 0;
+        virtual int32_t __stdcall get_ResponseError(void**) noexcept = 0;
+      };
+    };
     template <> struct abi<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -226,6 +447,35 @@ namespace winrt::impl
             virtual int32_t __stdcall FindSystemAccountProviderWithAuthorityAsync(void*, void*, void**) noexcept = 0;
             virtual int32_t __stdcall FindSystemAccountProviderWithAuthorityForUserAsync(void*, void*, void*, void**) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationCoreManagerStatics5> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall AddAccountWithTransferTokenAsync(
+            void*, void**) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequest> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_WebAccountProvider(void**) noexcept = 0;
+        virtual int32_t __stdcall get_TransferToken(void**) noexcept = 0;
+        virtual int32_t __stdcall put_TransferToken(void*) noexcept = 0;
+        virtual int32_t __stdcall get_Properties(void**) noexcept = 0;
+        virtual int32_t __stdcall get_CorrelationId(void**) noexcept = 0;
+        virtual int32_t __stdcall put_CorrelationId(void*) noexcept = 0;
+      };
+    };
+    template <>
+    struct abi<winrt::Windows::Security::Authentication::Web::Core::
+                   IWebAuthenticationTransferTokenRequestFactory> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall Create(void*, void*, void**) noexcept = 0;
+        virtual int32_t __stdcall CreateWithCorrelationId(void*, void*, void*,
+                                                          void**) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Security::Authentication::Web::Core::IWebProviderError>
     {
@@ -361,15 +611,75 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Security_Authentication_Web_Core_IWebAccountMonitor2<D>;
     };
     template <typename D>
-    struct consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationCoreManagerStatics
-    {
-        auto GetTokenSilentlyAsync(winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest const& request) const;
-        auto GetTokenSilentlyAsync(winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest const& request, winrt::Windows::Security::Credentials::WebAccount const& webAccount) const;
-        auto RequestTokenAsync(winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest const& request) const;
-        auto RequestTokenAsync(winrt::Windows::Security::Authentication::Web::Core::WebTokenRequest const& request, winrt::Windows::Security::Credentials::WebAccount const& webAccount) const;
-        auto FindAccountAsync(winrt::Windows::Security::Credentials::WebAccountProvider const& provider, param::hstring const& webAccountId) const;
-        auto FindAccountProviderAsync(param::hstring const& webAccountProviderId) const;
-        auto FindAccountProviderAsync(param::hstring const& webAccountProviderId, param::hstring const& authority) const;
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResponse {
+      [[nodiscard]] auto WebAccount() const;
+      [[nodiscard]] auto Properties() const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationAddAccountResponse> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResponse<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResponseFactory {
+      auto CreateWithAccount(
+          winrt::Windows::Security::Credentials::WebAccount const& webAccount)
+          const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationAddAccountResponseFactory> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResponseFactory<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResult {
+      [[nodiscard]] auto ResponseData() const;
+      [[nodiscard]] auto ResponseStatus() const;
+      [[nodiscard]] auto ResponseError() const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationAddAccountResult> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationAddAccountResult<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationCoreManagerStatics {
+      auto GetTokenSilentlyAsync(
+          winrt::Windows::Security::Authentication::Web::Core::
+              WebTokenRequest const& request) const;
+      auto GetTokenSilentlyAsync(
+          winrt::Windows::Security::Authentication::Web::Core::
+              WebTokenRequest const& request,
+          winrt::Windows::Security::Credentials::WebAccount const& webAccount)
+          const;
+      auto RequestTokenAsync(winrt::Windows::Security::Authentication::Web::
+                                 Core::WebTokenRequest const& request) const;
+      auto RequestTokenAsync(
+          winrt::Windows::Security::Authentication::Web::Core::
+              WebTokenRequest const& request,
+          winrt::Windows::Security::Credentials::WebAccount const& webAccount)
+          const;
+      auto FindAccountAsync(
+          winrt::Windows::Security::Credentials::WebAccountProvider const&
+              provider,
+          param::hstring const& webAccountId) const;
+      auto FindAccountProviderAsync(
+          param::hstring const& webAccountProviderId) const;
+      auto FindAccountProviderAsync(param::hstring const& webAccountProviderId,
+                                    param::hstring const& authority) const;
     };
     template <> struct consume<winrt::Windows::Security::Authentication::Web::Core::IWebAuthenticationCoreManagerStatics>
     {
@@ -407,11 +717,64 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationCoreManagerStatics4<D>;
     };
     template <typename D>
-    struct consume_Windows_Security_Authentication_Web_Core_IWebProviderError
-    {
-        [[nodiscard]] auto ErrorCode() const;
-        [[nodiscard]] auto ErrorMessage() const;
-        [[nodiscard]] auto Properties() const;
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationCoreManagerStatics5 {
+      auto AddAccountWithTransferTokenAsync(
+          winrt::Windows::Security::Authentication::Web::Core::
+              WebAuthenticationTransferTokenRequest const& request) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationCoreManagerStatics5> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationCoreManagerStatics5<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationTransferTokenRequest {
+      [[nodiscard]] auto WebAccountProvider() const;
+      [[nodiscard]] auto TransferToken() const;
+      auto TransferToken(param::hstring const& value) const;
+      [[nodiscard]] auto Properties() const;
+      [[nodiscard]] auto CorrelationId() const;
+      auto CorrelationId(param::hstring const& value) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationTransferTokenRequest> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationTransferTokenRequest<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationTransferTokenRequestFactory {
+      auto Create(
+          winrt::Windows::Security::Credentials::WebAccountProvider const&
+              provider,
+          param::hstring const& transferToken) const;
+      auto CreateWithCorrelationId(
+          winrt::Windows::Security::Credentials::WebAccountProvider const&
+              provider,
+          param::hstring const& transferToken,
+          param::hstring const& correlationId) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Security::Authentication::Web::Core::
+                       IWebAuthenticationTransferTokenRequestFactory> {
+      template <typename D>
+      using type =
+          consume_Windows_Security_Authentication_Web_Core_IWebAuthenticationTransferTokenRequestFactory<
+              D>;
+    };
+    template <typename D>
+    struct consume_Windows_Security_Authentication_Web_Core_IWebProviderError {
+      [[nodiscard]] auto ErrorCode() const;
+      [[nodiscard]] auto ErrorMessage() const;
+      [[nodiscard]] auto Properties() const;
     };
     template <> struct consume<winrt::Windows::Security::Authentication::Web::Core::IWebProviderError>
     {

@@ -679,22 +679,6 @@ namespace winrt::impl
         }
         return winrt::Windows::Foundation::Collections::IVector<winrt::Windows::ApplicationModel::AppInstance>{ result, take_ownership_from_abi };
     }
-    template <typename D> auto consume_Windows_ApplicationModel_ICameraApplicationManagerStatics<D>::ShowInstalledApplicationsUI() const
-    {
-        if constexpr (!std::is_same_v<D, winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>)
-        {
-            winrt::hresult _winrt_cast_result_code;
-            auto const _winrt_casted_result = impl::try_as_with_reason<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics, D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
-            check_hresult(_winrt_cast_result_code);
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>**)&_winrt_casted_result;
-            check_hresult(_winrt_abi_type->ShowInstalledApplicationsUI());
-        }
-        else
-        {
-            auto const _winrt_abi_type = *(abi_t<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>**)this;
-            check_hresult(_winrt_abi_type->ShowInstalledApplicationsUI());
-        }
-    }
     template <typename D> auto consume_Windows_ApplicationModel_IDesignModeStatics<D>::DesignModeEnabled() const
     {
         bool value{};
@@ -4061,19 +4045,6 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics> : produce_base<D, winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics>
-    {
-        int32_t __stdcall ShowInstalledApplicationsUI() noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().ShowInstalledApplicationsUI();
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-    };
-#endif
-#ifndef WINRT_LEAN_AND_MEAN
-    template <typename D>
     struct produce<D, winrt::Windows::ApplicationModel::IDesignModeStatics> : produce_base<D, winrt::Windows::ApplicationModel::IDesignModeStatics>
     {
         int32_t __stdcall get_DesignModeEnabled(bool* value) noexcept final try
@@ -5699,10 +5670,6 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel
     {
         return impl::call_factory_cast<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::ApplicationModel::AppInstance>(*)(IAppInstanceStatics const&), AppInstance, IAppInstanceStatics>([](IAppInstanceStatics const& f) { return f.GetInstances(); });
     }
-    inline auto CameraApplicationManager::ShowInstalledApplicationsUI()
-    {
-        impl::call_factory_cast<void(*)(ICameraApplicationManagerStatics const&), CameraApplicationManager, ICameraApplicationManagerStatics>([](ICameraApplicationManagerStatics const& f) { return f.ShowInstalledApplicationsUI(); });
-    }
     inline auto DesignMode::DesignModeEnabled()
     {
         return impl::call_factory_cast<bool(*)(IDesignModeStatics const&), DesignMode, IDesignModeStatics>([](IDesignModeStatics const& f) { return f.DesignModeEnabled(); });
@@ -5785,7 +5752,6 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInstallerInfo2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInstance> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IAppInstanceStatics> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::ApplicationModel::ICameraApplicationManagerStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IDesignModeStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IDesignModeStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::IEnteredBackgroundEventArgs> : winrt::impl::hash_base {};
@@ -5840,7 +5806,6 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::AppInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::AppInstallerInfo> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::AppInstance> : winrt::impl::hash_base {};
-    template<> struct hash<winrt::Windows::ApplicationModel::CameraApplicationManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DesignMode> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::EnteredBackgroundEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::FindRelatedPackagesOptions> : winrt::impl::hash_base {};

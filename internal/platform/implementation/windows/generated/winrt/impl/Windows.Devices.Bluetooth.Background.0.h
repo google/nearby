@@ -18,6 +18,7 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfi
 {
     struct GattCharacteristic;
     struct GattLocalService;
+    struct GattServiceProviderAdvertisingParameters;
 }
 WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::Rfcomm
 {
@@ -45,6 +46,7 @@ WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth::Background
     struct IGattCharacteristicNotificationTriggerDetails;
     struct IGattCharacteristicNotificationTriggerDetails2;
     struct IGattServiceProviderConnection;
+    struct IGattServiceProviderConnection2;
     struct IGattServiceProviderConnectionStatics;
     struct IGattServiceProviderTriggerDetails;
     struct IRfcommConnectionTriggerDetails;
@@ -67,6 +69,11 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnection>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Devices::Bluetooth::Background::
+                        IGattServiceProviderConnection2> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnectionStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderTriggerDetails>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Devices::Bluetooth::Background::IRfcommConnectionTriggerDetails>{ using type = interface_category; };
@@ -96,6 +103,11 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails> = L"Windows.Devices.Bluetooth.Background.IGattCharacteristicNotificationTriggerDetails";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails2> = L"Windows.Devices.Bluetooth.Background.IGattCharacteristicNotificationTriggerDetails2";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnection> = L"Windows.Devices.Bluetooth.Background.IGattServiceProviderConnection";
+    template <>
+    inline constexpr auto& name_v<
+        winrt::Windows::Devices::Bluetooth::Background::
+            IGattServiceProviderConnection2> =
+        L"Windows.Devices.Bluetooth.Background.IGattServiceProviderConnection2";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnectionStatics> = L"Windows.Devices.Bluetooth.Background.IGattServiceProviderConnectionStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderTriggerDetails> = L"Windows.Devices.Bluetooth.Background.IGattServiceProviderTriggerDetails";
     template <> inline constexpr auto& name_v<winrt::Windows::Devices::Bluetooth::Background::IRfcommConnectionTriggerDetails> = L"Windows.Devices.Bluetooth.Background.IRfcommConnectionTriggerDetails";
@@ -107,6 +119,15 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails>{ 0x9BA03B18,0x0FEC,0x436A,{ 0x93,0xB1,0xF4,0x6C,0x69,0x75,0x32,0xA2 } }; // 9BA03B18-0FEC-436A-93B1-F46C697532A2
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IGattCharacteristicNotificationTriggerDetails2>{ 0x727A50DC,0x949D,0x454A,{ 0xB1,0x92,0x98,0x34,0x67,0xE3,0xD5,0x0F } }; // 727A50DC-949D-454A-B192-983467E3D50F
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnection>{ 0x7FA1B9B9,0x2F13,0x40B5,{ 0x95,0x82,0x8E,0xB7,0x8E,0x98,0xEF,0x13 } }; // 7FA1B9B9-2F13-40B5-9582-8EB78E98EF13
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Devices::Bluetooth::Background::
+                   IGattServiceProviderConnection2>{
+            0x90D12BE0,
+            0xEBC0,
+            0x484F,
+            {0xAE, 0x0A, 0x7E, 0xB8, 0xB6, 0x26, 0x6B,
+             0xAC}};  // 90D12BE0-EBC0-484F-AE0A-7EB8B6266BAC
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnectionStatics>{ 0x3D509F4B,0x0B0E,0x4466,{ 0xB8,0xCD,0x6E,0xBD,0xDA,0x1F,0xA1,0x7D } }; // 3D509F4B-0B0E-4466-B8CD-6EBDDA1FA17D
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderTriggerDetails>{ 0xAE8C0625,0x05FF,0x4AFB,{ 0xB1,0x6A,0xDE,0x95,0xF3,0xCF,0x01,0x58 } }; // AE8C0625-05FF-4AFB-B16A-DE95F3CF0158
     template <> inline constexpr guid guid_v<winrt::Windows::Devices::Bluetooth::Background::IRfcommConnectionTriggerDetails>{ 0xF922734D,0x2E3C,0x4EFC,{ 0xAB,0x59,0xFC,0x5C,0xF9,0x6F,0x97,0xE3 } }; // F922734D-2E3C-4EFC-AB59-FC5CF96F97E3
@@ -169,6 +190,14 @@ namespace winrt::impl
             virtual int32_t __stdcall get_Service(void**) noexcept = 0;
             virtual int32_t __stdcall Start() noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Devices::Bluetooth::Background::
+                   IGattServiceProviderConnection2> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall UpdateAdvertisingParameters(
+            void*) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnectionStatics>
     {
@@ -276,9 +305,24 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Devices_Bluetooth_Background_IGattServiceProviderConnection<D>;
     };
     template <typename D>
-    struct consume_Windows_Devices_Bluetooth_Background_IGattServiceProviderConnectionStatics
-    {
-        [[nodiscard]] auto AllServices() const;
+    struct
+        consume_Windows_Devices_Bluetooth_Background_IGattServiceProviderConnection2 {
+      auto UpdateAdvertisingParameters(
+          winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+              GattServiceProviderAdvertisingParameters const& parameters) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Devices::Bluetooth::Background::
+                       IGattServiceProviderConnection2> {
+      template <typename D>
+      using type =
+          consume_Windows_Devices_Bluetooth_Background_IGattServiceProviderConnection2<
+              D>;
+    };
+    template <typename D>
+    struct
+        consume_Windows_Devices_Bluetooth_Background_IGattServiceProviderConnectionStatics {
+      [[nodiscard]] auto AllServices() const;
     };
     template <> struct consume<winrt::Windows::Devices::Bluetooth::Background::IGattServiceProviderConnectionStatics>
     {

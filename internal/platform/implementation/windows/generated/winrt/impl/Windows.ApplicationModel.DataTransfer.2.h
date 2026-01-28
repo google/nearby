@@ -218,5 +218,55 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
         TargetApplicationChosenEventArgs(std::nullptr_t) noexcept {}
         TargetApplicationChosenEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES TransferTarget
+        : winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget {
+      TransferTarget(std::nullptr_t) noexcept {}
+      TransferTarget(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget(
+                ptr, take_ownership_from_abi) {}
+      static auto CreateWatcher(
+          winrt::Windows::ApplicationModel::DataTransfer::
+              TransferTargetDiscoveryOptions const& options);
+    };
+    struct WINRT_IMPL_EMPTY_BASES TransferTargetChangedEventArgs
+        : winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetChangedEventArgs {
+      TransferTargetChangedEventArgs(std::nullptr_t) noexcept {}
+      TransferTargetChangedEventArgs(void* ptr,
+                                     take_ownership_from_abi_t) noexcept
+          : winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetChangedEventArgs(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES TransferTargetDiscoveryOptions
+        : winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetDiscoveryOptions {
+      TransferTargetDiscoveryOptions(std::nullptr_t) noexcept {}
+      TransferTargetDiscoveryOptions(void* ptr,
+                                     take_ownership_from_abi_t) noexcept
+          : winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions(ptr, take_ownership_from_abi) {}
+      explicit TransferTargetDiscoveryOptions(
+          winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+              dataPackage);
+    };
+    struct WINRT_IMPL_EMPTY_BASES TransferTargetInvokeResult
+        : winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetInvokeResult {
+      TransferTargetInvokeResult(std::nullptr_t) noexcept {}
+      TransferTargetInvokeResult(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetInvokeResult(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES TransferTargetWatcher
+        : winrt::Windows::ApplicationModel::DataTransfer::
+              ITransferTargetWatcher {
+      TransferTargetWatcher(std::nullptr_t) noexcept {}
+      TransferTargetWatcher(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetWatcher(ptr, take_ownership_from_abi) {}
+      static auto IsSupported(
+          winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+              dataPackage);
+    };
 }
 #endif

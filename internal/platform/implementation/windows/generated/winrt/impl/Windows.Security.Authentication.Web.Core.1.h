@@ -34,6 +34,34 @@ WINRT_EXPORT namespace winrt::Windows::Security::Authentication::Web::Core
         IWebAccountMonitor2(std::nullptr_t = nullptr) noexcept {}
         IWebAccountMonitor2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationAddAccountResponse
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationAddAccountResponse> {
+      IWebAuthenticationAddAccountResponse(std::nullptr_t = nullptr) noexcept {}
+      IWebAuthenticationAddAccountResponse(void* ptr,
+                                           take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationAddAccountResponseFactory
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationAddAccountResponseFactory> {
+      IWebAuthenticationAddAccountResponseFactory(
+          std::nullptr_t = nullptr) noexcept {}
+      IWebAuthenticationAddAccountResponseFactory(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationAddAccountResult
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationAddAccountResult> {
+      IWebAuthenticationAddAccountResult(std::nullptr_t = nullptr) noexcept {}
+      IWebAuthenticationAddAccountResult(void* ptr,
+                                         take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationCoreManagerStatics :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IWebAuthenticationCoreManagerStatics>
@@ -66,6 +94,36 @@ WINRT_EXPORT namespace winrt::Windows::Security::Authentication::Web::Core
     {
         IWebAuthenticationCoreManagerStatics4(std::nullptr_t = nullptr) noexcept {}
         IWebAuthenticationCoreManagerStatics4(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationCoreManagerStatics5
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationCoreManagerStatics5> {
+      IWebAuthenticationCoreManagerStatics5(std::nullptr_t = nullptr) noexcept {
+      }
+      IWebAuthenticationCoreManagerStatics5(void* ptr,
+                                            take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationTransferTokenRequest
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationTransferTokenRequest> {
+      IWebAuthenticationTransferTokenRequest(
+          std::nullptr_t = nullptr) noexcept {}
+      IWebAuthenticationTransferTokenRequest(void* ptr,
+                                             take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IWebAuthenticationTransferTokenRequestFactory
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWebAuthenticationTransferTokenRequestFactory> {
+      IWebAuthenticationTransferTokenRequestFactory(
+          std::nullptr_t = nullptr) noexcept {}
+      IWebAuthenticationTransferTokenRequestFactory(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IWebProviderError :
         winrt::Windows::Foundation::IInspectable,

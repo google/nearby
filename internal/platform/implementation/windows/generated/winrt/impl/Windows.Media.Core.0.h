@@ -322,6 +322,7 @@ WINRT_EXPORT namespace winrt::Windows::Media::Core
     struct ICodecInfo;
     struct ICodecQuery;
     struct ICodecSubtypesStatics;
+    struct ICodecSubtypesStatics2;
     struct IDataCue;
     struct IDataCue2;
     struct IFaceDetectedEventArgs;
@@ -509,6 +510,10 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Core::ICodecInfo>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ICodecQuery>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::ICodecSubtypesStatics>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Media::Core::ICodecSubtypesStatics2> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Media::Core::IDataCue>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::IDataCue2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Core::IFaceDetectedEventArgs>{ using type = interface_category; };
@@ -833,6 +838,10 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ICodecInfo> = L"Windows.Media.Core.ICodecInfo";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ICodecQuery> = L"Windows.Media.Core.ICodecQuery";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::ICodecSubtypesStatics> = L"Windows.Media.Core.ICodecSubtypesStatics";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Media::Core::ICodecSubtypesStatics2> =
+            L"Windows.Media.Core.ICodecSubtypesStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::IDataCue> = L"Windows.Media.Core.IDataCue";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::IDataCue2> = L"Windows.Media.Core.IDataCue2";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Core::IFaceDetectedEventArgs> = L"Windows.Media.Core.IFaceDetectedEventArgs";
@@ -941,6 +950,14 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ICodecInfo>{ 0x51E89F85,0xEA97,0x499C,{ 0x86,0xAC,0x4C,0xE5,0xE7,0x3F,0x3A,0x42 } }; // 51E89F85-EA97-499C-86AC-4CE5E73F3A42
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ICodecQuery>{ 0x222A953A,0xAF61,0x4E04,{ 0x80,0x8A,0xA4,0x63,0x4E,0x2F,0x3A,0xC4 } }; // 222A953A-AF61-4E04-808A-A4634E2F3AC4
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::ICodecSubtypesStatics>{ 0xA66AC4F2,0x888B,0x4224,{ 0x8C,0xF6,0x2A,0x8D,0x4E,0xB0,0x23,0x82 } }; // A66AC4F2-888B-4224-8CF6-2A8D4EB02382
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Media::Core::ICodecSubtypesStatics2>{
+            0x363B0930,
+            0xDE26,
+            0x582E,
+            {0x80, 0x14, 0xF5, 0x46, 0xD0, 0x75, 0x38,
+             0x87}};  // 363B0930-DE26-582E-8014-F546D0753887
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::IDataCue>{ 0x7C7F676D,0x1FBC,0x4E2D,{ 0x9A,0x87,0xEE,0x38,0xBD,0x1D,0xC6,0x37 } }; // 7C7F676D-1FBC-4E2D-9A87-EE38BD1DC637
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::IDataCue2>{ 0xBC561B15,0x95F2,0x49E8,{ 0x96,0xF1,0x8D,0xD5,0xDA,0xC6,0x8D,0x93 } }; // BC561B15-95F2-49E8-96F1-8DD5DAC68D93
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Core::IFaceDetectedEventArgs>{ 0x19918426,0xC65B,0x46BA,{ 0x85,0xF8,0x13,0x88,0x05,0x76,0xC9,0x0A } }; // 19918426-C65B-46BA-85F8-13880576C90A
@@ -1249,6 +1266,12 @@ namespace winrt::impl
             virtual int32_t __stdcall get_AudioFormatWMAudioV8(void**) noexcept = 0;
             virtual int32_t __stdcall get_AudioFormatWMAudioV9(void**) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Media::Core::ICodecSubtypesStatics2> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_VideoFormatAv1(void**) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Media::Core::IDataCue>
     {
@@ -2388,10 +2411,18 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Media_Core_ICodecSubtypesStatics<D>;
     };
     template <typename D>
-    struct consume_Windows_Media_Core_IDataCue
-    {
-        auto Data(winrt::Windows::Storage::Streams::IBuffer const& value) const;
-        [[nodiscard]] auto Data() const;
+    struct consume_Windows_Media_Core_ICodecSubtypesStatics2 {
+      [[nodiscard]] auto VideoFormatAv1() const;
+    };
+    template <>
+    struct consume<winrt::Windows::Media::Core::ICodecSubtypesStatics2> {
+      template <typename D>
+      using type = consume_Windows_Media_Core_ICodecSubtypesStatics2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Media_Core_IDataCue {
+      auto Data(winrt::Windows::Storage::Streams::IBuffer const& value) const;
+      [[nodiscard]] auto Data() const;
     };
     template <> struct consume<winrt::Windows::Media::Core::IDataCue>
     {

@@ -115,11 +115,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         ESimWatcher(std::nullptr_t) noexcept {}
         ESimWatcher(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Networking::NetworkOperators::IESimWatcher(ptr, take_ownership_from_abi) {}
     };
-    struct FdnAccessManager
-    {
-        FdnAccessManager() = delete;
-        static auto RequestUnlockAsync(param::hstring const& contactListId);
-    };
     struct WINRT_IMPL_EMPTY_BASES HotspotAuthenticationContext : winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext,
         impl::require<HotspotAuthenticationContext, winrt::Windows::Networking::NetworkOperators::IHotspotAuthenticationContext2>
     {

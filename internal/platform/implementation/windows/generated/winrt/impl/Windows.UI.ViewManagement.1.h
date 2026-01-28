@@ -237,27 +237,6 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
         IProjectionManagerStatics2(std::nullptr_t = nullptr) noexcept {}
         IProjectionManagerStatics2(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES IStatusBar :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IStatusBar>
-    {
-        IStatusBar(std::nullptr_t = nullptr) noexcept {}
-        IStatusBar(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
-    struct WINRT_IMPL_EMPTY_BASES IStatusBarProgressIndicator :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IStatusBarProgressIndicator>
-    {
-        IStatusBarProgressIndicator(std::nullptr_t = nullptr) noexcept {}
-        IStatusBarProgressIndicator(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
-    struct WINRT_IMPL_EMPTY_BASES IStatusBarStatics :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IStatusBarStatics>
-    {
-        IStatusBarStatics(std::nullptr_t = nullptr) noexcept {}
-        IStatusBarStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES IUISettings :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IUISettings>
@@ -327,6 +306,16 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
     {
         IUIViewSettings(std::nullptr_t = nullptr) noexcept {}
         IUIViewSettings(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES IUIViewSettingsPreferredInteractionMode
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IUIViewSettingsPreferredInteractionMode> {
+      IUIViewSettingsPreferredInteractionMode(
+          std::nullptr_t = nullptr) noexcept {}
+      IUIViewSettingsPreferredInteractionMode(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES IUIViewSettingsStatics :
         winrt::Windows::Foundation::IInspectable,

@@ -125,13 +125,6 @@ WINRT_EXPORT namespace winrt::Windows::Networking::NetworkOperators
         IESimWatcher(std::nullptr_t = nullptr) noexcept {}
         IESimWatcher(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES IFdnAccessManagerStatics :
-        winrt::Windows::Foundation::IInspectable,
-        impl::consume_t<IFdnAccessManagerStatics>
-    {
-        IFdnAccessManagerStatics(std::nullptr_t = nullptr) noexcept {}
-        IFdnAccessManagerStatics(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES IHotspotAuthenticationContext :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IHotspotAuthenticationContext>

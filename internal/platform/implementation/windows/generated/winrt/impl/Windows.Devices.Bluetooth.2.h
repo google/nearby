@@ -8,15 +8,20 @@
 #include "winrt/impl/Windows.Devices.Bluetooth.1.h"
 WINRT_EXPORT namespace winrt::Windows::Devices::Bluetooth
 {
-    struct WINRT_IMPL_EMPTY_BASES BluetoothAdapter : winrt::Windows::Devices::Bluetooth::IBluetoothAdapter,
-        impl::require<BluetoothAdapter, winrt::Windows::Devices::Bluetooth::IBluetoothAdapter2, winrt::Windows::Devices::Bluetooth::IBluetoothAdapter3>
-    {
-        BluetoothAdapter(std::nullptr_t) noexcept {}
-        BluetoothAdapter(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Devices::Bluetooth::IBluetoothAdapter(ptr, take_ownership_from_abi) {}
-        static auto GetDeviceSelector();
-        static auto FromIdAsync(param::hstring const& deviceId);
-        static auto GetDefaultAsync();
-    };
+  struct WINRT_IMPL_EMPTY_BASES BluetoothAdapter
+      : winrt::Windows::Devices::Bluetooth::IBluetoothAdapter,
+        impl::require<BluetoothAdapter,
+                      winrt::Windows::Devices::Bluetooth::IBluetoothAdapter2,
+                      winrt::Windows::Devices::Bluetooth::IBluetoothAdapter3,
+                      winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4> {
+    BluetoothAdapter(std::nullptr_t) noexcept {}
+    BluetoothAdapter(void* ptr, take_ownership_from_abi_t) noexcept
+        : winrt::Windows::Devices::Bluetooth::IBluetoothAdapter(
+              ptr, take_ownership_from_abi) {}
+    static auto GetDeviceSelector();
+    static auto FromIdAsync(param::hstring const& deviceId);
+    static auto GetDefaultAsync();
+  };
     struct WINRT_IMPL_EMPTY_BASES BluetoothClassOfDevice : winrt::Windows::Devices::Bluetooth::IBluetoothClassOfDevice
     {
         BluetoothClassOfDevice(std::nullptr_t) noexcept {}

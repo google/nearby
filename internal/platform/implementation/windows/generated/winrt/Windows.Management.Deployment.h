@@ -1835,6 +1835,111 @@ namespace winrt::impl
         }
         return winrt::Windows::Foundation::IAsyncOperationWithProgress<winrt::Windows::Management::Deployment::DeploymentResult, winrt::Windows::Management::Deployment::DeploymentProgress>{ operation, take_ownership_from_abi };
     }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IPackageManager12<D>::
+        IsPackageRemovalPending(param::hstring const& packageFullName) const {
+      bool result{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IPackageManager12>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IPackageManager12,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPending(
+            *(void**)(&packageFullName), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)this;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPending(
+            *(void**)(&packageFullName), &result));
+      }
+      return result;
+    }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IPackageManager12<D>::
+        IsPackageRemovalPendingForUser(
+            param::hstring const& packageFullName,
+            param::hstring const& userSecurityId) const {
+      bool result{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IPackageManager12>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IPackageManager12,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingForUser(
+            *(void**)(&packageFullName), *(void**)(&userSecurityId), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)this;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingForUser(
+            *(void**)(&packageFullName), *(void**)(&userSecurityId), &result));
+      }
+      return result;
+    }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IPackageManager12<
+        D>::IsPackageRemovalPendingByUri(winrt::Windows::Foundation::Uri const&
+                                             packageUri) const {
+      bool result{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IPackageManager12>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IPackageManager12,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingByUri(
+            *(void**)(&packageUri), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)this;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingByUri(
+            *(void**)(&packageUri), &result));
+      }
+      return result;
+    }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IPackageManager12<D>::
+        IsPackageRemovalPendingByUriForUser(
+            winrt::Windows::Foundation::Uri const& packageUri,
+            param::hstring const& userSecurityId) const {
+      bool result{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IPackageManager12>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IPackageManager12,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingByUriForUser(
+            *(void**)(&packageUri), *(void**)(&userSecurityId), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IPackageManager12>**)this;
+        check_hresult(_winrt_abi_type->IsPackageRemovalPendingByUriForUser(
+            *(void**)(&packageUri), *(void**)(&userSecurityId), &result));
+      }
+      return result;
+    }
     template <typename D> auto consume_Windows_Management_Deployment_IPackageManager2<D>::RemovePackageAsync(param::hstring const& packageFullName, winrt::Windows::Management::Deployment::RemovalOptions const& removalOptions) const
     {
         void* deploymentOperation{};
@@ -3619,6 +3724,54 @@ namespace winrt::impl
             check_hresult(_winrt_abi_type->put_RemoveForAllUsers(value));
         }
     }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IRemovePackageOptions2<
+        D>::DeferRemovalWhenPackagesAreInUse() const {
+      bool value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IRemovePackageOptions2>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IRemovePackageOptions2,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IRemovePackageOptions2>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->get_DeferRemovalWhenPackagesAreInUse(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IRemovePackageOptions2>**)this;
+        check_hresult(
+            _winrt_abi_type->get_DeferRemovalWhenPackagesAreInUse(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto consume_Windows_Management_Deployment_IRemovePackageOptions2<
+        D>::DeferRemovalWhenPackagesAreInUse(bool value) const {
+      if constexpr (!std::is_same_v<D, winrt::Windows::Management::Deployment::
+                                           IRemovePackageOptions2>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Management::Deployment::IRemovePackageOptions2,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IRemovePackageOptions2>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->put_DeferRemovalWhenPackagesAreInUse(value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Management::Deployment::
+                        IRemovePackageOptions2>**)this;
+        check_hresult(
+            _winrt_abi_type->put_DeferRemovalWhenPackagesAreInUse(value));
+      }
+    }
     template <typename D> auto consume_Windows_Management_Deployment_ISharedPackageContainer<D>::Name() const
     {
         void* value{};
@@ -5277,88 +5430,239 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Management::Deployment::IPackageManager2> : produce_base<D, winrt::Windows::Management::Deployment::IPackageManager2>
-    {
-        int32_t __stdcall RemovePackageWithOptionsAsync(void* packageFullName, uint32_t removalOptions, void** deploymentOperation) noexcept final try
-        {
-            clear_abi(deploymentOperation);
-            typename D::abi_guard guard(this->shim());
-            *deploymentOperation = detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<winrt::Windows::Management::Deployment::DeploymentResult, winrt::Windows::Management::Deployment::DeploymentProgress>>(this->shim().RemovePackageAsync(*reinterpret_cast<hstring const*>(&packageFullName), *reinterpret_cast<winrt::Windows::Management::Deployment::RemovalOptions const*>(&removalOptions)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall StagePackageWithOptionsAsync(void* packageUri, void* dependencyPackageUris, uint32_t deploymentOptions, void** deploymentOperation) noexcept final try
-        {
-            clear_abi(deploymentOperation);
-            typename D::abi_guard guard(this->shim());
-            *deploymentOperation = detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<winrt::Windows::Management::Deployment::DeploymentResult, winrt::Windows::Management::Deployment::DeploymentProgress>>(this->shim().StagePackageAsync(*reinterpret_cast<winrt::Windows::Foundation::Uri const*>(&packageUri), *reinterpret_cast<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::Foundation::Uri> const*>(&dependencyPackageUris), *reinterpret_cast<winrt::Windows::Management::Deployment::DeploymentOptions const*>(&deploymentOptions)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall RegisterPackageByFullNameAsync(void* mainPackageFullName, void* dependencyPackageFullNames, uint32_t deploymentOptions, void** deploymentOperation) noexcept final try
-        {
-            clear_abi(deploymentOperation);
-            typename D::abi_guard guard(this->shim());
-            *deploymentOperation = detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<winrt::Windows::Management::Deployment::DeploymentResult, winrt::Windows::Management::Deployment::DeploymentProgress>>(this->shim().RegisterPackageByFullNameAsync(*reinterpret_cast<hstring const*>(&mainPackageFullName), *reinterpret_cast<winrt::Windows::Foundation::Collections::IIterable<hstring> const*>(&dependencyPackageFullNames), *reinterpret_cast<winrt::Windows::Management::Deployment::DeploymentOptions const*>(&deploymentOptions)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesWithPackageTypes(uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesWithPackageTypes(*reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesByUserSecurityIdWithPackageTypes(void* userSecurityId, uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesForUserWithPackageTypes(*reinterpret_cast<hstring const*>(&userSecurityId), *reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesByNamePublisherWithPackageTypes(void* packageName, void* packagePublisher, uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesWithPackageTypes(*reinterpret_cast<hstring const*>(&packageName), *reinterpret_cast<hstring const*>(&packagePublisher), *reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesByUserSecurityIdNamePublisherWithPackageTypes(void* userSecurityId, void* packageName, void* packagePublisher, uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesForUserWithPackageTypes(*reinterpret_cast<hstring const*>(&userSecurityId), *reinterpret_cast<hstring const*>(&packageName), *reinterpret_cast<hstring const*>(&packagePublisher), *reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesByPackageFamilyNameWithPackageTypes(void* packageFamilyName, uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesWithPackageTypes(*reinterpret_cast<hstring const*>(&packageFamilyName), *reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FindPackagesByUserSecurityIdPackageFamilyNameWithPackageTypes(void* userSecurityId, void* packageFamilyName, uint32_t packageTypes, void** packageCollection) noexcept final try
-        {
-            clear_abi(packageCollection);
-            typename D::abi_guard guard(this->shim());
-            *packageCollection = detach_from<winrt::Windows::Foundation::Collections::IIterable<winrt::Windows::ApplicationModel::Package>>(this->shim().FindPackagesForUserWithPackageTypes(*reinterpret_cast<hstring const*>(&userSecurityId), *reinterpret_cast<hstring const*>(&packageFamilyName), *reinterpret_cast<winrt::Windows::Management::Deployment::PackageTypes const*>(&packageTypes)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall StageUserDataAsync(void* packageFullName, void** deploymentOperation) noexcept final try
-        {
-            clear_abi(deploymentOperation);
-            typename D::abi_guard guard(this->shim());
-            *deploymentOperation = detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<winrt::Windows::Management::Deployment::DeploymentResult, winrt::Windows::Management::Deployment::DeploymentProgress>>(this->shim().StageUserDataAsync(*reinterpret_cast<hstring const*>(&packageFullName)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Management::Deployment::IPackageManager12>
+        : produce_base<
+              D, winrt::Windows::Management::Deployment::IPackageManager12> {
+      int32_t __stdcall IsPackageRemovalPending(void* packageFullName,
+                                                bool* result) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<bool>(this->shim().IsPackageRemovalPending(
+            *reinterpret_cast<hstring const*>(&packageFullName)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall IsPackageRemovalPendingForUser(
+          void* packageFullName, void* userSecurityId,
+          bool* result) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<bool>(this->shim().IsPackageRemovalPendingForUser(
+            *reinterpret_cast<hstring const*>(&packageFullName),
+            *reinterpret_cast<hstring const*>(&userSecurityId)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall IsPackageRemovalPendingByUri(
+          void* packageUri, bool* result) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<bool>(this->shim().IsPackageRemovalPendingByUri(
+            *reinterpret_cast<winrt::Windows::Foundation::Uri const*>(
+                &packageUri)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall IsPackageRemovalPendingByUriForUser(
+          void* packageUri, void* userSecurityId, bool* result) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        *result =
+            detach_from<bool>(this->shim().IsPackageRemovalPendingByUriForUser(
+                *reinterpret_cast<winrt::Windows::Foundation::Uri const*>(
+                    &packageUri),
+                *reinterpret_cast<hstring const*>(&userSecurityId)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Management::Deployment::IPackageManager2>
+        : produce_base<
+              D, winrt::Windows::Management::Deployment::IPackageManager2> {
+      int32_t __stdcall RemovePackageWithOptionsAsync(
+          void* packageFullName, uint32_t removalOptions,
+          void** deploymentOperation) noexcept final try {
+        clear_abi(deploymentOperation);
+        typename D::abi_guard guard(this->shim());
+        *deploymentOperation =
+            detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<
+                winrt::Windows::Management::Deployment::DeploymentResult,
+                winrt::Windows::Management::Deployment::DeploymentProgress>>(
+                this->shim().RemovePackageAsync(
+                    *reinterpret_cast<hstring const*>(&packageFullName),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          RemovalOptions const*>(
+                        &removalOptions)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall StagePackageWithOptionsAsync(
+          void* packageUri, void* dependencyPackageUris,
+          uint32_t deploymentOptions, void** deploymentOperation) noexcept final
+          try {
+        clear_abi(deploymentOperation);
+        typename D::abi_guard guard(this->shim());
+        *deploymentOperation =
+            detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<
+                winrt::Windows::Management::Deployment::DeploymentResult,
+                winrt::Windows::Management::Deployment::DeploymentProgress>>(
+                this->shim().StagePackageAsync(
+                    *reinterpret_cast<winrt::Windows::Foundation::Uri const*>(
+                        &packageUri),
+                    *reinterpret_cast<
+                        winrt::Windows::Foundation::Collections::IIterable<
+                            winrt::Windows::Foundation::Uri> const*>(
+                        &dependencyPackageUris),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          DeploymentOptions const*>(
+                        &deploymentOptions)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall RegisterPackageByFullNameAsync(
+          void* mainPackageFullName, void* dependencyPackageFullNames,
+          uint32_t deploymentOptions, void** deploymentOperation) noexcept final
+          try {
+        clear_abi(deploymentOperation);
+        typename D::abi_guard guard(this->shim());
+        *deploymentOperation =
+            detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<
+                winrt::Windows::Management::Deployment::DeploymentResult,
+                winrt::Windows::Management::Deployment::DeploymentProgress>>(
+                this->shim().RegisterPackageByFullNameAsync(
+                    *reinterpret_cast<hstring const*>(&mainPackageFullName),
+                    *reinterpret_cast<winrt::Windows::Foundation::Collections::
+                                          IIterable<hstring> const*>(
+                        &dependencyPackageFullNames),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          DeploymentOptions const*>(
+                        &deploymentOptions)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall FindPackagesWithPackageTypes(
+          uint32_t packageTypes, void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesWithPackageTypes(
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall FindPackagesByUserSecurityIdWithPackageTypes(
+          void* userSecurityId, uint32_t packageTypes,
+          void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesForUserWithPackageTypes(
+                    *reinterpret_cast<hstring const*>(&userSecurityId),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall FindPackagesByNamePublisherWithPackageTypes(
+          void* packageName, void* packagePublisher, uint32_t packageTypes,
+          void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesWithPackageTypes(
+                    *reinterpret_cast<hstring const*>(&packageName),
+                    *reinterpret_cast<hstring const*>(&packagePublisher),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall
+      FindPackagesByUserSecurityIdNamePublisherWithPackageTypes(
+          void* userSecurityId, void* packageName, void* packagePublisher,
+          uint32_t packageTypes, void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesForUserWithPackageTypes(
+                    *reinterpret_cast<hstring const*>(&userSecurityId),
+                    *reinterpret_cast<hstring const*>(&packageName),
+                    *reinterpret_cast<hstring const*>(&packagePublisher),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall FindPackagesByPackageFamilyNameWithPackageTypes(
+          void* packageFamilyName, uint32_t packageTypes,
+          void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesWithPackageTypes(
+                    *reinterpret_cast<hstring const*>(&packageFamilyName),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall
+      FindPackagesByUserSecurityIdPackageFamilyNameWithPackageTypes(
+          void* userSecurityId, void* packageFamilyName, uint32_t packageTypes,
+          void** packageCollection) noexcept final try {
+        clear_abi(packageCollection);
+        typename D::abi_guard guard(this->shim());
+        *packageCollection =
+            detach_from<winrt::Windows::Foundation::Collections::IIterable<
+                winrt::Windows::ApplicationModel::Package>>(
+                this->shim().FindPackagesForUserWithPackageTypes(
+                    *reinterpret_cast<hstring const*>(&userSecurityId),
+                    *reinterpret_cast<hstring const*>(&packageFamilyName),
+                    *reinterpret_cast<winrt::Windows::Management::Deployment::
+                                          PackageTypes const*>(&packageTypes)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall StageUserDataAsync(
+          void* packageFullName, void** deploymentOperation) noexcept final
+          try {
+        clear_abi(deploymentOperation);
+        typename D::abi_guard guard(this->shim());
+        *deploymentOperation =
+            detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<
+                winrt::Windows::Management::Deployment::DeploymentResult,
+                winrt::Windows::Management::Deployment::DeploymentProgress>>(
+                this->shim().StageUserDataAsync(
+                    *reinterpret_cast<hstring const*>(&packageFullName)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -6140,48 +6444,89 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Management::Deployment::ISharedPackageContainer> : produce_base<D, winrt::Windows::Management::Deployment::ISharedPackageContainer>
-    {
-        int32_t __stdcall get_Name(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<hstring>(this->shim().Name());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_Id(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<hstring>(this->shim().Id());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetMembers(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Foundation::Collections::IVector<winrt::Windows::Management::Deployment::SharedPackageContainerMember>>(this->shim().GetMembers());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall RemovePackageFamily(void* packageFamilyName, void* options, void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Management::Deployment::UpdateSharedPackageContainerResult>(this->shim().RemovePackageFamily(*reinterpret_cast<hstring const*>(&packageFamilyName), *reinterpret_cast<winrt::Windows::Management::Deployment::UpdateSharedPackageContainerOptions const*>(&options)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall ResetData(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Management::Deployment::UpdateSharedPackageContainerResult>(this->shim().ResetData());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<
+        D, winrt::Windows::Management::Deployment::IRemovePackageOptions2>
+        : produce_base<
+              D,
+              winrt::Windows::Management::Deployment::IRemovePackageOptions2> {
+      int32_t __stdcall get_DeferRemovalWhenPackagesAreInUse(
+          bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<bool>(this->shim().DeferRemovalWhenPackagesAreInUse());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_DeferRemovalWhenPackagesAreInUse(
+          bool value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().DeferRemovalWhenPackagesAreInUse(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<
+        D, winrt::Windows::Management::Deployment::ISharedPackageContainer>
+        : produce_base<
+              D,
+              winrt::Windows::Management::Deployment::ISharedPackageContainer> {
+      int32_t __stdcall get_Name(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().Name());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Id(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().Id());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetMembers(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Foundation::Collections::IVector<
+            winrt::Windows::Management::Deployment::
+                SharedPackageContainerMember>>(this->shim().GetMembers());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall RemovePackageFamily(void* packageFamilyName,
+                                            void* options,
+                                            void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Management::Deployment::
+                                  UpdateSharedPackageContainerResult>(
+            this->shim().RemovePackageFamily(
+                *reinterpret_cast<hstring const*>(&packageFamilyName),
+                *reinterpret_cast<
+                    winrt::Windows::Management::Deployment::
+                        UpdateSharedPackageContainerOptions const*>(&options)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall ResetData(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Management::Deployment::
+                                  UpdateSharedPackageContainerResult>(
+            this->shim().ResetData());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -6775,6 +7120,9 @@ namespace std
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager10> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager11> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Management::Deployment::IPackageManager12>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IPackageManager4> : winrt::impl::hash_base {};
@@ -6790,6 +7138,9 @@ namespace std
     template<> struct hash<winrt::Windows::Management::Deployment::IRegisterPackageOptions> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IRegisterPackageOptions2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::IRemovePackageOptions> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Management::Deployment::IRemovePackageOptions2>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::ISharedPackageContainer> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::ISharedPackageContainerManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Management::Deployment::ISharedPackageContainerManagerStatics> : winrt::impl::hash_base {};

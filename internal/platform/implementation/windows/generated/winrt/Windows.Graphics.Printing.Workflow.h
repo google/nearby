@@ -597,6 +597,82 @@ namespace winrt::impl
             _winrt_abi_type->remove_JobIssueDetected(impl::bind_in(token));
         }
     }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowJobBackgroundSession3<
+        D>::
+        JobStatusChanged(
+            winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowJobBackgroundSession,
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowPrinterJobStatusChangedEventArgs> const&
+                handler) const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Graphics::Printing::Workflow::
+                               IPrintWorkflowJobBackgroundSession3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowJobBackgroundSession3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowJobBackgroundSession3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->add_JobStatusChanged(*(void**)(&handler),
+                                                            put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowJobBackgroundSession3>**)this;
+        check_hresult(_winrt_abi_type->add_JobStatusChanged(*(void**)(&handler),
+                                                            put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowJobBackgroundSession3<
+        D>::
+        JobStatusChanged(
+            auto_revoke_t,
+            winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowJobBackgroundSession,
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowPrinterJobStatusChangedEventArgs> const&
+                handler) const {
+      return impl::make_event_revoker<D, JobStatusChanged_revoker>(
+          this, JobStatusChanged(handler));
+    }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowJobBackgroundSession3<
+        D>::JobStatusChanged(winrt::event_token const& token) const noexcept {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Graphics::Printing::Workflow::
+                               IPrintWorkflowJobBackgroundSession3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowJobBackgroundSession3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowJobBackgroundSession3>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_JobStatusChanged(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowJobBackgroundSession3>**)this;
+        _winrt_abi_type->remove_JobStatusChanged(impl::bind_in(token));
+      }
+    }
     template <typename D> auto consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowJobIssueDetectedEventArgs<D>::JobIssueKind() const
     {
         winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowJobIssueKind value{};
@@ -1151,6 +1227,48 @@ namespace winrt::impl
         }
         return winrt::Windows::Foundation::IAsyncAction{ operation, take_ownership_from_abi };
     }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPdlConverter3<D>::
+        ConvertPdlFromObjectModelAsync(
+            winrt::Windows::Graphics::Printing::PrintTicket::
+                WorkflowPrintTicket const& printTicket,
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowObjectModelProvider const& objectModelProvider,
+            winrt::Windows::Storage::Streams::IOutputStream const& outputStream,
+            winrt::Windows::Graphics::Printing::Workflow::
+                PdlConversionHostBasedProcessingOperations const&
+                    hostBasedProcessingOperations) const {
+      void* operation{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::Graphics::Printing::Workflow::
+                               IPrintWorkflowPdlConverter3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::Graphics::Printing::
+                                         Workflow::IPrintWorkflowPdlConverter3,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowPdlConverter3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->ConvertPdlFromObjectModelAsync(
+            *(void**)(&printTicket), *(void**)(&objectModelProvider),
+            *(void**)(&outputStream),
+            static_cast<uint32_t>(hostBasedProcessingOperations), &operation));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowPdlConverter3>**)this;
+        check_hresult(_winrt_abi_type->ConvertPdlFromObjectModelAsync(
+            *(void**)(&printTicket), *(void**)(&objectModelProvider),
+            *(void**)(&outputStream),
+            static_cast<uint32_t>(hostBasedProcessingOperations), &operation));
+      }
+      return winrt::Windows::Foundation::IAsyncAction{operation,
+                                                      take_ownership_from_abi};
+    }
     template <typename D> auto consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPdlDataAvailableEventArgs<D>::Configuration() const
     {
         void* value{};
@@ -1421,6 +1539,32 @@ namespace winrt::impl
         }
         return winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPdlTargetStream{ result, take_ownership_from_abi };
     }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPdlModificationRequestedEventArgs3<
+        D>::DisableIppCompressionForJob() const {
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Graphics::Printing::Workflow::
+                            IPrintWorkflowPdlModificationRequestedEventArgs3>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowPdlModificationRequestedEventArgs3,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPdlModificationRequestedEventArgs3>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->DisableIppCompressionForJob());
+      } else {
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                      IPrintWorkflowPdlModificationRequestedEventArgs3>**)this;
+        check_hresult(_winrt_abi_type->DisableIppCompressionForJob());
+      }
+    }
     template <typename D> auto consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPdlSourceContent<D>::ContentType() const
     {
         void* value{};
@@ -1670,6 +1814,93 @@ namespace winrt::impl
             check_hresult(_winrt_abi_type->ConvertPrintTicketToJobAttributes(*(void**)(&printTicket), *(void**)(&targetPdlFormat), &result));
         }
         return winrt::Windows::Foundation::Collections::IMap<hstring, winrt::Windows::Devices::Printers::IppAttributeValue>{ result, take_ownership_from_abi };
+    }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPrinterJobStatusChangedEventArgs<
+        D>::PrinterJob() const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Graphics::Printing::Workflow::
+                            IPrintWorkflowPrinterJobStatusChangedEventArgs>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowPrinterJobStatusChangedEventArgs,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPrinterJobStatusChangedEventArgs>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_PrinterJob(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowPrinterJobStatusChangedEventArgs>**)this;
+        check_hresult(_winrt_abi_type->get_PrinterJob(&value));
+      }
+      return winrt::Windows::Graphics::Printing::Workflow::
+          PrintWorkflowPrinterJob{value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPrinterJobStatusChangedEventArgs<
+        D>::Configuration() const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Graphics::Printing::Workflow::
+                            IPrintWorkflowPrinterJobStatusChangedEventArgs>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowPrinterJobStatusChangedEventArgs,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPrinterJobStatusChangedEventArgs>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_Configuration(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowPrinterJobStatusChangedEventArgs>**)this;
+        check_hresult(_winrt_abi_type->get_Configuration(&value));
+      }
+      return winrt::Windows::Graphics::Printing::Workflow::
+          PrintWorkflowConfiguration{value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowPrinterJobStatusChangedEventArgs<
+        D>::GetDeferral() const {
+      void* result{};
+      if constexpr (!std::is_same_v<
+                        D,
+                        winrt::Windows::Graphics::Printing::Workflow::
+                            IPrintWorkflowPrinterJobStatusChangedEventArgs>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Graphics::Printing::Workflow::
+                IPrintWorkflowPrinterJobStatusChangedEventArgs,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPrinterJobStatusChangedEventArgs>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->GetDeferral(&result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Graphics::Printing::Workflow::
+                        IPrintWorkflowPrinterJobStatusChangedEventArgs>**)this;
+        check_hresult(_winrt_abi_type->GetDeferral(&result));
+      }
+      return winrt::Windows::Foundation::Deferral{result,
+                                                  take_ownership_from_abi};
     }
     template <typename D> auto consume_Windows_Graphics_Printing_Workflow_IPrintWorkflowSourceContent<D>::GetJobPrintTicketAsync() const
     {
@@ -2623,69 +2854,113 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobIssueDetectedEventArgs> : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobIssueDetectedEventArgs>
-    {
-        int32_t __stdcall get_JobIssueKind(int32_t* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowJobIssueKind>(this->shim().JobIssueKind());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_ExtendedError(winrt::hresult* value) noexcept final try
-        {
-            zero_abi<winrt::hresult>(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::hresult>(this->shim().ExtendedError());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_SkipSystemErrorToast(bool* value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<bool>(this->shim().SkipSystemErrorToast());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall put_SkipSystemErrorToast(bool value) noexcept final try
-        {
-            typename D::abi_guard guard(this->shim());
-            this->shim().SkipSystemErrorToast(value);
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_PrinterJob(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPrinterJob>(this->shim().PrinterJob());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_Configuration(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowConfiguration>(this->shim().Configuration());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_UILauncher(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowUILauncher>(this->shim().UILauncher());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetDeferral(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Foundation::Deferral>(this->shim().GetDeferral());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowJobBackgroundSession3>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowJobBackgroundSession3> {
+      int32_t __stdcall add_JobStatusChanged(
+          void* handler, winrt::event_token* token) noexcept final try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().JobStatusChanged(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowJobBackgroundSession,
+                winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowPrinterJobStatusChangedEventArgs> const*>(
+                &handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_JobStatusChanged(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().JobStatusChanged(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowJobIssueDetectedEventArgs>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowJobIssueDetectedEventArgs> {
+      int32_t __stdcall get_JobIssueKind(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                 PrintWorkflowJobIssueKind>(
+            this->shim().JobIssueKind());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_ExtendedError(winrt::hresult* value) noexcept final
+          try {
+        zero_abi<winrt::hresult>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::hresult>(this->shim().ExtendedError());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_SkipSystemErrorToast(bool* value) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().SkipSystemErrorToast());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_SkipSystemErrorToast(bool value) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().SkipSystemErrorToast(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_PrinterJob(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                            PrintWorkflowPrinterJob>(this->shim().PrinterJob());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Configuration(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                 PrintWorkflowConfiguration>(
+            this->shim().Configuration());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_UILauncher(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                            PrintWorkflowUILauncher>(this->shim().UILauncher());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetDeferral(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Foundation::Deferral>(
+            this->shim().GetDeferral());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -2871,6 +3146,11 @@ namespace winrt::impl
         }
     };
 #endif
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowObjectModelProvider>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowObjectModelProvider> {};
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
     struct produce<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowObjectModelSourceFileContent> : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowObjectModelSourceFileContent>
@@ -2927,40 +3207,82 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlDataAvailableEventArgs> : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlDataAvailableEventArgs>
-    {
-        int32_t __stdcall get_Configuration(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowConfiguration>(this->shim().Configuration());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_PrinterJob(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPrinterJob>(this->shim().PrinterJob());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall get_SourceContent(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPdlSourceContent>(this->shim().SourceContent());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetDeferral(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Foundation::Deferral>(this->shim().GetDeferral());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowPdlConverter3>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowPdlConverter3> {
+      int32_t __stdcall ConvertPdlFromObjectModelAsync(
+          void* printTicket, void* objectModelProvider, void* outputStream,
+          uint32_t hostBasedProcessingOperations,
+          void** operation) noexcept final try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation = detach_from<winrt::Windows::Foundation::IAsyncAction>(
+            this->shim().ConvertPdlFromObjectModelAsync(
+                *reinterpret_cast<winrt::Windows::Graphics::Printing::
+                                      PrintTicket::WorkflowPrintTicket const*>(
+                    &printTicket),
+                *reinterpret_cast<winrt::Windows::Graphics::Printing::Workflow::
+                                      IPrintWorkflowObjectModelProvider const*>(
+                    &objectModelProvider),
+                *reinterpret_cast<
+                    winrt::Windows::Storage::Streams::IOutputStream const*>(
+                    &outputStream),
+                *reinterpret_cast<
+                    winrt::Windows::Graphics::Printing::Workflow::
+                        PdlConversionHostBasedProcessingOperations const*>(
+                    &hostBasedProcessingOperations)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowPdlDataAvailableEventArgs>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowPdlDataAvailableEventArgs> {
+      int32_t __stdcall get_Configuration(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                 PrintWorkflowConfiguration>(
+            this->shim().Configuration());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_PrinterJob(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                            PrintWorkflowPrinterJob>(this->shim().PrinterJob());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_SourceContent(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                 PrintWorkflowPdlSourceContent>(
+            this->shim().SourceContent());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetDeferral(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Foundation::Deferral>(
+            this->shim().GetDeferral());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -3065,32 +3387,54 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlSourceContent> : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlSourceContent>
-    {
-        int32_t __stdcall get_ContentType(void** value) noexcept final try
-        {
-            clear_abi(value);
-            typename D::abi_guard guard(this->shim());
-            *value = detach_from<hstring>(this->shim().ContentType());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetInputStream(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Storage::Streams::IInputStream>(this->shim().GetInputStream());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetContentFileAsync(void** operation) noexcept final try
-        {
-            clear_abi(operation);
-            typename D::abi_guard guard(this->shim());
-            *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::StorageFile>>(this->shim().GetContentFileAsync());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowPdlModificationRequestedEventArgs3>
+        : produce_base<D,
+                       winrt::Windows::Graphics::Printing::Workflow::
+                           IPrintWorkflowPdlModificationRequestedEventArgs3> {
+      int32_t __stdcall DisableIppCompressionForJob() noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().DisableIppCompressionForJob();
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowPdlSourceContent>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowPdlSourceContent> {
+      int32_t __stdcall get_ContentType(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().ContentType());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetInputStream(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Storage::Streams::IInputStream>(
+            this->shim().GetInputStream());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetContentFileAsync(void** operation) noexcept final
+          try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<
+            winrt::Windows::Storage::StorageFile>>(
+            this->shim().GetContentFileAsync());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -3198,32 +3542,80 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowSourceContent> : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowSourceContent>
-    {
-        int32_t __stdcall GetJobPrintTicketAsync(void** operation) noexcept final try
-        {
-            clear_abi(operation);
-            typename D::abi_guard guard(this->shim());
-            *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Graphics::Printing::PrintTicket::WorkflowPrintTicket>>(this->shim().GetJobPrintTicketAsync());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetSourceSpoolDataAsStreamContent(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowSpoolStreamContent>(this->shim().GetSourceSpoolDataAsStreamContent());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetSourceSpoolDataAsXpsObjectModel(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowObjectModelSourceFileContent>(this->shim().GetSourceSpoolDataAsXpsObjectModel());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowPrinterJobStatusChangedEventArgs>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowPrinterJobStatusChangedEventArgs> {
+      int32_t __stdcall get_PrinterJob(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                            PrintWorkflowPrinterJob>(this->shim().PrinterJob());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Configuration(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                 PrintWorkflowConfiguration>(
+            this->shim().Configuration());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetDeferral(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Foundation::Deferral>(
+            this->shim().GetDeferral());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowSourceContent>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowSourceContent> {
+      int32_t __stdcall GetJobPrintTicketAsync(void** operation) noexcept final
+          try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<
+            winrt::Windows::Graphics::Printing::PrintTicket::
+                WorkflowPrintTicket>>(this->shim().GetJobPrintTicketAsync());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetSourceSpoolDataAsStreamContent(
+          void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                  PrintWorkflowSpoolStreamContent>(
+            this->shim().GetSourceSpoolDataAsStreamContent());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetSourceSpoolDataAsXpsObjectModel(
+          void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<winrt::Windows::Graphics::Printing::Workflow::
+                                  PrintWorkflowObjectModelSourceFileContent>(
+            this->shim().GetSourceSpoolDataAsXpsObjectModel());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -3569,6 +3961,13 @@ namespace winrt::impl
         catch (...) { return to_hresult(); }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::Graphics::Printing::Workflow::
+                          IPrintWorkflowXpsObjectModelProvider>
+        : produce_base<D, winrt::Windows::Graphics::Printing::Workflow::
+                              IPrintWorkflowXpsObjectModelProvider> {};
+#endif
 }
 WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
 {
@@ -3607,6 +4006,17 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::Workflow
         PrintWorkflowObjectModelSourceFileContent(impl::call_factory<PrintWorkflowObjectModelSourceFileContent, IPrintWorkflowObjectModelSourceFileContentFactory>([&](IPrintWorkflowObjectModelSourceFileContentFactory const& f) { return f.CreateInstance(xpsStream); }))
     {
     }
+    inline PrintWorkflowXpsObjectModelProvider::
+        PrintWorkflowXpsObjectModelProvider()
+        : PrintWorkflowXpsObjectModelProvider(
+              impl::call_factory_cast<
+                  PrintWorkflowXpsObjectModelProvider (*)(
+                      winrt::Windows::Foundation::IActivationFactory const&),
+                  PrintWorkflowXpsObjectModelProvider>(
+                  [](winrt::Windows::Foundation::IActivationFactory const& f) {
+                    return f.template ActivateInstance<
+                        PrintWorkflowXpsObjectModelProvider>();
+                  })) {}
 }
 namespace std
 {
@@ -3620,6 +4030,10 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobActivatedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobBackgroundSession> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobBackgroundSession2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowJobBackgroundSession3>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobIssueDetectedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobNotificationEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobStartingEventArgs> : winrt::impl::hash_base {};
@@ -3627,18 +4041,33 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobTriggerDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobUISession> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowJobUISession2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowObjectModelProvider>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowObjectModelSourceFileContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowObjectModelSourceFileContentFactory> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowObjectModelTargetPackage> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlConverter> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlConverter2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPdlConverter3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlDataAvailableEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlModificationRequestedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlModificationRequestedEventArgs2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPdlModificationRequestedEventArgs3>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlSourceContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPdlTargetStream> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPrinterJob> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowPrinterJob2> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowPrinterJobStatusChangedEventArgs>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowSourceContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowSpoolStreamContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowStreamTarget> : winrt::impl::hash_base {};
@@ -3653,6 +4082,10 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowVirtualPrinterTriggerDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowVirtualPrinterUIEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::IPrintWorkflowXpsDataAvailableEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    IPrintWorkflowXpsObjectModelProvider>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowBackgroundSession> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowBackgroundSetupRequestedEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowConfiguration> : winrt::impl::hash_base {};
@@ -3673,6 +4106,10 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPdlSourceContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPdlTargetStream> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowPrinterJob> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowPrinterJobStatusChangedEventArgs>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowSourceContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowSpoolStreamContent> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowStreamTarget> : winrt::impl::hash_base {};
@@ -3687,6 +4124,10 @@ namespace std
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowVirtualPrinterTriggerDetails> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowVirtualPrinterUIEventArgs> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Graphics::Printing::Workflow::PrintWorkflowXpsDataAvailableEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Graphics::Printing::Workflow::
+                    PrintWorkflowXpsObjectModelProvider>
+        : winrt::impl::hash_base {};
 #endif
 #ifdef __cpp_lib_format
 #endif

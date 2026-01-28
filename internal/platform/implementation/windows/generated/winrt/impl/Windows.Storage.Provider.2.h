@@ -106,17 +106,69 @@ WINRT_EXPORT namespace winrt::Windows::Storage::Provider
         StorageProviderMoreInfoUI(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderMoreInfoUI(ptr, take_ownership_from_abi) {}
         StorageProviderMoreInfoUI();
     };
+    struct WINRT_IMPL_EMPTY_BASES StorageProviderQueryResultSet
+        : winrt::Windows::Storage::Provider::IStorageProviderQueryResultSet {
+      StorageProviderQueryResultSet(std::nullptr_t) noexcept {}
+      StorageProviderQueryResultSet(void* ptr,
+                                    take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Storage::Provider::IStorageProviderQueryResultSet(
+                ptr, take_ownership_from_abi) {}
+      explicit StorageProviderQueryResultSet(
+          array_view<winrt::Windows::Storage::Provider::
+                         IStorageProviderQueryResult const>
+              results);
+    };
     struct WINRT_IMPL_EMPTY_BASES StorageProviderQuotaUI : winrt::Windows::Storage::Provider::IStorageProviderQuotaUI
     {
         StorageProviderQuotaUI(std::nullptr_t) noexcept {}
         StorageProviderQuotaUI(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderQuotaUI(ptr, take_ownership_from_abi) {}
         StorageProviderQuotaUI();
     };
+    struct WINRT_IMPL_EMPTY_BASES StorageProviderSearchQueryOptions
+        : winrt::Windows::Storage::Provider::
+              IStorageProviderSearchQueryOptions {
+      StorageProviderSearchQueryOptions(std::nullptr_t) noexcept {}
+      StorageProviderSearchQueryOptions(void* ptr,
+                                        take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Storage::Provider::
+                IStorageProviderSearchQueryOptions(ptr,
+                                                   take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES StorageProviderSearchResult
+        : winrt::Windows::Storage::Provider::IStorageProviderSearchResult,
+          impl::require<
+              StorageProviderSearchResult,
+              winrt::Windows::Storage::Provider::IStorageProviderQueryResult> {
+      StorageProviderSearchResult(std::nullptr_t) noexcept {}
+      StorageProviderSearchResult(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Storage::Provider::IStorageProviderSearchResult(
+                ptr, take_ownership_from_abi) {}
+      StorageProviderSearchResult();
+    };
     struct WINRT_IMPL_EMPTY_BASES StorageProviderStatusUI : winrt::Windows::Storage::Provider::IStorageProviderStatusUI
     {
         StorageProviderStatusUI(std::nullptr_t) noexcept {}
         StorageProviderStatusUI(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Storage::Provider::IStorageProviderStatusUI(ptr, take_ownership_from_abi) {}
         StorageProviderStatusUI();
+    };
+    struct WINRT_IMPL_EMPTY_BASES StorageProviderSuggestionResult
+        : winrt::Windows::Storage::Provider::IStorageProviderQueryResult {
+      StorageProviderSuggestionResult(std::nullptr_t) noexcept {}
+      StorageProviderSuggestionResult(void* ptr,
+                                      take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Storage::Provider::IStorageProviderQueryResult(
+                ptr, take_ownership_from_abi) {}
+      StorageProviderSuggestionResult();
+    };
+    struct WINRT_IMPL_EMPTY_BASES StorageProviderSuggestionsQueryOptions
+        : winrt::Windows::Storage::Provider::
+              IStorageProviderSuggestionsQueryOptions {
+      StorageProviderSuggestionsQueryOptions(std::nullptr_t) noexcept {}
+      StorageProviderSuggestionsQueryOptions(void* ptr,
+                                             take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Storage::Provider::
+                IStorageProviderSuggestionsQueryOptions(
+                    ptr, take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES StorageProviderSyncRootInfo : winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo,
         impl::require<StorageProviderSyncRootInfo, winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo2, winrt::Windows::Storage::Provider::IStorageProviderSyncRootInfo3>

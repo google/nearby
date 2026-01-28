@@ -3030,6 +3030,829 @@ namespace winrt::impl
         }
         return hstring{ value, take_ownership_from_abi };
     }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTarget<D>::Id()
+        const {
+      void* value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::ApplicationModel::
+                                           DataTransfer::ITransferTarget>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_Id(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)this;
+        check_hresult(_winrt_abi_type->get_Id(&value));
+      }
+      return hstring{value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTarget<
+        D>::Label() const {
+      void* value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::ApplicationModel::
+                                           DataTransfer::ITransferTarget>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_Label(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)this;
+        check_hresult(_winrt_abi_type->get_Label(&value));
+      }
+      return hstring{value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTarget<
+        D>::DisplayIcon() const {
+      void* value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::ApplicationModel::
+                                           DataTransfer::ITransferTarget>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_DisplayIcon(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)this;
+        check_hresult(_winrt_abi_type->get_DisplayIcon(&value));
+      }
+      return winrt::Windows::Storage::Streams::IRandomAccessStreamReference{
+          value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTarget<
+        D>::IsEnabled() const {
+      bool value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::ApplicationModel::
+                                           DataTransfer::ITransferTarget>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_IsEnabled(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTarget>**)this;
+        check_hresult(_winrt_abi_type->get_IsEnabled(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetChangedEventArgs<
+        D>::Target() const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetChangedEventArgs>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetChangedEventArgs,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetChangedEventArgs>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_Target(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetChangedEventArgs>**)this;
+        check_hresult(_winrt_abi_type->get_Target(&value));
+      }
+      return winrt::Windows::ApplicationModel::DataTransfer::TransferTarget{
+          value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+        D>::DataPackage() const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptions>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetDiscoveryOptions>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_DataPackage(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions>**)this;
+        check_hresult(_winrt_abi_type->get_DataPackage(&value));
+      }
+      return winrt::Windows::ApplicationModel::DataTransfer::DataPackageView{
+          value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+        D>::MaxAppTargets() const {
+      int32_t value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptions>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetDiscoveryOptions>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_MaxAppTargets(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions>**)this;
+        check_hresult(_winrt_abi_type->get_MaxAppTargets(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+        D>::MaxAppTargets(int32_t value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptions>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetDiscoveryOptions>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_MaxAppTargets(value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions>**)this;
+        check_hresult(_winrt_abi_type->put_MaxAppTargets(value));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+        D>::AllowedTargetAppIds() const {
+      uint32_t value_impl_size{};
+      void** value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptions>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetDiscoveryOptions>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->get_AllowedTargetAppIds(&value_impl_size, &value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions>**)this;
+        check_hresult(
+            _winrt_abi_type->get_AllowedTargetAppIds(&value_impl_size, &value));
+      }
+      return com_array<hstring>{value, value_impl_size,
+                                take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptions<
+        D>::AllowedTargetAppIds(array_view<hstring const> value) const {
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptions>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptions,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type = *(
+            abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                      ITransferTargetDiscoveryOptions>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->put_AllowedTargetAppIds(value.size(),
+                                                               get_abi(value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptions>**)this;
+        check_hresult(_winrt_abi_type->put_AllowedTargetAppIds(value.size(),
+                                                               get_abi(value)));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetDiscoveryOptionsFactory<
+        D>::CreateInstance(winrt::Windows::ApplicationModel::DataTransfer::
+                               DataPackageView const& dataPackage) const {
+      void* value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetDiscoveryOptionsFactory>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetDiscoveryOptionsFactory,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetDiscoveryOptionsFactory>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->CreateInstance(*(void**)(&dataPackage), &value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetDiscoveryOptionsFactory>**)this;
+        check_hresult(
+            _winrt_abi_type->CreateInstance(*(void**)(&dataPackage), &value));
+      }
+      return winrt::Windows::ApplicationModel::DataTransfer::
+          TransferTargetDiscoveryOptions{value, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetInvokeResult<
+        D>::Succeeded() const {
+      bool value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetInvokeResult>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetInvokeResult,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetInvokeResult>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_Succeeded(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetInvokeResult>**)this;
+        check_hresult(_winrt_abi_type->get_Succeeded(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetInvokeResult<
+        D>::ExtendedError() const {
+      winrt::hresult value{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetInvokeResult>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetInvokeResult,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetInvokeResult>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->get_ExtendedError(put_abi(value)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetInvokeResult>**)this;
+        check_hresult(_winrt_abi_type->get_ExtendedError(put_abi(value)));
+      }
+      return value;
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetStatics<
+        D>::CreateWatcher(winrt::Windows::ApplicationModel::DataTransfer::
+                              TransferTargetDiscoveryOptions const& options)
+        const {
+      void* result{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetStatics>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetStatics,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetStatics>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->CreateWatcher(*(void**)(&options), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetStatics>**)this;
+        check_hresult(
+            _winrt_abi_type->CreateWatcher(*(void**)(&options), &result));
+      }
+      return winrt::Windows::ApplicationModel::DataTransfer::
+          TransferTargetWatcher{result, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Start() const {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->Start());
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(_winrt_abi_type->Start());
+      }
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Stop() const {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->Stop());
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(_winrt_abi_type->Stop());
+      }
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::TransferToAsync(winrt::Windows::ApplicationModel::DataTransfer::
+                                TransferTarget const& target,
+                            winrt::Windows::UI::WindowId const&
+                                parentWindowHandle) const {
+      void* operation{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->TransferToAsync(
+            *(void**)(&target), impl::bind_in(parentWindowHandle), &operation));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(_winrt_abi_type->TransferToAsync(
+            *(void**)(&target), impl::bind_in(parentWindowHandle), &operation));
+      }
+      return winrt::Windows::Foundation::IAsyncOperationWithProgress<
+          winrt::Windows::ApplicationModel::DataTransfer::
+              TransferTargetInvokeResult,
+          double>{operation, take_ownership_from_abi};
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        Added(winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetWatcher,
+              winrt::Windows::ApplicationModel::DataTransfer::
+                  TransferTargetChangedEventArgs> const& handler) const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->add_Added(*(void**)(&handler), put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(
+            _winrt_abi_type->add_Added(*(void**)(&handler), put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Added(auto_revoke_t,
+                  winrt::Windows::Foundation::TypedEventHandler<
+                      winrt::Windows::ApplicationModel::DataTransfer::
+                          TransferTargetWatcher,
+                      winrt::Windows::ApplicationModel::DataTransfer::
+                          TransferTargetChangedEventArgs> const& handler)
+        const {
+      return impl::make_event_revoker<D, Added_revoker>(this, Added(handler));
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Added(winrt::event_token const& token) const noexcept {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_Added(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        _winrt_abi_type->remove_Added(impl::bind_in(token));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        Removed(winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> const& handler) const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->add_Removed(*(void**)(&handler), put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(
+            _winrt_abi_type->add_Removed(*(void**)(&handler), put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Removed(auto_revoke_t,
+                    winrt::Windows::Foundation::TypedEventHandler<
+                        winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetWatcher,
+                        winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetChangedEventArgs> const& handler)
+        const {
+      return impl::make_event_revoker<D, Removed_revoker>(this,
+                                                          Removed(handler));
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Removed(winrt::event_token const& token) const noexcept {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_Removed(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        _winrt_abi_type->remove_Removed(impl::bind_in(token));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        Updated(winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> const& handler) const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->add_Updated(*(void**)(&handler), put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(
+            _winrt_abi_type->add_Updated(*(void**)(&handler), put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Updated(auto_revoke_t,
+                    winrt::Windows::Foundation::TypedEventHandler<
+                        winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetWatcher,
+                        winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetChangedEventArgs> const& handler)
+        const {
+      return impl::make_event_revoker<D, Updated_revoker>(this,
+                                                          Updated(handler));
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Updated(winrt::event_token const& token) const noexcept {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_Updated(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        _winrt_abi_type->remove_Updated(impl::bind_in(token));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        EnumerationCompleted(winrt::Windows::Foundation::TypedEventHandler<
+                             winrt::Windows::ApplicationModel::DataTransfer::
+                                 TransferTargetWatcher,
+                             winrt::Windows::Foundation::IInspectable> const&
+                                 handler) const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(_winrt_abi_type->add_EnumerationCompleted(
+            *(void**)(&handler), put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(_winrt_abi_type->add_EnumerationCompleted(
+            *(void**)(&handler), put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        EnumerationCompleted(
+            auto_revoke_t,
+            winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::Foundation::IInspectable> const& handler)
+            const {
+      return impl::make_event_revoker<D, EnumerationCompleted_revoker>(
+          this, EnumerationCompleted(handler));
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::EnumerationCompleted(winrt::event_token const& token)
+        const noexcept {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_EnumerationCompleted(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        _winrt_abi_type->remove_EnumerationCompleted(impl::bind_in(token));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<D>::
+        Stopped(winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::Foundation::IInspectable> const& handler)
+            const {
+      winrt::event_token token{};
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->add_Stopped(*(void**)(&handler), put_abi(token)));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        check_hresult(
+            _winrt_abi_type->add_Stopped(*(void**)(&handler), put_abi(token)));
+      }
+      return token;
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Stopped(auto_revoke_t,
+                    winrt::Windows::Foundation::TypedEventHandler<
+                        winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetWatcher,
+                        winrt::Windows::Foundation::IInspectable> const&
+                        handler) const {
+      return impl::make_event_revoker<D, Stopped_revoker>(this,
+                                                          Stopped(handler));
+    }
+    template <typename D>
+    auto consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcher<
+        D>::Stopped(winrt::event_token const& token) const noexcept {
+      if constexpr (!std::is_same_v<D,
+                                    winrt::Windows::ApplicationModel::
+                                        DataTransfer::ITransferTargetWatcher>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result =
+            impl::try_as_with_reason<winrt::Windows::ApplicationModel::
+                                         DataTransfer::ITransferTargetWatcher,
+                                     D const*>(static_cast<D const*>(this),
+                                               _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)&_winrt_casted_result;
+        _winrt_abi_type->remove_Stopped(impl::bind_in(token));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcher>**)this;
+        _winrt_abi_type->remove_Stopped(impl::bind_in(token));
+      }
+    }
+    template <typename D>
+    auto
+    consume_Windows_ApplicationModel_DataTransfer_ITransferTargetWatcherStatics<
+        D>::IsSupported(winrt::Windows::ApplicationModel::DataTransfer::
+                            DataPackageView const& dataPackage) const {
+      bool result{};
+      if constexpr (!std::is_same_v<
+                        D, winrt::Windows::ApplicationModel::DataTransfer::
+                               ITransferTargetWatcherStatics>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::ApplicationModel::DataTransfer::
+                ITransferTargetWatcherStatics,
+            D const*>(static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcherStatics>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->IsSupported(*(void**)(&dataPackage), &result));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::ApplicationModel::DataTransfer::
+                        ITransferTargetWatcherStatics>**)this;
+        check_hresult(
+            _winrt_abi_type->IsSupported(*(void**)(&dataPackage), &result));
+      }
+      return result;
+    }
     template <typename H> struct delegate<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler, H> final : implements_delegate<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler, H>
     {
         delegate(H&& handler) : implements_delegate<winrt::Windows::ApplicationModel::DataTransfer::DataProviderHandler, H>(std::forward<H>(handler)) {}
@@ -4626,6 +5449,358 @@ namespace winrt::impl
         catch (...) { return to_hresult(); }
     };
 #endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<
+        D, winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget>
+        : produce_base<
+              D,
+              winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget> {
+      int32_t __stdcall get_Id(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().Id());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_Label(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<hstring>(this->shim().Label());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_DisplayIcon(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<
+            winrt::Windows::Storage::Streams::IRandomAccessStreamReference>(
+            this->shim().DisplayIcon());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_IsEnabled(bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().IsEnabled());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::DataTransfer::
+                          ITransferTargetChangedEventArgs>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetChangedEventArgs> {
+      int32_t __stdcall get_Target(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<
+            winrt::Windows::ApplicationModel::DataTransfer::TransferTarget>(
+            this->shim().Target());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::DataTransfer::
+                          ITransferTargetDiscoveryOptions>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetDiscoveryOptions> {
+      int32_t __stdcall get_DataPackage(void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<
+            winrt::Windows::ApplicationModel::DataTransfer::DataPackageView>(
+            this->shim().DataPackage());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_MaxAppTargets(int32_t* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<int32_t>(this->shim().MaxAppTargets());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_MaxAppTargets(int32_t value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().MaxAppTargets(value);
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_AllowedTargetAppIds(uint32_t* __valueSize,
+                                                void*** value) noexcept final
+          try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        std::tie(*__valueSize, *value) =
+            detach_abi(this->shim().AllowedTargetAppIds());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall put_AllowedTargetAppIds(uint32_t __valueSize,
+                                                void** value) noexcept final
+          try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().AllowedTargetAppIds(array_view<hstring const>(
+            reinterpret_cast<hstring const*>(value),
+            reinterpret_cast<hstring const*>(value) + __valueSize));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::DataTransfer::
+                          ITransferTargetDiscoveryOptionsFactory>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetDiscoveryOptionsFactory> {
+      int32_t __stdcall CreateInstance(void* dataPackage,
+                                       void** value) noexcept final try {
+        clear_abi(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::Windows::ApplicationModel::DataTransfer::
+                                 TransferTargetDiscoveryOptions>(
+            this->shim().CreateInstance(
+                *reinterpret_cast<winrt::Windows::ApplicationModel::
+                                      DataTransfer::DataPackageView const*>(
+                    &dataPackage)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::DataTransfer::
+                          ITransferTargetInvokeResult>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetInvokeResult> {
+      int32_t __stdcall get_Succeeded(bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().Succeeded());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_ExtendedError(winrt::hresult* value) noexcept final
+          try {
+        zero_abi<winrt::hresult>(value);
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<winrt::hresult>(this->shim().ExtendedError());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<
+        D,
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetStatics>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetStatics> {
+      int32_t __stdcall CreateWatcher(void* options,
+                                      void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result =
+            detach_from<winrt::Windows::ApplicationModel::DataTransfer::
+                            TransferTargetWatcher>(this->shim().CreateWatcher(
+                *reinterpret_cast<
+                    winrt::Windows::ApplicationModel::DataTransfer::
+                        TransferTargetDiscoveryOptions const*>(&options)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<
+        D,
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetWatcher>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetWatcher> {
+      int32_t __stdcall Start() noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Start();
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall Stop() noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Stop();
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall TransferToAsync(
+          void* target, struct struct_Windows_UI_WindowId parentWindowHandle,
+          void** operation) noexcept final try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation =
+            detach_from<winrt::Windows::Foundation::IAsyncOperationWithProgress<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetInvokeResult,
+                double>>(
+                this->shim().TransferToAsync(
+                    *reinterpret_cast<winrt::Windows::ApplicationModel::
+                                          DataTransfer::TransferTarget const*>(
+                        &target),
+                    *reinterpret_cast<winrt::Windows::UI::WindowId const*>(
+                        &parentWindowHandle)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall add_Added(void* handler,
+                                  winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Added(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> const*>(&handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Added(winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Added(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+      int32_t __stdcall add_Removed(void* handler,
+                                    winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Removed(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> const*>(&handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Removed(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Removed(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+      int32_t __stdcall add_Updated(void* handler,
+                                    winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Updated(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> const*>(&handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Updated(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Updated(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+      int32_t __stdcall add_EnumerationCompleted(
+          void* handler, winrt::event_token* token) noexcept final try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token =
+            detach_from<winrt::event_token>(this->shim().EnumerationCompleted(
+                *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                    winrt::Windows::ApplicationModel::DataTransfer::
+                        TransferTargetWatcher,
+                    winrt::Windows::Foundation::IInspectable> const*>(
+                    &handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_EnumerationCompleted(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().EnumerationCompleted(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+      int32_t __stdcall add_Stopped(void* handler,
+                                    winrt::event_token* token) noexcept final
+          try {
+        zero_abi<winrt::event_token>(token);
+        typename D::abi_guard guard(this->shim());
+        *token = detach_from<winrt::event_token>(this->shim().Stopped(
+            *reinterpret_cast<winrt::Windows::Foundation::TypedEventHandler<
+                winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetWatcher,
+                winrt::Windows::Foundation::IInspectable> const*>(&handler)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall remove_Stopped(
+          winrt::event_token token) noexcept final {
+        typename D::abi_guard guard(this->shim());
+        this->shim().Stopped(
+            *reinterpret_cast<winrt::event_token const*>(&token));
+        return 0;
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D, winrt::Windows::ApplicationModel::DataTransfer::
+                          ITransferTargetWatcherStatics>
+        : produce_base<D, winrt::Windows::ApplicationModel::DataTransfer::
+                              ITransferTargetWatcherStatics> {
+      int32_t __stdcall IsSupported(void* dataPackage,
+                                    bool* result) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<bool>(this->shim().IsSupported(
+            *reinterpret_cast<winrt::Windows::ApplicationModel::DataTransfer::
+                                  DataPackageView const*>(&dataPackage)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
 }
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
 {
@@ -4844,6 +6019,32 @@ WINRT_EXPORT namespace winrt::Windows::ApplicationModel::DataTransfer
     {
         return impl::call_factory_cast<hstring(*)(IStandardDataFormatsStatics3 const&), StandardDataFormats, IStandardDataFormatsStatics3>([](IStandardDataFormatsStatics3 const& f) { return f.UserActivityJsonArray(); });
     }
+    inline auto TransferTarget::CreateWatcher(
+        winrt::Windows::ApplicationModel::DataTransfer::
+            TransferTargetDiscoveryOptions const& options) {
+      return impl::call_factory<TransferTarget, ITransferTargetStatics>(
+          [&](ITransferTargetStatics const& f) {
+            return f.CreateWatcher(options);
+          });
+    }
+    inline TransferTargetDiscoveryOptions::TransferTargetDiscoveryOptions(
+        winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+            dataPackage)
+        : TransferTargetDiscoveryOptions(
+              impl::call_factory<TransferTargetDiscoveryOptions,
+                                 ITransferTargetDiscoveryOptionsFactory>(
+                  [&](ITransferTargetDiscoveryOptionsFactory const& f) {
+                    return f.CreateInstance(dataPackage);
+                  })) {}
+    inline auto TransferTargetWatcher::IsSupported(
+        winrt::Windows::ApplicationModel::DataTransfer::DataPackageView const&
+            dataPackage) {
+      return impl::call_factory<TransferTargetWatcher,
+                                ITransferTargetWatcherStatics>(
+          [&](ITransferTargetWatcherStatics const& f) {
+            return f.IsSupported(dataPackage);
+          });
+    }
     template <typename L> DataProviderHandler::DataProviderHandler(L handler) :
         DataProviderHandler(impl::make_delegate<DataProviderHandler>(std::forward<L>(handler)))
     {
@@ -4972,6 +6173,35 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::IStandardDataFormatsStatics3> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::ITargetApplicationChosenEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::ITransferTarget>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetChangedEventArgs> : winrt::impl::hash_base {
+    };
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetDiscoveryOptions> : winrt::impl::hash_base {
+    };
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetDiscoveryOptionsFactory>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetInvokeResult> : winrt::impl::hash_base {};
+    template <>
+    struct hash<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetStatics>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<
+        winrt::Windows::ApplicationModel::DataTransfer::ITransferTargetWatcher>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    ITransferTargetWatcherStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::Clipboard> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::ClipboardContentOptions> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::ClipboardHistoryChangedEventArgs> : winrt::impl::hash_base {};
@@ -4998,6 +6228,22 @@ namespace std
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::SharedStorageAccessManager> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::StandardDataFormats> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::ApplicationModel::DataTransfer::TargetApplicationChosenEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::TransferTarget>
+        : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetChangedEventArgs> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetDiscoveryOptions> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::ApplicationModel::DataTransfer::
+                    TransferTargetInvokeResult> : winrt::impl::hash_base {};
+    template <>
+    struct hash<
+        winrt::Windows::ApplicationModel::DataTransfer::TransferTargetWatcher>
+        : winrt::impl::hash_base {};
 #endif
 #ifdef __cpp_lib_format
 #endif

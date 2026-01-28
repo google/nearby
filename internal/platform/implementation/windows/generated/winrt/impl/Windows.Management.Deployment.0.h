@@ -85,12 +85,12 @@ WINRT_EXPORT namespace winrt::Windows::Management::Deployment
         Optional = 0x20,
         All = 0xffffffff,
     };
-    enum class RemovalOptions : uint32_t
-    {
-        None = 0,
-        PreserveApplicationData = 0x1000,
-        PreserveRoamableApplicationData = 0x80,
-        RemoveForAllUsers = 0x80000,
+    enum class RemovalOptions : uint32_t {
+      None = 0,
+      PreserveApplicationData = 0x1000,
+      PreserveRoamableApplicationData = 0x80,
+      DeferRemovalWhenPackagesAreInUse = 0x2000,
+      RemoveForAllUsers = 0x80000,
     };
     enum class SharedPackageContainerCreationCollisionOptions : int32_t
     {
@@ -132,6 +132,7 @@ WINRT_EXPORT namespace winrt::Windows::Management::Deployment
     struct IPackageManager;
     struct IPackageManager10;
     struct IPackageManager11;
+    struct IPackageManager12;
     struct IPackageManager2;
     struct IPackageManager3;
     struct IPackageManager4;
@@ -147,6 +148,7 @@ WINRT_EXPORT namespace winrt::Windows::Management::Deployment
     struct IRegisterPackageOptions;
     struct IRegisterPackageOptions2;
     struct IRemovePackageOptions;
+    struct IRemovePackageOptions2;
     struct ISharedPackageContainer;
     struct ISharedPackageContainerManager;
     struct ISharedPackageContainerManagerStatics;
@@ -201,6 +203,10 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager10>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager11>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::Management::Deployment::IPackageManager12> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager3>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IPackageManager4>{ using type = interface_category; };
@@ -216,6 +222,11 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Management::Deployment::IRegisterPackageOptions>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IRegisterPackageOptions2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::IRemovePackageOptions>{ using type = interface_category; };
+    template <>
+    struct category<
+        winrt::Windows::Management::Deployment::IRemovePackageOptions2> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::Management::Deployment::ISharedPackageContainer>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::ISharedPackageContainerManager>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Management::Deployment::ISharedPackageContainerManagerStatics>{ using type = interface_category; };
@@ -313,6 +324,10 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager> = L"Windows.Management.Deployment.IPackageManager";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager10> = L"Windows.Management.Deployment.IPackageManager10";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager11> = L"Windows.Management.Deployment.IPackageManager11";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Management::Deployment::IPackageManager12> =
+            L"Windows.Management.Deployment.IPackageManager12";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager2> = L"Windows.Management.Deployment.IPackageManager2";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager3> = L"Windows.Management.Deployment.IPackageManager3";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IPackageManager4> = L"Windows.Management.Deployment.IPackageManager4";
@@ -328,6 +343,10 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IRegisterPackageOptions> = L"Windows.Management.Deployment.IRegisterPackageOptions";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IRegisterPackageOptions2> = L"Windows.Management.Deployment.IRegisterPackageOptions2";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::IRemovePackageOptions> = L"Windows.Management.Deployment.IRemovePackageOptions";
+    template <>
+    inline constexpr auto&
+        name_v<winrt::Windows::Management::Deployment::IRemovePackageOptions2> =
+            L"Windows.Management.Deployment.IRemovePackageOptions2";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::ISharedPackageContainer> = L"Windows.Management.Deployment.ISharedPackageContainer";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::ISharedPackageContainerManager> = L"Windows.Management.Deployment.ISharedPackageContainerManager";
     template <> inline constexpr auto& name_v<winrt::Windows::Management::Deployment::ISharedPackageContainerManagerStatics> = L"Windows.Management.Deployment.ISharedPackageContainerManagerStatics";
@@ -356,6 +375,14 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager>{ 0x9A7D4B65,0x5E8F,0x4FC7,{ 0xA2,0xE5,0x7F,0x69,0x25,0xCB,0x8B,0x53 } }; // 9A7D4B65-5E8F-4FC7-A2E5-7F6925CB8B53
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager10>{ 0xA7D7D07E,0x2E66,0x4093,{ 0xAE,0xD5,0xE0,0x93,0xED,0x87,0xB3,0xBB } }; // A7D7D07E-2E66-4093-AED5-E093ED87B3BB
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager11>{ 0x12950B24,0xC77E,0x4EA7,{ 0x88,0x59,0x32,0x53,0x18,0x07,0x4E,0x15 } }; // 12950B24-C77E-4EA7-8859-325318074E15
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Management::Deployment::IPackageManager12>{
+            0x5D233ADF,
+            0xF9E3,
+            0x4D96,
+            {0xB4, 0x0D, 0x96, 0x78, 0x8E, 0x39, 0x53,
+             0x9F}};  // 5D233ADF-F9E3-4D96-B40D-96788E39539F
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager2>{ 0xF7AAD08D,0x0840,0x46F2,{ 0xB5,0xD8,0xCA,0xD4,0x76,0x93,0xA0,0x95 } }; // F7AAD08D-0840-46F2-B5D8-CAD47693A095
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager3>{ 0xDAAD9948,0x36F1,0x41A7,{ 0x91,0x88,0xBC,0x26,0x3E,0x0D,0xCB,0x72 } }; // DAAD9948-36F1-41A7-9188-BC263E0DCB72
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IPackageManager4>{ 0x3C719963,0xBAB6,0x46BF,{ 0x8F,0xF7,0xDA,0x47,0x19,0x23,0x0A,0xE6 } }; // 3C719963-BAB6-46BF-8FF7-DA4719230AE6
@@ -371,6 +398,14 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IRegisterPackageOptions>{ 0x677112A7,0x50D4,0x496C,{ 0x84,0x15,0x06,0x02,0xB4,0xC6,0xD3,0xBF } }; // 677112A7-50D4-496C-8415-0602B4C6D3BF
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IRegisterPackageOptions2>{ 0x3DFA9743,0x86FF,0x4A11,{ 0xBC,0x93,0x43,0x4E,0xB6,0xBE,0x3A,0x0B } }; // 3DFA9743-86FF-4A11-BC93-434EB6BE3A0B
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::IRemovePackageOptions>{ 0x13CF01F3,0xC450,0x4F7C,{ 0xA5,0xA3,0x5E,0x3C,0x63,0x1B,0x74,0x62 } }; // 13CF01F3-C450-4F7C-A5A3-5E3C631B7462
+    template <>
+    inline constexpr guid
+        guid_v<winrt::Windows::Management::Deployment::IRemovePackageOptions2>{
+            0x3FCC61E5,
+            0x22C5,
+            0x423B,
+            {0xB4, 0xB4, 0xCF, 0x10, 0xBB, 0x50, 0x83,
+             0x0C}};  // 3FCC61E5-22C5-423B-B4B4-CF10BB50830C
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::ISharedPackageContainer>{ 0x177F1AA9,0x151E,0x5EF7,{ 0xB1,0xD9,0x2F,0xBA,0x0B,0x4B,0x0D,0x17 } }; // 177F1AA9-151E-5EF7-B1D9-2FBA0B4B0D17
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::ISharedPackageContainerManager>{ 0xBE353068,0x1EF7,0x5AC8,{ 0xAB,0x3F,0x0B,0x9F,0x61,0x2F,0x02,0x74 } }; // BE353068-1EF7-5AC8-AB3F-0B9F612F0274
     template <> inline constexpr guid guid_v<winrt::Windows::Management::Deployment::ISharedPackageContainerManagerStatics>{ 0x2EF56348,0x838A,0x5F55,{ 0xA8,0x9E,0x11,0x98,0xA2,0xC6,0x27,0xE6 } }; // 2EF56348-838A-5F55-A89E-1198A2C627E6
@@ -615,6 +650,19 @@ namespace winrt::impl
             virtual int32_t __stdcall RemovePackageByUriAsync(void*, void*, void**) noexcept = 0;
         };
     };
+    template <>
+    struct abi<winrt::Windows::Management::Deployment::IPackageManager12> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall IsPackageRemovalPending(void*,
+                                                          bool*) noexcept = 0;
+        virtual int32_t __stdcall IsPackageRemovalPendingForUser(
+            void*, void*, bool*) noexcept = 0;
+        virtual int32_t __stdcall IsPackageRemovalPendingByUri(
+            void*, bool*) noexcept = 0;
+        virtual int32_t __stdcall IsPackageRemovalPendingByUriForUser(
+            void*, void*, bool*) noexcept = 0;
+      };
+    };
     template <> struct abi<winrt::Windows::Management::Deployment::IPackageManager2>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -805,6 +853,15 @@ namespace winrt::impl
             virtual int32_t __stdcall get_RemoveForAllUsers(bool*) noexcept = 0;
             virtual int32_t __stdcall put_RemoveForAllUsers(bool) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::Management::Deployment::IRemovePackageOptions2> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall get_DeferRemovalWhenPackagesAreInUse(
+            bool*) noexcept = 0;
+        virtual int32_t __stdcall put_DeferRemovalWhenPackagesAreInUse(
+            bool) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::Management::Deployment::ISharedPackageContainer>
     {
@@ -1154,18 +1211,67 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Management_Deployment_IPackageManager11<D>;
     };
     template <typename D>
-    struct consume_Windows_Management_Deployment_IPackageManager2
-    {
-        auto RemovePackageAsync(param::hstring const& packageFullName, winrt::Windows::Management::Deployment::RemovalOptions const& removalOptions) const;
-        auto StagePackageAsync(winrt::Windows::Foundation::Uri const& packageUri, param::async_iterable<winrt::Windows::Foundation::Uri> const& dependencyPackageUris, winrt::Windows::Management::Deployment::DeploymentOptions const& deploymentOptions) const;
-        auto RegisterPackageByFullNameAsync(param::hstring const& mainPackageFullName, param::async_iterable<hstring> const& dependencyPackageFullNames, winrt::Windows::Management::Deployment::DeploymentOptions const& deploymentOptions) const;
-        auto FindPackagesWithPackageTypes(winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto FindPackagesForUserWithPackageTypes(param::hstring const& userSecurityId, winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto FindPackagesWithPackageTypes(param::hstring const& packageName, param::hstring const& packagePublisher, winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto FindPackagesForUserWithPackageTypes(param::hstring const& userSecurityId, param::hstring const& packageName, param::hstring const& packagePublisher, winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto FindPackagesWithPackageTypes(param::hstring const& packageFamilyName, winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto FindPackagesForUserWithPackageTypes(param::hstring const& userSecurityId, param::hstring const& packageFamilyName, winrt::Windows::Management::Deployment::PackageTypes const& packageTypes) const;
-        auto StageUserDataAsync(param::hstring const& packageFullName) const;
+    struct consume_Windows_Management_Deployment_IPackageManager12 {
+      auto IsPackageRemovalPending(param::hstring const& packageFullName) const;
+      auto IsPackageRemovalPendingForUser(
+          param::hstring const& packageFullName,
+          param::hstring const& userSecurityId) const;
+      auto IsPackageRemovalPendingByUri(
+          winrt::Windows::Foundation::Uri const& packageUri) const;
+      auto IsPackageRemovalPendingByUriForUser(
+          winrt::Windows::Foundation::Uri const& packageUri,
+          param::hstring const& userSecurityId) const;
+    };
+    template <>
+    struct consume<winrt::Windows::Management::Deployment::IPackageManager12> {
+      template <typename D>
+      using type = consume_Windows_Management_Deployment_IPackageManager12<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Management_Deployment_IPackageManager2 {
+      auto RemovePackageAsync(
+          param::hstring const& packageFullName,
+          winrt::Windows::Management::Deployment::RemovalOptions const&
+              removalOptions) const;
+      auto StagePackageAsync(
+          winrt::Windows::Foundation::Uri const& packageUri,
+          param::async_iterable<winrt::Windows::Foundation::Uri> const&
+              dependencyPackageUris,
+          winrt::Windows::Management::Deployment::DeploymentOptions const&
+              deploymentOptions) const;
+      auto RegisterPackageByFullNameAsync(
+          param::hstring const& mainPackageFullName,
+          param::async_iterable<hstring> const& dependencyPackageFullNames,
+          winrt::Windows::Management::Deployment::DeploymentOptions const&
+              deploymentOptions) const;
+      auto FindPackagesWithPackageTypes(
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto FindPackagesForUserWithPackageTypes(
+          param::hstring const& userSecurityId,
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto FindPackagesWithPackageTypes(
+          param::hstring const& packageName,
+          param::hstring const& packagePublisher,
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto FindPackagesForUserWithPackageTypes(
+          param::hstring const& userSecurityId,
+          param::hstring const& packageName,
+          param::hstring const& packagePublisher,
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto FindPackagesWithPackageTypes(
+          param::hstring const& packageFamilyName,
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto FindPackagesForUserWithPackageTypes(
+          param::hstring const& userSecurityId,
+          param::hstring const& packageFamilyName,
+          winrt::Windows::Management::Deployment::PackageTypes const&
+              packageTypes) const;
+      auto StageUserDataAsync(param::hstring const& packageFullName) const;
     };
     template <> struct consume<winrt::Windows::Management::Deployment::IPackageManager2>
     {
@@ -1375,13 +1481,27 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_Management_Deployment_IRemovePackageOptions<D>;
     };
     template <typename D>
-    struct consume_Windows_Management_Deployment_ISharedPackageContainer
-    {
-        [[nodiscard]] auto Name() const;
-        [[nodiscard]] auto Id() const;
-        auto GetMembers() const;
-        auto RemovePackageFamily(param::hstring const& packageFamilyName, winrt::Windows::Management::Deployment::UpdateSharedPackageContainerOptions const& options) const;
-        auto ResetData() const;
+    struct consume_Windows_Management_Deployment_IRemovePackageOptions2 {
+      [[nodiscard]] auto DeferRemovalWhenPackagesAreInUse() const;
+      auto DeferRemovalWhenPackagesAreInUse(bool value) const;
+    };
+    template <>
+    struct consume<
+        winrt::Windows::Management::Deployment::IRemovePackageOptions2> {
+      template <typename D>
+      using type =
+          consume_Windows_Management_Deployment_IRemovePackageOptions2<D>;
+    };
+    template <typename D>
+    struct consume_Windows_Management_Deployment_ISharedPackageContainer {
+      [[nodiscard]] auto Name() const;
+      [[nodiscard]] auto Id() const;
+      auto GetMembers() const;
+      auto RemovePackageFamily(
+          param::hstring const& packageFamilyName,
+          winrt::Windows::Management::Deployment::
+              UpdateSharedPackageContainerOptions const& options) const;
+      auto ResetData() const;
     };
     template <> struct consume<winrt::Windows::Management::Deployment::ISharedPackageContainer>
     {

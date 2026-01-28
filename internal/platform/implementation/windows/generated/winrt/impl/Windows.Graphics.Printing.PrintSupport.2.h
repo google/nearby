@@ -6,12 +6,35 @@
 #include "winrt/impl/Windows.ApplicationModel.Activation.1.h"
 #include "winrt/impl/Windows.Foundation.1.h"
 #include "winrt/impl/Windows.Graphics.Printing.PrintSupport.1.h"
+#include "winrt/impl/Windows.Graphics.Printing.PrintTicket.1.h"
 WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::PrintSupport
 {
+  struct WINRT_IMPL_EMPTY_BASES PrintSupportAppInfo
+      : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportAppInfo {
+    PrintSupportAppInfo(std::nullptr_t) noexcept {}
+    PrintSupportAppInfo(void* ptr, take_ownership_from_abi_t) noexcept
+        : winrt::Windows::Graphics::Printing::PrintSupport::
+              IPrintSupportAppInfo(ptr, take_ownership_from_abi) {}
+    static auto GetPrintJobShowsUI(
+        param::hstring const& printerName,
+        winrt::Windows::Graphics::Printing::PrintTicket::
+            WorkflowPrintTicket const& printTicket);
+    static auto FromPrinterName(param::hstring const& printerName);
+  };
     struct WINRT_IMPL_EMPTY_BASES PrintSupportCommunicationErrorDetectedEventArgs : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportCommunicationErrorDetectedEventArgs
     {
         PrintSupportCommunicationErrorDetectedEventArgs(std::nullptr_t) noexcept {}
         PrintSupportCommunicationErrorDetectedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportCommunicationErrorDetectedEventArgs(ptr, take_ownership_from_abi) {}
+    };
+    struct WINRT_IMPL_EMPTY_BASES PrintSupportEnterpriseManagementUIEventArgs
+        : winrt::Windows::Graphics::Printing::PrintSupport::
+              IPrintSupportEnterpriseManagementUIEventArgs {
+      PrintSupportEnterpriseManagementUIEventArgs(std::nullptr_t) noexcept {}
+      PrintSupportEnterpriseManagementUIEventArgs(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Graphics::Printing::PrintSupport::
+                IPrintSupportEnterpriseManagementUIEventArgs(
+                    ptr, take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES PrintSupportExtensionSession : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportExtensionSession,
         impl::require<PrintSupportExtensionSession, winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportExtensionSession2, winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportExtensionSession3>
@@ -58,10 +81,21 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::PrintSupport
         PrintSupportPrintTicketElement(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportPrintTicketElement(ptr, take_ownership_from_abi) {}
         PrintSupportPrintTicketElement();
     };
-    struct WINRT_IMPL_EMPTY_BASES PrintSupportPrintTicketValidationRequestedEventArgs : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportPrintTicketValidationRequestedEventArgs
-    {
-        PrintSupportPrintTicketValidationRequestedEventArgs(std::nullptr_t) noexcept {}
-        PrintSupportPrintTicketValidationRequestedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportPrintTicketValidationRequestedEventArgs(ptr, take_ownership_from_abi) {}
+    struct WINRT_IMPL_EMPTY_BASES
+        PrintSupportPrintTicketValidationRequestedEventArgs
+        : winrt::Windows::Graphics::Printing::PrintSupport::
+              IPrintSupportPrintTicketValidationRequestedEventArgs,
+          impl::require<
+              PrintSupportPrintTicketValidationRequestedEventArgs,
+              winrt::Windows::Graphics::Printing::PrintSupport::
+                  IPrintSupportPrintTicketValidationRequestedEventArgs2> {
+      PrintSupportPrintTicketValidationRequestedEventArgs(
+          std::nullptr_t) noexcept {}
+      PrintSupportPrintTicketValidationRequestedEventArgs(
+          void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Graphics::Printing::PrintSupport::
+                IPrintSupportPrintTicketValidationRequestedEventArgs(
+                    ptr, take_ownership_from_abi) {}
     };
     struct WINRT_IMPL_EMPTY_BASES PrintSupportPrinterSelectedEventArgs : winrt::Windows::Graphics::Printing::PrintSupport::IPrintSupportPrinterSelectedEventArgs
     {

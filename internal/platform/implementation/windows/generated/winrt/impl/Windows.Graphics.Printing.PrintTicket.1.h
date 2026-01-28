@@ -55,6 +55,14 @@ WINRT_EXPORT namespace winrt::Windows::Graphics::Printing::PrintTicket
         IWorkflowPrintTicket(std::nullptr_t = nullptr) noexcept {}
         IWorkflowPrintTicket(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::Foundation::IInspectable(ptr, take_ownership_from_abi) {}
     };
+    struct WINRT_IMPL_EMPTY_BASES IWorkflowPrintTicketFactory
+        : winrt::Windows::Foundation::IInspectable,
+          impl::consume_t<IWorkflowPrintTicketFactory> {
+      IWorkflowPrintTicketFactory(std::nullptr_t = nullptr) noexcept {}
+      IWorkflowPrintTicketFactory(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::Foundation::IInspectable(ptr,
+                                                     take_ownership_from_abi) {}
+    };
     struct WINRT_IMPL_EMPTY_BASES IWorkflowPrintTicketValidationResult :
         winrt::Windows::Foundation::IInspectable,
         impl::consume_t<IWorkflowPrintTicketValidationResult>

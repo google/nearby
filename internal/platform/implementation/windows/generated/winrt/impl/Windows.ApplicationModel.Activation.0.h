@@ -105,178 +105,177 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
 }
 WINRT_EXPORT namespace winrt::Windows::ApplicationModel::Activation
 {
-    enum class ActivationKind : int32_t
-    {
-        Launch = 0,
-        Search = 1,
-        ShareTarget = 2,
-        File = 3,
-        Protocol = 4,
-        FileOpenPicker = 5,
-        FileSavePicker = 6,
-        CachedFileUpdater = 7,
-        ContactPicker = 8,
-        Device = 9,
-        PrintTaskSettings = 10,
-        CameraSettings = 11,
-        RestrictedLaunch = 12,
-        AppointmentsProvider = 13,
-        Contact = 14,
-        LockScreenCall = 15,
-        VoiceCommand = 16,
-        LockScreen = 17,
-        PickerReturned = 1000,
-        WalletAction = 1001,
-        PickFileContinuation = 1002,
-        PickSaveFileContinuation = 1003,
-        PickFolderContinuation = 1004,
-        WebAuthenticationBrokerContinuation = 1005,
-        WebAccountProvider = 1006,
-        ComponentUI = 1007,
-        ProtocolForResults = 1009,
-        ToastNotification = 1010,
-        Print3DWorkflow = 1011,
-        DialReceiver = 1012,
-        DevicePairing = 1013,
-        UserDataAccountsProvider = 1014,
-        FilePickerExperience = 1015,
-        LockScreenComponent = 1016,
-        ContactPanel = 1017,
-        PrintWorkflowForegroundTask = 1018,
-        GameUIProvider = 1019,
-        StartupTask = 1020,
-        CommandLineLaunch = 1021,
-        BarcodeScannerProvider = 1022,
-        PrintSupportJobUI = 1023,
-        PrintSupportSettingsUI = 1024,
-        PhoneCallActivation = 1025,
-        VpnForeground = 1026,
-    };
-    enum class ApplicationExecutionState : int32_t
-    {
-        NotRunning = 0,
-        Running = 1,
-        Suspended = 2,
-        Terminated = 3,
-        ClosedByUser = 4,
-    };
-    struct IActivatedEventArgs;
-    struct IActivatedEventArgsWithUser;
-    struct IApplicationViewActivatedEventArgs;
-    struct IAppointmentsProviderActivatedEventArgs;
-    struct IAppointmentsProviderAddAppointmentActivatedEventArgs;
-    struct IAppointmentsProviderRemoveAppointmentActivatedEventArgs;
-    struct IAppointmentsProviderReplaceAppointmentActivatedEventArgs;
-    struct IAppointmentsProviderShowAppointmentDetailsActivatedEventArgs;
-    struct IAppointmentsProviderShowTimeFrameActivatedEventArgs;
-    struct IBackgroundActivatedEventArgs;
-    struct IBarcodeScannerPreviewActivatedEventArgs;
-    struct ICachedFileUpdaterActivatedEventArgs;
-    struct ICameraSettingsActivatedEventArgs;
-    struct ICommandLineActivatedEventArgs;
-    struct ICommandLineActivationOperation;
-    struct IContactActivatedEventArgs;
-    struct IContactCallActivatedEventArgs;
-    struct IContactMapActivatedEventArgs;
-    struct IContactMessageActivatedEventArgs;
-    struct IContactPanelActivatedEventArgs;
-    struct IContactPickerActivatedEventArgs;
-    struct IContactPostActivatedEventArgs;
-    struct IContactVideoCallActivatedEventArgs;
-    struct IContactsProviderActivatedEventArgs;
-    struct IContinuationActivatedEventArgs;
-    struct IDeviceActivatedEventArgs;
-    struct IDevicePairingActivatedEventArgs;
-    struct IDialReceiverActivatedEventArgs;
-    struct IFileActivatedEventArgs;
-    struct IFileActivatedEventArgsWithCallerPackageFamilyName;
-    struct IFileActivatedEventArgsWithNeighboringFiles;
-    struct IFileOpenPickerActivatedEventArgs;
-    struct IFileOpenPickerActivatedEventArgs2;
-    struct IFileOpenPickerContinuationEventArgs;
-    struct IFileSavePickerActivatedEventArgs;
-    struct IFileSavePickerActivatedEventArgs2;
-    struct IFileSavePickerContinuationEventArgs;
-    struct IFolderPickerContinuationEventArgs;
-    struct ILaunchActivatedEventArgs;
-    struct ILaunchActivatedEventArgs2;
-    struct ILockScreenActivatedEventArgs;
-    struct ILockScreenCallActivatedEventArgs;
-    struct IPhoneCallActivatedEventArgs;
-    struct IPickerReturnedActivatedEventArgs;
-    struct IPrelaunchActivatedEventArgs;
-    struct IPrint3DWorkflowActivatedEventArgs;
-    struct IPrintTaskSettingsActivatedEventArgs;
-    struct IProtocolActivatedEventArgs;
-    struct IProtocolActivatedEventArgsWithCallerPackageFamilyNameAndData;
-    struct IProtocolForResultsActivatedEventArgs;
-    struct IRestrictedLaunchActivatedEventArgs;
-    struct ISearchActivatedEventArgs;
-    struct ISearchActivatedEventArgsWithLinguisticDetails;
-    struct IShareTargetActivatedEventArgs;
-    struct ISplashScreen;
-    struct IStartupTaskActivatedEventArgs;
-    struct ITileActivatedInfo;
-    struct IToastNotificationActivatedEventArgs;
-    struct IUserDataAccountProviderActivatedEventArgs;
-    struct IViewSwitcherProvider;
-    struct IVoiceCommandActivatedEventArgs;
-    struct IWalletActionActivatedEventArgs;
-    struct IWebAccountProviderActivatedEventArgs;
-    struct IWebAuthenticationBrokerContinuationEventArgs;
-    struct AppointmentsProviderAddAppointmentActivatedEventArgs;
-    struct AppointmentsProviderRemoveAppointmentActivatedEventArgs;
-    struct AppointmentsProviderReplaceAppointmentActivatedEventArgs;
-    struct AppointmentsProviderShowAppointmentDetailsActivatedEventArgs;
-    struct AppointmentsProviderShowTimeFrameActivatedEventArgs;
-    struct BackgroundActivatedEventArgs;
-    struct BarcodeScannerPreviewActivatedEventArgs;
-    struct CachedFileUpdaterActivatedEventArgs;
-    struct CameraSettingsActivatedEventArgs;
-    struct CommandLineActivatedEventArgs;
-    struct CommandLineActivationOperation;
-    struct ContactCallActivatedEventArgs;
-    struct ContactMapActivatedEventArgs;
-    struct ContactMessageActivatedEventArgs;
-    struct ContactPanelActivatedEventArgs;
-    struct ContactPickerActivatedEventArgs;
-    struct ContactPostActivatedEventArgs;
-    struct ContactVideoCallActivatedEventArgs;
-    struct DeviceActivatedEventArgs;
-    struct DevicePairingActivatedEventArgs;
-    struct DialReceiverActivatedEventArgs;
-    struct FileActivatedEventArgs;
-    struct FileOpenPickerActivatedEventArgs;
-    struct FileOpenPickerContinuationEventArgs;
-    struct FileSavePickerActivatedEventArgs;
-    struct FileSavePickerContinuationEventArgs;
-    struct FolderPickerContinuationEventArgs;
-    struct LaunchActivatedEventArgs;
-    struct LockScreenActivatedEventArgs;
-    struct LockScreenCallActivatedEventArgs;
-    struct LockScreenComponentActivatedEventArgs;
-    struct PhoneCallActivatedEventArgs;
-    struct PickerReturnedActivatedEventArgs;
-    struct Print3DWorkflowActivatedEventArgs;
-    struct PrintTaskSettingsActivatedEventArgs;
-    struct ProtocolActivatedEventArgs;
-    struct ProtocolForResultsActivatedEventArgs;
-    struct RestrictedLaunchActivatedEventArgs;
-    struct SearchActivatedEventArgs;
-    struct ShareTargetActivatedEventArgs;
-    struct SplashScreen;
-    struct StartupTaskActivatedEventArgs;
-    struct TileActivatedInfo;
-    struct ToastNotificationActivatedEventArgs;
-    struct UserDataAccountProviderActivatedEventArgs;
-    struct VoiceCommandActivatedEventArgs;
-    struct WalletActionActivatedEventArgs;
-    struct WebAccountProviderActivatedEventArgs;
-    struct WebAuthenticationBrokerContinuationEventArgs;
-    struct ActivatedEventsContract;
-    struct ActivationCameraSettingsContract;
-    struct ContactActivatedEventsContract;
-    struct WebUISearchActivatedEventsContract;
+  enum class ActivationKind : int32_t {
+    Launch = 0,
+    Search = 1,
+    ShareTarget = 2,
+    File = 3,
+    Protocol = 4,
+    FileOpenPicker = 5,
+    FileSavePicker = 6,
+    CachedFileUpdater = 7,
+    ContactPicker = 8,
+    Device = 9,
+    PrintTaskSettings = 10,
+    CameraSettings = 11,
+    RestrictedLaunch = 12,
+    AppointmentsProvider = 13,
+    Contact = 14,
+    LockScreenCall = 15,
+    VoiceCommand = 16,
+    LockScreen = 17,
+    PickerReturned = 1000,
+    WalletAction = 1001,
+    PickFileContinuation = 1002,
+    PickSaveFileContinuation = 1003,
+    PickFolderContinuation = 1004,
+    WebAuthenticationBrokerContinuation = 1005,
+    WebAccountProvider = 1006,
+    ComponentUI = 1007,
+    ProtocolForResults = 1009,
+    ToastNotification = 1010,
+    Print3DWorkflow = 1011,
+    DialReceiver = 1012,
+    DevicePairing = 1013,
+    UserDataAccountsProvider = 1014,
+    FilePickerExperience = 1015,
+    LockScreenComponent = 1016,
+    ContactPanel = 1017,
+    PrintWorkflowForegroundTask = 1018,
+    GameUIProvider = 1019,
+    StartupTask = 1020,
+    CommandLineLaunch = 1021,
+    BarcodeScannerProvider = 1022,
+    PrintSupportJobUI = 1023,
+    PrintSupportSettingsUI = 1024,
+    PhoneCallActivation = 1025,
+    VpnForeground = 1026,
+    PrintSupportEnterpriseManagementUI = 1027,
+  };
+  enum class ApplicationExecutionState : int32_t {
+    NotRunning = 0,
+    Running = 1,
+    Suspended = 2,
+    Terminated = 3,
+    ClosedByUser = 4,
+  };
+  struct IActivatedEventArgs;
+  struct IActivatedEventArgsWithUser;
+  struct IApplicationViewActivatedEventArgs;
+  struct IAppointmentsProviderActivatedEventArgs;
+  struct IAppointmentsProviderAddAppointmentActivatedEventArgs;
+  struct IAppointmentsProviderRemoveAppointmentActivatedEventArgs;
+  struct IAppointmentsProviderReplaceAppointmentActivatedEventArgs;
+  struct IAppointmentsProviderShowAppointmentDetailsActivatedEventArgs;
+  struct IAppointmentsProviderShowTimeFrameActivatedEventArgs;
+  struct IBackgroundActivatedEventArgs;
+  struct IBarcodeScannerPreviewActivatedEventArgs;
+  struct ICachedFileUpdaterActivatedEventArgs;
+  struct ICameraSettingsActivatedEventArgs;
+  struct ICommandLineActivatedEventArgs;
+  struct ICommandLineActivationOperation;
+  struct IContactActivatedEventArgs;
+  struct IContactCallActivatedEventArgs;
+  struct IContactMapActivatedEventArgs;
+  struct IContactMessageActivatedEventArgs;
+  struct IContactPanelActivatedEventArgs;
+  struct IContactPickerActivatedEventArgs;
+  struct IContactPostActivatedEventArgs;
+  struct IContactVideoCallActivatedEventArgs;
+  struct IContactsProviderActivatedEventArgs;
+  struct IContinuationActivatedEventArgs;
+  struct IDeviceActivatedEventArgs;
+  struct IDevicePairingActivatedEventArgs;
+  struct IDialReceiverActivatedEventArgs;
+  struct IFileActivatedEventArgs;
+  struct IFileActivatedEventArgsWithCallerPackageFamilyName;
+  struct IFileActivatedEventArgsWithNeighboringFiles;
+  struct IFileOpenPickerActivatedEventArgs;
+  struct IFileOpenPickerActivatedEventArgs2;
+  struct IFileOpenPickerContinuationEventArgs;
+  struct IFileSavePickerActivatedEventArgs;
+  struct IFileSavePickerActivatedEventArgs2;
+  struct IFileSavePickerContinuationEventArgs;
+  struct IFolderPickerContinuationEventArgs;
+  struct ILaunchActivatedEventArgs;
+  struct ILaunchActivatedEventArgs2;
+  struct ILockScreenActivatedEventArgs;
+  struct ILockScreenCallActivatedEventArgs;
+  struct IPhoneCallActivatedEventArgs;
+  struct IPickerReturnedActivatedEventArgs;
+  struct IPrelaunchActivatedEventArgs;
+  struct IPrint3DWorkflowActivatedEventArgs;
+  struct IPrintTaskSettingsActivatedEventArgs;
+  struct IProtocolActivatedEventArgs;
+  struct IProtocolActivatedEventArgsWithCallerPackageFamilyNameAndData;
+  struct IProtocolForResultsActivatedEventArgs;
+  struct IRestrictedLaunchActivatedEventArgs;
+  struct ISearchActivatedEventArgs;
+  struct ISearchActivatedEventArgsWithLinguisticDetails;
+  struct IShareTargetActivatedEventArgs;
+  struct ISplashScreen;
+  struct IStartupTaskActivatedEventArgs;
+  struct ITileActivatedInfo;
+  struct IToastNotificationActivatedEventArgs;
+  struct IUserDataAccountProviderActivatedEventArgs;
+  struct IViewSwitcherProvider;
+  struct IVoiceCommandActivatedEventArgs;
+  struct IWalletActionActivatedEventArgs;
+  struct IWebAccountProviderActivatedEventArgs;
+  struct IWebAuthenticationBrokerContinuationEventArgs;
+  struct AppointmentsProviderAddAppointmentActivatedEventArgs;
+  struct AppointmentsProviderRemoveAppointmentActivatedEventArgs;
+  struct AppointmentsProviderReplaceAppointmentActivatedEventArgs;
+  struct AppointmentsProviderShowAppointmentDetailsActivatedEventArgs;
+  struct AppointmentsProviderShowTimeFrameActivatedEventArgs;
+  struct BackgroundActivatedEventArgs;
+  struct BarcodeScannerPreviewActivatedEventArgs;
+  struct CachedFileUpdaterActivatedEventArgs;
+  struct CameraSettingsActivatedEventArgs;
+  struct CommandLineActivatedEventArgs;
+  struct CommandLineActivationOperation;
+  struct ContactCallActivatedEventArgs;
+  struct ContactMapActivatedEventArgs;
+  struct ContactMessageActivatedEventArgs;
+  struct ContactPanelActivatedEventArgs;
+  struct ContactPickerActivatedEventArgs;
+  struct ContactPostActivatedEventArgs;
+  struct ContactVideoCallActivatedEventArgs;
+  struct DeviceActivatedEventArgs;
+  struct DevicePairingActivatedEventArgs;
+  struct DialReceiverActivatedEventArgs;
+  struct FileActivatedEventArgs;
+  struct FileOpenPickerActivatedEventArgs;
+  struct FileOpenPickerContinuationEventArgs;
+  struct FileSavePickerActivatedEventArgs;
+  struct FileSavePickerContinuationEventArgs;
+  struct FolderPickerContinuationEventArgs;
+  struct LaunchActivatedEventArgs;
+  struct LockScreenActivatedEventArgs;
+  struct LockScreenCallActivatedEventArgs;
+  struct LockScreenComponentActivatedEventArgs;
+  struct PhoneCallActivatedEventArgs;
+  struct PickerReturnedActivatedEventArgs;
+  struct Print3DWorkflowActivatedEventArgs;
+  struct PrintTaskSettingsActivatedEventArgs;
+  struct ProtocolActivatedEventArgs;
+  struct ProtocolForResultsActivatedEventArgs;
+  struct RestrictedLaunchActivatedEventArgs;
+  struct SearchActivatedEventArgs;
+  struct ShareTargetActivatedEventArgs;
+  struct SplashScreen;
+  struct StartupTaskActivatedEventArgs;
+  struct TileActivatedInfo;
+  struct ToastNotificationActivatedEventArgs;
+  struct UserDataAccountProviderActivatedEventArgs;
+  struct VoiceCommandActivatedEventArgs;
+  struct WalletActionActivatedEventArgs;
+  struct WebAccountProviderActivatedEventArgs;
+  struct WebAuthenticationBrokerContinuationEventArgs;
+  struct ActivatedEventsContract;
+  struct ActivationCameraSettingsContract;
+  struct ContactActivatedEventsContract;
+  struct WebUISearchActivatedEventsContract;
 }
 namespace winrt::impl
 {

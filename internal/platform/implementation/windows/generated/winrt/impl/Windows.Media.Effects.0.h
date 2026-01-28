@@ -121,7 +121,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Effects
     struct ICompositeVideoFrameContext;
     struct IProcessAudioFrameContext;
     struct IProcessVideoFrameContext;
-    struct ISlowMotionEffectDefinition;
     struct IVideoCompositor;
     struct IVideoCompositorDefinition;
     struct IVideoCompositorDefinitionFactory;
@@ -139,7 +138,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::Effects
     struct CompositeVideoFrameContext;
     struct ProcessAudioFrameContext;
     struct ProcessVideoFrameContext;
-    struct SlowMotionEffectDefinition;
     struct VideoCompositorDefinition;
     struct VideoEffectDefinition;
     struct VideoTransformEffectDefinition;
@@ -161,7 +159,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Effects::ICompositeVideoFrameContext>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Effects::IProcessAudioFrameContext>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Effects::IProcessVideoFrameContext>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Effects::IVideoCompositor>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Effects::IVideoCompositorDefinition>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::Effects::IVideoCompositorDefinitionFactory>{ using type = interface_category; };
@@ -179,7 +176,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::Effects::CompositeVideoFrameContext>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Effects::ProcessAudioFrameContext>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Effects::ProcessVideoFrameContext>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Media::Effects::SlowMotionEffectDefinition>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Effects::VideoCompositorDefinition>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Effects::VideoEffectDefinition>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::Effects::VideoTransformEffectDefinition>{ using type = class_category; };
@@ -197,7 +193,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::CompositeVideoFrameContext> = L"Windows.Media.Effects.CompositeVideoFrameContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::ProcessAudioFrameContext> = L"Windows.Media.Effects.ProcessAudioFrameContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::ProcessVideoFrameContext> = L"Windows.Media.Effects.ProcessVideoFrameContext";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::SlowMotionEffectDefinition> = L"Windows.Media.Effects.SlowMotionEffectDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::VideoCompositorDefinition> = L"Windows.Media.Effects.VideoCompositorDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::VideoEffectDefinition> = L"Windows.Media.Effects.VideoEffectDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::VideoTransformEffectDefinition> = L"Windows.Media.Effects.VideoTransformEffectDefinition";
@@ -220,7 +215,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::ICompositeVideoFrameContext> = L"Windows.Media.Effects.ICompositeVideoFrameContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::IProcessAudioFrameContext> = L"Windows.Media.Effects.IProcessAudioFrameContext";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::IProcessVideoFrameContext> = L"Windows.Media.Effects.IProcessVideoFrameContext";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition> = L"Windows.Media.Effects.ISlowMotionEffectDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::IVideoCompositor> = L"Windows.Media.Effects.IVideoCompositor";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::IVideoCompositorDefinition> = L"Windows.Media.Effects.IVideoCompositorDefinition";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::Effects::IVideoCompositorDefinitionFactory> = L"Windows.Media.Effects.IVideoCompositorDefinitionFactory";
@@ -243,7 +237,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::ICompositeVideoFrameContext>{ 0x6C30024B,0xF514,0x4278,{ 0xA5,0xF7,0xB9,0x18,0x80,0x49,0xD1,0x10 } }; // 6C30024B-F514-4278-A5F7-B9188049D110
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::IProcessAudioFrameContext>{ 0x4CD92946,0x1222,0x4A27,{ 0xA5,0x86,0xFB,0x3E,0x20,0x27,0x32,0x55 } }; // 4CD92946-1222-4A27-A586-FB3E20273255
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::IProcessVideoFrameContext>{ 0x276F0E2B,0x6461,0x401E,{ 0xBA,0x78,0x0F,0xDA,0xD6,0x11,0x4E,0xEC } }; // 276F0E2B-6461-401E-BA78-0FDAD6114EEC
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition>{ 0x35053CD0,0x176C,0x4763,{ 0x82,0xC4,0x1B,0x02,0xDB,0xE3,0x17,0x37 } }; // 35053CD0-176C-4763-82C4-1B02DBE31737
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::IVideoCompositor>{ 0x8510B43E,0x420C,0x420F,{ 0x96,0xC7,0x7C,0x98,0xBB,0xA1,0xFC,0x55 } }; // 8510B43E-420C-420F-96C7-7C98BBA1FC55
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::IVideoCompositorDefinition>{ 0x7946B8D0,0x2010,0x4AE3,{ 0x9A,0xB2,0x2C,0xEF,0x42,0xED,0xD4,0xD2 } }; // 7946B8D0-2010-4AE3-9AB2-2CEF42EDD4D2
     template <> inline constexpr guid guid_v<winrt::Windows::Media::Effects::IVideoCompositorDefinitionFactory>{ 0x4366FD10,0x68B8,0x4D52,{ 0x89,0xB6,0x02,0xA9,0x68,0xCC,0xA8,0x99 } }; // 4366FD10-68B8-4D52-89B6-02A968CCA899
@@ -260,7 +253,6 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Media::Effects::CompositeVideoFrameContext>{ using type = winrt::Windows::Media::Effects::ICompositeVideoFrameContext; };
     template <> struct default_interface<winrt::Windows::Media::Effects::ProcessAudioFrameContext>{ using type = winrt::Windows::Media::Effects::IProcessAudioFrameContext; };
     template <> struct default_interface<winrt::Windows::Media::Effects::ProcessVideoFrameContext>{ using type = winrt::Windows::Media::Effects::IProcessVideoFrameContext; };
-    template <> struct default_interface<winrt::Windows::Media::Effects::SlowMotionEffectDefinition>{ using type = winrt::Windows::Media::Effects::ISlowMotionEffectDefinition; };
     template <> struct default_interface<winrt::Windows::Media::Effects::VideoCompositorDefinition>{ using type = winrt::Windows::Media::Effects::IVideoCompositorDefinition; };
     template <> struct default_interface<winrt::Windows::Media::Effects::VideoEffectDefinition>{ using type = winrt::Windows::Media::Effects::IVideoEffectDefinition; };
     template <> struct default_interface<winrt::Windows::Media::Effects::VideoTransformEffectDefinition>{ using type = winrt::Windows::Media::Effects::IVideoEffectDefinition; };
@@ -392,14 +384,6 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_InputFrame(void**) noexcept = 0;
             virtual int32_t __stdcall get_OutputFrame(void**) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall get_TimeStretchRate(double*) noexcept = 0;
-            virtual int32_t __stdcall put_TimeStretchRate(double) noexcept = 0;
         };
     };
     template <> struct abi<winrt::Windows::Media::Effects::IVideoCompositor>
@@ -646,16 +630,6 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::Effects::IProcessVideoFrameContext>
     {
         template <typename D> using type = consume_Windows_Media_Effects_IProcessVideoFrameContext<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_Effects_ISlowMotionEffectDefinition
-    {
-        [[nodiscard]] auto TimeStretchRate() const;
-        auto TimeStretchRate(double value) const;
-    };
-    template <> struct consume<winrt::Windows::Media::Effects::ISlowMotionEffectDefinition>
-    {
-        template <typename D> using type = consume_Windows_Media_Effects_ISlowMotionEffectDefinition<D>;
     };
     template <typename D>
     struct consume_Windows_Media_Effects_IVideoCompositor

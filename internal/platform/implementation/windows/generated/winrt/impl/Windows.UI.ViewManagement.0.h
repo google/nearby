@@ -177,9 +177,6 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
     struct IInputPaneVisibilityEventArgs;
     struct IProjectionManagerStatics;
     struct IProjectionManagerStatics2;
-    struct IStatusBar;
-    struct IStatusBarProgressIndicator;
-    struct IStatusBarStatics;
     struct IUISettings;
     struct IUISettings2;
     struct IUISettings3;
@@ -190,6 +187,7 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
     struct IUISettingsAutoHideScrollBarsChangedEventArgs;
     struct IUISettingsMessageDurationChangedEventArgs;
     struct IUIViewSettings;
+    struct IUIViewSettingsPreferredInteractionMode;
     struct IUIViewSettingsStatics;
     struct IViewModePreferences;
     struct IViewModePreferencesStatics;
@@ -204,8 +202,6 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
     struct InputPane;
     struct InputPaneVisibilityEventArgs;
     struct ProjectionManager;
-    struct StatusBar;
-    struct StatusBarProgressIndicator;
     struct UISettings;
     struct UISettingsAnimationsEnabledChangedEventArgs;
     struct UISettingsAutoHideScrollBarsChangedEventArgs;
@@ -249,9 +245,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::UI::ViewManagement::IInputPaneVisibilityEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics2>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::UI::ViewManagement::IStatusBar>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::UI::ViewManagement::IStatusBarStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUISettings>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUISettings2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUISettings3>{ using type = interface_category; };
@@ -262,6 +255,11 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::UI::ViewManagement::IUISettingsAutoHideScrollBarsChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUISettingsMessageDurationChangedEventArgs>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUIViewSettings>{ using type = interface_category; };
+    template <>
+    struct category<winrt::Windows::UI::ViewManagement::
+                        IUIViewSettingsPreferredInteractionMode> {
+      using type = interface_category;
+    };
     template <> struct category<winrt::Windows::UI::ViewManagement::IUIViewSettingsStatics>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IViewModePreferences>{ using type = interface_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::IViewModePreferencesStatics>{ using type = interface_category; };
@@ -276,8 +274,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::UI::ViewManagement::InputPane>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::InputPaneVisibilityEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::ProjectionManager>{ using type = class_category; };
-    template <> struct category<winrt::Windows::UI::ViewManagement::StatusBar>{ using type = class_category; };
-    template <> struct category<winrt::Windows::UI::ViewManagement::StatusBarProgressIndicator>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::UISettings>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::UISettingsAnimationsEnabledChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::UI::ViewManagement::UISettingsAutoHideScrollBarsChangedEventArgs>{ using type = class_category; };
@@ -308,8 +304,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::InputPane> = L"Windows.UI.ViewManagement.InputPane";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::InputPaneVisibilityEventArgs> = L"Windows.UI.ViewManagement.InputPaneVisibilityEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::ProjectionManager> = L"Windows.UI.ViewManagement.ProjectionManager";
-    template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::StatusBar> = L"Windows.UI.ViewManagement.StatusBar";
-    template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::StatusBarProgressIndicator> = L"Windows.UI.ViewManagement.StatusBarProgressIndicator";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::UISettings> = L"Windows.UI.ViewManagement.UISettings";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::UISettingsAnimationsEnabledChangedEventArgs> = L"Windows.UI.ViewManagement.UISettingsAnimationsEnabledChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::UISettingsAutoHideScrollBarsChangedEventArgs> = L"Windows.UI.ViewManagement.UISettingsAutoHideScrollBarsChangedEventArgs";
@@ -362,9 +356,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IInputPaneVisibilityEventArgs> = L"Windows.UI.ViewManagement.IInputPaneVisibilityEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics> = L"Windows.UI.ViewManagement.IProjectionManagerStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics2> = L"Windows.UI.ViewManagement.IProjectionManagerStatics2";
-    template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IStatusBar> = L"Windows.UI.ViewManagement.IStatusBar";
-    template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator> = L"Windows.UI.ViewManagement.IStatusBarProgressIndicator";
-    template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IStatusBarStatics> = L"Windows.UI.ViewManagement.IStatusBarStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUISettings> = L"Windows.UI.ViewManagement.IUISettings";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUISettings2> = L"Windows.UI.ViewManagement.IUISettings2";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUISettings3> = L"Windows.UI.ViewManagement.IUISettings3";
@@ -375,6 +366,10 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUISettingsAutoHideScrollBarsChangedEventArgs> = L"Windows.UI.ViewManagement.IUISettingsAutoHideScrollBarsChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUISettingsMessageDurationChangedEventArgs> = L"Windows.UI.ViewManagement.IUISettingsMessageDurationChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUIViewSettings> = L"Windows.UI.ViewManagement.IUIViewSettings";
+    template <>
+    inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::
+                                      IUIViewSettingsPreferredInteractionMode> =
+        L"Windows.UI.ViewManagement.IUIViewSettingsPreferredInteractionMode";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IUIViewSettingsStatics> = L"Windows.UI.ViewManagement.IUIViewSettingsStatics";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IViewModePreferences> = L"Windows.UI.ViewManagement.IViewModePreferences";
     template <> inline constexpr auto& name_v<winrt::Windows::UI::ViewManagement::IViewModePreferencesStatics> = L"Windows.UI.ViewManagement.IViewModePreferencesStatics";
@@ -412,9 +407,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IInputPaneVisibilityEventArgs>{ 0xD243E016,0xD907,0x4FCC,{ 0xBB,0x8D,0xF7,0x7B,0xAA,0x50,0x28,0xF1 } }; // D243E016-D907-4FCC-BB8D-F77BAA5028F1
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics>{ 0xB65F913D,0xE2F0,0x4FFD,{ 0xBA,0x95,0x34,0x24,0x16,0x47,0xE4,0x5C } }; // B65F913D-E2F0-4FFD-BA95-34241647E45C
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IProjectionManagerStatics2>{ 0xF33D2F43,0x2749,0x4CDE,{ 0xB9,0x77,0xC0,0xC4,0x1E,0x74,0x15,0xD1 } }; // F33D2F43-2749-4CDE-B977-C0C41E7415D1
-    template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IStatusBar>{ 0x0FFCC5BF,0x98D0,0x4864,{ 0xB1,0xE8,0xB3,0xF4,0x02,0x0B,0xE8,0xB4 } }; // 0FFCC5BF-98D0-4864-B1E8-B3F4020BE8B4
-    template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator>{ 0x76CB2670,0xA3D7,0x49CF,{ 0x82,0x00,0x4F,0x3E,0xED,0xCA,0x27,0xBB } }; // 76CB2670-A3D7-49CF-8200-4F3EEDCA27BB
-    template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IStatusBarStatics>{ 0x8B463FDF,0x422F,0x4561,{ 0x88,0x06,0xFB,0x12,0x89,0xCA,0xDF,0xB7 } }; // 8B463FDF-422F-4561-8806-FB1289CADFB7
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUISettings>{ 0x85361600,0x1C63,0x4627,{ 0xBC,0xB1,0x3A,0x89,0xE0,0xBC,0x9C,0x55 } }; // 85361600-1C63-4627-BCB1-3A89E0BC9C55
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUISettings2>{ 0xBAD82401,0x2721,0x44F9,{ 0xBB,0x91,0x2B,0xB2,0x28,0xBE,0x44,0x2F } }; // BAD82401-2721-44F9-BB91-2BB228BE442F
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUISettings3>{ 0x03021BE4,0x5254,0x4781,{ 0x81,0x94,0x51,0x68,0xF7,0xD0,0x6D,0x7B } }; // 03021BE4-5254-4781-8194-5168F7D06D7B
@@ -425,6 +417,14 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUISettingsAutoHideScrollBarsChangedEventArgs>{ 0x87AFD4B2,0x9146,0x5F02,{ 0x8F,0x6B,0x06,0xD4,0x54,0x17,0x4C,0x0F } }; // 87AFD4B2-9146-5F02-8F6B-06D454174C0F
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUISettingsMessageDurationChangedEventArgs>{ 0x338AAD52,0x4A5D,0x5B59,{ 0x80,0x02,0xD9,0x30,0xF6,0x08,0xFD,0x6E } }; // 338AAD52-4A5D-5B59-8002-D930F608FD6E
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUIViewSettings>{ 0xC63657F6,0x8850,0x470D,{ 0x88,0xF8,0x45,0x5E,0x16,0xEA,0x2C,0x26 } }; // C63657F6-8850-470D-88F8-455E16EA2C26
+    template <>
+    inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::
+                                     IUIViewSettingsPreferredInteractionMode>{
+        0x426DE261,
+        0x82EC,
+        0x5F61,
+        {0xBA, 0xD4, 0x19, 0xB2, 0xD0, 0xD3, 0xCF,
+         0x35}};  // 426DE261-82EC-5F61-BAD4-19B2D0D3CF35
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IUIViewSettingsStatics>{ 0x595C97A5,0xF8F6,0x41CF,{ 0xB0,0xFB,0xAA,0xCD,0xB8,0x1F,0xD5,0xF6 } }; // 595C97A5-F8F6-41CF-B0FB-AACDB81FD5F6
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IViewModePreferences>{ 0x878FCD3A,0x0B99,0x42C9,{ 0x84,0xD0,0xD3,0xF1,0xD4,0x03,0x55,0x4B } }; // 878FCD3A-0B99-42C9-84D0-D3F1D403554B
     template <> inline constexpr guid guid_v<winrt::Windows::UI::ViewManagement::IViewModePreferencesStatics>{ 0x69B60A65,0x5DE5,0x40D8,{ 0x83,0x06,0x38,0x33,0xDF,0x7A,0x22,0x74 } }; // 69B60A65-5DE5-40D8-8306-3833DF7A2274
@@ -437,8 +437,6 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::ApplicationViewTransferContext>{ using type = winrt::Windows::UI::ViewManagement::IApplicationViewTransferContext; };
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::InputPane>{ using type = winrt::Windows::UI::ViewManagement::IInputPane; };
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::InputPaneVisibilityEventArgs>{ using type = winrt::Windows::UI::ViewManagement::IInputPaneVisibilityEventArgs; };
-    template <> struct default_interface<winrt::Windows::UI::ViewManagement::StatusBar>{ using type = winrt::Windows::UI::ViewManagement::IStatusBar; };
-    template <> struct default_interface<winrt::Windows::UI::ViewManagement::StatusBarProgressIndicator>{ using type = winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator; };
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::UISettings>{ using type = winrt::Windows::UI::ViewManagement::IUISettings; };
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::UISettingsAnimationsEnabledChangedEventArgs>{ using type = winrt::Windows::UI::ViewManagement::IUISettingsAnimationsEnabledChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::UI::ViewManagement::UISettingsAutoHideScrollBarsChangedEventArgs>{ using type = winrt::Windows::UI::ViewManagement::IUISettingsAutoHideScrollBarsChangedEventArgs; };
@@ -767,45 +765,6 @@ namespace winrt::impl
             virtual int32_t __stdcall GetDeviceSelector(void**) noexcept = 0;
         };
     };
-    template <> struct abi<winrt::Windows::UI::ViewManagement::IStatusBar>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall ShowAsync(void**) noexcept = 0;
-            virtual int32_t __stdcall HideAsync(void**) noexcept = 0;
-            virtual int32_t __stdcall get_BackgroundOpacity(double*) noexcept = 0;
-            virtual int32_t __stdcall put_BackgroundOpacity(double) noexcept = 0;
-            virtual int32_t __stdcall get_ForegroundColor(void**) noexcept = 0;
-            virtual int32_t __stdcall put_ForegroundColor(void*) noexcept = 0;
-            virtual int32_t __stdcall get_BackgroundColor(void**) noexcept = 0;
-            virtual int32_t __stdcall put_BackgroundColor(void*) noexcept = 0;
-            virtual int32_t __stdcall get_ProgressIndicator(void**) noexcept = 0;
-            virtual int32_t __stdcall get_OccludedRect(winrt::Windows::Foundation::Rect*) noexcept = 0;
-            virtual int32_t __stdcall add_Showing(void*, winrt::event_token*) noexcept = 0;
-            virtual int32_t __stdcall remove_Showing(winrt::event_token) noexcept = 0;
-            virtual int32_t __stdcall add_Hiding(void*, winrt::event_token*) noexcept = 0;
-            virtual int32_t __stdcall remove_Hiding(winrt::event_token) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall ShowAsync(void**) noexcept = 0;
-            virtual int32_t __stdcall HideAsync(void**) noexcept = 0;
-            virtual int32_t __stdcall get_Text(void**) noexcept = 0;
-            virtual int32_t __stdcall put_Text(void*) noexcept = 0;
-            virtual int32_t __stdcall get_ProgressValue(void**) noexcept = 0;
-            virtual int32_t __stdcall put_ProgressValue(void*) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::UI::ViewManagement::IStatusBarStatics>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall GetForCurrentView(void**) noexcept = 0;
-        };
-    };
     template <> struct abi<winrt::Windows::UI::ViewManagement::IUISettings>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -895,6 +854,18 @@ namespace winrt::impl
         {
             virtual int32_t __stdcall get_UserInteractionMode(int32_t*) noexcept = 0;
         };
+    };
+    template <>
+    struct abi<winrt::Windows::UI::ViewManagement::
+                   IUIViewSettingsPreferredInteractionMode> {
+      struct WINRT_IMPL_NOVTABLE type : inspectable_abi {
+        virtual int32_t __stdcall GetPreferredInteractionMode(
+            uint32_t, int32_t*, int32_t*) noexcept = 0;
+        virtual int32_t __stdcall add_PreferredInteractionModeChanged(
+            void*, winrt::event_token*) noexcept = 0;
+        virtual int32_t __stdcall remove_PreferredInteractionModeChanged(
+            winrt::event_token) noexcept = 0;
+      };
     };
     template <> struct abi<winrt::Windows::UI::ViewManagement::IUIViewSettingsStatics>
     {
@@ -1321,55 +1292,6 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_UI_ViewManagement_IProjectionManagerStatics2<D>;
     };
     template <typename D>
-    struct consume_Windows_UI_ViewManagement_IStatusBar
-    {
-        auto ShowAsync() const;
-        auto HideAsync() const;
-        [[nodiscard]] auto BackgroundOpacity() const;
-        auto BackgroundOpacity(double value) const;
-        [[nodiscard]] auto ForegroundColor() const;
-        auto ForegroundColor(winrt::Windows::Foundation::IReference<winrt::Windows::UI::Color> const& value) const;
-        [[nodiscard]] auto BackgroundColor() const;
-        auto BackgroundColor(winrt::Windows::Foundation::IReference<winrt::Windows::UI::Color> const& value) const;
-        [[nodiscard]] auto ProgressIndicator() const;
-        [[nodiscard]] auto OccludedRect() const;
-        auto Showing(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::UI::ViewManagement::StatusBar, winrt::Windows::Foundation::IInspectable> const& eventHandler) const;
-        using Showing_revoker = impl::event_revoker<winrt::Windows::UI::ViewManagement::IStatusBar, &impl::abi_t<winrt::Windows::UI::ViewManagement::IStatusBar>::remove_Showing>;
-        [[nodiscard]] auto Showing(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::UI::ViewManagement::StatusBar, winrt::Windows::Foundation::IInspectable> const& eventHandler) const;
-        auto Showing(winrt::event_token const& token) const noexcept;
-        auto Hiding(winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::UI::ViewManagement::StatusBar, winrt::Windows::Foundation::IInspectable> const& eventHandler) const;
-        using Hiding_revoker = impl::event_revoker<winrt::Windows::UI::ViewManagement::IStatusBar, &impl::abi_t<winrt::Windows::UI::ViewManagement::IStatusBar>::remove_Hiding>;
-        [[nodiscard]] auto Hiding(auto_revoke_t, winrt::Windows::Foundation::TypedEventHandler<winrt::Windows::UI::ViewManagement::StatusBar, winrt::Windows::Foundation::IInspectable> const& eventHandler) const;
-        auto Hiding(winrt::event_token const& token) const noexcept;
-    };
-    template <> struct consume<winrt::Windows::UI::ViewManagement::IStatusBar>
-    {
-        template <typename D> using type = consume_Windows_UI_ViewManagement_IStatusBar<D>;
-    };
-    template <typename D>
-    struct consume_Windows_UI_ViewManagement_IStatusBarProgressIndicator
-    {
-        auto ShowAsync() const;
-        auto HideAsync() const;
-        [[nodiscard]] auto Text() const;
-        auto Text(param::hstring const& value) const;
-        [[nodiscard]] auto ProgressValue() const;
-        auto ProgressValue(winrt::Windows::Foundation::IReference<double> const& value) const;
-    };
-    template <> struct consume<winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator>
-    {
-        template <typename D> using type = consume_Windows_UI_ViewManagement_IStatusBarProgressIndicator<D>;
-    };
-    template <typename D>
-    struct consume_Windows_UI_ViewManagement_IStatusBarStatics
-    {
-        auto GetForCurrentView() const;
-    };
-    template <> struct consume<winrt::Windows::UI::ViewManagement::IStatusBarStatics>
-    {
-        template <typename D> using type = consume_Windows_UI_ViewManagement_IStatusBarStatics<D>;
-    };
-    template <typename D>
     struct consume_Windows_UI_ViewManagement_IUISettings
     {
         [[nodiscard]] auto HandPreference() const;
@@ -1492,9 +1414,41 @@ namespace winrt::impl
         template <typename D> using type = consume_Windows_UI_ViewManagement_IUIViewSettings<D>;
     };
     template <typename D>
-    struct consume_Windows_UI_ViewManagement_IUIViewSettingsStatics
-    {
-        auto GetForCurrentView() const;
+    struct
+        consume_Windows_UI_ViewManagement_IUIViewSettingsPreferredInteractionMode {
+      auto GetPreferredInteractionMode(
+          array_view<
+              winrt::Windows::UI::ViewManagement::UserInteractionMode const>
+              supportedModes) const;
+      auto PreferredInteractionModeChanged(
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::UI::ViewManagement::UIViewSettings,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      using PreferredInteractionModeChanged_revoker = impl::event_revoker<
+          winrt::Windows::UI::ViewManagement::
+              IUIViewSettingsPreferredInteractionMode,
+          &impl::abi_t<winrt::Windows::UI::ViewManagement::
+                           IUIViewSettingsPreferredInteractionMode>::
+              remove_PreferredInteractionModeChanged>;
+      [[nodiscard]] auto PreferredInteractionModeChanged(
+          auto_revoke_t,
+          winrt::Windows::Foundation::TypedEventHandler<
+              winrt::Windows::UI::ViewManagement::UIViewSettings,
+              winrt::Windows::Foundation::IInspectable> const& handler) const;
+      auto PreferredInteractionModeChanged(
+          winrt::event_token const& token) const noexcept;
+    };
+    template <>
+    struct consume<winrt::Windows::UI::ViewManagement::
+                       IUIViewSettingsPreferredInteractionMode> {
+      template <typename D>
+      using type =
+          consume_Windows_UI_ViewManagement_IUIViewSettingsPreferredInteractionMode<
+              D>;
+    };
+    template <typename D>
+    struct consume_Windows_UI_ViewManagement_IUIViewSettingsStatics {
+      auto GetForCurrentView() const;
     };
     template <> struct consume<winrt::Windows::UI::ViewManagement::IUIViewSettingsStatics>
     {

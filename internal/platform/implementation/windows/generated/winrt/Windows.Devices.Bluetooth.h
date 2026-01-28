@@ -234,6 +234,56 @@ namespace winrt::impl
         }
         return value;
     }
+    template <typename D>
+    auto consume_Windows_Devices_Bluetooth_IBluetoothAdapter4<
+        D>::IsLowEnergyUncoded2MPhySupported() const {
+      bool value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Devices::Bluetooth::
+                                           IBluetoothAdapter4>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4, D const*>(
+            static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::
+                        IBluetoothAdapter4>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->get_IsLowEnergyUncoded2MPhySupported(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4>**)this;
+        check_hresult(
+            _winrt_abi_type->get_IsLowEnergyUncoded2MPhySupported(&value));
+      }
+      return value;
+    }
+    template <typename D>
+    auto consume_Windows_Devices_Bluetooth_IBluetoothAdapter4<
+        D>::IsLowEnergyCodedPhySupported() const {
+      bool value{};
+      if constexpr (!std::is_same_v<D, winrt::Windows::Devices::Bluetooth::
+                                           IBluetoothAdapter4>) {
+        winrt::hresult _winrt_cast_result_code;
+        auto const _winrt_casted_result = impl::try_as_with_reason<
+            winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4, D const*>(
+            static_cast<D const*>(this), _winrt_cast_result_code);
+        check_hresult(_winrt_cast_result_code);
+        auto const _winrt_abi_type =
+            *(abi_t<winrt::Windows::Devices::Bluetooth::
+                        IBluetoothAdapter4>**)&_winrt_casted_result;
+        check_hresult(
+            _winrt_abi_type->get_IsLowEnergyCodedPhySupported(&value));
+      } else {
+        auto const _winrt_abi_type =
+            *(abi_t<
+                winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4>**)this;
+        check_hresult(
+            _winrt_abi_type->get_IsLowEnergyCodedPhySupported(&value));
+      }
+      return value;
+    }
     template <typename D> auto consume_Windows_Devices_Bluetooth_IBluetoothAdapterStatics<D>::GetDeviceSelector() const
     {
         void* result{};
@@ -3336,32 +3386,64 @@ namespace winrt::impl
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
     template <typename D>
-    struct produce<D, winrt::Windows::Devices::Bluetooth::IBluetoothAdapterStatics> : produce_base<D, winrt::Windows::Devices::Bluetooth::IBluetoothAdapterStatics>
-    {
-        int32_t __stdcall GetDeviceSelector(void** result) noexcept final try
-        {
-            clear_abi(result);
-            typename D::abi_guard guard(this->shim());
-            *result = detach_from<hstring>(this->shim().GetDeviceSelector());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall FromIdAsync(void* deviceId, void** operation) noexcept final try
-        {
-            clear_abi(operation);
-            typename D::abi_guard guard(this->shim());
-            *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Devices::Bluetooth::BluetoothAdapter>>(this->shim().FromIdAsync(*reinterpret_cast<hstring const*>(&deviceId)));
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
-        int32_t __stdcall GetDefaultAsync(void** operation) noexcept final try
-        {
-            clear_abi(operation);
-            typename D::abi_guard guard(this->shim());
-            *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Devices::Bluetooth::BluetoothAdapter>>(this->shim().GetDefaultAsync());
-            return 0;
-        }
-        catch (...) { return to_hresult(); }
+    struct produce<D, winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4>
+        : produce_base<D,
+                       winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4> {
+      int32_t __stdcall get_IsLowEnergyUncoded2MPhySupported(
+          bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value =
+            detach_from<bool>(this->shim().IsLowEnergyUncoded2MPhySupported());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall get_IsLowEnergyCodedPhySupported(
+          bool* value) noexcept final try {
+        typename D::abi_guard guard(this->shim());
+        *value = detach_from<bool>(this->shim().IsLowEnergyCodedPhySupported());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+    };
+#endif
+#ifndef WINRT_LEAN_AND_MEAN
+    template <typename D>
+    struct produce<D,
+                   winrt::Windows::Devices::Bluetooth::IBluetoothAdapterStatics>
+        : produce_base<
+              D, winrt::Windows::Devices::Bluetooth::IBluetoothAdapterStatics> {
+      int32_t __stdcall GetDeviceSelector(void** result) noexcept final try {
+        clear_abi(result);
+        typename D::abi_guard guard(this->shim());
+        *result = detach_from<hstring>(this->shim().GetDeviceSelector());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall FromIdAsync(void* deviceId,
+                                    void** operation) noexcept final try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<
+            winrt::Windows::Devices::Bluetooth::BluetoothAdapter>>(
+            this->shim().FromIdAsync(
+                *reinterpret_cast<hstring const*>(&deviceId)));
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
+      int32_t __stdcall GetDefaultAsync(void** operation) noexcept final try {
+        clear_abi(operation);
+        typename D::abi_guard guard(this->shim());
+        *operation = detach_from<winrt::Windows::Foundation::IAsyncOperation<
+            winrt::Windows::Devices::Bluetooth::BluetoothAdapter>>(
+            this->shim().GetDefaultAsync());
+        return 0;
+      } catch (...) {
+        return to_hresult();
+      }
     };
 #endif
 #ifndef WINRT_LEAN_AND_MEAN
@@ -5129,6 +5211,9 @@ namespace std
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothAdapter> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothAdapter2> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothAdapter3> : winrt::impl::hash_base {};
+    template <>
+    struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothAdapter4>
+        : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothAdapterStatics> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothClassOfDevice> : winrt::impl::hash_base {};
     template<> struct hash<winrt::Windows::Devices::Bluetooth::IBluetoothClassOfDeviceStatics> : winrt::impl::hash_base {};

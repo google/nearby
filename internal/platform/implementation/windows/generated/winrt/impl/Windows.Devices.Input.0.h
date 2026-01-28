@@ -15,49 +15,49 @@ WINRT_EXPORT namespace winrt::Windows::Foundation
 }
 WINRT_EXPORT namespace winrt::Windows::Devices::Input
 {
-    enum class PointerDeviceType : int32_t
-    {
-        Touch = 0,
-        Pen = 1,
-        Mouse = 2,
-    };
-    struct IKeyboardCapabilities;
-    struct IMouseCapabilities;
-    struct IMouseDevice;
-    struct IMouseDeviceStatics;
-    struct IMouseEventArgs;
-    struct IPenButtonListener;
-    struct IPenButtonListenerStatics;
-    struct IPenDevice;
-    struct IPenDevice2;
-    struct IPenDeviceStatics;
-    struct IPenDockListener;
-    struct IPenDockListenerStatics;
-    struct IPenDockedEventArgs;
-    struct IPenTailButtonClickedEventArgs;
-    struct IPenTailButtonDoubleClickedEventArgs;
-    struct IPenTailButtonLongPressedEventArgs;
-    struct IPenUndockedEventArgs;
-    struct IPointerDevice;
-    struct IPointerDevice2;
-    struct IPointerDeviceStatics;
-    struct ITouchCapabilities;
-    struct KeyboardCapabilities;
-    struct MouseCapabilities;
-    struct MouseDevice;
-    struct MouseEventArgs;
-    struct PenButtonListener;
-    struct PenDevice;
-    struct PenDockListener;
-    struct PenDockedEventArgs;
-    struct PenTailButtonClickedEventArgs;
-    struct PenTailButtonDoubleClickedEventArgs;
-    struct PenTailButtonLongPressedEventArgs;
-    struct PenUndockedEventArgs;
-    struct PointerDevice;
-    struct TouchCapabilities;
-    struct MouseDelta;
-    struct PointerDeviceUsage;
+  enum class PointerDeviceType : int32_t {
+    Touch = 0,
+    Pen = 1,
+    Mouse = 2,
+    Touchpad = 3,
+  };
+  struct IKeyboardCapabilities;
+  struct IMouseCapabilities;
+  struct IMouseDevice;
+  struct IMouseDeviceStatics;
+  struct IMouseEventArgs;
+  struct IPenButtonListener;
+  struct IPenButtonListenerStatics;
+  struct IPenDevice;
+  struct IPenDevice2;
+  struct IPenDeviceStatics;
+  struct IPenDockListener;
+  struct IPenDockListenerStatics;
+  struct IPenDockedEventArgs;
+  struct IPenTailButtonClickedEventArgs;
+  struct IPenTailButtonDoubleClickedEventArgs;
+  struct IPenTailButtonLongPressedEventArgs;
+  struct IPenUndockedEventArgs;
+  struct IPointerDevice;
+  struct IPointerDevice2;
+  struct IPointerDeviceStatics;
+  struct ITouchCapabilities;
+  struct KeyboardCapabilities;
+  struct MouseCapabilities;
+  struct MouseDevice;
+  struct MouseEventArgs;
+  struct PenButtonListener;
+  struct PenDevice;
+  struct PenDockListener;
+  struct PenDockedEventArgs;
+  struct PenTailButtonClickedEventArgs;
+  struct PenTailButtonDoubleClickedEventArgs;
+  struct PenTailButtonLongPressedEventArgs;
+  struct PenUndockedEventArgs;
+  struct PointerDevice;
+  struct TouchCapabilities;
+  struct MouseDelta;
+  struct PointerDeviceUsage;
 }
 namespace winrt::impl
 {

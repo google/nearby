@@ -110,17 +110,6 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
         static auto RequestStartProjectingAsync(int32_t projectionViewId, int32_t anchorViewId, winrt::Windows::Foundation::Rect const& selection, winrt::Windows::UI::Popups::Placement const& prefferedPlacement);
         static auto GetDeviceSelector();
     };
-    struct WINRT_IMPL_EMPTY_BASES StatusBar : winrt::Windows::UI::ViewManagement::IStatusBar
-    {
-        StatusBar(std::nullptr_t) noexcept {}
-        StatusBar(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::ViewManagement::IStatusBar(ptr, take_ownership_from_abi) {}
-        static auto GetForCurrentView();
-    };
-    struct WINRT_IMPL_EMPTY_BASES StatusBarProgressIndicator : winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator
-    {
-        StatusBarProgressIndicator(std::nullptr_t) noexcept {}
-        StatusBarProgressIndicator(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::ViewManagement::IStatusBarProgressIndicator(ptr, take_ownership_from_abi) {}
-    };
     struct WINRT_IMPL_EMPTY_BASES UISettings : winrt::Windows::UI::ViewManagement::IUISettings,
         impl::require<UISettings, winrt::Windows::UI::ViewManagement::IUISettings2, winrt::Windows::UI::ViewManagement::IUISettings3, winrt::Windows::UI::ViewManagement::IUISettings4, winrt::Windows::UI::ViewManagement::IUISettings5, winrt::Windows::UI::ViewManagement::IUISettings6>
     {
@@ -143,11 +132,16 @@ WINRT_EXPORT namespace winrt::Windows::UI::ViewManagement
         UISettingsMessageDurationChangedEventArgs(std::nullptr_t) noexcept {}
         UISettingsMessageDurationChangedEventArgs(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::ViewManagement::IUISettingsMessageDurationChangedEventArgs(ptr, take_ownership_from_abi) {}
     };
-    struct WINRT_IMPL_EMPTY_BASES UIViewSettings : winrt::Windows::UI::ViewManagement::IUIViewSettings
-    {
-        UIViewSettings(std::nullptr_t) noexcept {}
-        UIViewSettings(void* ptr, take_ownership_from_abi_t) noexcept : winrt::Windows::UI::ViewManagement::IUIViewSettings(ptr, take_ownership_from_abi) {}
-        static auto GetForCurrentView();
+    struct WINRT_IMPL_EMPTY_BASES UIViewSettings
+        : winrt::Windows::UI::ViewManagement::IUIViewSettings,
+          impl::require<UIViewSettings,
+                        winrt::Windows::UI::ViewManagement::
+                            IUIViewSettingsPreferredInteractionMode> {
+      UIViewSettings(std::nullptr_t) noexcept {}
+      UIViewSettings(void* ptr, take_ownership_from_abi_t) noexcept
+          : winrt::Windows::UI::ViewManagement::IUIViewSettings(
+                ptr, take_ownership_from_abi) {}
+      static auto GetForCurrentView();
     };
     struct WINRT_IMPL_EMPTY_BASES ViewModePreferences : winrt::Windows::UI::ViewManagement::IViewModePreferences
     {

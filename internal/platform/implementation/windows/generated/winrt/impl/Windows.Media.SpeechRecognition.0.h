@@ -114,8 +114,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::SpeechRecognition
     struct ISpeechRecognizerStatics2;
     struct ISpeechRecognizerTimeouts;
     struct ISpeechRecognizerUIOptions;
-    struct IVoiceCommandManager;
-    struct IVoiceCommandSet;
     struct SpeechContinuousRecognitionCompletedEventArgs;
     struct SpeechContinuousRecognitionResultGeneratedEventArgs;
     struct SpeechContinuousRecognitionSession;
@@ -133,8 +131,6 @@ WINRT_EXPORT namespace winrt::Windows::Media::SpeechRecognition
     struct SpeechRecognizerStateChangedEventArgs;
     struct SpeechRecognizerTimeouts;
     struct SpeechRecognizerUIOptions;
-    struct VoiceCommandManager;
-    struct VoiceCommandSet;
 }
 namespace winrt::impl
 {
@@ -164,8 +160,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerStatics2>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerTimeouts>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::SpeechRecognition::IVoiceCommandManager>{ using type = interface_category; };
-    template <> struct category<winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet>{ using type = interface_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionCompletedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionResultGeneratedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionSession>{ using type = class_category; };
@@ -183,8 +177,6 @@ namespace winrt::impl
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerStateChangedEventArgs>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerTimeouts>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerUIOptions>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Media::SpeechRecognition::VoiceCommandManager>{ using type = class_category; };
-    template <> struct category<winrt::Windows::Media::SpeechRecognition::VoiceCommandSet>{ using type = class_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionMode>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechRecognitionAudioProblem>{ using type = enum_category; };
     template <> struct category<winrt::Windows::Media::SpeechRecognition::SpeechRecognitionConfidence>{ using type = enum_category; };
@@ -210,8 +202,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerStateChangedEventArgs> = L"Windows.Media.SpeechRecognition.SpeechRecognizerStateChangedEventArgs";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerTimeouts> = L"Windows.Media.SpeechRecognition.SpeechRecognizerTimeouts";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerUIOptions> = L"Windows.Media.SpeechRecognition.SpeechRecognizerUIOptions";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::VoiceCommandManager> = L"Windows.Media.SpeechRecognition.VoiceCommandManager";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::VoiceCommandSet> = L"Windows.Media.SpeechRecognition.VoiceCommandSet";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionMode> = L"Windows.Media.SpeechRecognition.SpeechContinuousRecognitionMode";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechRecognitionAudioProblem> = L"Windows.Media.SpeechRecognition.SpeechRecognitionAudioProblem";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::SpeechRecognitionConfidence> = L"Windows.Media.SpeechRecognition.SpeechRecognitionConfidence";
@@ -246,8 +236,6 @@ namespace winrt::impl
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerStatics2> = L"Windows.Media.SpeechRecognition.ISpeechRecognizerStatics2";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerTimeouts> = L"Windows.Media.SpeechRecognition.ISpeechRecognizerTimeouts";
     template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions> = L"Windows.Media.SpeechRecognition.ISpeechRecognizerUIOptions";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::IVoiceCommandManager> = L"Windows.Media.SpeechRecognition.IVoiceCommandManager";
-    template <> inline constexpr auto& name_v<winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet> = L"Windows.Media.SpeechRecognition.IVoiceCommandSet";
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionCompletedEventArgs>{ 0xE3D069BB,0xE30C,0x5E18,{ 0x42,0x4B,0x7F,0xBE,0x81,0xF8,0xFB,0xD0 } }; // E3D069BB-E30C-5E18-424B-7FBE81F8FBD0
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionResultGeneratedEventArgs>{ 0x19091E1E,0x6E7E,0x5A46,{ 0x40,0xFB,0x76,0x59,0x4F,0x78,0x65,0x04 } }; // 19091E1E-6E7E-5A46-40FB-76594F786504
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionSession>{ 0x6A213C04,0x6614,0x49F8,{ 0x99,0xA2,0xB5,0xE9,0xB3,0xA0,0x85,0xC8 } }; // 6A213C04-6614-49F8-99A2-B5E9B3A085C8
@@ -274,8 +262,6 @@ namespace winrt::impl
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerStatics2>{ 0x1D1B0D95,0x7565,0x4EF9,{ 0xA2,0xF3,0xBA,0x15,0x16,0x2A,0x96,0xCF } }; // 1D1B0D95-7565-4EF9-A2F3-BA15162A96CF
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerTimeouts>{ 0x2EF76FCA,0x6A3C,0x4DCA,{ 0xA1,0x53,0xDF,0x1B,0xC8,0x8A,0x79,0xAF } }; // 2EF76FCA-6A3C-4DCA-A153-DF1BC88A79AF
     template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions>{ 0x7888D641,0xB92B,0x44BA,{ 0xA2,0x5F,0xD1,0x86,0x46,0x30,0x64,0x1F } }; // 7888D641-B92B-44BA-A25F-D1864630641F
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::IVoiceCommandManager>{ 0xAA3A8DD5,0xB6E7,0x4EE2,{ 0xBA,0xA9,0xDD,0x6B,0xAC,0xED,0x0A,0x2B } }; // AA3A8DD5-B6E7-4EE2-BAA9-DD6BACED0A2B
-    template <> inline constexpr guid guid_v<winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet>{ 0x0BEDDA75,0x46E6,0x4B11,{ 0xA0,0x88,0x5C,0x68,0x63,0x28,0x99,0xB5 } }; // 0BEDDA75-46E6-4B11-A088-5C68632899B5
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionCompletedEventArgs>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionCompletedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionResultGeneratedEventArgs>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionResultGeneratedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechContinuousRecognitionSession>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionSession; };
@@ -293,7 +279,6 @@ namespace winrt::impl
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerStateChangedEventArgs>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerStateChangedEventArgs; };
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerTimeouts>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerTimeouts; };
     template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::SpeechRecognizerUIOptions>{ using type = winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions; };
-    template <> struct default_interface<winrt::Windows::Media::SpeechRecognition::VoiceCommandSet>{ using type = winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet; };
     template <> struct abi<winrt::Windows::Media::SpeechRecognition::ISpeechContinuousRecognitionCompletedEventArgs>
     {
         struct WINRT_IMPL_NOVTABLE type : inspectable_abi
@@ -530,23 +515,6 @@ namespace winrt::impl
             virtual int32_t __stdcall put_IsReadBackEnabled(bool) noexcept = 0;
             virtual int32_t __stdcall get_ShowConfirmation(bool*) noexcept = 0;
             virtual int32_t __stdcall put_ShowConfirmation(bool) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::SpeechRecognition::IVoiceCommandManager>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall InstallCommandSetsFromStorageFileAsync(void*, void**) noexcept = 0;
-            virtual int32_t __stdcall get_InstalledCommandSets(void**) noexcept = 0;
-        };
-    };
-    template <> struct abi<winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet>
-    {
-        struct WINRT_IMPL_NOVTABLE type : inspectable_abi
-        {
-            virtual int32_t __stdcall get_Language(void**) noexcept = 0;
-            virtual int32_t __stdcall get_Name(void**) noexcept = 0;
-            virtual int32_t __stdcall SetPhraseListAsync(void*, void*, void**) noexcept = 0;
         };
     };
     template <typename D>
@@ -848,27 +816,6 @@ namespace winrt::impl
     template <> struct consume<winrt::Windows::Media::SpeechRecognition::ISpeechRecognizerUIOptions>
     {
         template <typename D> using type = consume_Windows_Media_SpeechRecognition_ISpeechRecognizerUIOptions<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_SpeechRecognition_IVoiceCommandManager
-    {
-        auto InstallCommandSetsFromStorageFileAsync(winrt::Windows::Storage::StorageFile const& file) const;
-        [[nodiscard]] auto InstalledCommandSets() const;
-    };
-    template <> struct consume<winrt::Windows::Media::SpeechRecognition::IVoiceCommandManager>
-    {
-        template <typename D> using type = consume_Windows_Media_SpeechRecognition_IVoiceCommandManager<D>;
-    };
-    template <typename D>
-    struct consume_Windows_Media_SpeechRecognition_IVoiceCommandSet
-    {
-        [[nodiscard]] auto Language() const;
-        [[nodiscard]] auto Name() const;
-        auto SetPhraseListAsync(param::hstring const& phraseListName, param::async_iterable<hstring> const& phraseList) const;
-    };
-    template <> struct consume<winrt::Windows::Media::SpeechRecognition::IVoiceCommandSet>
-    {
-        template <typename D> using type = consume_Windows_Media_SpeechRecognition_IVoiceCommandSet<D>;
     };
 }
 #endif
