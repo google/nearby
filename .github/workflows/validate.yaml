@@ -22,22 +22,26 @@ env:
 jobs:
   build-swift:
     name: Build Swift
-    runs-on: macOS-latest
+    runs-on: macOS-26
     steps:
     - name: sync repo
       uses: actions/checkout@v6
       with:
         submodules: true
+    - name: setup protobuf
+      uses: ./.github/actions/swift-protobuf
     - name: Build
       run: swift build
 
   test-swift:
     name: Test Swift
-    runs-on: macOS-latest
+    runs-on: macOS-26
     steps:
     - uses: actions/checkout@v6
       with:
         submodules: true
+    - name: setup protobuf
+      uses: ./.github/actions/swift-protobuf
     - name: Test
       run: swift test
 
