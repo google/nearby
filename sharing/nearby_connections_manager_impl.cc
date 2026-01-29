@@ -89,10 +89,7 @@ bool ShouldUseInternet(ConnectivityManager& connectivity_manager,
 
 bool ShouldEnableWebRtc(ConnectivityManager& connectivity_manager,
                         DataUsage data_usage, PowerLevel power_level) {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_sharing_feature::
-                 kEnableMediumWebRtc) &&
-         ShouldUseInternet(connectivity_manager, data_usage, power_level);
+  return false;
 }
 
 bool ShouldEnableWifiLan(ConnectivityManager& connectivity_manager) {
@@ -600,9 +597,7 @@ void NearbyConnectionsManagerImpl::UpgradeBandwidth(
   // The only bandwidth upgrade mediums at this point are WebRTC and WifiLan.
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
-              kEnableMediumWifiLan) &&
-      !NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc)) {
+              kEnableMediumWifiLan)) {
     return;
   }
 

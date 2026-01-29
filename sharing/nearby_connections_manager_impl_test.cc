@@ -133,9 +133,6 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
-        false);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         true);
     auto nearby_connections_service =
@@ -626,15 +623,6 @@ TEST_P(NearbyConnectionsManagerImplTestConnectionMediums,
             << ", is_lan_connected: " << is_lan_connected
             << ", is_internet_connected: " << is_internet_connected;
 
-  if (is_webrtc_enabled) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
-        true);
-  } else {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
-        false);
-  }
   if (is_wifilan_enabled) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
@@ -646,10 +634,7 @@ TEST_P(NearbyConnectionsManagerImplTestConnectionMediums,
   }
   SetConnectionStatus(is_lan_connected, is_internet_connected);
 
-  bool should_use_internet =
-      is_internet_connected && data_usage != DataUsage::OFFLINE_DATA_USAGE &&
-      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE && !is_lan_connected);
-  should_use_web_rtc_ = is_webrtc_enabled && should_use_internet;
+  should_use_web_rtc_ = false;
   should_use_wifilan_ = is_wifilan_enabled && is_lan_connected;
 
   MediumSelection expected_mediums(/*bluetooth=*/true,
@@ -1619,15 +1604,6 @@ TEST_P(NearbyConnectionsManagerImplTestMediums, StartAdvertising_Options) {
             << ", is_lan_connected: " << is_lan_connected
             << ", is_internet_connected: " << is_internet_connected;
 
-  if (is_webrtc_enabled) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
-        true);
-  } else {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_sharing_feature::kEnableMediumWebRtc,
-        false);
-  }
   if (is_wifilan_enabled) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
@@ -1639,10 +1615,7 @@ TEST_P(NearbyConnectionsManagerImplTestMediums, StartAdvertising_Options) {
   }
   SetConnectionStatus(is_lan_connected, is_internet_connected);
 
-  bool should_use_internet =
-      is_internet_connected && data_usage != DataUsage::OFFLINE_DATA_USAGE &&
-      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE && !is_lan_connected);
-  should_use_web_rtc_ = is_webrtc_enabled && should_use_internet;
+  should_use_web_rtc_ = false;
   should_use_wifilan_ = is_wifilan_enabled && is_lan_connected;
 
   bool is_high_power = power_level == PowerLevel::kHighPower;
