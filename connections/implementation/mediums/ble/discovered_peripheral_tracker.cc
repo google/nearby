@@ -63,16 +63,28 @@ constexpr absl::Duration kExtendedAdvertisementHeaderDelay = absl::Seconds(3);
 constexpr absl::Duration kAdvertisementHeaderExpiry = absl::Seconds(15);
 }  // namespace
 
+// Private c'tor for testing.
+DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
+    bool is_extended_advertisement_available, bool start_fetch_executor)
+    : is_extended_advertisement_available_(
+          is_extended_advertisement_available),
+      start_fetch_executor_(start_fetch_executor) {}
+
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
-    : is_extended_advertisement_available_(
-          is_extended_advertisement_available) {
-  executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
-  executor_->Execute([this]() { GattFetchingLoop(); });
-}
+    : DiscoveredPeripheralTracker(is_extended_advertisement_available,
+                                  /*start_fetch_executor=*/true) {}
 
 DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
   Shutdown();
+}
+
+void DiscoveredPeripheralTracker::StartFetchExecutorIfNeeded() {
+  if (executor_ != nullptr) {
+    return;
+  }
+  executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
+  executor_->Execute([this]() { GattFetchingLoop(); });
 }
 
 void DiscoveredPeripheralTracker::Shutdown() {
@@ -101,6 +113,9 @@ void DiscoveredPeripheralTracker::StartTracking(
     const Uuid& fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
 
+  if (start_fetch_executor_) {
+    StartFetchExecutorIfNeeded();
+  }
   ServiceIdInfo service_id_info = {
       .discovered_peripheral_callback =
           std::move(discovered_peripheral_callback),
@@ -318,9 +333,13 @@ bool DiscoveredPeripheralTracker::IsSkippableGattAdvertisement(
       ExtractAdvertisementHeaderBytes(advertisement_data));
 
   if (!advertisement_header.IsValid()) {
+    // Don't skip any advertisement if the header is not valid.  It may be one
+    // of the legacy advertisement formats that is dealt with later.
     return false;
   }
 
+  // Delay processing GATT advertisements that have corresponding extended
+  // advertisements for 3s.  After that all GATT advertisements are processed.
   if (advertisement_header.IsSupportExtendedAdvertisement() &&
       (SystemClock::ElapsedRealtime() - medium_start_scanning_time_) <
           kExtendedAdvertisementHeaderDelay) {
@@ -740,15 +759,10 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   }
 
   // Determine whether or not we need to read a fresh GATT advertisement.
-  VLOG(1) << ": Handle GATT advertisement header with hash "
+  VLOG(1) << "Handle GATT advertisement header with hash "
           << absl::BytesToHexString(
                   advertisement_header.GetAdvertisementHash().AsStringView())
           << " in thread";
-
-  if (executor_ == nullptr) {
-    // The situation happens when flag value changed
-    executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
-  }
 
   if (!ShouldReadRawAdvertisementFromServer(advertisement_header)) {
     UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
@@ -831,7 +845,6 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
     const BleAdvertisementHeader& advertisement_header) {
   // Check if we have never seen this header. New headers should always be
   // read.
-  ByteArray advertisement_header_bytes(advertisement_header);
   const auto it = advertisement_read_results_.find(advertisement_header);
   if (it == advertisement_read_results_.end()) {
     LOG(INFO) << "Received advertisement header with hash "
@@ -965,7 +978,8 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
 
 void DiscoveredPeripheralTracker::GattFetchingLoop() {
   while (true) {
-    GattFetchTask task;
+    GattFetchTask* task = nullptr;
+    bool is_extended_advertisement = false;
     {
       MutexLock lock(&task_mutex_);
       if (shutting_down_) {
@@ -986,27 +1000,40 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
       // Non-extended advertisements are prioritized over extended
       // advertisements.
       if (!gatt_fetch_tasks_.empty()) {
-        task = std::move(gatt_fetch_tasks_.front());
-        gatt_fetch_tasks_.pop_front();
+        task = &gatt_fetch_tasks_.front();
       } else if (!gatt_extended_fetch_tasks_.empty()) {
-        task = std::move(gatt_extended_fetch_tasks_.front());
-        gatt_extended_fetch_tasks_.pop_front();
+        is_extended_advertisement = true;
+        task = &gatt_extended_fetch_tasks_.front();
       }
+    }
+    if (task == nullptr) {
+      LOG(WARNING) << "No task found, skip to fetch raw advertisement.";
+      continue;;
     }
 
     // Check if the task is expired.
-    if (SystemClock::ElapsedRealtime() - task.scheduled_time >
+    if (SystemClock::ElapsedRealtime() - task->scheduled_time >
         kAdvertisementHeaderExpiry) {
       VLOG(1) << "GATT advertisement with hash: "
               << absl::BytesToHexString(
-                     task.advertisement_header.GetAdvertisementHash()
+                     task->advertisement_header.GetAdvertisementHash()
                          .AsStringView())
               << " is expired, skip to fetch raw advertisement.";
-      continue;
+    } else {
+      FetchRawAdvertisementsInThread(task->peripheral,
+                                     task->advertisement_header,
+                                     std::move(task->advertisement_fetcher));
     }
-
-    FetchRawAdvertisementsInThread(task.peripheral, task.advertisement_header,
-                                   std::move(task.advertisement_fetcher));
+    // Remove task from queue after fetching is done.  This allows newly scanned
+    // advertisements to be deduped against a running fetch task.
+    {
+      MutexLock lock(&task_mutex_);
+      if (is_extended_advertisement) {
+        gatt_extended_fetch_tasks_.pop_front();
+      } else {
+        gatt_fetch_tasks_.pop_front();
+      }
+    }
   }
 }
 

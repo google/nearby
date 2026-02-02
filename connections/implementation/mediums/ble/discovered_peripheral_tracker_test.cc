@@ -27,10 +27,10 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
@@ -187,6 +187,8 @@ class MockDiscoveredPeripheralCallback : public DiscoveredPeripheralCallback {
   MOCK_METHOD(void, OnLegacyDeviceDiscovered, (), ());
 };
 
+}  // namespace
+
 class DiscoveredPeripheralTrackerTest
     : public testing::TestWithParam<
           std::tuple</*is_extended_advertisement_available=*/bool>> {
@@ -198,9 +200,11 @@ class DiscoveredPeripheralTrackerTest
         .use_simulated_clock = true,
     };
     MediumEnvironment::Instance().Start(config);
-    discovered_peripheral_tracker_ =
-        std::make_unique<DiscoveredPeripheralTracker>(
-            is_extended_advertisement_available);
+    discovered_peripheral_tracker_ = absl::WrapUnique(
+        new DiscoveredPeripheralTracker(is_extended_advertisement_available,
+                                        /*start_fetch_executor=*/false));
+    // Do not start the fetch executor since we will manually run the GATT
+    // fetch loop in the test.
     adapter_peripheral_ = std::make_unique<BluetoothAdapter>();
     adapter_central_ = std::make_unique<BluetoothAdapter>();
     ble_peripheral_ = std::make_unique<BleMedium>(*adapter_peripheral_);
@@ -350,6 +354,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!fast_advertisement_bytes.Empty()) {
@@ -385,6 +390,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, DctAdvertisementPeripheralDiscovered) {
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   advertisement_data.service_data.insert(
@@ -424,6 +430,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
        .legacy_device_discovered_cb =
            [&legacy_found_latch]() { legacy_found_latch.CountDown(); }},
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -464,6 +471,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!fast_advertisement_bytes.Empty()) {
@@ -535,6 +543,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!fast_advertisement_bytes.Empty()) {
@@ -579,6 +588,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid("FE3C"));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!fast_advertisement_bytes.Empty()) {
@@ -622,6 +632,8 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
+
   discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdB), false, Pcp::kP2pPointToPoint,
       {
@@ -681,6 +693,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -717,6 +730,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -763,6 +777,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -809,6 +824,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -852,6 +868,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { found_latch.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -901,6 +918,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -961,6 +979,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { lost_latch.CountDown(); },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1018,6 +1037,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
                   bool fast_advertisement) { lost_latch.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1096,6 +1116,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { lost_latch_b.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1158,6 +1179,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { lost_latch.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1212,6 +1234,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
                   bool fast_advertisement) { lost_latch.CountDown(); },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1284,6 +1307,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1360,6 +1384,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { lost_latch.CountDown(); },
       },
       Uuid(kFastAdvertisementServiceUuid));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!fast_advertisement_bytes.Empty()) {
@@ -1416,6 +1441,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, HandleDummyAdvertisement) {
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   FindAdvertisement(advertising_data, {}, fetch_latch);
 
@@ -1452,6 +1478,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipDummyAdvertisement) {
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   FindAdvertisement(advertising_data, {}, fetch_latch);
 
@@ -1483,6 +1510,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1524,6 +1552,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1571,6 +1600,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       {});
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
@@ -1625,6 +1655,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       bleutils::kCopresenceServiceUuid);
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   // 1. First receive a GATT advertisement data, it should be skipped.
   api::ble::BleAdvertisementData advertisement_data{};
@@ -1675,7 +1706,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
       },
       bleutils::kCopresenceServiceUuid);
 
-  // 1. First receive a GATT advertisement data, it should be skipped.
+  // 1. First receive a GATT advertisement data, it will expire after 15s.
   api::ble::BleAdvertisementData advertisement_data{};
   if (!advertisement_header_bytes.Empty()) {
     advertisement_data.service_data.insert(
@@ -1685,11 +1716,12 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
   FindAdvertisementWithDelay(advertisement_data, {advertisement_bytes},
                              fetch_latch, kDefaultGattFetchDelay);
 
-  // 2. The GATT advertisement will be expired after 20 seconds.
+  // 2. The GATT advertisement is already queued and will be skipped.
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
   (*fake_clock)->FastForward(absl::Seconds(20));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
-  // We should receive a client callback of a peripheral discovery.
+  // We should not receive a client callback of a peripheral discovery.
   fetch_latch.Await(kWaitDuration);
   EXPECT_FALSE(found_latch.Await(kWaitDuration).result());
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 0);
@@ -1725,6 +1757,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
       },
       bleutils::kCopresenceServiceUuid);
   (*fake_clock)->FastForward(absl::Seconds(4));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   // 1. Received extended advertisement.
   api::ble::BleAdvertisementData extended_advertisement_data{};
@@ -1791,6 +1824,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
       },
       bleutils::kCopresenceServiceUuid);
   (*fake_clock)->FastForward(absl::Seconds(4));
+  discovered_peripheral_tracker_->StartFetchExecutorForTesting();
 
   // 1. Find peripheral A with GATT advertisement.
   api::ble::BleAdvertisementData advertisement_data_a{};
@@ -1823,8 +1857,6 @@ INSTANTIATE_TEST_SUITE_P(
     DiscoveredPeripheralTrackerFlagsTest, DiscoveredPeripheralTrackerTest,
     ::testing::Combine(
         /*is_extended_advertisement_available=*/testing::Bool()));
-
-}  // namespace
 
 }  // namespace mediums
 }  // namespace connections

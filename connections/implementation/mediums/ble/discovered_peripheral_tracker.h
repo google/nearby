@@ -70,7 +70,7 @@ class DiscoveredPeripheralTracker {
       mediums::AdvertisementReadResult& advertisement_read_result)>;
 
   explicit DiscoveredPeripheralTracker(
-      bool is_extended_advertisement_available = false);
+      bool is_extended_advertisement_available);
 
   ~DiscoveredPeripheralTracker();
 
@@ -111,6 +111,11 @@ class DiscoveredPeripheralTracker {
 
   // Shuts down the GATT fetching thread.
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void StartFetchExecutorForTesting() {
+    MutexLock lock(&mutex_);
+    StartFetchExecutorIfNeeded();
+  }
 
  private:
   using BleAdvertisementSet = absl::flat_hash_set<BleAdvertisement>;
@@ -160,6 +165,16 @@ class DiscoveredPeripheralTracker {
     AdvertisementFetcher advertisement_fetcher;
     absl::Time scheduled_time;
   };
+
+  friend class DiscoveredPeripheralTrackerTest;
+
+  // C'tor used for tests only.
+  DiscoveredPeripheralTracker(
+      bool is_extended_advertisement_available, bool start_fetch_executor);
+
+  // Initiatializes the executor used for handling GATT fetch tasks if not
+  // already started.
+  void StartFetchExecutorIfNeeded() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Clears stale data from any previous sessions.
   void ClearDataForServiceId(const std::string& service_id)
@@ -306,7 +321,8 @@ class DiscoveredPeripheralTracker {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
-  bool is_extended_advertisement_available_;
+  const bool is_extended_advertisement_available_;
+  const bool start_fetch_executor_;
 
   absl::Time medium_start_scanning_time_ ABSL_GUARDED_BY(mutex_) =
       absl::InfiniteFuture();
