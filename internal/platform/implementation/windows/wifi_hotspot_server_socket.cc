@@ -110,22 +110,37 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
     return;
   }
   std::vector<ServiceAddress> service_addresses;
+  bool has_ipv4_address = false;
   for (int i = 0; i < ip_address_max_retries; i++) {
     for (const auto& net_interface :
         NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+      // service_addresses should only have addresses from a single interface.
+      service_addresses.clear();
       if (net_interface.type == InterfaceType::kWifiHotspot) {
         LOG(INFO) << "Found Wifi Hotspot interface, index: "
                   << net_interface.index;
         for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
+          // IPv6 link-local addresses are allowed and preferred since it skips
+          // the DHCP wait time.
           service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
         }
         for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
+          // Skip link-local IPv4 addresses.
+          if (ipaddress.IsV4LinkLocal()) {
+            continue;
+          }
+          has_ipv4_address = true;
           service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
         }
-        break;
+        // We assume there is only one Wifi Hotspot interface.  So stop looking
+        // once we've found a hotspot interface with a non-link-local IPv4
+        // address.
+        if (has_ipv4_address) {
+          break;
+        }
       }
     }
-    if (!service_addresses.empty()) {
+    if (has_ipv4_address && !service_addresses.empty()) {
       break;
     }
     LOG(WARNING) << "Failed to find Wifi Hotspot interface. Wait "
@@ -133,6 +148,7 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
                  << "ms snd try again";
     Sleep(ip_address_retry_interval_millis);
   }
+  LOG(INFO) << "Found " << service_addresses.size() << " hotspot addresses";
   hotspot_credentials.SetAddressCandidates(std::move(service_addresses));
 }
 
