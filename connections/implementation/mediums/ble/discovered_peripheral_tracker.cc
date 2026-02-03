@@ -771,6 +771,12 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
 
   {
     MutexLock lock(&task_mutex_);
+    // Check if the advertisement header is already in progress.
+    if (fetch_in_progress_header_.has_value() &&
+        fetch_in_progress_header_ == advertisement_header) {
+      UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
+      return;
+    }
     if (advertisement_header.IsSupportExtendedAdvertisement() &&
         is_extended_advertisement_available_) {
       for (auto& item : gatt_extended_fetch_tasks_) {
@@ -978,8 +984,8 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
 
 void DiscoveredPeripheralTracker::GattFetchingLoop() {
   while (true) {
-    GattFetchTask* task = nullptr;
-    bool is_extended_advertisement = false;
+    GattFetchTask task;
+    bool found_task = false;
     {
       MutexLock lock(&task_mutex_);
       if (shutting_down_) {
@@ -1000,39 +1006,39 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
       // Non-extended advertisements are prioritized over extended
       // advertisements.
       if (!gatt_fetch_tasks_.empty()) {
-        task = &gatt_fetch_tasks_.front();
+        task = std::move(gatt_fetch_tasks_.front());
+        gatt_fetch_tasks_.pop_front();
+        fetch_in_progress_header_ = task.advertisement_header;
+        found_task = true;
       } else if (!gatt_extended_fetch_tasks_.empty()) {
-        is_extended_advertisement = true;
-        task = &gatt_extended_fetch_tasks_.front();
+        task = std::move(gatt_extended_fetch_tasks_.front());
+        gatt_extended_fetch_tasks_.pop_front();
+        fetch_in_progress_header_ = task.advertisement_header;
+        found_task = true;
       }
     }
-    if (task == nullptr) {
+    if (!found_task) {
       LOG(WARNING) << "No task found, skip to fetch raw advertisement.";
       continue;;
     }
 
     // Check if the task is expired.
-    if (SystemClock::ElapsedRealtime() - task->scheduled_time >
+    if (SystemClock::ElapsedRealtime() - task.scheduled_time >
         kAdvertisementHeaderExpiry) {
       VLOG(1) << "GATT advertisement with hash: "
               << absl::BytesToHexString(
-                     task->advertisement_header.GetAdvertisementHash()
+                     task.advertisement_header.GetAdvertisementHash()
                          .AsStringView())
               << " is expired, skip to fetch raw advertisement.";
     } else {
-      FetchRawAdvertisementsInThread(task->peripheral,
-                                     task->advertisement_header,
-                                     std::move(task->advertisement_fetcher));
+      FetchRawAdvertisementsInThread(task.peripheral,
+                                     task.advertisement_header,
+                                     std::move(task.advertisement_fetcher));
     }
-    // Remove task from queue after fetching is done.  This allows newly scanned
-    // advertisements to be deduped against a running fetch task.
+    // Clear in progress header after the task is done.
     {
       MutexLock lock(&task_mutex_);
-      if (is_extended_advertisement) {
-        gatt_extended_fetch_tasks_.pop_front();
-      } else {
-        gatt_fetch_tasks_.pop_front();
-      }
+      fetch_in_progress_header_.reset();
     }
   }
 }

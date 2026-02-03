@@ -378,6 +378,9 @@ class DiscoveredPeripheralTracker {
   std::deque<GattFetchTask> gatt_fetch_tasks_ ABSL_GUARDED_BY(task_mutex_);
   std::deque<GattFetchTask> gatt_extended_fetch_tasks_
       ABSL_GUARDED_BY(task_mutex_);
+  // The advertisement header that is currently being fetched in the executor.
+  std::optional<BleAdvertisementHeader> fetch_in_progress_header_
+      ABSL_GUARDED_BY(task_mutex_);
 
   // Maps an advertisement header's hash with the time it's reported lost.
   // Ignores subsequent discovery events for the same advertisement header.
