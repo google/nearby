@@ -539,18 +539,6 @@ void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
   // Block any payload before the connection been accepted by both sides
   // to prevent unauthorized transfer.
   if (!to_client->IsConnectedToEndpoint(from_endpoint_id)) {
-    if (frame.packet_type() == PayloadTransferFrame::DATA) {
-      PendingPayloadHandle pending_payload =
-          pending_payloads_.GetPayload(frame.payload_header().id());
-      bool is_last = IsLastChunk(frame.payload_chunk());
-      // If payload need to be ack'd receiving, then send back the ACK frame.
-      if (pending_payload && is_last &&
-          IsPayloadReceivedAckEnabled(to_client, from_endpoint_id,
-                                      *pending_payload)) {
-        SendPayloadReceivedAck(to_client, *pending_payload, from_endpoint_id,
-                               is_last);
-      }
-    }
     VLOG(1) << "PayloadManager skipped process payloads before PCP connected, "
             << frame.payload_header().id();
     return;
@@ -921,8 +909,7 @@ void PayloadManager::SendPayloadReceivedAck(ClientProxy* client,
                                             PendingPayload& pending_payload,
                                             const std::string& endpoint_id,
                                             bool is_last_chunk) {
-  if (!is_last_chunk ||
-      !IsPayloadReceivedAckEnabled(client, endpoint_id, pending_payload)) {
+  if (!is_last_chunk) {
     return;
   }
 
@@ -944,8 +931,7 @@ bool PayloadManager::WaitForReceivedAck(
     PendingPayload& pending_payload,
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int64_t payload_chunk_offset, bool is_last_chunk) {
-  if (!is_last_chunk ||
-      !IsPayloadReceivedAckEnabled(client, endpoint_id, pending_payload)) {
+  if (!is_last_chunk) {
     return true;
   }
 
@@ -1031,18 +1017,6 @@ bool PayloadManager::WaitForReceivedAck(
     }
   }
   return true;
-}
-
-bool PayloadManager::IsPayloadReceivedAckEnabled(
-    ClientProxy* client, const std::string& endpoint_id,
-    PendingPayload& pending_payload) {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnablePayloadReceivedAck) &&
-         client->IsPayloadReceivedAckEnabled(endpoint_id) &&
-         (pending_payload.GetInternalPayload()->GetType() !=
-          nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
-              PayloadHeader::BYTES);
 }
 
 void PayloadManager::HandleFinishedOutgoingPayload(

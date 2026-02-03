@@ -137,7 +137,6 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 class SetSafeToDisconnect {
  public:
   SetSafeToDisconnect(bool safe_to_disconnect, bool auto_reconnect,
-                      bool payload_received_ack,
                       std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
@@ -146,10 +145,6 @@ class SetSafeToDisconnect {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAutoReconnect,
         auto_reconnect);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnablePayloadReceivedAck,
-        payload_received_ack);
     NearbyFlags::GetInstance().OverrideInt64FlagValue(
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
@@ -187,7 +182,9 @@ class EndpointManagerTest : public ::testing::Test {
       EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
     }
   }
-  SetSafeToDisconnect set_safe_to_disconnect_{true, false, true, 5};
+  SetSafeToDisconnect set_safe_to_disconnect_{/*safe_to_disconnect=*/true,
+                                             /*auto_reconnect=*/false,
+                                             /*safe_to_disconnect_version=*/5};
   std::unique_ptr<ClientProxy> client_ = std::make_unique<ClientProxy>();
   ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,

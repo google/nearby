@@ -77,9 +77,6 @@ constexpr auto kEnableNearbyConnectionsPreferences =
 // Enable/Disable payload manager to skip chunk update.
 constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
     flags::Flag<bool>(kConfigPackage, "45415729", true);
-// Enable/Disable payload-received-ack feature.
-constexpr auto kEnablePayloadReceivedAck =
-    flags::Flag<bool>(kConfigPackage, "45425840", false);
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);

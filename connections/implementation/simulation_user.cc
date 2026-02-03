@@ -14,11 +14,25 @@
 
 #include "connections/implementation/simulation_user.h"
 
+#include <string>
+#include <utility>
+
+#include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/listeners.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/payload.h"
+#include "connections/status.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace connections {
