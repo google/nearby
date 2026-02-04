@@ -367,6 +367,9 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
       std::int64_t payload_chunk_offset, bool is_last_chunk);
+  bool IsPayloadReceivedAckEnabled(ClientProxy* client,
+                                   const std::string& endpoint_id,
+                                   PendingPayload& pending_payload);
 
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.

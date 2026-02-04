@@ -227,7 +227,6 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
-        "//connections/implementation/mediums",
         "//connections/v3:v3_types",
         "//internal/flags:nearby_flags",
         "//internal/interop:device",
