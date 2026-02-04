@@ -56,7 +56,10 @@ using ::winrt::Windows::Devices::WiFiDirect::
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
 using ::winrt::Windows::Security::Credentials::PasswordCredential;
 
-constexpr absl::Duration kConnectTimeout = absl::Milliseconds(500);
+// Wifi connection metrics show P90 latency is just under 600ms.
+// Assuming the hotspot connection latency is similar to the wifi
+// connection latency.
+constexpr absl::Duration kConnectTimeout = absl::Milliseconds(700);
 }  // namespace
 
 WifiHotspotMedium::~WifiHotspotMedium() {

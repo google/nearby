@@ -80,7 +80,9 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
 constexpr absl::string_view kDisableMdnsAdvertisingRegistryValue =
     "disable_mdns_advertising";
 
-constexpr absl::Duration kConnectTimeout = absl::Milliseconds(500);
+// From metrics, P90 wifi connection latency is just under 600ms.
+// Set to 700ms to be slightly more generous than the P90.
+constexpr absl::Duration kConnectTimeout = absl::Milliseconds(700);
 
 bool IsSelfInstance(IMapView<winrt::hstring, IInspectable> properties,
                     absl::string_view self_instance_name) {
