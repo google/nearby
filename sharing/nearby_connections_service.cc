@@ -21,7 +21,13 @@
 #include <utility>
 #include <vector>
 
+#include "connections/listeners.h"
+#include "connections/payload.h"
+#include "connections/payload_type.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
 #include "internal/base/file_path.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
@@ -29,19 +35,26 @@
 namespace nearby {
 namespace sharing {
 
+using ::nearby::connections::PayloadType;
+using ::nearby::connections::ResultCallback;
+
+using NcPayload = ::nearby::connections::Payload;
+using NcStatus = ::nearby::connections::Status;
+using NcStrategy = ::nearby::connections::Strategy;
+
 Status ConvertToStatus(NcStatus status) {
   return static_cast<Status>(status.value);
 }
 
 Payload ConvertToPayload(NcPayload payload) {
   switch (payload.GetType()) {
-    case NcPayloadType::kBytes: {
-      const NcByteArray& bytes = payload.AsBytes();
+    case PayloadType::kBytes: {
+      const ByteArray& bytes = payload.AsBytes();
       std::string data = std::string(bytes);
       return Payload(payload.GetId(),
                      std::vector<uint8_t>(data.begin(), data.end()));
     }
-    case NcPayloadType::kFile: {
+    case PayloadType::kFile: {
       std::string file_path = payload.AsFile()->GetFilePath();
       std::string parent_folder = payload.GetParentFolder();
       VLOG(1) << __func__ << ": Payload file_path=" << file_path
@@ -71,16 +84,16 @@ NcPayload ConvertToServicePayload(Payload payload) {
     case PayloadContent::Type::kBytes: {
       std::vector<uint8_t> bytes = payload.content.bytes_payload.bytes;
       return NcPayload(payload.id,
-                       NcByteArray(std::string(bytes.begin(), bytes.end())));
+                       ByteArray(std::string(bytes.begin(), bytes.end())));
     }
     default:
       return NcPayload();
   }
 }
 
-NcResultCallback BuildResultCallback(
+ResultCallback BuildResultCallback(
     std::function<void(Status status)> callback) {
-  return NcResultCallback{[&, callback = std::move(callback)](NcStatus status) {
+  return ResultCallback{[&, callback = std::move(callback)](NcStatus status) {
     callback(ConvertToStatus(status));
   }};
 }

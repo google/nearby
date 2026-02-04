@@ -35,6 +35,8 @@ namespace sharing {
 
 class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
  public:
+  using HANDLE = void*;
+
   explicit NearbyConnectionsServiceImpl(
       nearby::ConnectivityManager* connectivity_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);

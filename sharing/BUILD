@@ -957,6 +957,8 @@ cc_test(
     deps = [
         ":connection_types",
         ":nearby_sharing_service",
+        "//connections:core_types",
+        "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",

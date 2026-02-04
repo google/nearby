@@ -24,17 +24,8 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "connections/advertising_options.h"
-#include "connections/connection_options.h"
-#include "connections/core.h"
-#include "connections/discovery_options.h"
-#include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
-#include "connections/medium_selector.h"
-#include "connections/out_of_band_connection_metadata.h"
-#include "connections/params.h"
 #include "connections/payload.h"
-#include "connections/payload_type.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "internal/platform/listeners.h"
@@ -43,27 +34,6 @@
 namespace nearby {
 namespace sharing {
 
-using Core = ::nearby::connections::Core;
-using ServiceControllerRouter = ::nearby::connections::ServiceControllerRouter;
-using NcAdvertisingOptions = ::nearby::connections::AdvertisingOptions;
-using NcByteArray = ::nearby::ByteArray;
-using NcConnectionOptions = ::nearby::connections::ConnectionOptions;
-using NcConnectionRequestInfo = ::nearby::connections::ConnectionRequestInfo;
-using NcConnectionResponseInfo = ::nearby::connections::ConnectionResponseInfo;
-using NcDistanceInfo = ::nearby::connections::DistanceInfo;
-using NcDiscoveryListener = ::nearby::connections::DiscoveryListener;
-using NcDiscoveryOptions = ::nearby::connections::DiscoveryOptions;
-using NcMedium = ::nearby::connections::Medium;
-using NcOutOfBandConnectionMetadata =
-    ::nearby::connections::OutOfBandConnectionMetadata;
-using NcPayload = ::nearby::connections::Payload;
-using NcPayloadType = ::nearby::connections::PayloadType;
-using NcPayloadListener = ::nearby::connections::PayloadListener;
-using NcPayloadProgressInfo = ::nearby::connections::PayloadProgressInfo;
-using NcResultCallback = ::nearby::connections::ResultCallback;
-using NcStatus = ::nearby::connections::Status;
-using NcStrategy = ::nearby::connections::Strategy;
-
 // Main interface to control the NearbyConnections library. Implemented in a
 // sandboxed process. This interface is used by the browser process to connect
 // to remote devices and send / receive raw data packets. Parsing of those
@@ -71,7 +41,6 @@ using NcStrategy = ::nearby::connections::Strategy;
 // separate interface.
 class NearbyConnectionsService {
  public:
-  using HANDLE = void*;
   virtual ~NearbyConnectionsService() = default;
 
   struct ConnectionListener {
@@ -171,12 +140,12 @@ class NearbyConnectionsService {
   virtual std::string Dump() const = 0;
 };
 
-Status ConvertToStatus(NcStatus status);
-Payload ConvertToPayload(NcPayload payload);
-NcPayload ConvertToServicePayload(Payload payload);
-NcResultCallback BuildResultCallback(
+Status ConvertToStatus(nearby::connections::Status status);
+Payload ConvertToPayload(nearby::connections::Payload payload);
+nearby::connections::Payload ConvertToServicePayload(Payload payload);
+nearby::connections::ResultCallback BuildResultCallback(
     std::function<void(Status status)> callback);
-NcStrategy ConvertToServiceStrategy(Strategy strategy);
+nearby::connections::Strategy ConvertToServiceStrategy(Strategy strategy);
 
 }  // namespace sharing
 }  // namespace nearby

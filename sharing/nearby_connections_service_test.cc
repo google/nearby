@@ -17,6 +17,8 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "connections/payload.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "sharing/nearby_connections_types.h"
 
@@ -25,8 +27,10 @@ namespace {
 
 using ::testing::Eq;
 
+using NcPayload = ::nearby::connections::Payload;
+
 TEST(NearbyConnectionSharingServicePayloadTest, ConvertBytesToPayload) {
-  Payload payload = ConvertToPayload(NcPayload(1234, NcByteArray("test")));
+  Payload payload = ConvertToPayload(NcPayload(1234, ByteArray("test")));
   EXPECT_THAT(payload.id, Eq(1234LL));
   EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kBytes));
 }
