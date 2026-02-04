@@ -474,8 +474,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void SetLanConnected(bool connected) {
     FakeConnectivityManager* connectivity_manager =
-        down_cast<FakeConnectivityManager*>(
-            fake_context_.GetConnectivityManager());
+        fake_context_.fake_connectivity_manager();
     connectivity_manager->SetLanConnected(connected);
   }
 
@@ -502,14 +501,14 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void SetBluetoothIsPresent(bool present) {
     FakeBluetoothAdapter& bluetooth_adapter =
-        down_cast<FakeBluetoothAdapter&>(fake_context_.GetBluetoothAdapter());
+        *fake_context_.fake_bluetooth_adapter();
     bluetooth_adapter.ReceivedAdapterPresentChangedFromOs(present);
     FlushTesting();
   }
 
   void SetBluetoothIsPowered(bool powered) {
     FakeBluetoothAdapter& bluetooth_adapter =
-        down_cast<FakeBluetoothAdapter&>(fake_context_.GetBluetoothAdapter());
+        *fake_context_.fake_bluetooth_adapter();
     bluetooth_adapter.ReceivedAdapterPoweredChangedFromOs(powered);
     fake_context_.fake_clock()->FastForward(absl::Milliseconds(500));
     FlushTesting();
@@ -517,8 +516,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void SetLanIsConnected(bool connected) {
     FakeConnectivityManager* connectivity_manager =
-        down_cast<FakeConnectivityManager*>(
-            fake_context_.GetConnectivityManager());
+        fake_context_.fake_connectivity_manager();
     connectivity_manager->SetLanConnected(connected);
     FlushTesting();
   }
