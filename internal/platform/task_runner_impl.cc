@@ -40,7 +40,7 @@ TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
 
 TaskRunnerImpl::~TaskRunnerImpl() {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (closed_) {
       return;
     }
@@ -51,7 +51,7 @@ TaskRunnerImpl::~TaskRunnerImpl() {
 void TaskRunnerImpl::Shutdown() {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     closed_ = true;
     timers = std::move(timers_map_);
   }
@@ -65,7 +65,7 @@ void TaskRunnerImpl::Shutdown() {
 
 bool TaskRunnerImpl::PostTask(absl::AnyInvocable<void()> task) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (closed_) {
       return false;
     }
@@ -81,7 +81,7 @@ bool TaskRunnerImpl::PostTask(absl::AnyInvocable<void()> task) {
 
 bool TaskRunnerImpl::PostDelayedTask(absl::Duration delay,
                                      absl::AnyInvocable<void()> task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) {
     return false;
   }
@@ -94,10 +94,10 @@ bool TaskRunnerImpl::PostDelayedTask(absl::Duration delay,
                    [this, id, task = std::move(task)]() mutable {
                      std::unique_ptr<Timer> timer;
                      {
-                      absl::MutexLock lock(&mutex_);
-                      if (closed_) {
-                        return;
-                      }
+                       absl::MutexLock lock(mutex_);
+                       if (closed_) {
+                         return;
+                       }
                       timer = std::move(timers_map_.extract(id).mapped());
                      }
                      PostTask(std::move(task));
