@@ -105,7 +105,6 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//connections:partners",
-        "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
         ":base",
