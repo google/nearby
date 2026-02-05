@@ -412,8 +412,8 @@ void NearbySharingServiceImpl::SendInitialAdapterState(
 
 void NearbySharingServiceImpl::AddObserver(
     NearbySharingService::Observer* observer) {
-  SendInitialAdapterState(observer);
   service_observers_.AddObserver(observer);
+  SendInitialAdapterState(observer);
 }
 
 void NearbySharingServiceImpl::RemoveObserver(

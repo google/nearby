@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_CONNECTIVITY_MANAGER_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_CONNECTIVITY_MANAGER_H_
 
+#include <atomic>
 #include <functional>
 #include <string>
 #include <utility>
@@ -52,21 +53,21 @@ class FakeConnectivityManager : public ConnectivityManager {
   void SetLanConnected(bool connected) {
     is_lan_connected_ = connected;
     for (auto& listener : lan_listeners_) {
-      listener.second(is_lan_connected_);
+      listener.second(connected);
     }
   }
 
   void SetInternetConnected(bool connected) {
     is_internet_connected_ = connected;
     for (auto& listener : internet_listeners_) {
-      listener.second(is_internet_connected_);
+      listener.second(connected);
     }
   }
 
  private:
-  bool is_lan_connected_ = true;
-  bool is_internet_connected_ = true;
-  bool is_hp_realtek_device_ = false;
+  std::atomic<bool> is_lan_connected_ = true;
+  std::atomic<bool> is_internet_connected_ = true;
+  std::atomic<bool> is_hp_realtek_device_ = false;
   absl::flat_hash_map<std::string, std::function<void(bool)>> lan_listeners_;
   absl::flat_hash_map<std::string, std::function<void(bool)>>
       internet_listeners_;
