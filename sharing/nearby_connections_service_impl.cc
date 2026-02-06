@@ -381,6 +381,11 @@ void NearbyConnectionsServiceImpl::SetCustomSavePath(
       ->SetCustomSavePath(path, BuildResultCallback(callback));
 }
 
+void NearbyConnectionsServiceImpl::OverrideSavePath(
+    absl::string_view endpoint_id, absl::string_view path) {
+  GetService(service_handle_)->OverrideSavePath(endpoint_id, path);
+}
+
 std::string NearbyConnectionsServiceImpl::Dump() const {
   return GetService(service_handle_)->Dump();
 }

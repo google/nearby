@@ -2050,5 +2050,13 @@ TEST_F(NearbyConnectionsManagerImplTest, ProcessUnknownFilePathsToDelete) {
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
 }
 
+TEST_F(NearbyConnectionsManagerImplTest, OverrideSavePath) {
+  EXPECT_CALL(*nearby_connections_,
+              OverrideSavePath(kRemoteEndpointId, "/tmp/test"));
+
+  nearby_connections_manager_->OverrideSavePath(kRemoteEndpointId,
+                                                FilePath("/tmp/test"));
+}
+
 }  // namespace NearbyConnectionsManagerUnitTests
 }  // namespace nearby::sharing

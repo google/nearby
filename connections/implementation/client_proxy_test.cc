@@ -21,7 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/casts.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -65,6 +64,7 @@ using ::location::nearby::connections::OsInfo;
 using ::location::nearby::proto::connections::CLIENT_SESSION;
 using ::location::nearby::proto::connections::START_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
+using ::testing::IsEmpty;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
@@ -1400,9 +1400,7 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
   MockDeviceProvider provider;
   client1()->RegisterDeviceProvider(&provider);
   ASSERT_NE(client1()->GetLocalDeviceProvider(), nullptr);
-  EXPECT_CALL(*(absl::down_cast<MockDeviceProvider*>(
-                  client1()->GetLocalDeviceProvider())),
-              GetLocalDevice);
+  EXPECT_CALL(provider, GetLocalDevice);
   client1()->GetLocalDevice();
 }
 
@@ -1610,6 +1608,23 @@ TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
       config_package_nearby::nearby_connections_feature::
           kEnableNearbyConnectionsPreferences,
       false);
+}
+
+TEST_F(ClientProxyTest, OverrideSavePath) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+
+  client1()->OverrideSavePath(advertising_endpoint.id, "/tmp/test_path");
+  EXPECT_EQ(client1()->GetSavePath(advertising_endpoint.id), "/tmp/test_path");
+}
+
+TEST_F(ClientProxyTest, GetSavePathDefaultsToEmpty) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+
+  EXPECT_THAT(client1()->GetSavePath(advertising_endpoint.id), IsEmpty());
 }
 
 }  // namespace

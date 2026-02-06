@@ -196,6 +196,27 @@ std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
   return {};
 }
 
+bool ClientProxy::OverrideSavePath(absl::string_view endpoint_id,
+                                   absl::string_view path) {
+  MutexLock lock(&mutex_);
+  ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->first.save_path = path;
+    return true;
+  }
+  return false;
+}
+
+std::string ClientProxy::GetSavePath(
+    absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  const ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->first.save_path;
+  }
+  return "";
+}
+
 std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
     const std::string& endpoint_id) {
   auto item = bluetooth_mac_addresses_.find(endpoint_id);

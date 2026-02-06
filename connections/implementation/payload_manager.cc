@@ -792,9 +792,12 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
 
 ErrorOr<PayloadManager::PendingPayloadHandle>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
-                                      const std::string& endpoint_id) {
+                                      const std::string& endpoint_id,
+                                      const std::string& save_path) {
   ErrorOr<std::unique_ptr<InternalPayload>> result =
-      CreateIncomingInternalPayload(frame, custom_save_path_);
+      CreateIncomingInternalPayload(frame, save_path.empty()
+                                               ? custom_save_path_
+                                               : save_path);
   if (result.has_error()) {
     return {result.error()};
   }
@@ -1340,7 +1343,8 @@ void PayloadManager::ProcessDataPacket(
         });
 
     ErrorOr<PendingPayloadHandle> result =
-        CreateIncomingPayload(payload_transfer_frame, from_endpoint_id);
+        CreateIncomingPayload(payload_transfer_frame, from_endpoint_id,
+                              to_client->GetSavePath(from_endpoint_id));
     if (result.has_error()) {
       LOG(WARNING) << "PayloadManager failed to create InternalPayload from "
                       "PayloadTransferFrame with payload_id="

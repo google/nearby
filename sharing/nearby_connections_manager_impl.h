@@ -87,6 +87,8 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override;
+  void OverrideSavePath(absl::string_view endpoint_id,
+                        const FilePath& custom_save_path) override;
   absl::flat_hash_set<FilePath> GetAndClearUnknownFilePathsToDelete() override;
   std::string Dump() const override;
 

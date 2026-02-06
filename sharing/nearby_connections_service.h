@@ -137,6 +137,10 @@ class NearbyConnectionsService {
   virtual void SetCustomSavePath(
       absl::string_view path, std::function<void(Status status)> callback) = 0;
 
+  // Overrides the save path for transfers from a specific endpoint.
+  virtual void OverrideSavePath(absl::string_view endpoint_id,
+                                absl::string_view path) = 0;
+
   virtual std::string Dump() const = 0;
 };
 

@@ -77,6 +77,13 @@ class ClientProxy final {
   std::string GetLocalEndpointId();
   std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
 
+  // Override the base for received file attachments from a specific endpoint.
+  // Returns true if the endpoint is found and the path is overridden.
+  bool OverrideSavePath(absl::string_view endpoint_id, absl::string_view path);
+  // Get the save path for a specific endpoint.  Returns empty string if
+  // not set.
+  std::string GetSavePath(absl::string_view endpoint_id) const;
+
   analytics::AnalyticsRecorder& GetAnalyticsRecorder() const {
     return *analytics_recorder_;
   }
@@ -394,6 +401,7 @@ class ClientProxy final {
     std::optional<location::nearby::connections::OsInfo> os_info;
     std::int32_t safe_to_disconnect_version;
     std::int32_t remote_multiplex_socket_bitmask;
+    std::string save_path;
   };
   using ConnectionPair = std::pair<Connection, PayloadListener>;
 

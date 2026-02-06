@@ -90,6 +90,9 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
   void SetCustomSavePath(absl::string_view path,
                          std::function<void(Status status)> callback) override;
 
+  void OverrideSavePath(absl::string_view endpoint_id,
+                        absl::string_view path) override;
+
   std::string Dump() const override;
 
  private:

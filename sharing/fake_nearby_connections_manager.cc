@@ -311,11 +311,6 @@ void FakeNearbyConnectionsManager::HandleStopAdvertisingCallback(
   capture_next_stop_advertising_callback_ = false;
 }
 
-void FakeNearbyConnectionsManager::SetCustomSavePath(
-    absl::string_view custom_save_path) {
-  custom_save_path_ = custom_save_path;
-}
-
 absl::flat_hash_set<FilePath>
 FakeNearbyConnectionsManager::GetAndClearUnknownFilePathsToDelete() {
   absl::flat_hash_set<FilePath> file_paths_to_delete = file_paths_to_delete_;

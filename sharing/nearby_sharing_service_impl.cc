@@ -2520,13 +2520,19 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     Fail(*session, *status);
     return;
   }
+  FilePath save_path{settings_->GetCustomSavePath()};
+  // Override save path for this connection.
+  // This must be called before the transfer is accepted and payloads are being
+  // received.
+  nearby_connections_manager_->OverrideSavePath(session->endpoint_id(),
+                                                save_path);
 
   // Log analytics event of receiving introduction.
   analytics_recorder_.NewReceiveIntroduction(
       session->session_id(), session->share_target(),
       /*referrer_package=*/std::nullopt, session->os_type());
 
-  if (IsOutOfStorage(device_info_, FilePath{settings_->GetCustomSavePath()},
+  if (IsOutOfStorage(device_info_, save_path,
                      session->attachment_container().GetStorageSize())) {
     Fail(*session, TransferMetadata::Status::kNotEnoughSpace);
     LOG(WARNING) << __func__

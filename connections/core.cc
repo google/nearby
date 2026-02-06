@@ -207,6 +207,11 @@ void Core::SetCustomSavePath(absl::string_view path, ResultCallback callback) {
   router_->SetCustomSavePath(&client_, path, std::move(callback));
 }
 
+void Core::OverrideSavePath(absl::string_view endpoint_id,
+                            absl::string_view path) {
+  client_.OverrideSavePath(endpoint_id, path);
+}
+
 std::string Core::Dump() { return client_.Dump(); }
 
 // V3
