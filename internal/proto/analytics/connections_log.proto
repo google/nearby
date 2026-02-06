@@ -445,6 +445,17 @@ message ConnectionsLog {
     // The supported service.
     optional location.nearby.proto.connections.SupportedService
         supported_service = 14;
+
+    // The speed test report.
+    optional SpeedTestReport speed_test_report = 15;
+  }
+
+  message SpeedTestReport {
+    // The throughput in kbytes per second.
+    optional int32 throughput_kbytes_per_sec = 1;
+
+    // Whether the throughput is incoming or outgoing.
+    optional bool is_incoming = 2;
   }
 
   // Contains the transfer statistics for a DCT payload.
@@ -482,6 +493,9 @@ message ConnectionsLog {
     // True if this payload transfer is an attempt to resume an interrupted
     // payload after a reconnection. False if it's a new payload transfer.
     optional bool is_resumption = 5;
+
+    // The data speed report in kbyte per second using global bytes counter
+    optional int32 data_speed_report_kbyte_per_sec = 6;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
