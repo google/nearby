@@ -22,30 +22,30 @@
 namespace nearby {
 
 FakeClock::~FakeClock() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   observers_.clear();
 }
 
 absl::Time FakeClock::Now() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return now_;
 }
 
 void FakeClock::AddObserver(absl::string_view name,
                             std::function<void()> observer) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   observers_.emplace(name, std::move(observer));
 }
 
 void FakeClock::RemoveObserver(absl::string_view name) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   observers_.erase(name);
 }
 
 void FakeClock::FastForward(absl::Duration duration) {
   std::vector<std::string> timer_callback_ids;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     now_ += duration;
     for (const auto& observer : observers_) {
       timer_callback_ids.push_back(observer.first);
@@ -59,7 +59,7 @@ void FakeClock::FastForward(absl::Duration duration) {
     std::function<void()> callback;
 
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_alive_timer = observers_.contains(timer_callback_id);
       if (!is_alive_timer) {
         continue;
@@ -72,12 +72,12 @@ void FakeClock::FastForward(absl::Duration duration) {
 }
 
 int FakeClock::GetObserversCount() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return observers_.size();
 }
 
 void FakeClock::Reset() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return observers_.clear();
 }
 
