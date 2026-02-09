@@ -917,8 +917,6 @@ TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
 }
 
 TEST_P(BasePcpHandlerTest, StartAdvertisingChangesState) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableDct, true);
   env_.Start();
   Mediums m;
   EndpointChannelManager ecm;
