@@ -46,6 +46,17 @@ namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 
+// if custom_save_path is empty, default download path is used
+std::string make_path(const std::string& custom_save_path,
+                      const std::string& parent_folder,
+                      const std::string& file_name) {
+  if (!custom_save_path.empty()) {
+    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
+    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
+  }
+  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
+}
+
 class BytesInternalPayload : public InternalPayload {
  public:
   explicit BytesInternalPayload(Payload payload)
@@ -336,27 +347,6 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
       DCHECK(false);  // This should never happen.
       return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
-}
-
-// if custom_save_path is empty, default download path is used
-std::string make_path(const std::string& custom_save_path,
-                      std::string& parent_folder, std::string& file_name) {
-  if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
-  }
-  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
-}
-
-// if custom_save_path is empty, default download path is used
-std::string make_path(const std::string& custom_save_path,
-                      std::string& parent_folder, int64_t id) {
-  std::string file_name(std::to_string(id));
-  if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
-  }
-  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
 ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
