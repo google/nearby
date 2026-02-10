@@ -146,29 +146,19 @@ bool BluetoothSocket::Connect(HostName connection_host_name,
   LOG(INFO) << __func__ << ": start to connect to bluetooth service:"
             << winrt::to_string(connection_service_name);
 
-  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableNewBluetoothRefactor)) {
+  int connect_called_count = 0;
+  while (connect_called_count < kMaxConnectRetryCount) {
+    connect_called_count += 1;
     bool connect_result =
         InternalConnect(connection_host_name, connection_service_name);
     if (connect_result) {
       return connect_result;
     }
-  } else {
-    int connect_called_count = 0;
-    while (connect_called_count < kMaxConnectRetryCount) {
-      connect_called_count += 1;
-      bool connect_result =
-          InternalConnect(connection_host_name, connection_service_name);
-      if (connect_result) {
-        return connect_result;
-      }
 
-      LOG(WARNING) << __func__ << ": Failed to connect bluetooth at the "
-                   << connect_called_count << "th call.";
+    LOG(WARNING) << __func__ << ": Failed to connect bluetooth at the "
+                 << connect_called_count << "th call.";
 
-      absl::SleepFor(kConnectInterval);
-    }
+    absl::SleepFor(kConnectInterval);
   }
 
   LOG(WARNING) << __func__ << ": Failed to connect bluetooth";
