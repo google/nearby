@@ -20,8 +20,7 @@
 @implementation GNCFeatureFlags
 
 + (BOOL)dctEnabled {
-  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct);
+  return NO;
 }
 
 + (BOOL)gattClientDisconnectionEnabled {

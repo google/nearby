@@ -26,8 +26,6 @@
 - (void)tearDown {
   // Reset flags to a known state (e.g., false) after each test.
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct, false);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableGattClientDisconnection,
       false);
@@ -38,15 +36,7 @@
   [super tearDown];
 }
 
-- (void)testDctEnabled_WhenFlagIsTrue {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct, YES);
-  XCTAssertTrue([GNCFeatureFlags dctEnabled]);
-}
-
 - (void)testDctEnabled_WhenFlagIsFalse {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct, NO);
   XCTAssertFalse([GNCFeatureFlags dctEnabled]);
 }
 
