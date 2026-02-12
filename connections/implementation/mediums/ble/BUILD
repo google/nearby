@@ -56,10 +56,7 @@ cc_library(
     name = "ble_socket",
     srcs = ["ble_socket.cc"],
     hdrs = ["ble_socket.h"],
-    visibility = [
-        "//connections/implementation:__subpackages__",
-        "//internal/platform/implementation/windows:__pkg__",
-    ],
+    visibility = ["//connections/implementation:__subpackages__"],
     deps = [
         ":ble",
         "//connections/implementation/flags:connections_flags",
