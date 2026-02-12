@@ -784,38 +784,6 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   session_.SendNextPayload();
 }
 
-TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
-  NearbyConnectionImpl connection(device_info_);
-  session_.set_session_id(1234);
-  ConnectionSuccess(&connection);
-  session_.SetTokenForTests("1234");
-
-  EXPECT_THAT(
-      session_.ProcessKeyVerificationResult(
-          PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
-          OSType::WINDOWS),
-      IsFalse());
-
-  EXPECT_THAT(session_.token(), Eq("1234"));
-  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
-}
-
-TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
-  NearbyConnectionImpl connection(device_info_);
-  session_.set_session_id(1234);
-  ConnectionSuccess(&connection);
-  session_.SetTokenForTests("1234");
-
-  EXPECT_THAT(
-      session_.ProcessKeyVerificationResult(
-          PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
-          OSType::WINDOWS),
-      IsTrue());
-
-  EXPECT_THAT(session_.token(), IsEmpty());
-  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
-}
-
 TEST_F(OutgoingShareSessionTest, DelayCompleteReceiverDisconnect) {
   NearbyConnectionImpl connection(device_info_);
   session_.set_session_id(1234);

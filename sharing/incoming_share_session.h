@@ -61,17 +61,6 @@ class IncomingShareSession : public ShareSession {
       const nearby::sharing::service::proto::IntroductionFrame&
           introduction_frame);
 
-  // Processes the PairedKeyVerificationResult.
-  // Returns true if verification was successful and the session is now waiting
-  // for the introduction frame.  Calls |introduction_callback| when it is
-  // received.
-  bool ProcessKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type,
-      std::function<void(
-          std::optional<nearby::sharing::service::proto::IntroductionFrame>)>
-          introduction_callback);
-
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.
   // Returns false if user needs to accept the transfer.

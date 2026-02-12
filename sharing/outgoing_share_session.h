@@ -72,10 +72,6 @@ class OutgoingShareSession : public ShareSession {
   bool InitiateSendAttachments(
       std::unique_ptr<AttachmentContainer> attachment_container);
 
-  bool ProcessKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type);
-
   // Returns true if the introduction frame is written successfully.
   // `timeout_callback` is called if accept is not received from both sender and
   // receiver within the timeout.
