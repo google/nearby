@@ -41,10 +41,12 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
 
   absl::Notification notification;
   frames_reader->ReadFrame(
-      [&](std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+      [&](bool is_timeout,
+          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         called = true;
         notification.Notify();
-      });
+      },
+      absl::ZeroDuration());
   EXPECT_TRUE(fake_task_runner.SyncWithTimeout(absl::Seconds(1)));
   connection.reset();
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(1)));
@@ -63,10 +65,12 @@ TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
 
   absl::Notification notification;
   frames_reader->ReadFrame(
-      [&](std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+      [&](bool is_timeout,
+          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         frame_result = frame;
         notification.Notify();
-      });
+      },
+      absl::ZeroDuration());
 
   EXPECT_TRUE(fake_task_runner.SyncWithTimeout(absl::Seconds(1)));
   frames_reader.reset();

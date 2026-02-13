@@ -297,24 +297,25 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
   IntroductionFrame introduction_frame;
-  CHECK(proto2::TextFormat::ParseFromString(R"pb(
-                                              app_metadata {
-                                                app_name: "MyApp"
-                                                size: 300
-                                                payload_id: 9876
-                                                payload_id: 9877
-                                                payload_id: 9878
-                                                id: 1234
-                                                file_name: "MyApp.apk"
-                                                file_name: "MyApp1.apk"
-                                                file_name: "MyApp2.apk"
-                                                file_size: 100
-                                                file_size: 100
-                                                file_size: 100
-                                                package_name: "com.example.myapp"
-                                              }
-                                            )pb",
-                                            &introduction_frame));
+  CHECK(
+      proto2::TextFormat::ParseFromString(R"pb(
+                                            app_metadata {
+                                              app_name: "MyApp"
+                                              size: 300
+                                              payload_id: 9876
+                                              payload_id: 9877
+                                              payload_id: 9878
+                                              id: 1234
+                                              file_name: "MyApp.apk"
+                                              file_name: "MyApp1.apk"
+                                              file_name: "MyApp2.apk"
+                                              file_size: 100
+                                              file_size: 100
+                                              file_size: 100
+                                              package_name: "com.example.myapp"
+                                            }
+                                          )pb",
+                                          &introduction_frame));
   service::proto::AppMetadata app_metadata = introduction_frame.app_metadata(0);
   int64_t payload_id1 = app_metadata.payload_id(0);
   int64_t payload_id2 = app_metadata.payload_id(1);
@@ -394,7 +395,8 @@ TEST_F(IncomingShareSessionTest,
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
 
   session_.PushPayloadTransferUpdateForTest(
@@ -496,7 +498,8 @@ TEST_F(IncomingShareSessionTest,
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
 
   session_.PushPayloadTransferUpdateForTest(
@@ -597,7 +600,8 @@ TEST_F(IncomingShareSessionTest,
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -697,7 +701,8 @@ TEST_F(IncomingShareSessionTest,
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
 
   session_.PushPayloadTransferUpdateForTest(
@@ -798,7 +803,8 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -855,7 +861,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -953,7 +960,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -997,7 +1005,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
   connections_manager_.SetIncomingPayload(
       wifi_payload_id2_,
       CreateWifiCredentialsPayload(wifi_payload_id2_, "password2", true));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -1048,7 +1057,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
-  session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {});
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
@@ -1066,7 +1076,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
   EXPECT_THAT(
-      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      session_.ReadyForTransfer(
+          []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {}),
       IsFalse());
 }
 
@@ -1077,7 +1088,8 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
 
   EXPECT_THAT(
-      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      session_.ReadyForTransfer(
+          []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {}),
       IsFalse());
 }
 
@@ -1096,7 +1108,8 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
       .Times(0);
 
   EXPECT_THAT(
-      session.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      session.ReadyForTransfer(
+          []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {}),
       IsTrue());
 }
 
@@ -1109,7 +1122,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
 
   EXPECT_THAT(session_.ReadyForTransfer(
                   [&accept_timeout_called]() { accept_timeout_called = true; },
-                  [](std::optional<V1Frame> frame) {}),
+                  [](bool is_timeout, std::optional<V1Frame> frame) {}),
               IsFalse());
   clock_.FastForward(absl::Seconds(60));
   task_runner_.SyncWithTimeout(absl::Milliseconds(100));
@@ -1142,7 +1155,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
   bool accept_timeout_called = false;
   EXPECT_THAT(session_.ReadyForTransfer(
                   [&accept_timeout_called]() { accept_timeout_called = true; },
-                  [](std::optional<V1Frame> frame) {}),
+                  [](bool is_timeout, std::optional<V1Frame> frame) {}),
               IsFalse());
   session_.AcceptTransfer([]() {});
   session_.PushPayloadTransferUpdateForTest(
@@ -1177,7 +1190,8 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   EXPECT_THAT(
-      session_.ReadyForTransfer([]() {}, [](std::optional<V1Frame> frame) {}),
+      session_.ReadyForTransfer(
+          []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {}),
       IsFalse());
   EXPECT_CALL(
       transfer_metadata_callback_,

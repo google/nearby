@@ -78,7 +78,8 @@ class IncomingShareSession : public ShareSession {
   bool ReadyForTransfer(
       std::function<void()> accept_timeout_callback,
       std::function<
-          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          void(bool is_timeout,
+               std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback);
 
   // Accept the transfer and begin listening for payload transfer updates.

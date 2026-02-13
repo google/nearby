@@ -320,7 +320,7 @@ class NearbySharingServiceImpl
           frame);
   void OnStorageCheckCompleted(IncomingShareSession& session);
   void OnFrameRead(
-      int64_t share_target_id,
+      int64_t share_target_id, bool is_timeout,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
 
   void OnConnectionDisconnected(int64_t share_target_id);

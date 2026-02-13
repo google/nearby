@@ -102,7 +102,8 @@ class OutgoingShareSession : public ShareSession {
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
       std::function<
-          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          void(bool is_timeout,
+               std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
       std::function<void()> payload_transder_update_callback);
   // Send the next payload to NearbyConnectionManager.

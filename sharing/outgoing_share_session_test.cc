@@ -673,7 +673,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloads) {
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads([](std::optional<V1Frame> frame) {},
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
                         payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -714,7 +714,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsSetsAdvancedProtectionFlags) {
 
   session_.SetAdvancedProtectionStatus(/*advanced_protection_enabled=*/true,
                                        /*advanced_protection_mismatch=*/true);
-  session_.SendPayloads([](std::optional<V1Frame> frame) {},
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
                         payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -753,7 +753,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads([](std::optional<V1Frame> frame) {},
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
                         payload_transder_update_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))

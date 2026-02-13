@@ -26,6 +26,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -203,8 +204,8 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
 
   frames_reader()->ReadFrame(
       V1Frame::INTRODUCTION,
-      [callback =
-           std::move(introduction_callback)](std::optional<V1Frame> frame) {
+      [callback = std::move(introduction_callback)](
+          bool is_timeout, std::optional<V1Frame> frame) {
         if (!frame.has_value()) {
           callback(std::nullopt);
         } else {
@@ -217,7 +218,8 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
 
 bool IncomingShareSession::ReadyForTransfer(
     std::function<void()> accept_timeout_callback,
-    std::function<void(std::optional<V1Frame> frame)> frame_read_callback) {
+    std::function<void(bool is_timeout, std::optional<V1Frame> frame)>
+        frame_read_callback) {
   if (!IsConnected()) {
     LOG(WARNING) << "ReadyForTransfer called when not connected";
     return false;
@@ -228,7 +230,8 @@ bool IncomingShareSession::ReadyForTransfer(
   mutual_acceptance_timeout_ = std::make_unique<ThreadTimer>(
       service_thread(), "incoming_mutual_acceptance_timeout",
       kReadResponseFrameTimeout, std::move(accept_timeout_callback));
-  frames_reader()->ReadFrame(std::move(frame_read_callback));
+  frames_reader()->ReadFrame(std::move(frame_read_callback),
+                             absl::ZeroDuration());
 
   if (!self_share()) {
     TransferMetadataBuilder transfer_metadata_builder;

@@ -2563,8 +2563,9 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
   }
   session->SendPayloads(
       [this, share_target_id](
+          bool is_timeout,
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnFrameRead(share_target_id, std::move(frame));
+        OnFrameRead(share_target_id, is_timeout, std::move(frame));
       },
       absl::bind_front(
           &NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates, this,
@@ -2597,7 +2598,7 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
 }
 
 void NearbySharingServiceImpl::OnFrameRead(
-    int64_t share_target_id,
+    int64_t share_target_id, bool is_timeout,
     std::optional<nearby::sharing::service::proto::V1Frame> frame) {
   if (!frame.has_value()) {
     // This is the case when the connection has been closed since we wait
@@ -2640,9 +2641,10 @@ void NearbySharingServiceImpl::OnFrameRead(
 
   session->frames_reader()->ReadFrame(
       [this, share_target_id](
+          bool is_timeout,
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnFrameRead(share_target_id, std::move(frame));
-      });
+        OnFrameRead(share_target_id, is_timeout, std::move(frame));
+      }, absl::ZeroDuration());
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(

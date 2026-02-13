@@ -137,7 +137,8 @@ void PairedKeyVerificationRunner::Run(
   SendPairedKeyEncryptionFrame();
   frames_reader_->ReadFrame(
       V1Frame::PAIRED_KEY_ENCRYPTION,
-      [&, runner = GetWeakPtr()](std::optional<V1Frame> frame) {
+      [&, runner = GetWeakPtr()](bool is_timeout,
+                                 std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
         if (verification_runner == nullptr) {
           LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
@@ -182,7 +183,8 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
 
   frames_reader_->ReadFrame(
       V1Frame::PAIRED_KEY_RESULT,
-      [this, runner = GetWeakPtr()](std::optional<V1Frame> frame) {
+      [this, runner = GetWeakPtr()](bool is_timeout,
+                                    std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
         if (verification_runner == nullptr) {
           LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
