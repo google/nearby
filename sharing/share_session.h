@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -71,6 +72,9 @@ class ShareSession {
   void clear_certificate() { certificate_ = std::nullopt; }
 
   NearbyConnection* connection() const { return connection_; }
+  // Returns true if the session has a valid connection.
+  // When `IsConnected()` is true, `connection()` is non-null, as is
+  // `frames_reader()`.
   bool IsConnected() const { return connection_ != nullptr; }
 
   void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
@@ -113,6 +117,11 @@ class ShareSession {
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                location::nearby::proto::sharing::OSType)>
           callback);
+  // Processes the PairedKeyVerificationResult.
+  // Returns true if verification was successful.
+  bool ProcessKeyVerificationResult(
+      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   void OnDisconnect();
   const AttachmentContainer& attachment_container() const {
@@ -165,11 +174,6 @@ class ShareSession {
     return attachment_container_;
   }
   void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
-  // Processes the PairedKeyVerificationResult.
-  // Returns true if verification was successful.
-  bool HandleKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type);
 
   NearbyConnectionsManager& connections_manager() {
     return connections_manager_;

@@ -203,6 +203,45 @@ void ShareSession::RunPairedKeyVerification(
   key_verification_runner_->Run(std::move(callback));
 }
 
+bool ShareSession::ProcessKeyVerificationResult(
+    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+    OSType share_target_os_type) {
+  os_type_ = share_target_os_type;
+
+  switch (result) {
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
+      LOG(WARNING) << __func__ << ": Paired key handshake failed for target "
+                   << share_target().id << ". Disconnecting.";
+      return false;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
+      VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
+              << share_target().id;
+      // If verification succeeds, this either means that the target is a
+      // self-share or a mutual contact. In either case, we should clear the
+      // token.
+      token_.resize(0);
+      break;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:
+      VLOG(1) << __func__
+              << ": Unable to verify paired key encryption when "
+                 "receiving connection from target - "
+              << share_target().id;
+      // If we are unable to verify the paired key, we should clear the self
+      // share flag.
+      self_share_ = false;
+      break;
+
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
+      LOG(WARNING) << __func__
+                   << ": Unknown PairedKeyVerificationResult for target "
+                   << share_target().id << ". Disconnecting.";
+      return false;
+  }
+  return true;
+}
+
 void ShareSession::OnDisconnect() {
   OnConnectionDisconnected();
   if (disconnect_status_ != TransferMetadata::Status::kUnknown) {
@@ -265,45 +304,6 @@ void ShareSession::WriteCancelFrame() {
   v1_frame->set_type(V1Frame::CANCEL);
 
   WriteFrame(frame);
-}
-
-bool ShareSession::HandleKeyVerificationResult(
-    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-    location::nearby::proto::sharing::OSType share_target_os_type) {
-  os_type_ = share_target_os_type;
-
-  switch (result) {
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
-      LOG(WARNING) << __func__ << ": Paired key handshake failed for target "
-                   << share_target().id << ". Disconnecting.";
-      return false;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess:
-      VLOG(1) << __func__ << ": Paired key handshake succeeded for target - "
-              << share_target().id;
-      // If verification succeeds, this either means that the target is a
-      // self-share or a mutual contact. In either case, we should clear the
-      // token.
-      token_.resize(0);
-      break;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable:
-      VLOG(1) << __func__
-              << ": Unable to verify paired key encryption when "
-                 "receiving connection from target - "
-              << share_target().id;
-      // If we are unable to verify the paired key, we should clear the self
-      // share flag.
-      self_share_ = false;
-      break;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
-      LOG(WARNING) << __func__
-                   << ": Unknown PairedKeyVerificationResult for target "
-                   << share_target().id << ". Disconnecting.";
-      return false;
-  }
-  return true;
 }
 
 void ShareSession::InitializePayloadTracker(
