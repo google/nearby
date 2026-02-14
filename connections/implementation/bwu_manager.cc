@@ -1284,12 +1284,20 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   // or not (as is the case with Android's Bluetooth sockets, where closing
   // instantly throws an IOException on the remote device).
   auto item = previous_endpoint_channels_.extract(endpoint_id);
+  if (item.empty()) {
+    LOG(ERROR)
+        << "BwuManager received a BWU_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL "
+           "OfflineFrame for unknown endpoint: "
+        << endpoint_id << ", can't complete the upgrade protocol.";
+    return;
+  }
   auto& previous_endpoint_channel = item.mapped();
   if (previous_endpoint_channel == nullptr) {
     LOG(ERROR)
         << "BwuManager received a BWU_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL "
-           "OfflineFrame for unknown endpoint "
-        << endpoint_id << ", can't complete the upgrade protocol.";
+           "OfflineFrame for "
+        << endpoint_id
+        << ", but the channel is null, can't complete the upgrade protocol.";
     return;
   }
   LOG(INFO) << "BwuManager successfully received a "
