@@ -183,7 +183,7 @@ message Frame {
   optional V1Frame v1 = 2;
 }
 
-// NEXT_ID=8
+// NEXT_ID=9
 message V1Frame {
   enum FrameType {
     UNKNOWN_FRAME_TYPE = 0;
@@ -196,6 +196,8 @@ message V1Frame {
     CANCEL = 6;
     // No longer used.
     PROGRESS_UPDATE = 7;
+    // File Sync
+    FILE_SYNC = 8;
   }
 
   optional FrameType type = 1;
@@ -207,6 +209,7 @@ message V1Frame {
   optional PairedKeyResultFrame paired_key_result = 5;
   optional CertificateInfoFrame certificate_info = 6 [deprecated = true];
   optional ProgressUpdateFrame progress_update = 7 [deprecated = true];
+  optional FileSyncFrame file_sync = 8;
 }
 
 // An introduction packet sent by the sending side. Contains a list of files
@@ -404,4 +407,57 @@ message WifiCredentials {
 message StreamDetails {
   // Serialized ParcelFileDescriptor for input stream (for the receiver).
   optional bytes input_stream_parcel_file_descriptor_bytes = 1;
+}
+
+// --- File Sync specific messages ---
+
+// Represents a folder being backed up.
+// NEXT_ID=5
+message Folder {
+  optional string id = 1;
+  optional string label = 2;
+  // The highest sequence number of the folder.
+  optional int64 max_sequence = 3;
+  // A random number used on both sides to ensure they are working on the same
+  // index table.
+  optional int64 index_id = 4;
+}
+
+// Contains information about the folders being synced.
+// NEXT_ID=2
+message SyncConfig {
+  repeated Folder folders = 1;
+}
+
+// Represents metadata for a single file.
+// NEXT_ID=5
+message FileInfo {
+  optional int64 sequence = 1;
+  // The relative path of the file within the folder.
+  optional string file_path = 2;
+  // The SHA-256 hash of the file content.
+  optional bytes file_hash = 3;
+  // The last modified timestamp of the file in milliseconds since epoch.
+  optional int64 last_modified = 4;
+}
+
+// Describes a folder and its contents.
+// NEXT_ID=3
+message Index {
+  optional string folder = 1;
+  repeated FileInfo files = 2;
+}
+
+message SyncRequest {
+  optional int64 max_sequence = 1;
+}
+
+// A frame for File Sync metadata exchange.
+// NEXT_ID=4
+message FileSyncFrame {
+  oneof metadata {
+    SyncRequest sync_request = 1;
+    SyncConfig sync_config = 2;
+    Index index = 3;
+  }
 }
