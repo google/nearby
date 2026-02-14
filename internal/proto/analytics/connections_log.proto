@@ -352,6 +352,9 @@ message ConnectionsLog {
     // the device attestation is initiated, to the moment the device attestation
     // is finished.
     optional int64 device_attestation_latency_millis = 14;
+
+    // The error code returned by Play Integrity API during device attestation.
+    optional int64 play_integrity_error_code = 15;
   }
 
   message DeviceInfo {
