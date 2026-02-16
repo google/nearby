@@ -159,6 +159,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
   {
     absl::MutexLock lock(mutex_);
     if (read_frame_info_queue_.empty()) {
+      // Drop the frame if no one is waiting.
       return;
     }
     const ReadFrameInfo& frame_info = read_frame_info_queue_.front();
@@ -210,12 +211,9 @@ void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
     read_frame_info_queue_.pop();
   }
 
-  if (read_frame_info.timeout != absl::ZeroDuration()) {
-    ReadFrame(*read_frame_info.frame_type, std::move(read_frame_info.callback),
-              read_frame_info.timeout);
-  } else {
-    ReadFrame(std::move(read_frame_info.callback), read_frame_info.timeout);
-  }
+  ProcessReadRequest(read_frame_info.frame_type,
+                     std::move(read_frame_info.callback),
+                     read_frame_info.timeout);
 }
 
 std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(

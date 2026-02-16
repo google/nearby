@@ -69,13 +69,6 @@ class TestShareSession : public ShareSession {
     ShareSession::SetAttachmentPayloadId(attachment_id, payload_id);
   }
 
-  bool HandleKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      OSType share_target_os_type) {
-    return ShareSession::HandleKeyVerificationResult(result,
-                                                     share_target_os_type);
-  }
-
   FakeNearbyConnectionsManager& connections_manager() {
     return connections_manager_;
   }
@@ -319,21 +312,21 @@ TEST(ShareSessionTest, WriteCancelFrame) {
   EXPECT_EQ(frame.v1().type(), V1Frame::CANCEL);
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultFail) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultFail) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   NearbyConnectionImpl connection(session.device_info());
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_FALSE(session.HandleKeyVerificationResult(
+  EXPECT_FALSE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
   EXPECT_FALSE(session.token().empty());
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareSuccess) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultSelfShareSuccess) {
   ShareTarget share_target;
   share_target.for_self_share = true;
   TestShareSession session(std::string(kEndpointId), share_target);
@@ -341,7 +334,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareSuccess) {
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_TRUE(session.HandleKeyVerificationResult(
+  EXPECT_TRUE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
@@ -349,14 +342,14 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareSuccess) {
   EXPECT_TRUE(session.token().empty());
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareSuccess) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultNotSelfShareSuccess) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   NearbyConnectionImpl connection(session.device_info());
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_TRUE(session.HandleKeyVerificationResult(
+  EXPECT_TRUE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
@@ -365,7 +358,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareSuccess) {
   EXPECT_TRUE(session.token().empty());
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultSelfShareUnable) {
   ShareTarget share_target;
   share_target.for_self_share = true;
   TestShareSession session(std::string(kEndpointId), share_target);
@@ -373,7 +366,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_TRUE(session.HandleKeyVerificationResult(
+  EXPECT_TRUE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
@@ -381,14 +374,14 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
   EXPECT_FALSE(session.token().empty());
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareUnable) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultNotSelfShareUnable) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   NearbyConnectionImpl connection(session.device_info());
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_TRUE(session.HandleKeyVerificationResult(
+  EXPECT_TRUE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);
@@ -396,14 +389,14 @@ TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareUnable) {
   EXPECT_FALSE(session.token().empty());
 }
 
-TEST(ShareSessionTest, HandleKeyVerificationResultUnknown) {
+TEST(ShareSessionTest, ProcessKeyVerificationResultUnknown) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
   NearbyConnectionImpl connection(session.device_info());
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
-  EXPECT_FALSE(session.HandleKeyVerificationResult(
+  EXPECT_FALSE(session.ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown,
       OSType::WINDOWS));
   EXPECT_EQ(session.os_type(), OSType::WINDOWS);

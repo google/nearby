@@ -188,12 +188,6 @@ bool OutgoingShareSession::InitiateSendAttachments(
   return success;
 }
 
-bool OutgoingShareSession::ProcessKeyVerificationResult(
-    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-    location::nearby::proto::sharing::OSType share_target_os_type) {
-  return HandleKeyVerificationResult(result, share_target_os_type);
-}
-
 void OutgoingShareSession::OnConnectionDisconnected() {
   disconnection_timeout_ = nullptr;
   if (pending_complete_metadata_.has_value()) {

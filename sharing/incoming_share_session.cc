@@ -192,30 +192,6 @@ IncomingShareSession::ProcessIntroduction(
   return std::nullopt;
 }
 
-bool IncomingShareSession::ProcessKeyVerificationResult(
-    PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-    OSType share_target_os_type,
-    std::function<void(std::optional<IntroductionFrame>)>
-        introduction_callback) {
-  if (!HandleKeyVerificationResult(result, share_target_os_type)) {
-    return false;
-  }
-  LOG(INFO) << ":Waiting for introduction from " << share_target().id;
-
-  frames_reader()->ReadFrame(
-      V1Frame::INTRODUCTION,
-      [callback = std::move(introduction_callback)](
-          bool is_timeout, std::optional<V1Frame> frame) {
-        if (!frame.has_value()) {
-          callback(std::nullopt);
-        } else {
-          callback(frame->introduction());
-        }
-      },
-      kReadFramesTimeout);
-  return true;
-}
-
 bool IncomingShareSession::ReadyForTransfer(
     std::function<void()> accept_timeout_callback,
     std::function<void(bool is_timeout, std::optional<V1Frame> frame)>

@@ -2428,6 +2428,57 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           this, share_target_id));
 }
 
+void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
+      int64_t share_target_id,
+      bool is_timeout,
+      std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
+  if (session == nullptr || !session->IsConnected()) {
+    LOG(WARNING) << __func__
+                 << ": Session not connected, stop reading frames from target: "
+                 << share_target_id;
+    return;
+  }
+  if (is_timeout) {
+    LOG(WARNING) << __func__ << ": Timed out reading frame from target: "
+                 << share_target_id;
+    session->Abort(TransferMetadata::Status::kFailed);
+    return;
+  }
+  if (!frame.has_value()) {
+    // This is the case when the connection has been closed since we wait
+    // indefinitely for incoming frames.
+    return;
+  }
+
+  VLOG(1) << "Received incoming frame type: "
+          << static_cast<int>(frame->type()) << " from " << share_target_id;
+  switch (frame->type()) {
+    case service::proto::V1Frame::CANCEL:
+      RunOnNearbySharingServiceThread("cancel_transfer", [this,
+                                                          share_target_id]() {
+        LOG(INFO) << __func__ << ": Read the cancel frame, closing connection";
+        DoCancel(
+            share_target_id, [](StatusCodes status_codes) {},
+            /*is_initiator_of_cancellation=*/false);
+      });
+      break;
+    case service::proto::V1Frame::INTRODUCTION:
+      OnReceivedIntroduction(*session, frame->introduction());
+      // OnReceivedIntroduction will schedule the next ReadFrame.
+      return;
+    default:
+      LOG(ERROR) << __func__ << ": Discarding unknown frame of type: "
+                 << static_cast<int>(frame->type());
+      break;
+  }
+
+  session->frames_reader()->ReadFrame(
+      absl::bind_front(&NearbySharingServiceImpl::OnIncomingSessionFrameRead,
+                       this, share_target_id),
+      absl::ZeroDuration());
+}
+
 void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
     int64_t share_target_id,
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
@@ -2438,11 +2489,15 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
     return;
   }
   if (!session->ProcessKeyVerificationResult(
-          result, share_target_os_type,
-          absl::bind_front(&NearbySharingServiceImpl::OnReceivedIntroduction,
-                           this, share_target_id))) {
+          result, share_target_os_type)) {
     session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    return;
   }
+  LOG(INFO) << "Waiting for introduction from " << share_target_id;
+  session->frames_reader()->ReadFrame(
+      absl::bind_front(&NearbySharingServiceImpl::OnIncomingSessionFrameRead,
+                       this, share_target_id),
+      kReadFramesTimeout);
 }
 
 void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
@@ -2497,51 +2552,37 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(
-    int64_t share_target_id, std::optional<IntroductionFrame> frame) {
-  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
-  if (!session || !session->IsConnected()) {
-    LOG(WARNING)
-        << __func__
-        << ": Ignore received introduction, due to no connection established.";
-    return;
-  }
-
-  if (!frame.has_value()) {
-    session->Abort(TransferMetadata::Status::kFailed);
-    LOG(WARNING) << __func__ << ": Invalid introduction frame";
-    return;
-  }
-
+    IncomingShareSession& session, const IntroductionFrame& frame) {
   LOG(INFO) << __func__ << ": Successfully read the introduction frame.";
 
   std::optional<TransferMetadata::Status> status =
-      session->ProcessIntroduction(*frame);
+      session.ProcessIntroduction(frame);
   if (status.has_value()) {
-    Fail(*session, *status);
+    Fail(session, *status);
     return;
   }
   FilePath save_path{settings_->GetCustomSavePath()};
   // Override save path for this connection.
   // This must be called before the transfer is accepted and payloads are being
   // received.
-  nearby_connections_manager_->OverrideSavePath(session->endpoint_id(),
+  nearby_connections_manager_->OverrideSavePath(session.endpoint_id(),
                                                 save_path);
 
   // Log analytics event of receiving introduction.
   analytics_recorder_.NewReceiveIntroduction(
-      session->session_id(), session->share_target(),
-      /*referrer_package=*/std::nullopt, session->os_type());
+      session.session_id(), session.share_target(),
+      /*referrer_package=*/std::nullopt, session.os_type());
 
   if (IsOutOfStorage(device_info_, save_path,
-                     session->attachment_container().GetStorageSize())) {
-    Fail(*session, TransferMetadata::Status::kNotEnoughSpace);
+                     session.attachment_container().GetStorageSize())) {
+    Fail(session, TransferMetadata::Status::kNotEnoughSpace);
     LOG(WARNING) << __func__
                  << ": Not enough space on the receiver. We have informed "
-                 << share_target_id;
+                 << session.share_target().id;
     return;
   }
 
-  OnStorageCheckCompleted(*session);
+  OnStorageCheckCompleted(session);
 }
 
 void NearbySharingServiceImpl::OnReceiveConnectionResponse(
@@ -2562,11 +2603,8 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     return;
   }
   session->SendPayloads(
-      [this, share_target_id](
-          bool is_timeout,
-          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnFrameRead(share_target_id, is_timeout, std::move(frame));
-      },
+      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingSessionFrameRead,
+                       this, share_target_id),
       absl::bind_front(
           &NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates, this,
           share_target_id));
@@ -2585,8 +2623,9 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
               Fail(*session, TransferMetadata::Status::kTimedOut);
             }
           },
-          absl::bind_front(&NearbySharingServiceImpl::OnFrameRead, this,
-                           session.share_target().id))) {
+          absl::bind_front(
+              &NearbySharingServiceImpl::OnIncomingSessionFrameRead, this,
+              session.share_target().id))) {
     return;
   }
   // Don't need to wait for user to accept for Self share.
@@ -2597,7 +2636,7 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
   OnTransferStarted(/*is_incoming=*/true);
 }
 
-void NearbySharingServiceImpl::OnFrameRead(
+void NearbySharingServiceImpl::OnOutgoingSessionFrameRead(
     int64_t share_target_id, bool is_timeout,
     std::optional<nearby::sharing::service::proto::V1Frame> frame) {
   if (!frame.has_value()) {
@@ -2616,35 +2655,25 @@ void NearbySharingServiceImpl::OnFrameRead(
             /*is_initiator_of_cancellation=*/false);
       });
       break;
-
-    case nearby::sharing::service::proto::V1Frame::CERTIFICATE_INFO:
-      // No-op, no longer used.
-      break;
-
-    case nearby::sharing::service::proto::V1Frame::PROGRESS_UPDATE:
-      // No-op, no longer used.
-      break;
-
     default:
       LOG(ERROR) << __func__ << ": Discarding unknown frame of type: "
                  << static_cast<int>(frame->type());
       break;
   }
 
-  ShareSession* session = GetShareSession(share_target_id);
-  if (!session || !session->frames_reader()) {
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+  if (!session || !session->IsConnected()) {
     LOG(WARNING) << __func__
-                 << ": Stopped reading further frames, due to no connection "
-                    "established.";
+                 << ": Session not connected, stop reading frames from target: "
+                 << share_target_id;
     return;
   }
 
   session->frames_reader()->ReadFrame(
-      [this, share_target_id](
-          bool is_timeout,
-          std::optional<nearby::sharing::service::proto::V1Frame> frame) {
-        OnFrameRead(share_target_id, is_timeout, std::move(frame));
-      }, absl::ZeroDuration());
+      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingSessionFrameRead,
+                       this, share_target_id),
+      absl::ZeroDuration());
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(

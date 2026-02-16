@@ -311,15 +311,19 @@ class NearbySharingServiceImpl
       int64_t share_target_id,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
-  void OnReceivedIntroduction(
+  void OnIncomingSessionFrameRead(
       int64_t share_target_id,
-      std::optional<nearby::sharing::service::proto::IntroductionFrame> frame);
+      bool is_timeout,
+      std::optional<nearby::sharing::service::proto::V1Frame> frame);
+  void OnReceivedIntroduction(
+      IncomingShareSession& session,
+      const nearby::sharing::service::proto::IntroductionFrame& frame);
   void OnReceiveConnectionResponse(
       int64_t share_target_id,
       std::optional<nearby::sharing::service::proto::ConnectionResponseFrame>
           frame);
   void OnStorageCheckCompleted(IncomingShareSession& session);
-  void OnFrameRead(
+  void OnOutgoingSessionFrameRead(
       int64_t share_target_id, bool is_timeout,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
 
