@@ -77,12 +77,6 @@ MacAddress BluetoothDevice::GetMacAddress() const { return mac_address_; }
 // Checks cache first, will check uncached if no result.
 RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
     RfcommServiceId serviceId) {
-  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableNewBluetoothRefactor)) {
-    return GetRfcommServiceForIdWithRetryAsync(serviceId);
-  }
-
   try {
     LOG(INFO) << __func__ << ": Get RF services for service id:"
               << winrt::to_string(serviceId.AsString());
