@@ -65,10 +65,6 @@ constexpr auto kEnableIntelPieSdk =
 constexpr auto kEnableNewBluetoothRefactor =
     flags::Flag<bool>(kConfigPackage, "45615156", false);
 
-// Enable/Disable use of address candidates for WifiLan upgrade in Windows.
-constexpr auto kEnableWifiLanAddressCandidates =
-    flags::Flag<bool>(kConfigPackage, "45739995", false);
-
 // The send buffer size of blocking socket
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
