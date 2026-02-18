@@ -92,12 +92,6 @@ std::optional<std::vector<uint8_t>> CreateMetadataEncryptionKeyTag(
   return result;
 }
 
-std::string EncodeString(absl::string_view unencoded_string) {
-  std::string result;
-  absl::WebSafeBase64Escape(unencoded_string, &result);
-  return result;
-}
-
 std::optional<std::string> DecodeString(const std::string* encoded_string) {
   std::string result;
   if (!encoded_string) return std::nullopt;
@@ -109,7 +103,8 @@ std::optional<std::string> DecodeString(const std::string* encoded_string) {
 }
 
 std::string BytesToEncodedString(const std::vector<uint8_t>& bytes) {
-  return EncodeString(std::string(bytes.begin(), bytes.end()));
+  return absl::WebSafeBase64Escape(std::string_view(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size()));
 }
 
 std::optional<std::vector<uint8_t>> EncodedStringToBytes(
@@ -319,11 +314,11 @@ PrivateCertificateData NearbySharePrivateCertificate::ToCertificateData()
       .not_before = absl::ToUnixNanos(not_before_),
       .not_after = absl::ToUnixNanos(not_after_),
       .key_pair = BytesToEncodedString(key_pair),
-      .secret_key = EncodeString(secret_key_->key()),
+      .secret_key = absl::WebSafeBase64Escape(secret_key_->key()),
       .metadata_encryption_key = BytesToEncodedString(metadata_encryption_key_),
       .id = BytesToEncodedString(id_),
       .unencrypted_metadata_proto =
-          EncodeString(unencrypted_metadata_.SerializeAsString()),
+          absl::WebSafeBase64Escape(unencrypted_metadata_.SerializeAsString()),
       .consumed_salts = SaltsToString(consumed_salts_),
   };
 }

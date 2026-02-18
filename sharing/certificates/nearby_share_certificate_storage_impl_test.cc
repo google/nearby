@@ -104,12 +104,6 @@ constexpr char kMetadataEncryptionKey4[] = "metadataencryptionkey4";
 constexpr char kEncryptedMetadataBytes4[] = "encryptedmetadatabytes4";
 constexpr char kMetadataEncryptionKeyTag4[] = "metadataencryptionkeytag4";
 
-std::string EncodeString(absl::string_view unencoded_string) {
-  std::string result;
-  absl::WebSafeBase64Escape(unencoded_string, &result);
-  return result;
-}
-
 PublicCertificate CreatePublicCertificate(
     absl::string_view secret_id, absl::string_view secret_key,
     absl::string_view public_key, int64_t start_seconds, int32_t start_nanos,
@@ -186,7 +180,7 @@ class NearbyShareCertificateStorageImplTest : public ::testing::Test {
     std::vector<std::pair<std::string, int64_t>> expirations;
     for (const auto& cert : pub_certs) {
       expirations.emplace_back(
-          EncodeString(cert.secret_id()),
+          absl::WebSafeBase64Escape(cert.secret_id()),
           absl::ToUnixNanos(TimestampToTime(cert.end_time())));
       entries.emplace(cert.secret_id(), std::move(cert));
     }

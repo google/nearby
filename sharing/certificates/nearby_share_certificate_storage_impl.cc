@@ -63,12 +63,6 @@ enum InitStatusMetric {
   kMaxValue = kInvalidOperation
 };
 
-std::string EncodeString(absl::string_view unencoded_string) {
-  std::string result;
-  absl::WebSafeBase64Escape(unencoded_string, &result);
-  return result;
-}
-
 std::optional<std::string> DecodeString(const std::string* encoded_string) {
   std::string result;
   if (!encoded_string) return std::nullopt;
@@ -536,7 +530,7 @@ void NearbyShareCertificateStorageImpl::SavePublicCertificateExpirations() {
   expirations.reserve(public_certificate_expirations_.size());
   for (const std::pair<std::string, absl::Time>& pair :
        public_certificate_expirations_) {
-    expirations.emplace_back(EncodeString(pair.first),
+    expirations.emplace_back(absl::WebSafeBase64Escape(pair.first),
                              absl::ToUnixNanos(pair.second));
   }
 
