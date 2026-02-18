@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package nearby.sharing.proto;
 
-option optimize_for = LITE_RUNTIME;
+// option optimize_for = LITE_RUNTIME;
 
 message Timestamp {
   // Represents seconds of UTC time since Unix epoch
