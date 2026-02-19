@@ -38,11 +38,11 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//google/nearby/identity/v1:rpcs_cc_proto",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
-        "//proto/identity/v1:rpcs_cc_proto",
         "//sharing/analytics",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",

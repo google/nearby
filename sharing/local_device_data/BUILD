@@ -33,8 +33,6 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
-        "//proto/identity/v1:resources_cc_proto",
-        "//proto/identity/v1:rpcs_cc_proto",
         "//sharing/common",
         "//sharing/common:enum",
         "//sharing/internal/api:platform",

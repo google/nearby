@@ -27,8 +27,6 @@
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"

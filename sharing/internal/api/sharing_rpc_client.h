@@ -17,9 +17,9 @@
 
 #include <memory>
 
+#include "google/nearby/identity/v1/rpcs.pb.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
-#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/device_rpc.pb.h"

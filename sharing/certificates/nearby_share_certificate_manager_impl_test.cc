@@ -25,6 +25,8 @@
 #include <utility>
 #include <vector>
 
+#include "google/nearby/identity/v1/resources.pb.h"
+#include "google/nearby/identity/v1/rpcs.pb.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -38,8 +40,6 @@
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/mac_address.h"
 #include "internal/test/fake_account_manager.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"

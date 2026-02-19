@@ -28,6 +28,9 @@
 #include <utility>
 #include <vector>
 
+#include "google/nearby/identity/v1/resources.pb.h"
+#include "google/nearby/identity/v1/rpcs.pb.h"
+#include "google/protobuf/timestamp.pb.h"
 #include "absl/algorithm/algorithm.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
@@ -41,8 +44,6 @@
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/mac_address.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -494,7 +495,10 @@ void NearbyShareCertificateManagerImpl::AddCertifactesToPublishDeviceRequest(
     shared_credential->set_data(public_cert->SerializeAsString());
     shared_credential->set_data_type(
         SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE);
-    *shared_credential->mutable_expiration_time() = public_cert->end_time();
+    shared_credential->mutable_expiration_time()->set_seconds(
+        public_cert->end_time().seconds());
+    shared_credential->mutable_expiration_time()->set_nanos(
+        public_cert->end_time().nanos());
   }
   LOG(INFO) << __func__ << ": PublishDevice: uploaded "
             << self_share_credential_count << " self share credentials and "
