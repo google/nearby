@@ -1025,7 +1025,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
 NearbySharingService::StatusCodes
 NearbySharingServiceImpl::InternalUnregisterSendSurface(
     TransferUpdateCallback* transfer_callback) {
-  DCHECK(transfer_callback);
+  // DCHECK(transfer_callback);
   LOG(INFO) << __func__ << ": UnregisterSendSurface is called"
             << ", transfer_callback: " << transfer_callback;
 
