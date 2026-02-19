@@ -171,7 +171,7 @@ message SharingLog {
 
   // Used only for Nearby Share Windows app now.
   // TODO(b/260732897): To deprecate, and will be replaced by
-  // NearbyClientLog.AppInfo.
+  // NearbyClientLog.DesktopAppInfo.
   optional AppInfo app_info = 60;
 
   // Used only for Nearby Share android app now
