@@ -1435,6 +1435,9 @@ enum DctPayloadType {
   // A one-way message payload.
   DCT_PAYLOAD_TYPE_ONE_WAY_MESSAGE = 4;
 }
+
+// Todo: add instant connection result and error stage codes
+
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
