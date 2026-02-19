@@ -251,6 +251,8 @@ message SharingLog {
         /* type = ST_DEMOGRAPHIC_INFO */;
     optional string update_track =
         3;  // e.g. "developer". In Windows app, it's from the registry value.
+    optional string app_file_name = 4
+        /* type = ST_SOFTWARE_ID */;
   }
 
   message DeviceSettings {
