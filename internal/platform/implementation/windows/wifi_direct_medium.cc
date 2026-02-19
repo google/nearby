@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "internal/platform/implementation/windows/wifi_direct.h"
+
+#include <comutil.h>
+#include <winrt/base.h>
+
+#include <netfw.h>
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -31,8 +37,8 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/socket_address.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
@@ -53,11 +59,9 @@ WifiDirectMedium::WifiDirectMedium() {
     LOG(WARNING) << "Failed to get DispatcherQueue for current thread. "
                     "ConnectAsync might fail if not called from UI thread.";
   }
-  is_interface_valid_ = IsWifiDirectServiceSupported();
 }
 
 WifiDirectMedium::~WifiDirectMedium() {
-  is_interface_valid_ = false;
   listener_executor_.Shutdown();
   StopWifiDirect();
   DisconnectWifiDirect();
@@ -71,6 +75,133 @@ WifiDirectMedium::~WifiDirectMedium() {
     // before this object is fully destroyed.
     shutdown_async.get();
   }
+}
+
+// If Windows Firewall rule "WFD ASP Coordination Protocol (UDP-In)" is not
+// enabled, WifiDirectService GO will fail to create WiFiDirectServiceSession.
+bool WifiDirectMedium::IsFirewallWfdAspProtoEnabled() {
+  LOG(INFO)
+      << "Check Windows Firewall rule WFD ASP Coordination Protocol (UDP-In)";
+  bool com_initialized = false;
+  winrt::com_ptr<INetFwPolicy2> p_net_fw_policy2;
+  winrt::com_ptr<INetFwRules> p_fw_rules;
+  winrt::com_ptr<INetFwRule> p_fw_rule;
+  // Default to true if the firewall rule is not found or enabled.
+  bool is_firewall_wfd_asp_proto_enabled = true;
+
+  // Initialize COM.
+  HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+  if (FAILED(hr)) {
+    if (hr == RPC_E_CHANGED_MODE) {
+      LOG(INFO) << "COM already initialized with a different mode. Proceeding.";
+    } else {
+      LOG(ERROR) << absl::StrFormat("CoInitializeEx failed: 0x%08lx", hr);
+      return is_firewall_wfd_asp_proto_enabled;
+    }
+  } else {
+    com_initialized = true;
+  }
+
+  // Create an instance of the firewall policy object.
+  hr = CoCreateInstance(__uuidof(NetFwPolicy2), nullptr, CLSCTX_INPROC_SERVER,
+                        __uuidof(INetFwPolicy2), p_net_fw_policy2.put_void());
+  if (FAILED(hr)) {
+    LOG(ERROR) << "CoCreateInstance for INetFwPolicy2 failed";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  if (p_net_fw_policy2 == nullptr) {
+    LOG(ERROR) << "p_net_fw_policy2 is null";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  // Retrieve the Rules collection.
+  hr = p_net_fw_policy2->get_Rules(p_fw_rules.put());
+  if (FAILED(hr)) {
+    LOG(ERROR) << "Failed to retrieve firewall rules collection";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  if (p_fw_rules == nullptr) {
+    LOG(ERROR) << "p_fw_rules is null";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  winrt::com_ptr<IUnknown> p_unk;
+  winrt::com_ptr<IEnumVARIANT> p_enum;
+  hr = p_fw_rules->get__NewEnum(p_unk.put());
+  if (FAILED(hr) || !p_unk) {
+    LOG(ERROR) << "Failed to get rule enumerator.";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  hr = p_unk->QueryInterface(__uuidof(IEnumVARIANT), p_enum.put_void());
+  if (FAILED(hr) || !p_enum) {
+    LOG(ERROR) << "Failed to query IEnumVARIANT.";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  VARIANT var{};
+  while (p_enum->Next(1, &var, nullptr) == S_OK) {
+    if (var.vt == VT_DISPATCH && var.pdispVal != nullptr) {
+      winrt::com_ptr<INetFwRule> rule;
+      hr = var.pdispVal->QueryInterface(__uuidof(INetFwRule), rule.put_void());
+      if (SUCCEEDED(hr) && rule) {
+        LONG protocol = 0;
+        rule->get_Protocol(&protocol);
+        NET_FW_RULE_DIRECTION direction;
+        rule->get_Direction(&direction);
+        BSTR bstr_svc = nullptr;
+        rule->get_ServiceName(&bstr_svc);
+        _bstr_t service_name(bstr_svc, false);
+        BSTR bstr_name = nullptr;
+        rule->get_Name(&bstr_name);
+        _bstr_t rule_name(bstr_name, false);
+
+        if (direction == NET_FW_RULE_DIR_IN &&
+            protocol == NET_FW_IP_PROTOCOL_UDP &&
+            service_name == _bstr_t(L"WlanSvc")) {
+          LOG(INFO) << "Firewall rule name="
+                    << (bstr_name ? string_utils::WideStringToString(bstr_name)
+                                  : "null");
+          p_fw_rule = rule;
+          VariantClear(&var);
+          break;
+        }
+      }
+    }
+    VariantClear(&var);
+  }
+
+  if (p_fw_rule == nullptr) {
+    LOG(ERROR)
+        << "Failed to find the rule 'WFD ASP Coordination Protocol (UDP-In)'.";
+    if (com_initialized) CoUninitialize();
+    return is_firewall_wfd_asp_proto_enabled;
+  }
+
+  // Check if it is currently enabled.
+  VARIANT_BOOL b_enabled;
+  hr = p_fw_rule->get_Enabled(&b_enabled);
+  if (SUCCEEDED(hr)) {
+    if (b_enabled == VARIANT_TRUE) {
+      LOG(INFO) << "Rule is enabled.";
+    } else {
+      is_firewall_wfd_asp_proto_enabled = false;
+      LOG(INFO) << "Rule is disabled.";
+    }
+  }
+
+  if (com_initialized) {
+    CoUninitialize();
+  }
+  return is_firewall_wfd_asp_proto_enabled;
 }
 
 bool WifiDirectMedium::IsWifiDirectServiceSupported() {
@@ -96,7 +227,14 @@ bool WifiDirectMedium::IsWifiDirectServiceSupported() {
 }
 
 bool WifiDirectMedium::IsInterfaceValid() const {
-  return is_interface_valid_;
+  static const bool kIsInterfaceValid = IsWifiDirectServiceSupported();
+  return kIsInterfaceValid;
+}
+
+bool WifiDirectMedium::IsGOInterfaceValid() const {
+  static const bool kIsFirewallWfdAspProtoEnabled =
+      IsFirewallWfdAspProtoEnabled();
+  return kIsFirewallWfdAspProtoEnabled && IsInterfaceValid();
 }
 
 // Discoverer connects to server socket
