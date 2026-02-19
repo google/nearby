@@ -20,4 +20,7 @@
 /** Whether BLE v2 is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class) BOOL enableBLEV2;
 
+/** Whether dynamic role switch is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class) BOOL enableDynamicRoleSwitch;
+
 @end
