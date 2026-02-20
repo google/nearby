@@ -30,7 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/casts.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -54,6 +53,7 @@
 #include "internal/test/fake_task_runner.h"
 #include "internal/test/mock_account_observer.h"
 #include "sharing/advertisement.h"
+#include "sharing/advertisement_capabilities.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
@@ -739,7 +739,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
-        kDeviceName, vendor_id);
+        kDeviceName, vendor_id, AdvertisementCapabilities{});
     return advertisement->ToEndpointInfo();
   }
 
@@ -1079,7 +1079,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
-        std::nullopt, kVendorId);
+        std::nullopt, kVendorId, AdvertisementCapabilities{});
     return advertisement->ToEndpointInfo();
   }
 
@@ -4517,7 +4517,7 @@ TEST_F(NearbySharingServiceImplTest, CreateShareTarget) {
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       GetNearbyShareTestEncryptedMetadataKey().salt(),
       GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
-      kDeviceName, kVendorId);
+      kDeviceName, kVendorId, AdvertisementCapabilities{});
 
   // Flip |for_self_share| to true to ensure the resulting ShareTarget picks
   // this up.
