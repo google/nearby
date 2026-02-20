@@ -45,17 +45,28 @@ NS_ASSUME_NONNULL_BEGIN
   GNCFakeNotificationObserver *observer = [[GNCFakeNotificationObserver alloc] init];
   observer.name = name;
   observer.block = block;
-  [_observers addObject:observer];
+  @synchronized(self) {
+    [_observers addObject:observer];
+  }
   return observer;
 }
 
 - (void)removeObserver:(id)observer {
-  [_observers removeObject:observer];
+  @synchronized(self) {
+    NSUInteger index = [_observers indexOfObjectIdenticalTo:observer];
+    if (index != NSNotFound) {
+      [_observers removeObjectAtIndex:index];
+    }
+  }
 }
 
 - (void)postNotificationName:(NSNotificationName)aName object:(nullable id)anObject {
   NSNotification *notification = [NSNotification notificationWithName:aName object:anObject];
-  for (GNCFakeNotificationObserver *observer in [_observers copy]) {
+  NSArray<GNCFakeNotificationObserver *> *observersCopy;
+  @synchronized(self) {
+    observersCopy = [_observers copy];
+  }
+  for (GNCFakeNotificationObserver *observer in observersCopy) {
     if ([observer.name isEqualToString:aName]) {
       observer.block(notification);
     }
