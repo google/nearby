@@ -21,6 +21,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPClient+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPFakeInputOutputStream.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCBL2CAPChannel.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheral.h"
 
 static const NSTimeInterval kTestTimeout = 1.0;
@@ -173,15 +174,20 @@ static const NSTimeInterval kTestTimeout = 1.0;
   [self.l2capClient openL2CAPChannelWithPSM:psm
                                  peripheral:self.fakePeripheral
                           completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
+                            // Keep fakeStreams alive until the completion handler is done. This
+                            // assertion also serves to ensure `fakeStreams` is captured and
+                            // retained by the block, preventing it from being deallocated before
+                            // the block is executed.
+                            XCTAssertNotNil(fakeStreams);
                             XCTAssertNil(error);
                             XCTAssertNotNil(stream);
                             [expectation fulfill];
                           }];
 
   // Calling gnc_peripheral again to simulate channel opened again.
-  CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
-  [channel setValue:fakeStreams.inputStream forKey:@"inputStream"];
-  [channel setValue:fakeStreams.outputStream forKey:@"outputStream"];
+  GNCFakeCBL2CAPChannel *channel = [[GNCFakeCBL2CAPChannel alloc] init];
+  channel.inputStream = fakeStreams.inputStream;
+  channel.outputStream = fakeStreams.outputStream;
   [self.l2capClient peripheral:(CBPeripheral *)self.fakePeripheral
            didOpenL2CAPChannel:channel
                          error:nil];

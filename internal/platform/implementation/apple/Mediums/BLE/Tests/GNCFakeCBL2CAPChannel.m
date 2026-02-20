@@ -15,4 +15,12 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCBL2CAPChannel.h"
 
 @implementation GNCFakeCBL2CAPChannel
+
+// Explicitly synthesize the properties to override the superclass's `readonly` properties and
+// provide backing instance variables.
+@synthesize inputStream = _inputStream;
+@synthesize outputStream = _outputStream;
+@synthesize socketFD = _socketFD;
+@synthesize PSM = _PSM;
+
 @end

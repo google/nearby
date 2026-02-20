@@ -36,6 +36,9 @@
 }
 
 - (void)tearDown {
+  if (_serverSocket) {
+    _serverSocket->Close();
+  }
   _serverSocket.reset();
   [super tearDown];
 }
@@ -45,6 +48,7 @@
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = _serverSocket->Accept();
     XCTAssertNotEqual(clientSocket.get(), nullptr);
+    clientSocket.reset();
     [expectation fulfill];
   });
 
@@ -60,6 +64,7 @@
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = _serverSocket->Accept();
     XCTAssertEqual(clientSocket.get(), nullptr);
+    clientSocket.reset();
     [expectation fulfill];
   });
 

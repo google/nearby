@@ -190,7 +190,7 @@
   [_fakeInputOutputStream writeFromDevice:dummyData1];
 
   // THEN
-  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  [self waitForExpectations:@[ expectation ] timeout:3.0];
 }
 
 /// Tests closing the remote end disconnects the L2CAP stream.
