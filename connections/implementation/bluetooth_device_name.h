@@ -18,8 +18,8 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -80,7 +80,6 @@ class BluetoothDeviceName {
   std::string endpoint_id_;
   ByteArray service_id_hash_;
   ByteArray endpoint_info_;
-  // TODO(b/169550050): Define UWB address field.
   ByteArray uwb_address_;
   WebRtcState web_rtc_state_{WebRtcState::kUndefined};
 };
