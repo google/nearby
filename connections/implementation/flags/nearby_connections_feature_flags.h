@@ -54,7 +54,7 @@ constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
 // Disable/Enable dynamic role switch in Nearby Connections SDK.
 constexpr auto kEnableDynamicRoleSwitch =
-    flags::Flag<bool>(kConfigPackage, "45696452", false);
+    flags::Flag<bool>(kConfigPackage, "45696452", true);
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
