@@ -1897,12 +1897,6 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
   FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
   payload_listener_remote.payload_cb(kRemoteEndpointId,
                                      Payload(kPayloadId, file));
-
-  // Flag is on. Add unknown file paths with kCanceled to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFileFix,
-      true);
   nearby_connections_manager_->ClearIncomingPayloads();
   Payload payload(kPayloadId, file);
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
@@ -1933,11 +1927,6 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
 
 TEST_F(NearbyConnectionsManagerImplTest,
        OnPayloadReceivedDeletePreviousFileWithSamePayloadId) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFileFix,
-      true);
-
   NearbyConnectionsService::ConnectionListener connection_listener_remote;
   testing::NiceMock<MockIncomingConnectionListener>
       incoming_connection_listener;
