@@ -61,9 +61,6 @@ constexpr auto kLoggingLevel =
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
-// When true, delete the file payload which received unexpectedly.
-constexpr auto kDeleteUnexpectedReceivedFileFix =
-    flags::Flag<bool>(kConfigPackage, "45657036", false);
 // The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45658774", 15000);
@@ -112,7 +109,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
       {45409033, kShowAutoUpdateSetting},
-      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45683539, kUseAlternateServiceUuidForDiscovery},
       {45662570, kEnableBetaLabel},

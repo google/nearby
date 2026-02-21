@@ -783,26 +783,18 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
     absl::string_view endpoint_id, Payload& payload) {
   MutexLock lock(&mutex_);
   VLOG(1) << "Received payload id=" << payload.id;
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          sharing::config_package_nearby::nearby_sharing_feature::
-              kDeleteUnexpectedReceivedFileFix)) {
-    if (payload.content.type != PayloadContent::Type::kBytes &&
-        !payload_status_listeners_.contains(payload.id)) {
-      LOG(WARNING) << __func__ << ": Received unknown payload. Canceling.";
-      DeleteUnknownFilePayloadAndCancel(payload);
-      return;
-    }
-    if (!incoming_payloads_.contains(payload.id)) {
-      incoming_payloads_.emplace(payload.id, std::move(payload));
-      return;
-    }
-    LOG(WARNING) << __func__ << ": Payload id already exists. Canceling.";
+  if (payload.content.type != PayloadContent::Type::kBytes &&
+      !payload_status_listeners_.contains(payload.id)) {
+    LOG(WARNING) << __func__ << ": Received unknown payload. Canceling.";
     DeleteUnknownFilePayloadAndCancel(payload);
-  } else {
-    [[maybe_unused]] auto result =
-        incoming_payloads_.emplace(payload.id, std::move(payload));
-    DCHECK(result.second);
+    return;
   }
+  if (!incoming_payloads_.contains(payload.id)) {
+    incoming_payloads_.emplace(payload.id, std::move(payload));
+    return;
+  }
+  LOG(WARNING) << __func__ << ": Payload id already exists. Canceling.";
+  DeleteUnknownFilePayloadAndCancel(payload);
 }
 
 void NearbyConnectionsManagerImpl::DeleteUnknownFilePayloadAndCancel(
@@ -891,19 +883,6 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
   // forward it to the associated NearbyConnection.
   auto payload = GetIncomingPayload(update.payload_id);
   if (payload == nullptr) return;
-
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          sharing::config_package_nearby::nearby_sharing_feature::
-              kDeleteUnexpectedReceivedFileFix)) {
-    if (payload->content.type != PayloadContent::Type::kBytes) {
-      LOG(WARNING) << "Received unknown payload of file type. Cancelling.";
-      nearby_connections_service_->CancelPayload(kServiceId, payload->id,
-                                                 [](Status status) {});
-      ProcessUnknownFilePathsToDelete(update.status, payload->content.type,
-                                      payload->content.file_payload.file_path);
-      return;
-    }
-  }
 
   if (update.status != PayloadStatus::kSuccess) return;
 
