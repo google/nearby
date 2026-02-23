@@ -192,6 +192,7 @@ class ServerRunnable final {
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
     timeout_alarm->Cancel();
+    channel_->Close();
     listener_.CallFailureCallback(endpoint_id_, channel_);
   }
 
@@ -325,6 +326,7 @@ class ClientRunnable final {
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
     timeout_alarm->Cancel();
+    channel_->Close();
     listener_.CallFailureCallback(endpoint_id_, channel_);
   }
 
