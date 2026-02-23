@@ -98,9 +98,6 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
 
   absl::flat_hash_set<FilePath> GetUnknownFilePathsToDeleteForTesting();
   void AddUnknownFilePathsToDeleteForTesting(FilePath file_path);
-  void ProcessUnknownFilePathsToDeleteForTesting(PayloadStatus status,
-                                                 PayloadContent::Type type,
-                                                 const FilePath& path);
   void OnPayloadTransferUpdateForTesting(absl::string_view endpoint_id,
                                          const PayloadTransferUpdate& update);
   void OnPayloadReceivedForTesting(absl::string_view endpoint_id,
@@ -127,9 +124,6 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void OnConnectionTimedOut(absl::string_view endpoint_id);
   void OnConnectionRequested(absl::string_view endpoint_id,
                              ConnectionsStatus status);
-  void ProcessUnknownFilePathsToDelete(PayloadStatus status,
-                                       PayloadContent::Type type,
-                                       const FilePath& path);
   void DeleteUnknownFilePayloadAndCancel(Payload& payload);
   absl::flat_hash_set<FilePath> GetUnknownFilePathsToDelete();
 

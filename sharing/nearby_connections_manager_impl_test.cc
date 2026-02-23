@@ -1897,12 +1897,6 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
   FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
   payload_listener_remote.payload_cb(kRemoteEndpointId,
                                      Payload(kPayloadId, file));
-
-  // Flag is on. Add unknown file paths with kCanceled to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFileFix,
-      true);
   nearby_connections_manager_->ClearIncomingPayloads();
   Payload payload(kPayloadId, file);
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
@@ -1933,11 +1927,6 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
 
 TEST_F(NearbyConnectionsManagerImplTest,
        OnPayloadReceivedDeletePreviousFileWithSamePayloadId) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFileFix,
-      true);
-
   NearbyConnectionsService::ConnectionListener connection_listener_remote;
   testing::NiceMock<MockIncomingConnectionListener>
       incoming_connection_listener;
@@ -1995,59 +1984,6 @@ TEST_F(NearbyConnectionsManagerImplTest,
       kSynchronizationTimeOut));
   EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
-}
-
-TEST_F(NearbyConnectionsManagerImplTest, ProcessUnknownFilePathsToDelete) {
-  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kCanceled, PayloadContent::Type::kFile, file);
-  absl::flat_hash_set<FilePath> unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_EQ(unknown_file_paths.size(), 1);
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-
-  // Check we add kInProgress status.
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kInProgress, PayloadContent::Type::kFile, file);
-  unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_EQ(unknown_file_paths.size(), 1);
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-
-  // Check only one file is added to the list, since we use hash set.
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kInProgress, PayloadContent::Type::kFile, file);
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kCanceled, PayloadContent::Type::kFile, file);
-  unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_EQ(unknown_file_paths.size(), 1);
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-
-  // Check kSuccess or kFailure are not added to the list.
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kSuccess, PayloadContent::Type::kFile, file);
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kFailure, PayloadContent::Type::kFile, file);
-  unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_TRUE(unknown_file_paths.empty());
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-
-  // Check only kFile type is added to the list.
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kSuccess, PayloadContent::Type::kBytes, file);
-  unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_TRUE(unknown_file_paths.empty());
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kFailure, PayloadContent::Type::kFile, file);
-  unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_TRUE(unknown_file_paths.empty());
-  nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
 }
 
 TEST_F(NearbyConnectionsManagerImplTest, OverrideSavePath) {
