@@ -485,7 +485,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         /*nearby_share_client_factory=*/nullptr,
         absl::WrapUnique(fake_nearby_connections_manager_),
         absl::WrapUnique(contact_manager_),
-        analytics_recorder_.get());
+        analytics_recorder_.get(), /*supports_file_sync=*/false);
   }
 
   void SetVisibility(DeviceVisibility visibility) {

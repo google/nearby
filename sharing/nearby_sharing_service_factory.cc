@@ -40,7 +40,7 @@ NearbySharingServiceFactory* NearbySharingServiceFactory::GetInstance() {
 NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
     SharingPlatform& sharing_platform,
     analytics::AnalyticsRecorder* analytics_recorder,
-    ::nearby::analytics::EventLogger* event_logger) {
+    ::nearby::analytics::EventLogger* event_logger, bool supports_file_sync) {
   if (nearby_sharing_service_ != nullptr) {
     return nullptr;
   }
@@ -66,7 +66,8 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
       std::move(service_thread), context_.get(), sharing_platform,
       std::move(nearby_share_client_factory),
       std::move(nearby_connections_manager),
-      std::move(nearby_share_contact_manager), analytics_recorder);
+      std::move(nearby_share_contact_manager), analytics_recorder,
+      supports_file_sync);
 
   return nearby_sharing_service_.get();
 }

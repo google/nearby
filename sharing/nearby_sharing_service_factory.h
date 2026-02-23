@@ -33,7 +33,8 @@ class NearbySharingServiceFactory {
   NearbySharingService* CreateSharingService(
       nearby::sharing::api::SharingPlatform& sharing_platform,
       analytics::AnalyticsRecorder* analytics_recorder,
-      nearby::analytics::EventLogger* event_logger);
+      nearby::analytics::EventLogger* event_logger,
+      bool supports_file_sync);
 
  private:
   NearbySharingServiceFactory() = default;

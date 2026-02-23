@@ -64,6 +64,9 @@ constexpr auto kShowAutoUpdateSetting =
 // The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45658774", 15000);
+// When true, enable file sync feature.
+constexpr auto kEnableFileSync =
+    flags::Flag<bool>(kConfigPackage, "45762616", false);
 // When true, enable wifi hotspot medium for HP Realtek devices.
 constexpr auto kEnableWifiHotspotForHpRealtekDevices =
     flags::Flag<bool>(kConfigPackage, "45673628", false);
@@ -109,6 +112,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
       {45409033, kShowAutoUpdateSetting},
+      {45762616, kEnableFileSync},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45683539, kUseAlternateServiceUuidForDiscovery},
       {45662570, kEnableBetaLabel},

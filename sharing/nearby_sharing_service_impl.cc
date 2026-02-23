@@ -237,13 +237,14 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
     std::unique_ptr<SharingRpcClientFactory> nearby_share_client_factory,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     std::unique_ptr<NearbyShareContactManager> contact_manager,
-    analytics::AnalyticsRecorder* analytics_recorder)
+    analytics::AnalyticsRecorder* analytics_recorder, bool supports_file_sync)
     : service_thread_(std::move(service_thread)),
       context_(context),
       device_info_(sharing_platform.GetDeviceInfo()),
       preference_manager_(sharing_platform.GetPreferenceManager()),
       account_manager_(sharing_platform.GetAccountManager()),
       analytics_recorder_(*analytics_recorder),
+      supports_file_sync_(supports_file_sync),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       nearby_share_client_factory_(std::move(nearby_share_client_factory)),
       local_device_data_manager_(
@@ -1505,7 +1506,8 @@ NearbySharingServiceImpl::CreateEndpointInfo(
       static_cast<ShareTargetType>(device_info_.GetDeviceType());
 
   AdvertisementCapabilities capabilities{};
-  if (supports_file_sync_) {
+  if (supports_file_sync_ && NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::kEnableFileSync)) {
     capabilities.Add(AdvertisementCapabilities::Capability::kFileSync);
   }
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(

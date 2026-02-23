@@ -106,7 +106,8 @@ class NearbySharingServiceImpl
           nearby_share_client_factory,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
       std::unique_ptr<NearbyShareContactManager> contact_manager,
-      analytics::AnalyticsRecorder* analytics_recorder);
+      analytics::AnalyticsRecorder* analytics_recorder,
+      bool supports_file_sync);
   ~NearbySharingServiceImpl() override;
 
   // NearbySharingService
@@ -410,6 +411,8 @@ class NearbySharingServiceImpl
   AccountManager& account_manager_;
   // Used to create analytics events.
   analytics::AnalyticsRecorder& analytics_recorder_;
+  // Whether the device supports file sync extension.
+  const bool supports_file_sync_;
 
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
@@ -524,7 +527,6 @@ class NearbySharingServiceImpl
   // If true, a new endpoint id will be generated at the next advertisement.
   bool force_new_endpoint_id_ = false;
   OutgoingTargetsManager outgoing_targets_manager_;
-  bool supports_file_sync_ = false;
 };
 
 }  // namespace nearby::sharing
