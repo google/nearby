@@ -23,10 +23,10 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "sharing/advertisement_capabilities.h"
 #include "sharing/common/nearby_share_enums.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // An advertisement in the form of
 // [VERSION|VISIBILITY][SALT][ACCOUNT_IDENTIFIER][LEN][DEVICE_NAME].
@@ -44,17 +44,17 @@ class Advertisement {
   };
   // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/SharingOptions.java:VendorId)
 
+
   static std::unique_ptr<Advertisement> NewInstance(
       std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_metadata_key,
       ShareTargetType device_type, std::optional<std::string> device_name,
-      uint8_t vendor_id);
+      uint8_t vendor_id, AdvertisementCapabilities capabilities);
 
-  // TODO: b/341967036 - Remove uses of std::optional for device name. Empty
-  // string should be enough.
   Advertisement(int version, std::vector<uint8_t> salt,
                 std::vector<uint8_t> encrypted_metadata_key,
                 ShareTargetType device_type,
-                std::optional<std::string> device_name, uint8_t vendor_id);
+                std::optional<std::string> device_name, uint8_t vendor_id,
+                AdvertisementCapabilities capabilities);
   ~Advertisement() = default;
   Advertisement(const Advertisement&) = default;
   Advertisement& operator=(const Advertisement&) = default;
@@ -96,14 +96,15 @@ class Advertisement {
   ShareTargetType device_type_ = ShareTargetType::kUnknown;
 
   // The human-readable name of the remote device.
-  std::optional<std::string> device_name_ = std::nullopt;
+  const std::optional<std::string> device_name_;
 
   // The vendor identifier of the remote device. Reference for vendor ID:
   // google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/sharing/SharingOptions.java
   const uint8_t vendor_id_;
+
+  const AdvertisementCapabilities capabilities_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_ADVERTISEMENT_H_

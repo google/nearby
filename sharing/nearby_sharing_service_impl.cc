@@ -51,6 +51,7 @@
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
+#include "sharing/advertisement_capabilities.h"
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
@@ -1503,11 +1504,16 @@ NearbySharingServiceImpl::CreateEndpointInfo(
   ShareTargetType device_type =
       static_cast<ShareTargetType>(device_info_.GetDeviceType());
 
+  AdvertisementCapabilities capabilities{};
+  if (supports_file_sync_) {
+    capabilities.Add(AdvertisementCapabilities::Capability::kFileSync);
+  }
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_key), device_type, device_name,
       visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE
           ? static_cast<uint8_t>(GetReceivingVendorId())
-          : static_cast<uint8_t>(BlockedVendorId::kNone));
+          : static_cast<uint8_t>(BlockedVendorId::kNone),
+      std::move(capabilities));
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {

@@ -74,10 +74,12 @@ cc_library(
     name = "types",
     srcs = [
         "advertisement.cc",
+        "advertisement_capabilities.cc",
         "share_target.cc",
     ],
     hdrs = [
         "advertisement.h",
+        "advertisement_capabilities.h",
         "constants.h",
         "nearby_connection.h",
         "nearby_connections_manager.h",
@@ -997,6 +999,16 @@ cc_test(
         "//sharing/analytics",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "advertisement_capabilities_test",
+    srcs = ["advertisement_capabilities_test.cc"],
+    deps = [
+        ":types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

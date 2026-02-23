@@ -524,6 +524,7 @@ class NearbySharingServiceImpl
   // If true, a new endpoint id will be generated at the next advertisement.
   bool force_new_endpoint_id_ = false;
   OutgoingTargetsManager outgoing_targets_manager_;
+  bool supports_file_sync_ = false;
 };
 
 }  // namespace nearby::sharing
