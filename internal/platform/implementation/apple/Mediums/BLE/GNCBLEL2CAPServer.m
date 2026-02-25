@@ -18,6 +18,7 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManager.h"
@@ -43,18 +44,31 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   BOOL _alreadyStartedWhenPeripheralPoweredOff;
 }
 
-- (instancetype)init {
-  return [self initWithPeripheralManager:nil queue:nil];
-}
 
-// This is private and should only be used for tests. The provided peripheral manager must call
-// delegate methods on the main queue.
 - (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
                                     queue:(nullable dispatch_queue_t)queue {
   self = [super init];
   if (self) {
     _queue = queue ?: dispatch_queue_create(kGNCBLEL2CAPServerQueueLabel, DISPATCH_QUEUE_SERIAL);
-    if (peripheralManager) {
+    if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
+      if (!peripheralManager) {
+        // In shared mode, the peripheral manager must be injected.
+        [NSException raise:NSInvalidArgumentException
+                    format:@"Peripheral manager cannot be nil when shared manager is enabled."];
+      }
+      _peripheralManager = peripheralManager;
+      // In shared mode, do NOT set the delegate. The Multiplexer handles callbacks.
+    } else {
+       // Legacy mode: Create a new manager if one isn't provided.
+       // Note: L2CAP Server didn't create its own manager in the same way GATT server did in
+       // very older versions, but for consistency in "Safe Rollout", we allow it to take nil
+       // and create one.
+       if (!peripheralManager) {
+         peripheralManager = [[CBPeripheralManager alloc]
+             initWithDelegate:self
+                        queue:_queue
+                      options:@{CBPeripheralManagerOptionShowPowerAlertKey : @NO}];
+       }
       _peripheralManager = peripheralManager;
       // Set for @c GNCPeripheralManager to be able to forward callbacks.
       _peripheralManager.peripheralDelegate = self;
@@ -71,19 +85,16 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   _psmPublishedCompletionHandler = [psmPublishedCompletionHandler copy];
   _channelOpenedCompletionHandler = [channelOpenedCompletionHandler copy];
   if (!_queue) {
-    _psmPublishedCompletionHandler(0, [NSError errorWithDomain:GNCBLEErrorDomain
-                                                          code:GNCBLEErrorL2CAPListeningOnQueueNil
-                                                      userInfo:nil]);
+    if (_psmPublishedCompletionHandler) {
+      _psmPublishedCompletionHandler(0, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                            code:GNCBLEErrorL2CAPListeningOnQueueNil
+                                                        userInfo:nil]);
+    }
     return;
   }
   if (!_peripheralManager) {
-    // Lazy initialization to avoid system dialog on app startup before pairing.
-    _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil
-                                                                 queue:_queue
-                                                               options:nil];
-
-    // Set for @c GNCPeripheralManager to be able to forward callbacks.
-    _peripheralManager.peripheralDelegate = self;
+    GNCLoggerError(@"[NEARBY] Peripheral manager must not be nil.");
+    return;
   }
 
   if (_peripheralManager.state == CBManagerStatePoweredOn) {

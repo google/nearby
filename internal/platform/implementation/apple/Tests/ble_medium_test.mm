@@ -225,8 +225,8 @@ static const char *const kTestServiceID = "TestServiceID";
 #pragma mark - GATT Server Tests
 
 - (void)testStartGattServer_Success {
-  _fakeGNCBLEMedium.fakeGATTServer = [[GNCFakeBLEGATTServer alloc] init];
-
+  _fakeGNCBLEMedium.fakeGATTServer =
+      [[GNCFakeBLEGATTServer alloc] initWithPeripheralManager:nil queue:nil];
   auto gatt_server = _medium->StartGattServer({});
 
   XCTAssertNotEqual(gatt_server.get(), nullptr);

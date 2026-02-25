@@ -42,4 +42,10 @@
           kRefactorBleL2cap);
 }
 
++ (BOOL)sharedPeripheralManagerEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableSharedPeripheralManager);
+}
+
 @end
