@@ -108,6 +108,8 @@ class PreferencesManager : public api::PreferencesManager {
 
   // Removes preferences
   void Remove(absl::string_view key) override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool RemoveKeyPrefix(absl::string_view prefix) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Writes data to storage.

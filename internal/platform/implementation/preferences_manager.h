@@ -85,6 +85,10 @@ class PreferencesManager {
 
   // Removes preferences
   virtual void Remove(absl::string_view key) = 0;
+
+  // Removes all preferences that start with the given prefix.
+  // Returns false on error.
+  virtual bool RemoveKeyPrefix(absl::string_view prefix) = 0;
 };
 
 }  // namespace api

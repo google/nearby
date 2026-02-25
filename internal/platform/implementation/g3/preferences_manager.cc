@@ -177,6 +177,19 @@ void PreferencesManager::Remove(absl::string_view key) {
   value_.erase(absl::StrCat(key));
 }
 
+bool PreferencesManager::RemoveKeyPrefix(absl::string_view prefix) {
+  absl::MutexLock lock(mutex_);
+  auto it = value_.begin();
+  while (it != value_.end()) {
+    if (it.key().starts_with(prefix)) {
+      it = value_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  return true;
+}
+
 // Private methods
 
 // Writes data to storage.

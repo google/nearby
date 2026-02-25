@@ -21,7 +21,10 @@
 #include <string>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -35,6 +38,8 @@
 namespace nearby {
 namespace windows {
 namespace {
+using ::testing::IsEmpty;
+
 using json = ::nlohmann::json;
 constexpr absl::string_view kPreferencesFilePath = "Google/Nearby/Sharing";
 }  // namespace
@@ -182,6 +187,24 @@ TEST(PreferencesManager, RemoveKey) {
   pm.Remove(string_key);
   auto result = pm.GetString(string_key, "default key");
   EXPECT_EQ(result, "default key");
+}
+
+TEST(PreferencesManager, RemoveKeyPrefix) {
+  constexpr absl::string_view kKeyPrefix = "test_key_prefix.";
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
+  for (int i = 0; i < 10; ++i) {
+    pm.SetString(absl::StrCat(kKeyPrefix, i), absl::StrCat("value", i));
+  }
+  constexpr absl::string_view string_key = "string_key";
+  pm.SetString(string_key, "this is a test string");
+  EXPECT_EQ(pm.GetString(string_key, ""), "this is a test string");
+
+  EXPECT_TRUE(pm.RemoveKeyPrefix(kKeyPrefix));
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_THAT(pm.GetString(absl::StrCat(kKeyPrefix, i), ""),
+              IsEmpty());
+  }
+  EXPECT_EQ(pm.GetString(string_key, ""), "this is a test string");
 }
 
 }  // namespace windows

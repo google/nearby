@@ -90,6 +90,8 @@ class PreferencesManager : public nearby::api::PreferencesManager {
 
   // Removes preferences
   void Remove(absl::string_view key) override;
+  // TODO: b/485304482 - Implement this method if needed..
+  bool RemoveKeyPrefix(absl::string_view prefix) override { return false; }
 };
 
 }  // namespace nearby::apple
