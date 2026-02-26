@@ -1392,6 +1392,36 @@ enum OperationResultCode {
   DCT_ERROR_LOCAL_ATTESTATION_TIMEOUT = 5032;
   // Parallel attestation timeout
   DCT_ERROR_PARALLEL_ATTESTATION_TIMEOUT = 5033;
+  // Failed to start MDNS discovery on the remote device
+  DCT_ERROR_REMOTE_MDNS_DISCOVERY_TIMEOUT = 5034;
+  // Failed to register MDNS service on the remote device
+  DCT_ERROR_REMOTE_MDNS_REGISTER_SERVICE = 5035;
+  // Failed to send request on the remote device
+  DCT_ERROR_REMOTE_REQUEST_FAILED = 5036;
+  // Failed to receive response on the remote device
+  DCT_ERROR_REMOTE_RESPONSE_FAILED = 5037;
+  // Failed to exchange control messages on the remote device
+  DCT_ERROR_REMOTE_CONTROL_MESSAGE_EXCHANGE = 5038;
+  // DCT device capability mismatch on the remote device
+  DCT_ERROR_REMOTE_CAPABILITY_MISMATCH = 5039;
+  // High speed medium is unavailable on the remote device
+  DCT_ERROR_REMOTE_HIGH_SPEED_MEDIUM_UNAVAILABLE = 5040;
+  // Wifi is disabled on the remote device
+  DCT_ERROR_REMOTE_WIFI_DISABLED = 5041;
+  // Wifi is disconnected on the remote device
+  DCT_ERROR_REMOTE_WIFI_DISCONNECTED = 5042;
+  // Failed to transfer wifi credential on the remote device
+  DCT_ERROR_REMOTE_WIFI_CREDENTIAL_TRANSFER = 5043;
+  // Failed to connect to wifi internet on the remote device
+  DCT_ERROR_REMOTE_WIFI_INTERNET_CONNECTION = 5044;
+  // Failed to upgrade to high speed medium on the remote device
+  DCT_ERROR_REMOTE_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 5045;
+  // User cancellation on the remote device
+  DCT_ERROR_REMOTE_USER_CANCELLED = 5046;
+  // Service cancellation on the remote device
+  DCT_ERROR_REMOTE_SERVICE_CANCELLED = 5047;
+  // Failed to verify integrity on the remote device
+  DCT_ERROR_REMOTE_UNVERIFIED_INTEGRITY = 5048;
 }
 
 enum StopAdvertisingReason {
