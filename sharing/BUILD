@@ -931,11 +931,11 @@ cc_test(
         "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
         "//sharing/proto/analytics:sharing_log_cc_proto",
-        "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
@@ -418,6 +420,20 @@ cc_library(
     ],
 )
 
+proto_library(
+    name = "preferences_manager_test_proto",
+    testonly = True,
+    srcs = ["preferences_manager_test.proto"],
+    compatible_with = ["//buildenv/target:non_prod"],
+)
+
+cc_proto_library(
+    name = "preferences_manager_test_cc_proto",
+    testonly = True,
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [":preferences_manager_test_proto"],
+)
+
 cc_test(
     name = "impl_test",
     size = "small",
@@ -451,6 +467,7 @@ cc_test(
     tags = ["nozapfhahn"],
     deps = [
         ":crypto",
+        ":preferences_manager_test_cc_proto",
         ":test_utils",
         ":types",
         ":windows",
@@ -462,6 +479,7 @@ cc_test(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/windows/generated:types",
+        "//net/proto2/contrib/parse_proto:parse_text_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

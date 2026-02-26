@@ -88,6 +88,15 @@ class PreferencesManager : public nearby::api::PreferencesManager {
   absl::Time GetTime(absl::string_view key,
                      absl::Time default_value) const override;
 
+  bool SetProtoMessage(absl::string_view key,
+                       const google::protobuf::Message& value) override {
+    return false;
+  }
+  bool GetProtoMessage(absl::string_view key,
+                       google::protobuf::Message* value) const override {
+    return false;
+  }
+
   // Removes preferences
   void Remove(absl::string_view key) override;
   // TODO: b/485304482 - Implement this method if needed..
