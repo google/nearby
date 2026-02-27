@@ -185,23 +185,23 @@ BleSocket::BleSocket(id<GNCMConnection> connection, api::ble::BlePeripheral::Uni
       peripheral_id_(peripheral_id) {}
 
 BleSocket::~BleSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 bool BleSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return closed_;
 }
 
 Exception BleSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
   return {Exception::kSuccess};
 }
 
 void BleSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 

@@ -137,7 +137,7 @@ class FeatureFlags {
 
   // SetFlags for feature controlling
   void SetFlags(const Flags& flags) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     flags_ = flags;
   }
 

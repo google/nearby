@@ -522,11 +522,11 @@ std::unique_ptr<api::ble::BleL2capServerSocket> BleMedium::OpenL2capServerSocket
   __block NSError *blockPSMPublishedError = nil;
   auto l2cap_server_socket = std::make_unique<BleL2capServerSocket>();
   l2cap_server_socket->SetCloseNotifier([this]() {
-    absl::MutexLock lock(&l2cap_server_socket_mutex_);
+    absl::MutexLock lock(l2cap_server_socket_mutex_);
     l2cap_server_socket_ptr_ = nullptr;
   });
   {
-    absl::MutexLock lock(&l2cap_server_socket_mutex_);
+    absl::MutexLock lock(l2cap_server_socket_mutex_);
     l2cap_server_socket_ptr_ = l2cap_server_socket.get();
   }
   std::string service_id_str = service_id;
@@ -538,7 +538,7 @@ std::unique_ptr<api::ble::BleL2capServerSocket> BleMedium::OpenL2capServerSocket
           return;
         }
         {
-          absl::MutexLock lock(&l2cap_server_socket_mutex_);
+          absl::MutexLock lock(l2cap_server_socket_mutex_);
           if (l2cap_server_socket_ptr_) {
             l2cap_server_socket_ptr_->SetPSM(PSM);
           }
@@ -558,7 +558,7 @@ std::unique_ptr<api::ble::BleL2capServerSocket> BleMedium::OpenL2capServerSocket
                                           callbackQueue:connection_callback_queue_];
         auto socket = std::make_unique<BleL2capSocket>(connection);
         {
-          absl::MutexLock lock(&l2cap_server_socket_mutex_);
+          absl::MutexLock lock(l2cap_server_socket_mutex_);
           if (l2cap_server_socket_ptr_) {
             l2cap_server_socket_ptr_->AddPendingSocket(std::move(socket));
           }
@@ -730,20 +730,20 @@ std::optional<api::ble::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeriphera
 }
 
 void BleMedium::ClearAdvertisementPacketsMap() {
-  absl::MutexLock lock(&advertisement_packets_mutex_);
+  absl::MutexLock lock(advertisement_packets_mutex_);
   advertisement_packets_map_.clear();
   last_timestamp_to_clean_expired_advertisement_packets_ = [NSDate date];
 }
 
 NSDate *BleMedium::GetLastTimestampToCleanExpiredAdvertisementPackets() {
-  absl::MutexLock lock(&advertisement_packets_mutex_);
+  absl::MutexLock lock(advertisement_packets_mutex_);
   return last_timestamp_to_clean_expired_advertisement_packets_;
 }
 
 bool BleMedium::ShouldReportAdvertisement(NSDate *now,
                                           api::ble::BlePeripheral::UniqueId peripheral_id,
                                           NSDictionary<CBUUID *, NSData *> *service_data) {
-  absl::MutexLock lock(&advertisement_packets_mutex_);
+  absl::MutexLock lock(advertisement_packets_mutex_);
   if (service_data == nil || service_data.count == 0) {
     return false;
   }
@@ -775,19 +775,19 @@ bool BleMedium::ShouldReportAdvertisement(NSDate *now,
 
 void BleMedium::AddAdvertisementPacketInfo(api::ble::BlePeripheral::UniqueId peripheral_id,
                                            NSDictionary<CBUUID *, NSData *> *service_data) {
-  absl::MutexLock lock(&advertisement_packets_mutex_);
+  absl::MutexLock lock(advertisement_packets_mutex_);
   advertisement_packets_map_[peripheral_id] = {[NSDate date], service_data};
 }
 
 api::ble::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeripheral> peripheral) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   api::ble::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
   peripherals_.insert({peripheral_id, peripheral});
   return peripheral_id;
 }
 
 id<GNCPeripheral> BleMedium::PeripheralsMap::Get(api::ble::BlePeripheral::UniqueId peripheral_id) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto peripheral_it = peripherals_.find(peripheral_id);
   if (peripheral_it == peripherals_.end()) {
     return nil;
@@ -796,7 +796,7 @@ id<GNCPeripheral> BleMedium::PeripheralsMap::Get(api::ble::BlePeripheral::Unique
 }
 
 void BleMedium::PeripheralsMap::Clear() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   peripherals_.clear();
 }
 
