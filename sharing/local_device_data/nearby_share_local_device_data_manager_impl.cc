@@ -28,9 +28,9 @@
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/base/utf_string_conversions.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/device_rpc.pb.h"
 #include "sharing/proto/field_mask.pb.h"
@@ -100,8 +100,8 @@ NearbyShareLocalDeviceDataManagerImpl::
     ~NearbyShareLocalDeviceDataManagerImpl() = default;
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDeviceName() const {
-  std::string device_name = preference_manager_.GetString(
-      prefs::kNearbySharingDeviceNameName, std::string());
+  std::string device_name =
+      preference_manager_.GetString(PrefNames::kDeviceName, std::string());
   return device_name.empty() ? GetDefaultDeviceName() : device_name;
 }
 
@@ -126,7 +126,7 @@ DeviceNameValidationResult NearbyShareLocalDeviceDataManagerImpl::SetDeviceName(
   auto error = ValidateDeviceName(name);
   if (error != DeviceNameValidationResult::kValid) return error;
 
-  preference_manager_.SetString(prefs::kNearbySharingDeviceNameName, name);
+  preference_manager_.SetString(PrefNames::kDeviceName, name);
 
   NotifyLocalDeviceDataChanged(/*did_device_name_change=*/true,
                                /*did_full_name_change=*/false,

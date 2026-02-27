@@ -34,6 +34,7 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/thread_timer.h"
@@ -107,7 +108,7 @@ FastInitiationNotificationState
 NearbyShareSettings::GetFastInitiationNotificationState() const {
   return static_cast<FastInitiationNotificationState>(
       preference_manager_.GetInteger(
-          prefs::kNearbySharingFastInitiationNotificationStateName,
+          PrefNames::kFastInitiationNotificationState,
           static_cast<int>(
               FastInitiationNotificationState::ENABLED_FAST_INIT)));
 }
@@ -133,7 +134,7 @@ std::string NearbyShareSettings::GetDeviceName() const {
 
 DataUsage NearbyShareSettings::GetDataUsage() const {
   return static_cast<DataUsage>(
-      preference_manager_.GetInteger(prefs::kNearbySharingDataUsageName, 0));
+      preference_manager_.GetInteger(PrefNames::kDataUsage, 0));
 }
 
 void NearbyShareSettings::StartVisibilityTimer(
@@ -156,9 +157,9 @@ void NearbyShareSettings::StartVisibilityTimer(
 
 void NearbyShareSettings::RestoreFallbackVisibility() {
   int64_t expiration_seconds = preference_manager_.GetInteger(
-      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
+      PrefNames::kVisibilityExpirationSeconds, 0);
   int64_t fallback_visibility = preference_manager_.GetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      PrefNames::kFallbackVisibility,
       static_cast<int>(prefs::kDefaultFallbackVisibility));
   fallback_visibility_ = static_cast<DeviceVisibility>(fallback_visibility);
 
@@ -182,8 +183,7 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
 
 std::string NearbyShareSettings::GetCustomSavePath() const {
   return preference_manager_.GetString(
-      prefs::kNearbySharingCustomSavePath,
-      device_info_.GetDownloadPath().ToString());
+      PrefNames::kCustomSavePath, device_info_.GetDownloadPath().ToString());
 }
 
 bool NearbyShareSettings::IsDisabledByPolicy() const { return false; }
@@ -204,9 +204,8 @@ void NearbyShareSettings::SetFastInitiationNotificationState(
         GetNotificationStatus(state));
   }
 
-  preference_manager_.SetInteger(
-      prefs::kNearbySharingFastInitiationNotificationStateName,
-      static_cast<int>(state));
+  preference_manager_.SetInteger(PrefNames::kFastInitiationNotificationState,
+                                 static_cast<int>(state));
 }
 
 void NearbyShareSettings::SetDeviceName(
@@ -222,15 +221,14 @@ void NearbyShareSettings::SetDataUsage(DataUsage data_usage) {
   if (analytics_recorder_ != nullptr) {
     analytics_recorder_->NewSetDataUsage(GetDataUsage(), data_usage);
   }
-  preference_manager_.SetInteger(prefs::kNearbySharingDataUsageName,
+  preference_manager_.SetInteger(PrefNames::kDataUsage,
                                  static_cast<int>(data_usage));
 }
 
 DeviceVisibility NearbyShareSettings::GetVisibility() const {
   DeviceVisibility visibility =
       static_cast<DeviceVisibility>(preference_manager_.GetInteger(
-          prefs::kNearbySharingBackgroundVisibilityName,
-          static_cast<int>(prefs::kDefaultVisibility)));
+          PrefNames::kVisibility, static_cast<int>(prefs::kDefaultVisibility)));
   if (visibility == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS) {
     // Set the visibility to self share if it's only visible to selected
     // contacts, as part of QuickShare rebrand work.
@@ -272,17 +270,16 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
     VLOG(1) << __func__ << ": temporary visibility timer starts.";
     absl::Time fallback_visibility_timestamp = now + expiration;
     preference_manager_.SetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+        PrefNames::kVisibilityExpirationSeconds,
         absl::ToUnixSeconds(fallback_visibility_timestamp));
     StartVisibilityTimer(expiration);
   } else {
-    preference_manager_.SetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
+    preference_manager_.SetInteger(PrefNames::kVisibilityExpirationSeconds, 0);
   }
 
   last_visibility_timestamp_ = now;
   last_visibility_ = last_visibility;
-  preference_manager_.SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager_.SetInteger(PrefNames::kVisibility,
                                  static_cast<int>(visibility));
 }
 
@@ -301,7 +298,7 @@ NearbyShareSettings::GetRawFallbackVisibility() const {
   return {
     .visibility = fallback_visibility_,
     .fallback_time = absl::FromUnixSeconds(preference_manager_.GetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0))
+        PrefNames::kVisibilityExpirationSeconds, 0))
   };
 }
 
@@ -332,29 +329,28 @@ void NearbyShareSettings::SetFallbackVisibility(DeviceVisibility visibility) {
   }
 
   fallback_visibility_ = visibility;
-  preference_manager_.SetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
-      static_cast<int>(visibility));
+  preference_manager_.SetInteger(PrefNames::kFallbackVisibility,
+                                 static_cast<int>(visibility));
 }
 
 void NearbyShareSettings::SetCustomSavePathAsync(
     absl::string_view save_path, const std::function<void()>& callback) {
   absl::MutexLock lock(mutex_);
-  preference_manager_.SetString(prefs::kNearbySharingCustomSavePath, save_path);
+  preference_manager_.SetString(PrefNames::kCustomSavePath, save_path);
   callback();
 }
 
 void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
-  if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
+  if (key == PrefNames::kFastInitiationNotificationState) {
     NotifyAllObservers(key, Observer::Data(static_cast<int64_t>(
                                 GetFastInitiationNotificationState())));
-  } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
+  } else if (key == PrefNames::kVisibility) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetVisibility())));
-  } else if (key == prefs::kNearbySharingDataUsageName) {
+  } else if (key == PrefNames::kDataUsage) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetDataUsage())));
-  } else if (key == prefs::kNearbySharingCustomSavePath) {
+  } else if (key == PrefNames::kCustomSavePath) {
     NotifyAllObservers(key, Observer::Data(GetCustomSavePath()));
   } else {
     // Not a monitored key.
@@ -368,8 +364,7 @@ void NearbyShareSettings::OnLocalDeviceDataChanged(bool did_device_name_change,
   if (!did_device_name_change) return;
 
   std::string device_name = GetDeviceName();
-  NotifyAllObservers(prefs::kNearbySharingDeviceNameName,
-                     Observer::Data(device_name));
+  NotifyAllObservers(PrefNames::kDeviceName, Observer::Data(device_name));
 }
 
 void NearbyShareSettings::NotifyAllObservers(absl::string_view key,
@@ -380,12 +375,11 @@ void NearbyShareSettings::NotifyAllObservers(absl::string_view key,
 }
 
 bool NearbyShareSettings::GetIsAnalyticsEnabled() const {
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingIsAnalyticsEnabledName, true);
+  return preference_manager_.GetBoolean(PrefNames::kIsAnalyticsEnabled, true);
 }
 
 void NearbyShareSettings::SetIsAnalyticsEnabled(bool is_analytics_enabled) {
-  preference_manager_.SetBoolean(prefs::kNearbySharingIsAnalyticsEnabledName,
+  preference_manager_.SetBoolean(PrefNames::kIsAnalyticsEnabled,
                                  is_analytics_enabled);
 }
 

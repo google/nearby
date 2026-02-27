@@ -31,6 +31,7 @@
 #include "internal/test/fake_task_runner.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
@@ -49,16 +50,16 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
  public:
   void OnSettingChanged(absl::string_view key, const Data& data) override {
     absl::MutexLock lock(mutex_);
-    if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
+    if (key == PrefNames::kFastInitiationNotificationState) {
       fast_initiation_notification_state_ =
           static_cast<FastInitiationNotificationState>(data.value.as_int64);
-    } else if (key == prefs::kNearbySharingDataUsageName) {
+    } else if (key == PrefNames::kDataUsage) {
       data_usage_ = static_cast<DataUsage>(data.value.as_int64);
-    } else if (key == prefs::kNearbySharingCustomSavePath) {
+    } else if (key == PrefNames::kCustomSavePath) {
       custom_save_path_ = data.value.as_string;
-    } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
+    } else if (key == PrefNames::kVisibility) {
       visibility_ = static_cast<DeviceVisibility>(data.value.as_int64);
-    } else if (key == prefs::kNearbySharingDeviceNameName) {
+    } else if (key == PrefNames::kDeviceName) {
       device_name_ = data.value.as_string;
     }
   }
@@ -132,13 +133,12 @@ class NearbyShareSettingsTest : public ::testing::Test {
   NearbyShareSettings* settings() { return nearby_share_settings_.get(); }
 
   void SetVisibilityExpirationPreference(int expiration) {
-    preference_manager_.SetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, expiration);
+    preference_manager_.SetInteger(PrefNames::kVisibilityExpirationSeconds,
+                                   expiration);
   }
 
   void SetCustomSavePath(absl::string_view path) {
-    preference_manager_.SetString(
-        prefs::kNearbySharingCustomSavePath, path);
+    preference_manager_.SetString(PrefNames::kCustomSavePath, path);
   }
 
   // Waits for running tasks to complete.
@@ -332,9 +332,8 @@ TEST_F(NearbyShareSettingsTest,
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   // Verify that the saved fallback visibility is intact, since we can go back
   // to temporary.
-  EXPECT_EQ(preference_manager_.GetInteger(
-                prefs::kNearbySharingBackgroundFallbackVisibilityName,
-                prefs::kDefaultFallbackVisibility),
+  EXPECT_EQ(preference_manager_.GetInteger(PrefNames::kFallbackVisibility,
+                                           prefs::kDefaultFallbackVisibility),
             static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Verify that the fallback visibility is unspecified.
   NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
@@ -396,15 +395,15 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
       kDefaultDeviceName);
   // Set everyone mode temporarily.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
+      PrefNames::kVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
   // Set expiration to 10 seconds ago.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+      PrefNames::kVisibilityExpirationSeconds,
       absl::ToUnixSeconds(context.GetClock()->Now() - absl::Seconds(10)));
   // Set fallback visibility to self share.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      PrefNames::kFallbackVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Create a Nearby Share settings instance.
   NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,
@@ -424,15 +423,15 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_FutureTimer) {
       kDefaultDeviceName);
   // Set everyone mode temporarily.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityName,
+      PrefNames::kVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
   // Set expiration to 10 seconds in the future.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+      PrefNames::kVisibilityExpirationSeconds,
       absl::ToUnixSeconds(context.GetClock()->Now() + absl::Seconds(10)));
   // Set fallback visibility to self share.
   preference_manager.SetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      PrefNames::kFallbackVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Create a Nearby Share settings instance.
   NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,

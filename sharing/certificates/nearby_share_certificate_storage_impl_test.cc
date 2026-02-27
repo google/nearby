@@ -38,9 +38,9 @@
 #include "sharing/certificates/nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/mock_public_certificate_db.h"
 #include "sharing/internal/api/private_certificate_data.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/internal/test/fake_preference_manager.h"
 #include "sharing/internal/test/fake_public_certificate_db.h"
 #include "sharing/proto/enums.pb.h"
@@ -153,10 +153,8 @@ class NearbyShareCertificateStorageImplTest : public ::testing::Test {
       NearbyShareCertificateStorageImplTest&) = delete;
 
   void SetUp() override {
-    preference_manager_.Remove(
-        prefs::kNearbySharingPublicCertificateExpirationDictName);
-    preference_manager_.Remove(
-        prefs::kNearbySharingPrivateCertificateListName);
+    preference_manager_.Remove(PrefNames::kPublicCertificateExpirationDict);
+    preference_manager_.Remove(PrefNames::kPrivateCertificateList);
   }
 
   std::map<std::string, PublicCertificate> PrepopulatePublicCertificates() {
@@ -185,8 +183,7 @@ class NearbyShareCertificateStorageImplTest : public ::testing::Test {
       entries.emplace(cert.secret_id(), std::move(cert));
     }
     preference_manager_.SetCertificateExpirationArray(
-        prefs::kNearbySharingPublicCertificateExpirationDictName,
-        expirations);
+        PrefNames::kPublicCertificateExpirationDict, expirations);
     return entries;
   }
 
@@ -835,21 +832,20 @@ TEST_F(NearbyShareCertificateStorageImplTest,
 
   std::vector<api::PrivateCertificateData> private_cert_data =
       preference_manager_.GetPrivateCertificateArray(
-          prefs::kNearbySharingPrivateCertificateListName);
+          PrefNames::kPrivateCertificateList);
   ASSERT_EQ(private_cert_data.size(), 3u);
   // Set to invalid base64 encoded string.
   private_cert_data[0].key_pair = "::..\\|@#";
   preference_manager_.SetPrivateCertificateArray(
-      prefs::kNearbySharingPrivateCertificateListName, private_cert_data);
+      PrefNames::kPrivateCertificateList, private_cert_data);
 
   std::vector<NearbySharePrivateCertificate> certs =
       cert_store->GetPrivateCertificates();
 
   // Verify corrupted cert has been removed.
   EXPECT_TRUE(certs.empty());
-  private_cert_data =
-      preference_manager_.GetPrivateCertificateArray(
-          prefs::kNearbySharingPrivateCertificateListName);
+  private_cert_data = preference_manager_.GetPrivateCertificateArray(
+      PrefNames::kPrivateCertificateList);
   EXPECT_TRUE(private_cert_data.empty());
 }
 

@@ -36,11 +36,11 @@
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/private_certificate_data.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 
@@ -350,7 +350,7 @@ std::vector<NearbySharePrivateCertificate>
 NearbyShareCertificateStorageImpl::GetPrivateCertificates() {
   std::vector<PrivateCertificateData> list =
       preference_manager_.GetPrivateCertificateArray(
-          prefs::kNearbySharingPrivateCertificateListName);
+          PrefNames::kPrivateCertificateList);
   std::vector<NearbySharePrivateCertificate> certs;
   certs.reserve(list.size());
   for (const PrivateCertificateData& cert_data : list) {
@@ -391,7 +391,7 @@ void NearbyShareCertificateStorageImpl::ReplacePrivateCertificates(
     list.push_back(cert.ToCertificateData());
   }
   preference_manager_.SetPrivateCertificateArray(
-      prefs::kNearbySharingPrivateCertificateListName, list);
+      PrefNames::kPrivateCertificateList, list);
 }
 
 void NearbyShareCertificateStorageImpl::AddPublicCertificates(
@@ -504,7 +504,7 @@ void NearbyShareCertificateStorageImpl::ClearPublicCertificates(
 bool NearbyShareCertificateStorageImpl::FetchPublicCertificateExpirations() {
   std::vector<std::pair<std::string, int64_t>> expirations =
       preference_manager_.GetCertificateExpirationArray(
-          prefs::kNearbySharingPublicCertificateExpirationDictName);
+          PrefNames::kPublicCertificateExpirationDict);
   public_certificate_expirations_.clear();
   if (expirations.empty()) {
     return false;
@@ -535,7 +535,7 @@ void NearbyShareCertificateStorageImpl::SavePublicCertificateExpirations() {
   }
 
   preference_manager_.SetCertificateExpirationArray(
-      prefs::kNearbySharingPublicCertificateExpirationDictName, expirations);
+      PrefNames::kPublicCertificateExpirationDict, expirations);
 }
 
 }  // namespace nearby::sharing

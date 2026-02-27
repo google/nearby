@@ -16,7 +16,6 @@
 
 #include <string>
 
-#include "absl/base/attributes.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/pref_names.h"
 #include "sharing/proto/enums.pb.h"
@@ -27,48 +26,9 @@ namespace prefs {
 namespace {
 using ::nearby::sharing::PrefNames;
 using ::nearby::sharing::api::PreferenceManager;
-
-using DataUsage = ::nearby::sharing::proto::DataUsage;
-using FastInitiationNotificationState =
-    ::nearby::sharing::proto::FastInitiationNotificationState;
+using ::nearby::sharing::proto::DataUsage;
+using ::nearby::sharing::proto::FastInitiationNotificationState;
 }  // namespace
-
-ABSL_CONST_INIT const char* kNearbySharingBackgroundVisibilityName =
-    PrefNames::kVisibility.data();
-ABSL_CONST_INIT const char* kNearbySharingBackgroundFallbackVisibilityName =
-    PrefNames::kFallbackVisibility.data();
-ABSL_CONST_INIT const char*
-    kNearbySharingBackgroundVisibilityExpirationSeconds =
-        PrefNames::kVisibilityExpirationSeconds.data();
-ABSL_CONST_INIT const char* kNearbySharingCustomSavePath =
-    PrefNames::kCustomSavePath.data();
-ABSL_CONST_INIT const char* kNearbySharingDataUsageName =
-    PrefNames::kDataUsage.data();
-ABSL_CONST_INIT const char* kNearbySharingDeviceIdName =
-    PrefNames::kDeviceId.data();
-ABSL_CONST_INIT const char* kNearbySharingDeviceNameName =
-    PrefNames::kDeviceName.data();
-ABSL_CONST_INIT const char* kNearbySharingFastInitiationNotificationStateName =
-    PrefNames::kFastInitiationNotificationState.data();
-ABSL_CONST_INIT const char* kNearbySharingPrivateCertificateListName =
-    PrefNames::kPrivateCertificateList.data();
-ABSL_CONST_INIT const char* kNearbySharingPublicCertificateExpirationDictName =
-    PrefNames::kPublicCertificateExpirationDict.data();
-ABSL_CONST_INIT const char*
-    kNearbySharingSchedulerDownloadPublicCertificatesName =
-        PrefNames::kSchedulerDownloadPublicCertificates.data();
-ABSL_CONST_INIT const char*
-    kNearbySharingSchedulerPrivateCertificateExpirationName =
-        PrefNames::kSchedulerPrivateCertificateExpiration.data();
-ABSL_CONST_INIT const char*
-    kNearbySharingSchedulerPublicCertificateExpirationName =
-        PrefNames::kSchedulerPublicCertificateExpiration.data();
-ABSL_CONST_INIT const char*
-    kNearbySharingSchedulerUploadLocalDeviceCertificatesName =
-        PrefNames::kSchedulerUploadLocalDeviceCertificates.data();
-ABSL_CONST_INIT const char* kNearbySharingUsersName = PrefNames::kUsers.data();
-ABSL_CONST_INIT const char* kNearbySharingIsAnalyticsEnabledName =
-    PrefNames::kIsAnalyticsEnabled.data();
 
 void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
                                 bool skip_persistent_ones) {
