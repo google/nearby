@@ -172,17 +172,17 @@ BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection,
       peripheral_id_(peripheral_id) {}
 
 BleL2capSocket::~BleL2capSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 bool BleL2capSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return closed_;
 }
 
 Exception BleL2capSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
   return {Exception::kSuccess};
 }

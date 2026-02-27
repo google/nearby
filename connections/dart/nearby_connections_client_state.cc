@@ -27,54 +27,54 @@
 namespace nearby::connections::dart {
 
 NC_INSTANCE NearbyConnectionsClientState::GetOpennedService() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return opened_instance_;
 }
 
 void NearbyConnectionsClientState::SetOpennedService(NC_INSTANCE nc_instance) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   opened_instance_ = nc_instance;
 }
 
 DiscoveryListenerDart*
 NearbyConnectionsClientState::GetDiscoveryListenerDart() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return discovery_listener_dart_.get();
 }
 
 void NearbyConnectionsClientState::SetDiscoveryListenerDart(
     std::unique_ptr<DiscoveryListenerDart> discovery_listener_dart) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   discovery_listener_dart_ = std::move(discovery_listener_dart);
 }
 
 ConnectionListenerDart*
 NearbyConnectionsClientState::GetConnectionListenerDart() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return connection_listener_dart_.get();
 }
 
 void NearbyConnectionsClientState::SetConnectionListenerDart(
     std::unique_ptr<ConnectionListenerDart> connection_listener_dart) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   connection_listener_dart_ = std::move(connection_listener_dart);
 }
 
 PayloadListenerDart* NearbyConnectionsClientState::GetPayloadListenerDart() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return payload_listener_dart_.get();
 }
 
 void NearbyConnectionsClientState::SetPayloadListenerDart(
     std::unique_ptr<PayloadListenerDart> payload_listener_dart) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   payload_listener_dart_ = std::move(payload_listener_dart);
 }
 
 std::optional<Dart_Port>
 NearbyConnectionsClientState::PopNearbyConnectionsApiPort(
     NearbyConnectionsApi api) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   std::deque<Dart_Port>& port_list = nearby_connections_api_ports_[api];
   if (port_list.empty()) {
     return std::nullopt;
@@ -87,13 +87,13 @@ NearbyConnectionsClientState::PopNearbyConnectionsApiPort(
 
 void NearbyConnectionsClientState::PushNearbyConnectionsApiPort(
     NearbyConnectionsApi api, Dart_Port dart_port) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   std::deque<Dart_Port>& port_list = nearby_connections_api_ports_[api];
   port_list.push_back(dart_port);
 }
 
 void NearbyConnectionsClientState::reset() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   opened_instance_ = nullptr;
   nearby_connections_api_ports_.clear();
   discovery_listener_dart_.reset();

@@ -25,12 +25,12 @@ namespace nearby {
 namespace apple {
 
 BleServerSocket::~BleServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -42,7 +42,7 @@ std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
 }
 
 bool BleServerSocket::Connect(std::unique_ptr<BleSocket> socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) {
     return false;
   }
@@ -52,12 +52,12 @@ bool BleServerSocket::Connect(std::unique_ptr<BleSocket> socket) {
 }
 
 void BleServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 Exception BleServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
