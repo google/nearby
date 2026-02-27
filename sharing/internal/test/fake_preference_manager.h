@@ -74,6 +74,10 @@ class FakePreferenceManager : public nearby::sharing::api::PreferenceManager {
   void RemoveDictionaryItem(absl::string_view key,
                             absl::string_view dictionary_item) override;
 
+  void SetSyncConfigValue(
+      absl::string_view binding_id,
+      const nearby::sharing::service::proto::SyncConfig& value) override;
+
   bool GetBoolean(absl::string_view key, bool default_value) const override;
   int GetInteger(absl::string_view key, int default_value) const override;
   int64_t GetInt64(absl::string_view key, int64_t default_value) const override;
@@ -107,8 +111,12 @@ class FakePreferenceManager : public nearby::sharing::api::PreferenceManager {
       absl::string_view key, absl::string_view dictionary_item) const override;
   std::optional<std::string> GetDictionaryStringValue(
       absl::string_view key, absl::string_view dictionary_item) const override;
+  std::optional<nearby::sharing::service::proto::SyncConfig>
+  GetSyncConfigValue(absl::string_view binding_id) const override;
 
   void Remove(absl::string_view key) override;
+  void RemoveAllSyncConfigs() override;
+  void RemoveAllBindingConfigs() override;
 
   void AddObserver(
       absl::string_view name,

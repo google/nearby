@@ -54,6 +54,20 @@ class PrefNames {
       "nearby_sharing.advanced_protection_enabled";
   static constexpr absl::string_view kSchedulerGetAccountInfo =
       "nearby_sharing.scheduler.get_account_info";
+
+  // Binding configs preferences are stored in pref keys:
+  //   kBindingConfigPrefix + <service_name>
+  // Example: "nearby_sharing.binding_config.FileSync"
+  // TODO: b/485304482 - define data format for binding configs.
+  static constexpr absl::string_view kBindingConfigPrefix =
+      "nearby_sharing.binding_config.";
+
+  // Sync configs preferences are stored in pref keys:
+  //   kSyncConfigPrefix + <binding ID>
+  // Example: "nearby_sharing.sync_config.01243347-2343-4324-3423-432432432432"
+  // Data stored in sync config prefs is a SyncConfig proto.
+  static constexpr absl::string_view kSyncConfigPrefix =
+      "nearby_sharing.sync_config.";
 };
 
 }  // namespace nearby::sharing

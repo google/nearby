@@ -26,6 +26,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/private_certificate_data.h"
+#include "sharing/proto/wire_format.pb.h"
 
 namespace nearby::sharing::api {
 
@@ -78,6 +79,11 @@ class PreferenceManager {
                                         std::string value) = 0;
   virtual void RemoveDictionaryItem(absl::string_view key,
                                     absl::string_view dictionary_item) = 0;
+
+  virtual void SetSyncConfigValue(
+      absl::string_view binding_id,
+      const nearby::sharing::service::proto::SyncConfig& value) = 0;
+
   // Gets values
   virtual bool GetBoolean(absl::string_view key, bool default_value) const = 0;
   virtual int GetInteger(absl::string_view key, int default_value) const = 0;
@@ -117,8 +123,17 @@ class PreferenceManager {
   virtual std::optional<std::string> GetDictionaryStringValue(
       absl::string_view key, absl::string_view dictionary_item) const = 0;
 
+  virtual std::optional<nearby::sharing::service::proto::SyncConfig>
+  GetSyncConfigValue(absl::string_view binding_id) const = 0;
+
   // Removes preferences
   virtual void Remove(absl::string_view key) = 0;
+  // Removes all sync configs.
+  // Observers are not notified for each removed config.
+  virtual void RemoveAllSyncConfigs() = 0;
+  // Removes all binding configs.
+  // Observers are not notified for each removed config.
+  virtual void RemoveAllBindingConfigs() = 0;
 
   // Adds preference observer
   virtual void AddObserver(

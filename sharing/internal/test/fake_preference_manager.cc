@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "sharing/internal/test/fake_preference_manager.h"
+
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -22,13 +23,16 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/private_certificate_data.h"
+#include "sharing/internal/public/pref_names.h"
 
 namespace nearby {
+using ::nearby::sharing::PrefNames;
 using ::nearby::sharing::api::PrivateCertificateData;
 
 template <typename T>
@@ -180,8 +184,7 @@ void FakePreferenceManager::SetStringArray(
 }
 
 void FakePreferenceManager::SetPrivateCertificateArray(
-    absl::string_view key,
-    absl::Span<const PrivateCertificateData> value) {
+    absl::string_view key, absl::Span<const PrivateCertificateData> value) {
   absl::MutexLock lock(mutex_);
   if (certs_.contains(key)) {
     certs_.erase(key);
@@ -235,6 +238,12 @@ void FakePreferenceManager::RemoveDictionaryItem(
   NotifyPreferenceChanged(key);
 }
 
+void FakePreferenceManager::SetSyncConfigValue(
+    absl::string_view binding_id,
+    const nearby::sharing::service::proto::SyncConfig& value) {
+  SetValue(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id),
+           value.SerializeAsString());
+}
 
 bool FakePreferenceManager::GetBoolean(absl::string_view key,
                                        bool default_value) const {
@@ -320,6 +329,21 @@ std::optional<std::string> FakePreferenceManager::GetDictionaryStringValue(
   return GetDictionaryValue<std::string>(key, dictionary_item);
 }
 
+std::optional<nearby::sharing::service::proto::SyncConfig>
+FakePreferenceManager::GetSyncConfigValue(absl::string_view binding_id) const {
+  std::string serialized_sync_config;
+  serialized_sync_config =
+      GetString(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id), "");
+  if (serialized_sync_config.empty()) {
+    return std::nullopt;
+  }
+  nearby::sharing::service::proto::SyncConfig sync_config;
+  if (!sync_config.ParseFromString(serialized_sync_config)) {
+    return std::nullopt;
+  }
+  return sync_config;
+}
+
 void FakePreferenceManager::Remove(absl::string_view key) {
   {
     absl::MutexLock lock(mutex_);
@@ -328,6 +352,20 @@ void FakePreferenceManager::Remove(absl::string_view key) {
     dictionaries_.erase(key);
   }
   NotifyPreferenceChanged(key);
+}
+
+void FakePreferenceManager::RemoveAllSyncConfigs() {
+  absl::MutexLock lock(mutex_);
+  absl::erase_if(values_, [](const auto& item) {
+    return item.first.starts_with(PrefNames::kSyncConfigPrefix);
+  });
+}
+
+void FakePreferenceManager::RemoveAllBindingConfigs() {
+  absl::MutexLock lock(mutex_);
+  absl::erase_if(values_, [](const auto& item) {
+    return item.first.starts_with(PrefNames::kBindingConfigPrefix);
+  });
 }
 
 void FakePreferenceManager::NotifyPreferenceChanged(absl::string_view key) {
