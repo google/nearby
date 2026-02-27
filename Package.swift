@@ -40,8 +40,8 @@ let package = Package(
   dependencies: [
     // Dependencies declare other packages that this package depends on.
     .package(
-      url: "https://github.com/firebase/abseil-cpp-SwiftPM.git",
-      branch: "main"
+      url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
+      branch: "jan-lts"
     ),
     .package(
       url: "https://github.com/firebase/boringssl-SwiftPM.git",
