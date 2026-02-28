@@ -1422,6 +1422,31 @@ enum OperationResultCode {
   DCT_ERROR_REMOTE_SERVICE_CANCELLED = 5047;
   // Failed to verify integrity on the remote device
   DCT_ERROR_REMOTE_UNVERIFIED_INTEGRITY = 5048;
+  // Failed to upgrade to high speed medium due to low speed
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_LOW_SPEED = 5049;
+  // Failed to upgrade to high speed medium due to connection error
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_CONNECTION = 5050;
+  // Failed to upgrade to high speed medium because USB is not plugged in
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_PLUGGED = 5051;
+  // Failed to upgrade to high speed medium because USB is not host
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_HOST = 5052;
+  // Failed to upgrade to high speed medium because MDNS discovery is not
+  // started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MDNS_DISCOVERY_NOT_STARTED = 5053;
+  // Failed to upgrade to high speed medium because MDNS discovery is not
+  // started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_MEDIUM = 5054;
+  // Failed to upgrade to high speed medium because USB network is not started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NETWORK_NOT_STARTED = 5055;
+  // Failed to upgrade to high speed medium because medium negotiation fails
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MEDIUM_NEG = 5056;
+  // Failed to upgrade to high speed medium because host fails to start
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NOT_STARTED = 5057;
+  // Failed to upgrade to high speed medium because host network is not
+  // available
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NETWORK_NOT_AVAILABLE = 5058;
+  // Failed to upgrade to high speed medium because no incoming HTTP connection
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_INCOMING_HTTP_CONNECTION = 5059;
 }
 
 enum StopAdvertisingReason {
