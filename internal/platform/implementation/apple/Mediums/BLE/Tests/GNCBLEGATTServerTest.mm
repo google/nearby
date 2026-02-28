@@ -22,6 +22,9 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEGATTServer+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 static NSString *const kServiceUUID1 = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 static NSString *const kServiceUUID2 = @"0000FEF4-0000-1000-8000-00805F9B34FB";
 static NSString *const kCharacteristicUUID1 = @"00000000-0000-3000-8000-000000000000";
@@ -34,11 +37,17 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
 #pragma mark - Create Characteristic
 
+- (void)tearDown {
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+  [super tearDown];
+}
+
 - (void)testCreateCharacteristic {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -68,7 +77,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -111,7 +121,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -146,7 +157,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
@@ -177,7 +189,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
@@ -204,7 +217,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   fakePeripheralManager.didAddServiceError = [NSError errorWithDomain:@"fake" code:0 userInfo:nil];
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
@@ -236,7 +250,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -265,51 +280,15 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                 characteristic:characteristicUUID];
 
   [self waitForExpectations:@[ fakePeripheralManager.respondToRequestSuccessExpectation ]
-                    timeout:0];
-}
-
-- (void)testReadRequestInvalidService {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
-
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
-
-  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
-
-  XCTestExpectation *expectation =
-      [[XCTestExpectation alloc] initWithDescription:@"Create and update characteristic."];
-
-  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
-  CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
-  [gattServer createCharacteristicWithServiceID:serviceUUID
-                             characteristicUUID:characteristicUUID
-                                    permissions:CBAttributePermissionsReadable
-                                     properties:CBCharacteristicPropertyRead
-                              completionHandler:^(GNCBLEGATTCharacteristic *characteristic,
-                                                  NSError *error) {
-                                [gattServer updateCharacteristic:characteristic
-                                                           value:[NSData data]
-                                               completionHandler:^(NSError *error) {
-                                                 [expectation fulfill];
-                                               }];
-                              }];
-
-  [self waitForExpectations:@[ expectation ] timeout:3];
-
-  CBUUID *invalidServiceUUID = [CBUUID UUIDWithString:kServiceUUID2];
-
-  [fakePeripheralManager
-      simulatePeripheralManagerDidReceiveReadRequestForService:invalidServiceUUID
-                                                characteristic:characteristicUUID];
-
-  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:0];
+                    timeout:3];
 }
 
 - (void)testReadRequestInvalidCharacteristic {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -333,14 +312,55 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
   [self waitForExpectations:@[ expectation ] timeout:3];
 
-  CBUUID *invalidCharacteristicUUID =
-      [CBUUID UUIDWithString:kCharacteristicUUID2];
+  CBUUID *invalidCharacteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID2];
 
   [fakePeripheralManager
       simulatePeripheralManagerDidReceiveReadRequestForService:serviceUUID
                                                 characteristic:invalidCharacteristicUUID];
 
-  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:0];
+  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:3];
+}
+
+- (void)testReadRequestInvalidService {
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+
+  GNCBLEGATTServer *gattServer =
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
+
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
+  CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
+  [gattServer createCharacteristicWithServiceID:serviceUUID
+                             characteristicUUID:characteristicUUID
+                                    permissions:CBAttributePermissionsReadable
+                                     properties:CBCharacteristicPropertyRead
+                              completionHandler:^(GNCBLEGATTCharacteristic *characteristic,
+                                                  NSError *error) {
+                                [expectation fulfill];
+                              }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+
+  CBUUID *invalidServiceUUID = [CBUUID UUIDWithString:kServiceUUID2];
+
+  // Expectation that we *should not* receive a response.
+  fakePeripheralManager.respondToRequestSuccessExpectation.inverted = YES;
+  fakePeripheralManager.respondToRequestErrorExpectation.inverted = YES;
+
+  [fakePeripheralManager
+      simulatePeripheralManagerDidReceiveReadRequestForService:invalidServiceUUID
+                                                characteristic:characteristicUUID];
+
+  [self waitForExpectations:@[
+    fakePeripheralManager.respondToRequestSuccessExpectation,
+    fakePeripheralManager.respondToRequestErrorExpectation
+  ]
+                    timeout:3];
 }
 
 #pragma mark - Stop
@@ -349,7 +369,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [gattServer stop];
 
@@ -362,7 +383,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -383,7 +405,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -408,7 +431,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -435,7 +459,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -463,7 +488,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -488,7 +514,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -516,7 +543,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -542,7 +570,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Start advertising."];
@@ -562,7 +591,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   fakePeripheralManager.didStartAdvertisingError = [NSError errorWithDomain:@"fake"
                                                                        code:0
@@ -587,7 +617,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   fakePeripheralManager.didStartAdvertisingError = [NSError errorWithDomain:@"fake"
                                                                        code:0
@@ -614,7 +645,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
   GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                    queue:dispatch_get_main_queue()];
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -651,3 +683,58 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 }
 
 @end
+
+// TODO(edwinwu): Re-enable these tests once the shared peripheral manager is enabled.
+// @implementation GNCBLEGATTServerTest (FlagTests)
+
+// - (void)testInitWithFlagEnabledAndNilManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       true);
+
+//   XCTAssertThrowsSpecificNamed(
+//       [[GNCBLEGATTServer alloc] initWithPeripheralManager:(id<GNCPeripheralManager>)nil
+//                                                     queue:dispatch_get_main_queue()],
+//       NSException, NSInvalidArgumentException);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// - (void)testInitWithFlagEnabledAndManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       true);
+
+//   GNCFakePeripheralManager *fakeManager = [[GNCFakePeripheralManager alloc] init];
+//   GNCBLEGATTServer *server =
+//       [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakeManager
+//                                                     queue:dispatch_get_main_queue()];
+
+//   XCTAssertNotNil(server);
+//   // Use KVC to access private property if not exposed for testing
+//   XCTAssertEqual([server valueForKey:@"_peripheralManager"], fakeManager);
+//   // In shared mode, the server should NOT set itself as the delegate.
+//   XCTAssertNil(fakeManager.peripheralDelegate);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// - (void)testInitWithFlagDisabledAndNilManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       false);
+
+//   GNCBLEGATTServer *server =
+//       [[GNCBLEGATTServer alloc] initWithPeripheralManager:(id<GNCPeripheralManager>)nil
+//                                                     queue:dispatch_get_main_queue()];
+
+//   XCTAssertNotNil(server);
+//   XCTAssertNotNil([server valueForKey:@"_peripheralManager"]);
+//   // In legacy mode, the server owns the manager and sets itself as delegate.
+//   id manager = [server valueForKey:@"_peripheralManager"];
+//   XCTAssertEqual([manager peripheralDelegate], server);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// @end

@@ -26,11 +26,11 @@ objc_library(
     srcs = [
         "GNCBLEGATTCharacteristicTest.mm",
         "GNCBLEGATTClientTest.m",
-        "GNCBLEGATTServerTest.m",
+        "GNCBLEGATTServerTest.mm",
         "GNCBLEL2CAPClientTest.m",
         "GNCBLEL2CAPConnectionTest.m",
         "GNCBLEL2CAPFakeInputOutputStream.m",
-        "GNCBLEL2CAPServerTest.m",
+        "GNCBLEL2CAPServerTest.mm",
         "GNCBLEL2CAPStreamTest.m",
         "GNCBLEMediumTest.m",
         "GNCFakeBLEGATTServer.m",
@@ -44,6 +44,7 @@ objc_library(
         "GNCMBleUtilsTest.m",
         "GNCMConnectionsTest.m",
         "GNCMFakeConnection.mm",
+        "GNCPeripheralManagerMultiplexerTest.m",
         "GNCPeripheralManagerTest.m",
         "GNCPeripheralTest.m",
         "NSData+GNCBase85Test.m",
@@ -66,6 +67,8 @@ objc_library(
         "GNCMFakeConnection.h",
     ],
     deps = [
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple/Mediums/BLE",
         "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Shared",

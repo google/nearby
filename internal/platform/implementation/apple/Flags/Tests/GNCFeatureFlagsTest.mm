@@ -34,6 +34,13 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
       false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableSharedPeripheralManager,
+      false);
 
   [super tearDown];
 }
@@ -76,6 +83,36 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap, NO);
   XCTAssertFalse([GNCFeatureFlags bleL2capEnabled]);
+}
+
+- (void)testRefactorBleL2capEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags refactorBleL2capEnabled]);
+}
+
+- (void)testRefactorBleL2capEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags refactorBleL2capEnabled]);
+}
+
+- (void)testSharedPeripheralManagerEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableSharedPeripheralManager,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags sharedPeripheralManagerEnabled]);
+}
+
+- (void)testSharedPeripheralManagerEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableSharedPeripheralManager,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags sharedPeripheralManagerEnabled]);
 }
 
 @end

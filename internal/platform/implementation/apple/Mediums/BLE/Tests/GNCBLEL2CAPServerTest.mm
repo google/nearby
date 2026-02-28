@@ -21,6 +21,9 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPServer+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 static const NSTimeInterval kTestTimeout = 1.0;
 
 @interface GNCBLEL2CAPServerTest : XCTestCase
@@ -30,10 +33,16 @@ static const NSTimeInterval kTestTimeout = 1.0;
 
 #pragma mark Tests
 
+- (void)tearDown {
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+  [super tearDown];
+}
+
 - (void)testInit {
-  GNCBLEL2CAPServer *l2capServer = [[GNCBLEL2CAPServer alloc] init];
+  GNCBLEL2CAPServer *l2capServer = [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:nil
+                                                                                  queue:nil];
   XCTAssertNotNil(l2capServer);
-  XCTAssertNil([l2capServer valueForKey:@"_peripheralManager"]);
+  XCTAssertNotNil([l2capServer valueForKey:@"_peripheralManager"]);
 }
 
 - (void)testPublishL2CAPChannelAndOpenChannelWhenStartListeningChannel {
@@ -327,3 +336,54 @@ static const NSTimeInterval kTestTimeout = 1.0;
 }
 
 @end
+
+// TODO(edwinwu): Re-enable these tests once the shared peripheral manager is enabled.
+// @implementation GNCBLEL2CAPServerTest (FlagTests)
+
+// - (void)testInitWithFlagEnabledAndNilManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       true);
+
+//   XCTAssertThrowsSpecificNamed(
+//       [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:(id<GNCPeripheralManager>)nil queue:nil],
+//       NSException, NSInvalidArgumentException);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// - (void)testInitWithFlagEnabledAndManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       true);
+
+//   GNCFakePeripheralManager *fakeManager = [[GNCFakePeripheralManager alloc] init];
+//   GNCBLEL2CAPServer *server = [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakeManager
+//                                                                              queue:nil];
+
+//   XCTAssertNotNil(server);
+//   XCTAssertNotNil([server valueForKey:@"_peripheralManager"]);
+//   // In shared mode, the server should NOT set itself as the delegate.
+//   XCTAssertNil(fakeManager.peripheralDelegate);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// - (void)testInitWithFlagDisabledAndNilManager {
+//   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+//       nearby::connections::config_package_nearby::nearby_connections_feature::
+//           kEnableSharedPeripheralManager,
+//       false);
+
+//   GNCBLEL2CAPServer *server =
+//       [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:(id<GNCPeripheralManager>)nil queue:nil];
+
+//   XCTAssertNotNil(server);
+//   XCTAssertNotNil([server valueForKey:@"_peripheralManager"]);
+//   // In legacy mode, the server owns the manager and sets itself as delegate.
+//   id manager = [server valueForKey:@"_peripheralManager"];
+//   XCTAssertEqual([manager peripheralDelegate], server);
+//   nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+// }
+
+// @end

@@ -40,16 +40,6 @@ static NSError *AlreadyScanningError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorAlreadyScanning userInfo:nil];
 }
 
-static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
-    id<GNCPeripheralManager> _Nullable peripheralManager) {
-  if (!peripheralManager) {
-    return [[GNCBLEL2CAPServer alloc] init];
-  } else {
-    return [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:peripheralManager
-                                                          queue:dispatch_get_main_queue()];
-  }
-}
-
 @interface GNCBLEMedium () <GNCCentralManagerDelegate, CBCentralManagerDelegate>
 @end
 
@@ -164,7 +154,16 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
     if (!_server) {
-      _server = [[GNCBLEGATTServer alloc] init];
+      if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
+        // TODO (edwinwu): Implement shared peripheral manager.
+        // For now, raise an exception.
+        [NSException raise:NSInvalidArgumentException
+                    format:@"Not implemented for shared manager is enabled."];
+      } else {
+        // In legacy mode, we pass nil (or a separate manager) and do NOT add to multiplexer.
+        // GNCBLEGATTServer will create its own internal manager.
+        _server = [[GNCBLEGATTServer alloc] initWithPeripheralManager:nil queue:nil];
+      }
     }
     [_server startAdvertisingData:serviceData completionHandler:completionHandler];
   });
@@ -238,7 +237,14 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     (nullable GNCGATTServerCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
     if (!_server) {
-      _server = [[GNCBLEGATTServer alloc] init];
+      if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
+        // TODO (edwinwu): Implement shared peripheral manager.
+        // For now, raise an exception.
+        [NSException raise:NSInvalidArgumentException
+                    format:@"Not implemented for shared manager is enabled."];
+      } else {
+        _server = [[GNCBLEGATTServer alloc] initWithPeripheralManager:nil queue:nil];
+      }
     }
     if (completionHandler) {
       completionHandler(_server, nil);
@@ -284,7 +290,17 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
                                            (nullable id<GNCPeripheralManager>)peripheralManager {
   dispatch_async(_queue, ^{
     if (!_l2capServer) {
-      _l2capServer = CreateL2CapServer(peripheralManager);
+      if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
+        // TODO (edwinwu): Implement shared peripheral manager.
+        // For now, raise an exception.
+        [NSException raise:NSInvalidArgumentException
+                    format:@"Not implemented for shared manager is enabled."];
+      } else {
+        // Legacy mode
+        _l2capServer = [[GNCBLEL2CAPServer alloc]
+            initWithPeripheralManager:peripheralManager  // Likely nil, so Server creates new one
+                                queue:peripheralManager ? dispatch_get_main_queue() : nil];
+      }
     }
     [_l2capServer
         startListeningChannelWithPSMPublishedCompletionHandler:psmPublishedCompletionHandler
