@@ -119,26 +119,39 @@ static NSData *PrefixLengthData(NSData *data) {
 
 - (void)requestDataConnectionWithCompletion:(void (^)(BOOL))completion {
   GNCLoggerInfo(@"Sending l2cap packet request data connection");
-  // TODO b/399815436 - A bug is causing channel has written to the socket but the remote does not
-  // receive it. Add a delay to make sure the data is written to the socket. Remove the delay once
-  // the bug is fixed.
-  dispatch_time_t requestTime =
-      dispatch_time(DISPATCH_TIME_NOW, kRequestDataConnectionDelayInSeconds * NSEC_PER_SEC);
-  dispatch_after(requestTime, _selfQueue, ^(void) {
-    [_requestDataConnectionCondition lock];
-    NSData *requestDataConnectionPacket =
-        GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommandRequestDataConnection, nil);
-    [_stream sendData:PrefixLengthData(requestDataConnectionPacket)
-        completionBlock:^(BOOL result){
 
-        }];
-    dispatch_async(_callbackQueue, ^{
-      NSDate *requestDataConnectionTimeout =
-          [NSDate dateWithTimeIntervalSinceNow:kRequestDataConnectionTimeoutInSeconds];
-      BOOL result = [_requestDataConnectionCondition waitUntilDate:requestDataConnectionTimeout];
-      completion(result);
-      [_requestDataConnectionCondition unlock];
+  dispatch_async(_callbackQueue, ^{
+    [_requestDataConnectionCondition lock];
+    
+    // TODO b/399815436 - A bug is causing channel has written to the socket but the remote does not
+    // receive it. Add a delay to make sure the data is written to the socket. Remove the delay once
+    // the bug is fixed.
+    dispatch_time_t requestTime =
+        dispatch_time(DISPATCH_TIME_NOW, kRequestDataConnectionDelayInSeconds * NSEC_PER_SEC);
+    dispatch_after(requestTime, _selfQueue, ^(void) {
+      NSData *requestDataConnectionPacket =
+          GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommandRequestDataConnection, nil);
+      [_stream sendData:PrefixLengthData(requestDataConnectionPacket)
+          completionBlock:^(BOOL result){
+          }];
     });
+
+    NSDate *requestDataConnectionTimeout =
+        [NSDate dateWithTimeIntervalSinceNow:kRequestDataConnectionTimeoutInSeconds];
+    // Wait until the response is received or timeout.
+    // Note: We are checking _handledReceivedL2CAPResponseDataConnectionReadyPacket without lock
+    // protection from writer on _selfQueue, but _requestDataConnectionCondition acts as memory barrier
+    // when signaled. For robustness, we assume the signal implies the flag is set.
+    BOOL result = YES;
+    while (!self.handledReceivedL2CAPResponseDataConnectionReadyPacket) {
+      if (![_requestDataConnectionCondition waitUntilDate:requestDataConnectionTimeout]) {
+        result = NO;
+        break;
+      }
+    }
+    
+    [_requestDataConnectionCondition unlock];
+    completion(result);
   });
 }
 
@@ -297,16 +310,16 @@ static NSData *PrefixLengthData(NSData *data) {
         break;
       }
       [_requestDataConnectionCondition lock];
+      _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
+      _handledOutgoingConnectionL2CAPPacket = YES;
+      [_requestDataConnectionCondition broadcast];
+      [_requestDataConnectionCondition unlock];
+
       dispatch_async(_selfQueue, ^{
         [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash))
-            completionBlock:^(BOOL result) {
-              [_requestDataConnectionCondition broadcast];
-              [_requestDataConnectionCondition unlock];
+            completionBlock:^(BOOL result){
             }];
       });
-      _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
-      _handledOutgoingConnectionL2CAPPacket =
-          _handledReceivedL2CAPResponseDataConnectionReadyPacket;
 
     } break;
     case GNCMBLEL2CAPCommandRequestDataConnection: {

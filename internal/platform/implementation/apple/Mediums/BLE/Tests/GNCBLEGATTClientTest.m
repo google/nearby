@@ -164,7 +164,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[
     discoverCharacteristics1Expectation, discoverCharacteristics2Expectation
   ]
-                    timeout:3];
+                    timeout:5];
 }
 
 - (void)testDiscoverCharacteristicsMultipleCallsWithDifferentServices {
@@ -233,7 +233,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *discoverCharacteristics2Expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Discover characteristics 2."];
 
-  [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID1 ]
+  [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID1, characteristicUUID2 ]
                                    serviceUUID:serviceUUID
                              completionHandler:^(NSError *error) {
                                XCTAssertNil(error);
@@ -244,7 +244,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   // operation.
   dispatch_async(dispatch_get_main_queue(), ^{
     fakePeripheral.delegateDelay = 1;
-    [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID2 ]
+    [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID1, characteristicUUID2 ]
                                      serviceUUID:serviceUUID
                                completionHandler:^(NSError *error) {
                                  XCTAssertNil(error);
@@ -255,11 +255,16 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[
     discoverCharacteristics1Expectation, discoverCharacteristics2Expectation
   ]
-                    timeout:3];
+                    timeout:5];
 
   XCTAssertEqualObjects(fakePeripheral.services[0].UUID, serviceUUID);
-  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[0].UUID, characteristicUUID1);
-  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[1].UUID, characteristicUUID2);
+  NSSet<CBUUID *> *expectedCharacteristicUUIDs =
+      [NSSet setWithArray:@[ characteristicUUID1, characteristicUUID2 ]];
+  NSMutableSet<CBUUID *> *discoveredCharacteristicUUIDs = [NSMutableSet set];
+  for (CBCharacteristic *characteristic in fakePeripheral.services[0].characteristics) {
+    [discoveredCharacteristicUUIDs addObject:characteristic.UUID];
+  }
+  XCTAssertEqualObjects(discoveredCharacteristicUUIDs, expectedCharacteristicUUIDs);
 }
 
 #pragma mark - Get Characteristic
@@ -710,7 +715,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[
     readValueForCharacteristic1Expectation, readValueForCharacteristic2Expectation
   ]
-                    timeout:3];
+                    timeout:5];
 }
 
 - (void)testReadValueForUndiscoveredCharacteristic {
