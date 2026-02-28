@@ -99,7 +99,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 - (instancetype)init {
   dispatch_queue_t queue = dispatch_queue_create(kBLEMediumQueueLabel, DISPATCH_QUEUE_SERIAL);
   CBCentralManager *centralManager =
-      [[CBCentralManager alloc] initWithDelegate:self
+      [[CBCentralManager alloc] initWithDelegate:nil
                                            queue:queue
                                          options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
   return [self initWithCentralManager:centralManager queue:queue];
@@ -113,12 +113,12 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   if (self) {
     _queue = queue ?: dispatch_get_main_queue();
     _centralManager = centralManager;
-    _centralManager.centralDelegate = self;
     _gattConnectionCompletionHandlers = [NSMutableDictionary dictionary];
     _gattDisconnectionHandlers = [NSMutableDictionary dictionary];
     _scanningServiceUUIDs = [NSMutableArray array];
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
     _l2capPSM = 0;
+    _centralManager.centralDelegate = self;
   }
   return self;
 }
