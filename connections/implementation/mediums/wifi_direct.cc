@@ -60,7 +60,7 @@ bool WifiDirect::IsGOAvailable() const {
 }
 
 bool WifiDirect::IsGOAvailableLocked() const {
-  if (medium_.IsValid()) return medium_.IsInterfaceValid();
+  if (medium_.IsValid()) return medium_.IsGOInterfaceValid();
   return false;
 }
 
