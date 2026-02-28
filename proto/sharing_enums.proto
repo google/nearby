@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 81
+// Next id: 83
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -331,6 +331,10 @@ enum EventType {
 
   // Cloud sharing RPC performance result
   CLOUD_SHARING_RPC_RESULT = 80;
+
+  // External provider connection events.
+  PROVIDER_CONNECTED = 81;
+  PROVIDER_DISCONNECTED = 82;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
