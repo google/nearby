@@ -20,7 +20,10 @@ cc_library(
     name = "utils",
     hdrs = ["utils.h"],
     compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["//:__subpackages__"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
+    ],
     deps = [
         "//third_party/grpc:grpc++",
         "@com_google_absl//absl/functional:any_invocable",

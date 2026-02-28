@@ -34,6 +34,7 @@ cc_library(
     visibility = [
         "//location/nearby/analytics/cpp/logging:__pkg__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//location/nearby/sharing/sdk/test_client:__pkg__",
         "//sharing:__subpackages__",
     ],
