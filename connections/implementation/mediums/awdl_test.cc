@@ -20,18 +20,15 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/awdl.h"
-#include "internal/platform/base64_utils.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -104,6 +101,61 @@ TEST_P(AwdlTest, CanConnect) {
   CancellationFlag flag;
   ErrorOr<AwdlSocket> socket_for_client_result =
       awdl_client.Connect(service_id, discovered_service_info, &flag);
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
+  EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
+  EXPECT_TRUE(socket_for_server.IsValid());
+  EXPECT_TRUE(socket_for_client_result.has_value());
+  EXPECT_TRUE(socket_for_client_result.value().IsValid());
+  env_.Stop();
+}
+
+TEST_P(AwdlTest, CanConnectWithPsk) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  Awdl awdl_client;
+  Awdl awdl_server;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  api::PskInfo psk_info;
+  psk_info.password = "password";
+  CountDownLatch discovered_latch(1);
+  CountDownLatch accept_latch(1);
+
+  AwdlSocket socket_for_server;
+  EXPECT_TRUE(awdl_server.StartAcceptingConnections(
+      service_id, psk_info,
+      [&](const std::string& service_id, AwdlSocket socket) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
+      }));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  awdl_server.StartAdvertising(service_id, nsd_service_info);
+
+  NsdServiceInfo discovered_service_info;
+  awdl_client.StartDiscovery(
+      service_id,
+      {
+          .service_discovered_cb =
+              [&discovered_latch, &discovered_service_info](
+                  NsdServiceInfo service_info, const std::string& service_id) {
+                LOG(INFO) << "Discovered service_info=" << &service_info;
+                discovered_service_info = service_info;
+                discovered_latch.CountDown();
+              },
+      });
+  discovered_latch.Await(kWaitDuration).result();
+  ASSERT_TRUE(discovered_service_info.IsValid());
+
+  CancellationFlag flag;
+  ErrorOr<AwdlSocket> socket_for_client_result =
+      awdl_client.Connect(service_id, discovered_service_info, psk_info, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
@@ -206,6 +258,115 @@ TEST_F(AwdlTest, CanStartAdvertising) {
   env_.Stop();
 }
 
+TEST_F(AwdlTest, StartAdvertisingFailsWithInvalidNsdServiceInfo) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+
+  NsdServiceInfo nsd_service_info;
+  ErrorOr<bool> result = awdl_a.StartAdvertising(service_id, nsd_service_info);
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_NSD_NOT_AVAILABLE);
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StopAdvertisingFailsIfNotAdvertising) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+
+  EXPECT_FALSE(awdl_a.StopAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StartAdvertisingFailsIfAlreadyAdvertising) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  EXPECT_TRUE(awdl_a.StartAdvertising(service_id, nsd_service_info));
+  ErrorOr<bool> result = awdl_a.StartAdvertising(service_id, nsd_service_info);
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            location::nearby::proto::connections::OperationResultCode::
+                CLIENT_AWDL_DUPLICATE_ADVERTISING);
+  EXPECT_TRUE(awdl_a.StopAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StartAdvertisingFailsIfNotAcceptingConnections) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  ErrorOr<bool> result = awdl_a.StartAdvertising(service_id, nsd_service_info);
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            location::nearby::proto::connections::OperationResultCode::
+                CLIENT_DUPLICATE_ACCEPTING_AWDL_CONNECTION_REQUEST);
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StartAdvertisingUpdatesNsdServiceInfo) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  EXPECT_TRUE(awdl_a.StartAdvertising(service_id, nsd_service_info));
+  EXPECT_FALSE(nsd_service_info.GetServiceType().empty());
+  EXPECT_FALSE(nsd_service_info.GetIPAddress().empty());
+  EXPECT_GT(nsd_service_info.GetPort(), 0);
+  EXPECT_TRUE(awdl_a.StopAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, CanStartAcceptingConnectionsWithPsk) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  api::PskInfo psk_info;
+  psk_info.password = "password";
+
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, psk_info, {}));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  EXPECT_TRUE(awdl_a.StartAdvertising(service_id, nsd_service_info));
+  EXPECT_EQ(awdl_a.GetCredentials(service_id).password, "password");
+  EXPECT_TRUE(awdl_a.StopAdvertising(service_id));
+  env_.Stop();
+}
+
 TEST_F(AwdlTest, CanStartMultipleAdvertising) {
   env_.Start();
   Awdl awdl_a;
@@ -232,6 +393,32 @@ TEST_F(AwdlTest, CanStartMultipleAdvertising) {
   EXPECT_TRUE(awdl_a.StopAdvertising(service_id_2));
   EXPECT_TRUE(awdl_a.StopAcceptingConnections(service_id_1));
   EXPECT_TRUE(awdl_a.StopAcceptingConnections(service_id_2));
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StartAcceptingConnectionsFailsWithEmptyServiceId) {
+  env_.Start();
+  Awdl awdl_a;
+  ErrorOr<bool> result = awdl_a.StartAcceptingConnections("", {});
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            location::nearby::proto::connections::OperationResultCode::
+                NEARBY_LOCAL_CLIENT_STATE_WRONG);
+  env_.Stop();
+}
+
+TEST_F(AwdlTest, StartAcceptingConnectionsFailsIfAlreadyAccepting) {
+  env_.Start();
+  Awdl awdl_a;
+  std::string service_id(kServiceID);
+
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  ErrorOr<bool> result = awdl_a.StartAcceptingConnections(service_id, {});
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            location::nearby::proto::connections::OperationResultCode::
+                CLIENT_DUPLICATE_ACCEPTING_AWDL_CONNECTION_REQUEST);
+  awdl_a.StopAcceptingConnections(service_id);
   env_.Stop();
 }
 
