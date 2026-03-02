@@ -17,6 +17,7 @@
 #include <memory>
 #include <utility>
 
+#include "google/nearby/identity/v1/binding.pb.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -36,12 +37,23 @@ using ::google::nearby::identity::v1::PublishDeviceRequest;
 using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
 using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsRequest;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsResponse;
+using ::google::nearby::identity::v1::InitiateBindingRequest;
+using ::google::nearby::identity::v1::InitiateBindingResponse;
+using ::google::nearby::identity::v1::JoinBindingRequest;
+using ::google::nearby::identity::v1::JoinBindingResponse;
+using ::google::nearby::identity::v1::DeleteBindingRequest;
+using ::google::nearby::identity::v1::DeleteBindingResponse;
 
 void FakeNearbyShareClient::ListContactPeople(
     proto::ListContactPeopleRequest request,
     absl::AnyInvocable<void(
         const absl::StatusOr<proto::ListContactPeopleResponse>& response) &&>
         callback) {
+  absl::MutexLock lock(mutex_);
   list_contact_people_requests_.emplace_back(request);
   if (list_contact_people_responses_.empty()) {
     std::move(callback)(absl::NotFoundError(""));
@@ -49,6 +61,57 @@ void FakeNearbyShareClient::ListContactPeople(
   }
   auto response = list_contact_people_responses_[0];
   list_contact_people_responses_.erase(list_contact_people_responses_.begin());
+  std::move(callback)(response);
+}
+
+void FakeNearbyShareClient::InitiateBinding(
+    InitiateBindingRequest request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<InitiateBindingResponse>& response) &&>
+        callback) {
+  absl::StatusOr<InitiateBindingResponse> response = absl::NotFoundError("");
+  {
+    absl::MutexLock lock(mutex_);
+    initiate_binding_requests_.emplace_back(request);
+    if (!initiate_binding_responses_.empty()) {
+      response = initiate_binding_responses_[0];
+      initiate_binding_responses_.erase(initiate_binding_responses_.begin());
+    }
+  }
+  std::move(callback)(response);
+}
+
+void FakeNearbyShareClient::JoinBinding(
+    JoinBindingRequest request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<JoinBindingResponse>& response) &&>
+        callback) {
+  absl::StatusOr<JoinBindingResponse> response = absl::NotFoundError("");
+  {
+    absl::MutexLock lock(mutex_);
+    join_binding_requests_.emplace_back(request);
+    if (!join_binding_responses_.empty()) {
+      response = join_binding_responses_[0];
+      join_binding_responses_.erase(join_binding_responses_.begin());
+    }
+  }
+  std::move(callback)(response);
+}
+
+void FakeNearbyShareClient::DeleteBinding(
+    DeleteBindingRequest request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<DeleteBindingResponse>& response) &&>
+        callback) {
+  absl::StatusOr<DeleteBindingResponse> response = absl::NotFoundError("");
+  {
+    absl::MutexLock lock(mutex_);
+    delete_binding_requests_.emplace_back(request);
+    if (!delete_binding_responses_.empty()) {
+      response = delete_binding_responses_[0];
+      delete_binding_responses_.erase(delete_binding_responses_.begin());
+    }
+  }
   std::move(callback)(response);
 }
 
@@ -98,6 +161,26 @@ void FakeNearbyIdentityClient::GetAccountInfo(
     absl::MutexLock lock(mutex_);
     get_account_info_requests_.emplace_back(request);
     response = get_account_info_response_;
+  }
+  std::move(callback)(response);
+}
+
+void FakeNearbyIdentityClient::QuerySharedCredentialsWithBindingIds(
+    QuerySharedCredentialsWithBindingIdsRequest request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<QuerySharedCredentialsWithBindingIdsResponse>&
+                 response) &&>
+        callback) {
+  absl::StatusOr<QuerySharedCredentialsWithBindingIdsResponse> response =
+      absl::NotFoundError("");
+  {
+    absl::MutexLock lock(mutex_);
+    query_shared_credentials_with_binding_ids_requests_.emplace_back(request);
+    if (!query_shared_credentials_with_binding_ids_responses_.empty()) {
+      response = query_shared_credentials_with_binding_ids_responses_[0];
+      query_shared_credentials_with_binding_ids_responses_.erase(
+          query_shared_credentials_with_binding_ids_responses_.begin());
+    }
   }
   std::move(callback)(response);
 }
