@@ -46,6 +46,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//sharing:__subpackages__",
     ],
@@ -226,7 +227,10 @@ cc_library(
     name = "platform_impl",
     testonly = True,
     tags = ["keep_dep"],  # Prevent build_cleaner from removing the dependency.
-    visibility = ["//:__subpackages__"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
+    ],
     deps = [
     ] + select({
         "@platforms//os:windows": [

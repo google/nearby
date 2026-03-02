@@ -257,6 +257,7 @@ cc_library(
         "//:__subpackages__",
         "//location/nearby/apps:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
     ],
