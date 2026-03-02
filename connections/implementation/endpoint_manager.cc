@@ -813,9 +813,8 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
   // TODO(b/303544913): clean up the safe-to-disconnect logic
   bool is_safe_disconnection = false;
   bool send_disconnection_frame = true;
-  absl::Duration timeout_millis = FeatureFlags::GetInstance()
-                                      .GetFlags()
-                                      .safe_to_disconnect_ack_delay_millis;
+  FeatureFlags::Flags flags = FeatureFlags::GetInstance().GetFlags();
+  absl::Duration timeout_millis = flags.safe_to_disconnect_ack_delay_millis;
   bool is_wait_for_ack = true;
   switch (reason) {
     case DisconnectionReason::UPGRADED:
@@ -832,9 +831,7 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
     case DisconnectionReason::REMOTE_DISCONNECTION:
       is_safe_disconnection = true;
       send_disconnection_frame = false;
-      timeout_millis = FeatureFlags::GetInstance()
-                           .GetFlags()
-                           .safe_to_disconnect_remote_disc_delay_millis;
+      timeout_millis = flags.safe_to_disconnect_remote_disc_delay_millis;
       is_wait_for_ack = false;
       break;
     default:

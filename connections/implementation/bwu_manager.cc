@@ -83,22 +83,19 @@ BwuManager::BwuManager(
       mediums_(&mediums),
       endpoint_manager_(&endpoint_manager),
       channel_manager_(&channel_manager) {
+  FeatureFlags::Flags flags = FeatureFlags::GetInstance().GetFlags();
   if (config_.bandwidth_upgrade_retry_delay == absl::ZeroDuration()) {
-    if (FeatureFlags::GetInstance().GetFlags().use_exp_backoff_in_bwu_retry) {
+    if (flags.use_exp_backoff_in_bwu_retry) {
       config_.bandwidth_upgrade_retry_delay =
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .bwu_retry_exp_backoff_initial_delay;
+          flags.bwu_retry_exp_backoff_initial_delay;
     } else {
       config_.bandwidth_upgrade_retry_delay = absl::Seconds(5);
     }
   }
   if (config_.bandwidth_upgrade_retry_max_delay == absl::ZeroDuration()) {
-    if (FeatureFlags::GetInstance().GetFlags().use_exp_backoff_in_bwu_retry) {
+    if (flags.use_exp_backoff_in_bwu_retry) {
       config_.bandwidth_upgrade_retry_max_delay =
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .bwu_retry_exp_backoff_maximum_delay;
+          flags.bwu_retry_exp_backoff_maximum_delay;
     } else {
       config_.bandwidth_upgrade_retry_max_delay = absl::Seconds(10);
     }

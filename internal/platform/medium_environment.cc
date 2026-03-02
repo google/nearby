@@ -1147,7 +1147,7 @@ void MediumEnvironment::UnregisterWifiHotspotMedium(
 }
 
 void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
-  const_cast<FeatureFlags&>(FeatureFlags::GetInstance()).SetFlags(flags);
+  FeatureFlags::GetMutableInstanceForTesting().SetFlags(flags);
 }
 
 std::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {

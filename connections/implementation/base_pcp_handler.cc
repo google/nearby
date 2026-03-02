@@ -2052,11 +2052,12 @@ Exception BasePcpHandler::OnIncomingConnection(
     LOG(WARNING) << "Incoming connection has wrong keep-alive frame interval="
                  << connection_options.keep_alive_interval_millis
                  << ", timeout=" << connection_options.keep_alive_timeout_millis
-                 << " values; correct them as default.",
-        connection_options.keep_alive_interval_millis =
-            FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
+                 << " values; correct them as default.";
+    FeatureFlags::Flags flags = FeatureFlags::GetInstance().GetFlags();
+    connection_options.keep_alive_interval_millis =
+        flags.keep_alive_interval_millis;
     connection_options.keep_alive_timeout_millis =
-        FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
+        flags.keep_alive_timeout_millis;
   }
 
   const MediumMetadata& medium_metadata = connection_request.medium_metadata();

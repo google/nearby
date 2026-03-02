@@ -120,6 +120,13 @@ class BwuManagerTest : public ::testing::Test {
 
   ~BwuManagerTest() override { bwu_manager_->Shutdown(); }
 
+  void SetSupportMultipleBwuMediums(bool support_multiple_bwu_mediums) {
+    FeatureFlags& feature_flags = FeatureFlags::GetMutableInstanceForTesting();
+    FeatureFlags::Flags flags = feature_flags.GetFlags();
+    flags.support_multiple_bwu_mediums = support_multiple_bwu_mediums;
+    feature_flags.SetFlags(flags);
+  }
+
   // Create the initial device-to-device connection, before bandwidth upgrade.
   // Typically |medium| will be Bluetooth.
   FakeEndpointChannel* CreateInitialEndpoint(ClientProxy* client,
@@ -315,8 +322,7 @@ class BwuManagerTestParam : public BwuManagerTest,
                             public ::testing::WithParamInterface<bool> {
  protected:
   BwuManagerTestParam() {
-    FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums =
-        GetParam();
+    SetSupportMultipleBwuMediums(GetParam());
   }
 };
 
@@ -475,7 +481,7 @@ TEST_P(BwuManagerTestParam,
 
 TEST_F(BwuManagerTest,
        InitiateBwu_Revert_OnDisconnect_MultipleEndpoints_FlagEnabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   // Say we have two already upgraded WebRTC connections for the same service.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -524,8 +530,7 @@ TEST_F(BwuManagerTest,
 
 TEST_F(BwuManagerTest,
        InitiateBwu_Revert_OnDisconnect_MultipleEndpoints_FlagDisabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums =
-      false;
+  SetSupportMultipleBwuMediums(false);
 
   // Say we have two already upgraded WebRTC connections for the same service.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -581,7 +586,7 @@ TEST_F(BwuManagerTest,
 
 TEST_F(BwuManagerTest,
        InitiateBwu_Revert_OnDisconnect_MultipleServices_FlagEnabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   // Say we have two already upgraded WLAN connections for different services.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -635,8 +640,7 @@ TEST_F(BwuManagerTest,
 
 TEST_F(BwuManagerTest,
        InitiateBwu_Revert_OnDisconnect_MultipleServices_FlagDisabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums =
-      false;
+  SetSupportMultipleBwuMediums(false);
 
   // Say we have two already upgraded WLAN connections for different services.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -694,7 +698,7 @@ TEST_F(
     BwuManagerTest,
     InitiateBwu_Revert_OnDisconnect_MultipleServicesAndEndpoints_FlagEnabled) {
   // Need support_multiple_bwu_mediums_ to run this test with multiple mediums.
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   // Say we have three upgraded connections for two different services and two
   // different mediums.
@@ -843,7 +847,7 @@ TEST_F(
 }
 
 TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagEnabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   // Say we have two already upgraded WebRTC connections for service A.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -880,8 +884,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagEnabled) {
 }
 
 TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums =
-      false;
+  SetSupportMultipleBwuMediums(false);
 
   // Say we have two already upgraded WebRTC connections for service A.
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
@@ -917,7 +920,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
 }
 
 TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
   OfflineFrame frame;
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
@@ -951,7 +954,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
 }
 
 TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
@@ -981,7 +984,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
 }
 
 TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
-  FeatureFlags::GetMutableFlagsForTesting().support_multiple_bwu_mediums = true;
+  SetSupportMultipleBwuMediums(true);
 
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 

@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
@@ -74,7 +75,7 @@ class CancellationFlag {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   int CancelListenersSize() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(mutex_.get());
+    absl::MutexLock lock(*mutex_);
     return listeners_.size();
   }
 

@@ -158,7 +158,7 @@ class BaseEndpointChannel : public EndpointChannel {
   // An encryptor/decryptor. May be null.
   mutable Mutex crypto_mutex_;
   std::shared_ptr<EncryptionContext> crypto_context_
-      ABSL_GUARDED_BY(crypto_mutex_) ABSL_PT_GUARDED_BY(crypto_mutex_);
+      ABSL_GUARDED_BY(crypto_mutex_);
 
   mutable Mutex is_paused_mutex_;
   ConditionVariable is_paused_cond_{&is_paused_mutex_};

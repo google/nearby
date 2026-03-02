@@ -13,7 +13,10 @@
 // limitations under the License.
 
 #include "internal/platform/cancellation_flag.h"
+#include <memory>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/feature_flags.h"
 
 namespace nearby {
@@ -28,7 +31,7 @@ CancellationFlag::CancellationFlag(bool cancelled) {
 }
 
 CancellationFlag::~CancellationFlag() {
-  absl::MutexLock lock(*mutex_.get());
+  absl::MutexLock lock(*mutex_);
   listeners_.clear();
 }
 
@@ -40,7 +43,7 @@ void CancellationFlag::Cancel() {
 
   absl::flat_hash_set<CancelListener *> listeners;
   {
-    absl::MutexLock lock(*mutex_.get());
+    absl::MutexLock lock(*mutex_);
     if (cancelled_) {
       // Someone already cancelled. Return immediately.
       return;
@@ -62,14 +65,14 @@ void CancellationFlag::Uncancel() {
   }
 
   {
-    absl::MutexLock lock(*mutex_.get());
+    absl::MutexLock lock(*mutex_);
     assert(cancelled_);
     cancelled_ = false;
   }
 }
 
 bool CancellationFlag::Cancelled() const {
-  absl::MutexLock lock(*mutex_.get());
+  absl::MutexLock lock(*mutex_);
 
   // Return false as no-op if feature flag is not enabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
@@ -80,13 +83,13 @@ bool CancellationFlag::Cancelled() const {
 }
 
 void CancellationFlag::RegisterOnCancelListener(CancelListener *listener) {
-  absl::MutexLock lock(*mutex_.get());
+  absl::MutexLock lock(*mutex_);
 
   listeners_.emplace(listener);
 }
 
 void CancellationFlag::UnregisterOnCancelListener(CancelListener *listener) {
-  absl::MutexLock lock(*mutex_.get());
+  absl::MutexLock lock(*mutex_);
 
   listeners_.erase(listener);
 }
