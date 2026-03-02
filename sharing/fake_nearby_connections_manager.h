@@ -124,7 +124,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
 
   std::optional<std::vector<uint8_t>> connection_endpoint_info(
       absl::string_view endpoint_id) {
-    absl::MutexLock lock(&endpoints_mutex_);
+    absl::MutexLock lock(endpoints_mutex_);
     auto it = connection_endpoint_infos_.find(std::string(endpoint_id));
     if (it == connection_endpoint_infos_.end()) return std::nullopt;
 
@@ -132,7 +132,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   }
 
   bool has_incoming_payloads() {
-    absl::MutexLock lock(&incoming_payloads_mutex_);
+    absl::MutexLock lock(incoming_payloads_mutex_);
     return !incoming_payloads_.empty();
   }
 
