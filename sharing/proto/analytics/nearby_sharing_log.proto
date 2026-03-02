@@ -894,6 +894,7 @@ message SharingLog {
     repeated WifiCredentialsAttachment wifi_credentials_attachment = 4;
     repeated AppAttachment app_attachment = 5;
     repeated StreamAttachment stream_attachment = 6;
+    repeated FolderAttachment folder_attachment = 7;
   }
 
   message TextAttachment {
@@ -969,6 +970,8 @@ message SharingLog {
     // The duration from transfer start to transfer end.
     optional int64 duration_millis = 8;
   }
+
+  message FolderAttachment {}
 
   // EventType: APP_CRASH
   // Used only for Nearby Share Windows App now
