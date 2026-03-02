@@ -39,11 +39,13 @@ class FakeNearbyShareClient : public nearby::sharing::api::SharingRpcClient {
 
   std::vector<nearby::sharing::proto::ListContactPeopleRequest>&
   list_contact_people_requests() {
+    absl::MutexLock lock(mutex_);
     return list_contact_people_requests_;
   }
 
   void SetListContactPeopleResponses(
       std::vector<absl::StatusOr<proto::ListContactPeopleResponse>> responses) {
+    absl::MutexLock lock(mutex_);
     list_contact_people_responses_ = responses;
   }
 
@@ -53,10 +55,89 @@ class FakeNearbyShareClient : public nearby::sharing::api::SharingRpcClient {
           const absl::StatusOr<proto::ListContactPeopleResponse>& response) &&>
           callback) override;
 
+  std::vector<google::nearby::identity::v1::InitiateBindingRequest>&
+  initiate_binding_requests() {
+    absl::MutexLock lock(mutex_);
+    return initiate_binding_requests_;
+  }
+
+  void SetInitiateBindingResponses(
+      std::vector<absl::StatusOr<google::nearby::identity::v1::
+                                      InitiateBindingResponse>>
+          responses) {
+    absl::MutexLock lock(mutex_);
+    initiate_binding_responses_ = responses;
+  }
+
+  void InitiateBinding(
+      google::nearby::identity::v1::InitiateBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        InitiateBindingResponse>& response) &&>
+          callback) override;
+
+  std::vector<google::nearby::identity::v1::JoinBindingRequest>&
+  join_binding_requests() {
+    absl::MutexLock lock(mutex_);
+    return join_binding_requests_;
+  }
+
+  void SetJoinBindingResponses(
+      std::vector<absl::StatusOr<google::nearby::identity::v1::
+                                      JoinBindingResponse>>
+          responses) {
+    absl::MutexLock lock(mutex_);
+    join_binding_responses_ = responses;
+  }
+
+  void JoinBinding(
+      google::nearby::identity::v1::JoinBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        JoinBindingResponse>& response) &&>
+          callback) override;
+
+  std::vector<google::nearby::identity::v1::DeleteBindingRequest>&
+  delete_binding_requests() {
+    absl::MutexLock lock(mutex_);
+    return delete_binding_requests_;
+  }
+
+  void SetDeleteBindingResponses(
+      std::vector<absl::StatusOr<google::nearby::identity::v1::
+                                      DeleteBindingResponse>>
+          responses) {
+    absl::MutexLock lock(mutex_);
+    delete_binding_responses_ = responses;
+  }
+
+  void DeleteBinding(
+      google::nearby::identity::v1::DeleteBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        DeleteBindingResponse>& response) &&>
+          callback) override;
+
+ private:
+  absl::Mutex mutex_;
   std::vector<nearby::sharing::proto::ListContactPeopleRequest>
-      list_contact_people_requests_;
+      list_contact_people_requests_ ABSL_GUARDED_BY(mutex_);
   std::vector<absl::StatusOr<proto::ListContactPeopleResponse>>
-      list_contact_people_responses_;
+      list_contact_people_responses_ ABSL_GUARDED_BY(mutex_);
+  std::vector<google::nearby::identity::v1::InitiateBindingRequest>
+      initiate_binding_requests_ ABSL_GUARDED_BY(mutex_);
+  std::vector<
+      absl::StatusOr<google::nearby::identity::v1::InitiateBindingResponse>>
+      initiate_binding_responses_ ABSL_GUARDED_BY(mutex_);
+  std::vector<google::nearby::identity::v1::JoinBindingRequest>
+      join_binding_requests_ ABSL_GUARDED_BY(mutex_);
+  std::vector<absl::StatusOr<google::nearby::identity::v1::JoinBindingResponse>>
+      join_binding_responses_ ABSL_GUARDED_BY(mutex_);
+  std::vector<google::nearby::identity::v1::DeleteBindingRequest>
+      delete_binding_requests_ ABSL_GUARDED_BY(mutex_);
+  std::vector<
+      absl::StatusOr<google::nearby::identity::v1::DeleteBindingResponse>>
+      delete_binding_responses_ ABSL_GUARDED_BY(mutex_);
 };
 
 // A fake implementation of the Nearby Identity RPC client that stores all
@@ -130,6 +211,32 @@ class FakeNearbyIdentityClient
     get_account_info_response_ = response;
   }
 
+  std::vector<google::nearby::identity::v1::
+                  QuerySharedCredentialsWithBindingIdsRequest>&
+  query_shared_credentials_with_binding_ids_requests()
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    return query_shared_credentials_with_binding_ids_requests_;
+  }
+
+  void QuerySharedCredentialsWithBindingIds(
+      google::nearby::identity::v1::QuerySharedCredentialsWithBindingIdsRequest
+          request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<
+               google::nearby::identity::v1::
+                   QuerySharedCredentialsWithBindingIdsResponse>& response) &&>
+          callback) ABSL_LOCKS_EXCLUDED(mutex_) override;
+
+  void SetQuerySharedCredentialsWithBindingIdsResponse(
+      std::vector<absl::StatusOr<
+          google::nearby::identity::v1::
+              QuerySharedCredentialsWithBindingIdsResponse>>
+          responses) ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    query_shared_credentials_with_binding_ids_responses_ = responses;
+  }
+
  private:
   absl::Mutex mutex_;
   std::vector<google::nearby::identity::v1::PublishDeviceRequest>
@@ -148,6 +255,15 @@ class FakeNearbyIdentityClient
       get_account_info_requests_ ABSL_GUARDED_BY(mutex_);
   absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
       get_account_info_response_ ABSL_GUARDED_BY(mutex_);
+
+  std::vector<
+      google::nearby::identity::v1::QuerySharedCredentialsWithBindingIdsRequest>
+      query_shared_credentials_with_binding_ids_requests_
+          ABSL_GUARDED_BY(mutex_);
+  std::vector<absl::StatusOr<google::nearby::identity::v1::
+                                 QuerySharedCredentialsWithBindingIdsResponse>>
+      query_shared_credentials_with_binding_ids_responses_
+          ABSL_GUARDED_BY(mutex_);
 };
 
 class FakeNearbyShareClientFactory

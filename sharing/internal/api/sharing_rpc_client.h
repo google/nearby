@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "google/nearby/identity/v1/binding.pb.h"
 #include "google/nearby/identity/v1/rpcs.pb.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
@@ -53,6 +54,15 @@ class IdentityRpcClient {
           void(const absl::StatusOr<google::nearby::identity::v1::
                                         GetAccountInfoResponse>& response) &&>
           callback) = 0;
+
+  virtual void QuerySharedCredentialsWithBindingIds(
+      google::nearby::identity::v1::QuerySharedCredentialsWithBindingIdsRequest
+          request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<
+               google::nearby::identity::v1::
+                   QuerySharedCredentialsWithBindingIdsResponse>& response) &&>
+          callback) = 0;
 };
 
 // SharingRpcClient is used to access Nearby Share backend APIs.
@@ -66,6 +76,27 @@ class SharingRpcClient {
       proto::ListContactPeopleRequest request,
       absl::AnyInvocable<void(
           const absl::StatusOr<proto::ListContactPeopleResponse>& response) &&>
+          callback) = 0;
+
+  virtual void InitiateBinding(
+      google::nearby::identity::v1::InitiateBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        InitiateBindingResponse>& response) &&>
+          callback) = 0;
+
+  virtual void JoinBinding(
+      google::nearby::identity::v1::JoinBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        JoinBindingResponse>& response) &&>
+          callback) = 0;
+
+  virtual void DeleteBinding(
+      google::nearby::identity::v1::DeleteBindingRequest request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        DeleteBindingResponse>& response) &&>
           callback) = 0;
 };
 
