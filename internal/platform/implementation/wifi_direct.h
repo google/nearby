@@ -90,6 +90,9 @@ class WifiDirectMedium {
   // If the WiFi Adaptor supports to start a WifiDirect interface.
   virtual bool IsInterfaceValid() const = 0;
 
+  // If the WiFi Adaptor supports to start a WifiDirect interface GO.
+  virtual bool IsGOInterfaceValid() const = 0;
+
   // Connects to a WifiDirect service by port.
   // On success, returns a new WifiDirectSocket.
   // On error, returns nullptr.
