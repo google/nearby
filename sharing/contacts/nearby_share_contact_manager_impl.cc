@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -111,10 +112,10 @@ void ContactDownloadContext::FetchNextPage() {
 }  // namespace
 
 NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
-    Context* context, AccountManager& account_manager,
-    nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory)
+    Context* absl_nonnull context, AccountManager& account_manager,
+    nearby::sharing::api::SharingRpcClient* absl_nonnull nearby_client)
     : account_manager_(account_manager),
-      nearby_share_client_(nearby_client_factory->CreateInstance()),
+      nearby_share_client_(*nearby_client),
       executor_(context->CreateSequencedTaskRunner()) {}
 
 void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
@@ -130,7 +131,7 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
 
     absl::Notification notification;
     auto context = std::make_unique<ContactDownloadContext>(
-        nearby_share_client_.get(),
+        &nearby_share_client_,
         [&notification, callback = std::move(callback)](
             absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
                 contacts,

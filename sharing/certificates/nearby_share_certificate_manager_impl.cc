@@ -33,6 +33,7 @@
 #include "google/protobuf/timestamp.pb.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/algorithm/algorithm.h"
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
@@ -200,12 +201,12 @@ NearbyShareCertificateManagerImpl::Factory::Create(
     Context* context, SharingPlatform& sharing_platform,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     const FilePath& profile_path,
-    nearby::sharing::api::SharingRpcClientFactory* client_factory) {
+    nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client) {
   DCHECK(context);
 
   if (test_factory_) {
     return test_factory_->CreateInstance(context, local_device_data_manager,
-                                         profile_path, client_factory);
+                                         profile_path, identity_client);
   }
 
   FilePath database_path = profile_path;
@@ -214,7 +215,7 @@ NearbyShareCertificateManagerImpl::Factory::Create(
       context, sharing_platform.GetPreferenceManager(),
       sharing_platform.GetAccountManager(),
       sharing_platform.CreatePublicCertificateDatabase(database_path),
-      local_device_data_manager, client_factory));
+      local_device_data_manager, identity_client));
 }
 
 // static
@@ -230,12 +231,12 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
     AccountManager& account_manager,
     std::unique_ptr<PublicCertificateDatabase> public_certificate_database,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
-    nearby::sharing::api::SharingRpcClientFactory* client_factory)
+    nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client)
     : context_(context),
       account_manager_(account_manager),
       local_device_data_manager_(local_device_data_manager),
       preference_manager_(preference_manager),
-      nearby_identity_client_(client_factory->CreateIdentityInstance()),
+      nearby_identity_client_(identity_client),
       certificate_storage_(NearbyShareCertificateStorageImpl::Factory::Create(
           preference_manager, std::move(public_certificate_database))),
       private_certificate_expiration_scheduler_(
@@ -419,7 +420,7 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
   bool download_succeeded = false;
   absl::Notification notification;
   auto context = std::make_unique<CertificateDownloadContext>(
-      nearby_identity_client_.get(), std::move(device_id),
+      nearby_identity_client_, std::move(device_id),
       [this, &download_succeeded, &notification](
           absl::StatusOr<std::vector<PublicCertificate>> certificates_status) {
         if (!certificates_status.ok()) {

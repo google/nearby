@@ -47,6 +47,7 @@ cc_library(
         "//sharing/internal/public:logging",
         "//sharing/internal/public:types",
         "//sharing/proto:share_cc_proto",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/synchronization",
     ],

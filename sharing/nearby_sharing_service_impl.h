@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -102,8 +103,9 @@ class NearbySharingServiceImpl
   NearbySharingServiceImpl(
       std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
       nearby::sharing::api::SharingPlatform& sharing_platform,
-      std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
-          nearby_share_client_factory,
+      nearby::sharing::api::IdentityRpcClient* absl_nonnull
+          nearby_identity_client,
+      nearby::sharing::api::SharingRpcClient* absl_nonnull nearby_share_client,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
       std::unique_ptr<NearbyShareContactManager> contact_manager,
       analytics::AnalyticsRecorder* analytics_recorder,
@@ -415,8 +417,8 @@ class NearbySharingServiceImpl
   const bool supports_file_sync_;
 
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
-  std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
-      nearby_share_client_factory_;
+  nearby::sharing::api::SharingRpcClient* absl_nonnull const
+      nearby_share_client_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> local_device_data_manager_;
   std::unique_ptr<NearbyShareContactManager> contact_manager_;
   std::unique_ptr<NearbyShareCertificateManager> certificate_manager_;

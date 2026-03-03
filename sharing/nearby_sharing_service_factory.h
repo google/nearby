@@ -17,6 +17,8 @@
 
 #include <memory>
 
+#include "location/nearby/sharing/lib/rpc/grpc_async_client_factory.h"
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "internal/analytics/event_logger.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -41,6 +43,11 @@ class NearbySharingServiceFactory {
 
   std::unique_ptr<Context> context_;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
+  std::unique_ptr<nearby::sharing::platform::common::GrpcAsyncClientFactory>
+      nearby_share_client_factory_;
+  std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
+  std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
+      nearby_identity_client_;
 };
 
 }  // namespace nearby::sharing

@@ -61,7 +61,7 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
         Context* context,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
         const FilePath& profile_path,
-        nearby::sharing::api::SharingRpcClientFactory* client_factory) override;
+        nearby::sharing::api::IdentityRpcClient* identity_client) override;
 
     std::vector<FakeNearbyShareCertificateManager*> instances_;
   };

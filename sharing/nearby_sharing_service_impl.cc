@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
@@ -113,7 +114,8 @@ using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
 using ::nearby::sharing::api::SharingPlatform;
-using ::nearby::sharing::api::SharingRpcClientFactory;
+using ::nearby::sharing::api::SharingRpcClient;
+using ::nearby::sharing::api::IdentityRpcClient;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
@@ -234,7 +236,9 @@ std::string SendSurfaceStateToString(
 NearbySharingServiceImpl::NearbySharingServiceImpl(
     std::unique_ptr<TaskRunner> service_thread, Context* context,
     SharingPlatform& sharing_platform,
-    std::unique_ptr<SharingRpcClientFactory> nearby_share_client_factory,
+    nearby::sharing::api::IdentityRpcClient* absl_nonnull
+        nearby_identity_client,
+    nearby::sharing::api::SharingRpcClient* absl_nonnull nearby_share_client,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     std::unique_ptr<NearbyShareContactManager> contact_manager,
     analytics::AnalyticsRecorder* analytics_recorder, bool supports_file_sync)
@@ -246,7 +250,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       analytics_recorder_(*analytics_recorder),
       supports_file_sync_(supports_file_sync),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
-      nearby_share_client_factory_(std::move(nearby_share_client_factory)),
+      nearby_share_client_(nearby_share_client),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               preference_manager_, account_manager_, device_info_)),
@@ -279,7 +283,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      profile_path, nearby_share_client_factory_.get()),
+      profile_path, nearby_identity_client);
 
   certificate_manager_->AddObserver(this);
   context_->GetConnectivityManager()->RegisterLanListener(

@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -483,10 +484,10 @@ class NearbySharingServiceImplTest : public testing::Test {
       std::unique_ptr<FakeTaskRunner> task_runner) {
     return std::make_unique<NearbySharingServiceImpl>(
         std::move(task_runner), &fake_context_, mock_sharing_platform_,
-        /*nearby_share_client_factory=*/nullptr,
+        &nearby_identity_client_, &nearby_share_client_,
         absl::WrapUnique(fake_nearby_connections_manager_),
-        absl::WrapUnique(contact_manager_),
-        analytics_recorder_.get(), /*supports_file_sync=*/false);
+        absl::WrapUnique(contact_manager_), analytics_recorder_.get(),
+        /*supports_file_sync=*/false);
   }
 
   void SetVisibility(DeviceVisibility visibility) {
@@ -1278,6 +1279,8 @@ class NearbySharingServiceImplTest : public testing::Test {
       ABSL_GUARDED_BY(connection_output_mutex_);
   std::queue<PayloadInfo> written_payloads_
       ABSL_GUARDED_BY(connection_output_mutex_);
+  FakeNearbyIdentityClient nearby_identity_client_;
+  FakeNearbyShareClient nearby_share_client_;
 };
 
 struct ValidSendSurfaceTestData {
