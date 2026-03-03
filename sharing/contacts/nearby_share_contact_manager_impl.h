@@ -17,10 +17,10 @@
 
 #include <memory>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 
 namespace nearby {

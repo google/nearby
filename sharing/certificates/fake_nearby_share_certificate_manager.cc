@@ -23,12 +23,12 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "internal/base/file_path.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"

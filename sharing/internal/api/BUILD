@@ -28,7 +28,6 @@ cc_library(
         "private_certificate_data.h",
         "public_certificate_database.h",
         "sharing_platform.h",
-        "sharing_rpc_client.h",
         "system_info.h",
     ],
     visibility = [
@@ -39,8 +38,6 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
-        "//google/nearby/identity/v1:binding_cc_proto",
-        "//google/nearby/identity/v1:rpcs_cc_proto",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
         "//internal/platform:types",
@@ -59,11 +56,7 @@ cc_library(
 cc_library(
     name = "mock_sharing_platform",
     testonly = True,
-    srcs = [
-        "fake_nearby_share_client.cc",
-    ],
     hdrs = [
-        "fake_nearby_share_client.h",
         "mock_app_info.h",
         "mock_bluetooth_adapter.h",
         "mock_fast_init_ble_beacon.h",
@@ -76,7 +69,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":platform",
-        "//google/nearby/identity/v1:binding_cc_proto",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
         "//internal/platform:types",

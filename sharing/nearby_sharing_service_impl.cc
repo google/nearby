@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
@@ -72,7 +73,6 @@
 #include "sharing/incoming_share_session.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"

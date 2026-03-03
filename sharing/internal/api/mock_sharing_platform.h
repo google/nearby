@@ -22,11 +22,9 @@
 #include "gmock/gmock.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/app_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_init_ble_beacon.h"
@@ -35,7 +33,6 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/api/system_info.h"
 
 namespace nearby::sharing::api {
@@ -79,11 +76,6 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(std::unique_ptr<PublicCertificateDatabase>,
               CreatePublicCertificateDatabase, (const FilePath& database_path),
               (override));
-  MOCK_METHOD(
-      std::unique_ptr<SharingRpcClientFactory>, CreateSharingRpcClientFactory,
-      (Clock * clock,
-       nearby::sharing::analytics::AnalyticsRecorder* analytics_recorder),
-      (override));
   MOCK_METHOD(bool, UpdateFileOriginMetadata,
               (std::vector<FilePath> & file_paths), (override));
 };

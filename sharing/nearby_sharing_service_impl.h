@@ -27,6 +27,7 @@
 #include <tuple>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -51,7 +52,6 @@
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_connection.h"

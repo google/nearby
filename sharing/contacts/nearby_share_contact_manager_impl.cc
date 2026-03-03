@@ -23,11 +23,11 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/proto/contact_rpc.pb.h"

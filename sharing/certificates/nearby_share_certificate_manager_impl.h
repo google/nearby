@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
@@ -37,7 +38,6 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
@@ -197,7 +197,6 @@ class NearbyShareCertificateManagerImpl
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
-  std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_client_;
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
       nearby_identity_client_;
 

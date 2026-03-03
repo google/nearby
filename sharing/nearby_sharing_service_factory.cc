@@ -17,6 +17,7 @@
 #include <memory>
 #include <utility>
 
+#include "location/nearby/sharing/lib/rpc/grpc_async_client_factory.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -55,8 +56,9 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
           sharing_platform.GetDeviceInfo(), event_logger);
 
   auto nearby_share_client_factory =
-      sharing_platform.CreateSharingRpcClientFactory(context_->GetClock(),
-                                                     analytics_recorder);
+      std::make_unique<platform::common::GrpcAsyncClientFactory>(
+          &sharing_platform.GetAccountManager(), context_->GetClock(),
+          analytics_recorder);
   auto nearby_share_contact_manager =
       std::make_unique<NearbyShareContactManagerImpl>(
           context_.get(), sharing_platform.GetAccountManager(),

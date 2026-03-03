@@ -382,6 +382,8 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
+        "//location/nearby/sharing/lib/rpc:grpc_async_client_factory",
+        "//location/nearby/sharing/lib/rpc:sharing_rpc_client",
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",
         "//sharing/certificates",
