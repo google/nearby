@@ -243,9 +243,11 @@ class NearbyShareCertificateManagerImplTest
 
   void VerifyCertificatesUpload(bool expected_force_update_contacts) {
     FakeNearbyIdentityClient* identity_client = GetIdentityClient();
-    ASSERT_FALSE(identity_client->publish_device_requests().empty());
+    std::vector<PublishDeviceRequest> publish_device_requests =
+        identity_client->publish_device_requests();
+    ASSERT_FALSE(publish_device_requests.empty());
     const PublishDeviceRequest& publish_device_request =
-        identity_client->publish_device_requests().back();
+        publish_device_requests.back();
     EXPECT_EQ(publish_device_request.device().name(),
               absl::StrCat("devices/", kDeviceId));
     EXPECT_EQ(publish_device_request.device()

@@ -39,6 +39,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//google/nearby/identity/v1:binding_cc_proto",
         "//google/nearby/identity/v1:rpcs_cc_proto",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
@@ -75,6 +76,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":platform",
+        "//google/nearby/identity/v1:binding_cc_proto",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
         "//internal/platform:types",
