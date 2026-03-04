@@ -25,11 +25,9 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -45,8 +43,7 @@
 #include "winrt/Windows.Storage.Streams.h"
 #include "winrt/base.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
@@ -78,8 +75,6 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattServiceProviderAdvertisingParameters;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattServiceProviderResult;
-using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-    GattSubscribedClient;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattWriteRequestedEventArgs;
 using ::winrt::Windows::Foundation::Collections::IVectorView;
@@ -753,5 +748,4 @@ BleGattServer::FindGattCharacteristicData(
   return nullptr;
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

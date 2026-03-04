@@ -19,17 +19,14 @@
 #include <memory>
 
 #include "absl/synchronization/mutex.h"
-#include "absl/synchronization/notification.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 BleServerSocket::BleServerSocket(api::BluetoothAdapter* adapter)
     : adapter_(dynamic_cast<BluetoothAdapter*>(adapter)) {
@@ -53,7 +50,6 @@ std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
 }
 
 Exception BleServerSocket::Close() {
-  // TODO(b/271031645): implement BLE socket using weave
   absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Close is called.";
 
@@ -68,10 +64,8 @@ Exception BleServerSocket::Close() {
 }
 
 bool BleServerSocket::Bind() {
-  // TODO(b/271031645): implement BLE socket using weave
   LOG(ERROR) << __func__ << ": GATT socket started.";
   return true;
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

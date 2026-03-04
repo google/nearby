@@ -376,6 +376,8 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
+        "@com_google_protobuf//:protobuf",
+        "@com_google_protobuf//json",
         "@nlohmann_json//:json",
     ],
 )

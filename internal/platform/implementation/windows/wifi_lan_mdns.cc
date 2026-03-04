@@ -36,7 +36,6 @@
 namespace nearby::windows {
 namespace {
 // mDNS information for advertising and discovery
-const char kMdnsHostName[] = "%s.local";
 const char kMdnsInstanceNameFormat[] = "%s.%slocal";
 
 // Timeout for starting mDNS service

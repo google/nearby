@@ -27,15 +27,10 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
-#include "internal/flags/nearby_flags.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -48,8 +43,7 @@
 #include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.Storage.Streams.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 
 using ::winrt::Windows::Devices::Bluetooth::BluetoothCacheMode;
@@ -66,8 +60,6 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattCommunicationStatus;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattDeviceService;
-using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-    GattDeviceServicesResult;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
     GattReadResult;
 using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
@@ -665,5 +657,4 @@ void BleGattClient::OnCharacteristicValueChanged(
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

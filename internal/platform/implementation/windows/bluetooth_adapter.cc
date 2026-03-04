@@ -57,8 +57,7 @@ typedef std::basic_string<TCHAR> tstring;
 
 #define BLUETOOTH_RADIO_REGISTRY_NAME_KEY "Local Name"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 struct LocalSettings {
   std::string original_radio_name;
@@ -545,7 +544,7 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
                           // lpWideCharStr.
       nullptr,  // Pointer to a buffer that receives the converted string.
       0,        // Size, in bytes, of the buffer indicated by lpMultiByteStr.
-      NULL,     // Pointer to the character to use if a character cannot be
+      nullptr,  // Pointer to the character to use if a character cannot be
                 // represented in the specified code page.
       &defaultCharUsed);  // Pointer to a flag that indicates if the function
                           // has used a default character in the conversion.
@@ -570,8 +569,8 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
           .data(),    // Pointer to a buffer that receives the converted string.
       guid_str_size,  // Size, in bytes, of the buffer indicated by
                       // lpMultiByteStr.
-      NULL,  // // Pointer to the character to use if a character cannot be
-             // represented in the specified code page.
+      nullptr,  // Pointer to the character to use if a character cannot be
+                // represented in the specified code page.
       &defaultCharUsed);  // // Pointer to a flag that indicates if the
                           // function has used a default character in the
                           // conversion.
@@ -613,11 +612,11 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
                           // opened.
       GENERIC_WRITE,      // The requested access to the file or device.
       0,                  // The requested sharing mode of the file or device.
-      NULL,               // A pointer to a SECURITY_ATTRIBUTES structure.
+      nullptr,            // A pointer to a SECURITY_ATTRIBUTES structure.
       OPEN_EXISTING,  // An action to take on a file or device that exists or
                       // does not exist.
       0,              // The file or device attributes and flags.
-      NULL);          // A valid handle to a template file with the GENERIC_READ
+      nullptr);       // A valid handle to a template file with the GENERIC_READ
                       // access right. This parameter can be NULL.
 
   if (hDevice == INVALID_HANDLE_VALUE) {
@@ -656,7 +655,7 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
     return false;
   }
 
-  if (name != "") {
+  if (!name.empty()) {
     // Sets the data and type of a specified value under a registry key.
     // https://docs.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regsetvalueexa
     status = RegSetValueExA(
@@ -703,12 +702,12 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
           &reload,  // A pointer to the input buffer that contains the data
                     // required to perform the operation.
           sizeof(reload),  // The size of the input buffer, in bytes.
-          NULL,    // A pointer to the output buffer that is to receive the data
-                   // returned by the operation.
-          0,       // The size of the output buffer, in bytes.
-          &bytes,  // A pointer to a variable that receives the size of the
-                   // data stored in the output buffer, in bytes.
-          NULL)) {  // A pointer to an OVERLAPPED structure.
+          nullptr,  // A pointer to the output buffer that is to receive the
+                    // data returned by the operation.
+          0,        // The size of the output buffer, in bytes.
+          &bytes,   // A pointer to a variable that receives the size of the
+                    // data stored in the output buffer, in bytes.
+          nullptr)) {  // A pointer to an OVERLAPPED structure.
     LOG(ERROR) << __func__
                << ": Failed to update radio module local name. Error code: "
                << GetLastError();
@@ -777,7 +776,8 @@ BluetoothAdapter::GetGenericBluetoothAdapterInstanceID() const {
   // computer.
   // https://docs.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdigetclassdevsa
   hDevInfo =
-      SetupDiGetClassDevsA(&GUID_DEVCLASS_BLUETOOTH, NULL, NULL, DIGCF_PRESENT);
+      SetupDiGetClassDevsA(&GUID_DEVCLASS_BLUETOOTH, /*Enumerator=*/nullptr,
+                           /*hwndParent=*/nullptr, DIGCF_PRESENT);
 
   if (hDevInfo == INVALID_HANDLE_VALUE) {
     LOG(ERROR) << __func__
@@ -904,5 +904,4 @@ std::string BluetoothAdapter::GetNameFromComputerName() const {
   return "";
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

@@ -22,7 +22,6 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/generated/winrt/impl/Windows.Devices.Enumeration.0.h"
 #include "internal/platform/logging.h"
@@ -31,8 +30,7 @@
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/base.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 namespace {
 using ::winrt::Windows::Devices::Bluetooth::BluetoothDevice;
@@ -44,7 +42,6 @@ using ::winrt::Windows::Devices::Enumeration::DevicePairingResult;
 using ::winrt::Windows::Devices::Enumeration::DevicePairingResultStatus;
 using ::winrt::Windows::Devices::Enumeration::DeviceUnpairingResult;
 using ::winrt::Windows::Devices::Enumeration::DeviceUnpairingResultStatus;
-using ::winrt::Windows::Foundation::IAsyncOperation;
 using PairingError = ::nearby::api::BluetoothPairingCallback::PairingError;
 using PairingType = ::nearby::api::PairingParams::PairingType;
 }  // namespace
@@ -322,5 +319,4 @@ void BluetoothPairing::OnPair(DevicePairingResult& pairing_result) {
   pairing_callback_.on_pairing_error_cb(PairingError::kFailed);
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

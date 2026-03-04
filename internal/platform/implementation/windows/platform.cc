@@ -83,37 +83,11 @@
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
-namespace nearby {
-namespace api {
+namespace nearby::api {
 
 namespace {
 
 constexpr char kNCRelativePath[] = "Google/Nearby/Connections";
-
-std::string GetApplicationName(DWORD pid) {
-  HANDLE handle =
-      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
-                  pid);  // Modify pid to the pid of your application
-  if (!handle) {
-    return "";
-  }
-
-  std::string szProcessName("", MAX_PATH);
-  DWORD len = MAX_PATH;
-
-  if (NULL != handle) {
-    GetModuleFileNameExA(handle, nullptr, szProcessName.data(), len);
-  }
-
-  szProcessName.resize(szProcessName.find_first_of('\0') + 1);
-
-  auto just_the_file_name_and_ext = szProcessName.substr(
-      szProcessName.find_last_of('\\') + 1,
-      szProcessName.length() - szProcessName.find_last_of('\\') + 1);
-
-  return just_the_file_name_and_ext.substr(
-      0, just_the_file_name_and_ext.find_last_of('.'));
-}
 
 }  // namespace
 
@@ -253,7 +227,6 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   return std::make_unique<windows::BluetoothClassicMedium>(adapter);
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<api::ble::BleMedium> ImplementationPlatform::CreateBleMedium(
     api::BluetoothAdapter& adapter) {
   return std::make_unique<windows::BleMedium>(adapter);
@@ -264,7 +237,6 @@ ImplementationPlatform::CreateCredentialStorage() {
   return nullptr;
 }
 
-// TODO(b/184975123): replace with real implementation.
 std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   return std::make_unique<windows::WifiMedium>();
 }
@@ -287,7 +259,6 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   return std::make_unique<windows::WifiDirectMedium>();
 }
 
-// TODO(b/261663238) replace with real implementation.
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   return nullptr;
 }
@@ -318,5 +289,4 @@ ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
   return std::make_unique<windows::PreferencesManager>(FilePath{path});
 }
 
-}  // namespace api
-}  // namespace nearby
+}  // namespace nearby::api
