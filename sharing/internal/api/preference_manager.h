@@ -22,11 +22,12 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
+#include "location/nearby/sharing/lib/sync/sync_config_prefs.pb.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/private_certificate_data.h"
-#include "sharing/proto/wire_format.pb.h"
 
 namespace nearby::sharing::api {
 
@@ -82,7 +83,10 @@ class PreferenceManager {
 
   virtual void SetSyncConfigValue(
       absl::string_view binding_id,
-      const nearby::sharing::service::proto::SyncConfig& value) = 0;
+      const nearby::sharing::sync::SyncConfigPrefs& value) = 0;
+
+  virtual void SetSyncBindingValue(
+      const nearby::sharing::sync::SyncBindingPrefs& value) = 0;
 
   // Gets values
   virtual bool GetBoolean(absl::string_view key, bool default_value) const = 0;
@@ -123,8 +127,11 @@ class PreferenceManager {
   virtual std::optional<std::string> GetDictionaryStringValue(
       absl::string_view key, absl::string_view dictionary_item) const = 0;
 
-  virtual std::optional<nearby::sharing::service::proto::SyncConfig>
+  virtual std::optional<nearby::sharing::sync::SyncConfigPrefs>
   GetSyncConfigValue(absl::string_view binding_id) const = 0;
+
+  virtual std::optional<nearby::sharing::sync::SyncBindingPrefs>
+  GetSyncBindingValue() const = 0;
 
   // Removes preferences
   virtual void Remove(absl::string_view key) = 0;

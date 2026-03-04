@@ -23,6 +23,8 @@
 #include <variant>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
+#include "location/nearby/sharing/lib/sync/sync_config_prefs.pb.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -76,7 +78,9 @@ class FakePreferenceManager : public nearby::sharing::api::PreferenceManager {
 
   void SetSyncConfigValue(
       absl::string_view binding_id,
-      const nearby::sharing::service::proto::SyncConfig& value) override;
+      const nearby::sharing::sync::SyncConfigPrefs& value) override;
+  void SetSyncBindingValue(
+      const nearby::sharing::sync::SyncBindingPrefs& value) override;
 
   bool GetBoolean(absl::string_view key, bool default_value) const override;
   int GetInteger(absl::string_view key, int default_value) const override;
@@ -111,8 +115,10 @@ class FakePreferenceManager : public nearby::sharing::api::PreferenceManager {
       absl::string_view key, absl::string_view dictionary_item) const override;
   std::optional<std::string> GetDictionaryStringValue(
       absl::string_view key, absl::string_view dictionary_item) const override;
-  std::optional<nearby::sharing::service::proto::SyncConfig>
+  std::optional<nearby::sharing::sync::SyncConfigPrefs>
   GetSyncConfigValue(absl::string_view binding_id) const override;
+  std::optional<nearby::sharing::sync::SyncBindingPrefs>
+  GetSyncBindingValue() const override;
 
   void Remove(absl::string_view key) override;
   void RemoveAllSyncConfigs() override;

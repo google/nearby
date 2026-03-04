@@ -22,6 +22,8 @@
 #include <variant>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
+#include "location/nearby/sharing/lib/sync/sync_config_prefs.pb.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -34,6 +36,11 @@
 namespace nearby {
 using ::nearby::sharing::PrefNames;
 using ::nearby::sharing::api::PrivateCertificateData;
+using ::nearby::sharing::sync::SyncBindingPrefs;
+using ::nearby::sharing::sync::SyncConfigPrefs;
+
+// Preference suffix for the sync binding information.
+constexpr absl::string_view kFileSyncBindingName = "FileSync";
 
 template <typename T>
 void FakePreferenceManager::SetValue(absl::string_view key, T value) {
@@ -238,10 +245,15 @@ void FakePreferenceManager::RemoveDictionaryItem(
   NotifyPreferenceChanged(key);
 }
 
-void FakePreferenceManager::SetSyncConfigValue(
-    absl::string_view binding_id,
-    const nearby::sharing::service::proto::SyncConfig& value) {
+void FakePreferenceManager::SetSyncConfigValue(absl::string_view binding_id,
+                                               const SyncConfigPrefs& value) {
   SetValue(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id),
+           value.SerializeAsString());
+}
+
+void FakePreferenceManager::SetSyncBindingValue(
+    const SyncBindingPrefs& value) {
+  SetValue(absl::StrCat(PrefNames::kBindingConfigPrefix, kFileSyncBindingName),
            value.SerializeAsString());
 }
 
@@ -329,19 +341,34 @@ std::optional<std::string> FakePreferenceManager::GetDictionaryStringValue(
   return GetDictionaryValue<std::string>(key, dictionary_item);
 }
 
-std::optional<nearby::sharing::service::proto::SyncConfig>
-FakePreferenceManager::GetSyncConfigValue(absl::string_view binding_id) const {
+std::optional<SyncConfigPrefs> FakePreferenceManager::GetSyncConfigValue(
+    absl::string_view binding_id) const {
   std::string serialized_sync_config;
   serialized_sync_config =
       GetString(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id), "");
   if (serialized_sync_config.empty()) {
     return std::nullopt;
   }
-  nearby::sharing::service::proto::SyncConfig sync_config;
+  SyncConfigPrefs sync_config;
   if (!sync_config.ParseFromString(serialized_sync_config)) {
     return std::nullopt;
   }
   return sync_config;
+}
+
+std::optional<SyncBindingPrefs> FakePreferenceManager::GetSyncBindingValue()
+    const {
+  std::string serialized_sync_binding;
+  serialized_sync_binding = GetString(
+      absl::StrCat(PrefNames::kBindingConfigPrefix, kFileSyncBindingName), "");
+  if (serialized_sync_binding.empty()) {
+    return std::nullopt;
+  }
+  SyncBindingPrefs sync_binding;
+  if (!sync_binding.ParseFromString(serialized_sync_binding)) {
+    return std::nullopt;
+  }
+  return sync_binding;
 }
 
 void FakePreferenceManager::Remove(absl::string_view key) {
