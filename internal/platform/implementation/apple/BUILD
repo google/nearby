@@ -105,7 +105,6 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums/Hotspot",
         "//internal/account",
         "//internal/crypto_cros",
-        "//internal/platform/implementation:account_manager",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",

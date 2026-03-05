@@ -25,10 +25,8 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "internal/account/account_manager_impl.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/crypto.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/tachyon_express_signaling_messenger.h"
 #include "internal/proto/tachyon.pb.h"
