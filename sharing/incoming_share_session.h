@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
@@ -29,7 +30,6 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -104,10 +104,19 @@ class IncomingShareSession : public ShareSession {
   // Called when an incoming connection is established.
   void OnConnected(NearbyConnection* connection);
 
+  void ProcessSyncFrame(nearby::sharing::SyncManager& sync_manager,
+    const nearby::sharing::service::proto::SyncFrame& sync_frame);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
 
  private:
+  enum class SessionPhase {
+    kUninitialized,
+    kTransfer,
+    kSync,
+  };
+
   // Update file attachment paths with payload paths.
   bool UpdateFilePayloadPaths();
 
@@ -119,6 +128,9 @@ class IncomingShareSession : public ShareSession {
   // Returns true if all payloads were successfully finalized.
   bool FinalizePayloads();
 
+  void WriteSyncConfigFrame(
+      const nearby::sharing::service::proto::SyncConfig& config);
+
   std::function<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
 
@@ -127,6 +139,8 @@ class IncomingShareSession : public ShareSession {
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
+
+  SessionPhase session_phase_ = SessionPhase::kUninitialized;
 };
 
 }  // namespace nearby::sharing

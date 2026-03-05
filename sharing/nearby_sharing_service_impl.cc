@@ -273,7 +273,8 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetLost,
                            this),
           absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
-                           this)) {
+                           this)),
+      sync_manager_(&preference_manager_) {
   CHECK(nearby_connections_manager_);
   CHECK(analytics_recorder);
 
@@ -2479,6 +2480,12 @@ void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
       OnReceivedIntroduction(*session, frame->introduction());
       // OnReceivedIntroduction will schedule the next ReadFrame.
       return;
+    case service::proto::V1Frame::FILE_SYNC:
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_sharing_feature::kEnableFileSync)) {
+        session->ProcessSyncFrame(sync_manager_, frame->file_sync());
+      }
+      break;
     default:
       LOG(ERROR) << __func__ << ": Discarding unknown frame of type: "
                  << static_cast<int>(frame->type());
