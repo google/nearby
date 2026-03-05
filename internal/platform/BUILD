@@ -332,7 +332,6 @@ cc_library(
         "//connections/implementation/flags:connections_flags",
         "//internal/base",
         "//internal/flags:nearby_flags",
-        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
