@@ -369,6 +369,7 @@ let package = Package(
         "connections/implementation/payload_manager_test.cc",
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",
+        "connections/implementation/awdl_bwu_handler_test.cc",
         "connections/implementation/bluetooth_bwu_test.cc",
         "connections/implementation/wifi_direct_bwu_test.cc",
         "connections/implementation/wifi_hotspot_bwu_test.cc",

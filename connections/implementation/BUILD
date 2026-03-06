@@ -246,6 +246,7 @@ cc_library(
 cc_test(
     name = "bwu_test",
     srcs = [
+        "awdl_bwu_handler_test.cc",
         "base_bwu_handler_test.cc",
         "bluetooth_bwu_test.cc",
         "bwu_manager_test.cc",
@@ -258,12 +259,18 @@ cc_test(
         "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
+        "//internal/analytics:mock_event_logger",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:mock_platform",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",  # build_cleaner: keep
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
