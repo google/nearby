@@ -18,35 +18,14 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 licenses(["notice"])
 
 cc_library(
-    name = "mocks",
-    testonly = 1,
-    hdrs = [
-        "mock_account_manager.h",
-        "mock_account_observer.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:signin_attempt",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_googletest//:gtest_for_library_testonly",
-    ],
-)
-
-cc_library(
     name = "test",
     srcs = [
-        "fake_account_manager.cc",
         "fake_clock.cc",
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
     ],
     hdrs = [
-        "fake_account_manager.h",
         "fake_clock.h",
         "fake_device_info.h",
         "fake_http_client.h",
@@ -60,20 +39,16 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/base",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/network:types",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:signin_attempt",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

@@ -23,19 +23,18 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/notification.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ::nearby::sharing::proto::ContactRecord;
@@ -148,5 +147,4 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
   });
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
@@ -30,7 +31,6 @@
 #include "third_party/grpc/include/grpcpp/support/client_callback.h"
 #include "third_party/grpc/include/grpcpp/support/status.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/proto/messaging.grpc.pb.h"
 
@@ -94,7 +94,7 @@ class TachyonExpressSignalingMessenger : public api::WebRtcSignalingMessenger {
   std::unique_ptr<google::internal::communications::instantmessaging::v1::grpc::
                       Messaging::StubInterface>
       messaging_stub_;
-  AccountManager* const account_manager_;
+  nearby::sharing::AccountManager* const account_manager_;
   std::shared_ptr<ReceiveMessagesReader> reader_ = nullptr;
 };
 

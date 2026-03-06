@@ -27,6 +27,8 @@
 
 #include "google/nearby/identity/v1/resources.pb.h"
 #include "google/nearby/identity/v1/rpcs.pb.h"
+#include "location/nearby/sharing/lib/account/account_manager.h"
+#include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -37,9 +39,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/mac_address.h"
-#include "internal/test/fake_account_manager.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -62,10 +62,8 @@
 #include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
-using ::google::nearby::identity::v1::AccountInfo;
 using ::google::nearby::identity::v1::Device;
 using ::google::nearby::identity::v1::GetAccountInfoResponse;
 using ::google::nearby::identity::v1::PublishDeviceRequest;
@@ -958,7 +956,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   Initialize();
   GetAccountInfoResponse response;
   response.mutable_account_info()->mutable_capabilities()->Add(
-      AccountInfo::CAPABILITY_TITANIUM);
+      google::nearby::identity::v1::AccountInfo::CAPABILITY_TITANIUM);
   identity_client_.SetGetAccountInfoResponse(response);
 
   account_info_update_scheduler_->InvokeRequestCallback();
@@ -990,7 +988,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled, true);
   GetAccountInfoResponse response;
   response.mutable_account_info()->mutable_capabilities()->Add(
-      AccountInfo::CAPABILITY_UNSPECIFIED);
+      google::nearby::identity::v1::AccountInfo::CAPABILITY_UNSPECIFIED);
   identity_client_.SetGetAccountInfoResponse(response);
 
   account_info_update_scheduler_->InvokeRequestCallback();
@@ -1015,5 +1013,4 @@ TEST_F(NearbyShareCertificateManagerImplTest,
       PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

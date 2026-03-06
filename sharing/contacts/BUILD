@@ -42,7 +42,7 @@ cc_library(
     deps = [
         ":contacts_interface",
         "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
+        "//location/nearby/sharing/lib/account:account_manager",
         "//location/nearby/sharing/lib/rpc:sharing_rpc_client",
         "//sharing/internal/public:logging",
         "//sharing/internal/public:types",
@@ -70,9 +70,9 @@ cc_test(
     ],
     deps = [
         ":contacts",
-        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:platform_impl",
-        "//internal/test",
+        "//location/nearby/sharing/lib/account:account_manager",
+        "//location/nearby/sharing/lib/account:fake_account_manager",
         "//location/nearby/sharing/lib/rpc:fake_nearby_share_client",
         "//sharing/internal/test:nearby_test",
         "//sharing/local_device_data:test_support",

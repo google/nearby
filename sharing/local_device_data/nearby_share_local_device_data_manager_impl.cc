@@ -21,11 +21,11 @@
 #include <optional>
 #include <string>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -37,8 +37,7 @@
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
@@ -164,5 +163,4 @@ std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
   return absl::Substitute(kDefaultDeviceName, truncated_name, device_type);
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

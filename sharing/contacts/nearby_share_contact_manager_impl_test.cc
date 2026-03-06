@@ -21,11 +21,11 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
+#include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/account_manager.h"
-#include "internal/test/fake_account_manager.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/proto/contact_rpc.pb.h"

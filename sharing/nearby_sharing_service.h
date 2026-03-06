@@ -31,12 +31,9 @@
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_update_callback.h"
 
-namespace nearby {
+namespace nearby::sharing {
 
 class AccountManager;
-
-namespace sharing {
-
 class NearbyNotificationDelegate;
 class NearbyShareContactManager;
 
@@ -227,7 +224,6 @@ class NearbySharingService {
       uint16_t alternate_service_uuid) = 0;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_H_

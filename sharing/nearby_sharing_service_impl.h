@@ -27,6 +27,7 @@
 #include <tuple>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/base/nullability.h"
@@ -38,7 +39,6 @@
 #include "absl/types/span.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
@@ -90,7 +90,7 @@ class NearbySharingServiceImpl
     : public NearbySharingService,
       public NearbyShareSettings::Observer,
       public NearbyShareCertificateManager::Observer,
-      public ::nearby::AccountManager::Observer,
+      public AccountManager::Observer,
       public NearbyFastInitiation::Observer,
       public sharing::api::BluetoothAdapter::Observer,
       public NearbyConnectionsManager::IncomingConnectionListener,

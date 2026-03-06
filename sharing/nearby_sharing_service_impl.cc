@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
@@ -48,7 +49,6 @@
 #include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"

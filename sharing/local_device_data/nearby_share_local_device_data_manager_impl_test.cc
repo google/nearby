@@ -21,11 +21,11 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
+#include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
-#include "internal/platform/implementation/account_manager.h"
-#include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
@@ -118,7 +118,7 @@ class NearbyShareLocalDeviceDataManagerImplTest
 
  protected:
   nearby::FakePreferenceManager preference_manager_;
-  nearby::FakeAccountManager fake_account_manager_;
+  FakeAccountManager fake_account_manager_;
   nearby::FakeDeviceInfo fake_device_info_;
   std::vector<ObserverNotification> notifications_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> manager_;

@@ -31,6 +31,7 @@
 #include "google/nearby/identity/v1/resources.pb.h"
 #include "google/nearby/identity/v1/rpcs.pb.h"
 #include "google/protobuf/timestamp.pb.h"
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/algorithm/algorithm.h"
 #include "absl/base/nullability.h"
@@ -44,7 +45,6 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/mac_address.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
@@ -72,11 +72,9 @@
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 #include "util/hash/highway_fingerprint.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
-using ::google::nearby::identity::v1::AccountInfo;
 using ::google::nearby::identity::v1::GetAccountInfoRequest;
 using ::google::nearby::identity::v1::GetAccountInfoResponse;
 using ::google::nearby::identity::v1::PerVisibilitySharedCredentials;
@@ -889,8 +887,8 @@ bool NearbyShareCertificateManagerImpl::UpdateAccountInfoInExecutor() {
           const auto& capabilities = response->account_info().capabilities();
           bool has_titanium_capability =
               (std::find(capabilities.begin(), capabilities.end(),
-                         AccountInfo::CAPABILITY_TITANIUM) !=
-               capabilities.end());
+                         google::nearby::identity::v1::AccountInfo::
+                             CAPABILITY_TITANIUM) != capabilities.end());
           preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled,
                                          has_titanium_capability);
           LOG(INFO) << "GetAccountInfo succeeded, advanced protection enabled: "
@@ -904,5 +902,4 @@ bool NearbyShareCertificateManagerImpl::UpdateAccountInfoInExecutor() {
   return get_account_info_succeeded;
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

@@ -19,8 +19,6 @@ licenses(["notice"])
 
 cc_library(
     name = "base",
-    srcs = [
-    ],
     hdrs = [
         "observer_list.h",
     ],
@@ -28,6 +26,7 @@ cc_library(
         "//internal/account:__subpackages__",
         "//internal/platform:__subpackages__",
         "//internal/test:__pkg__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [

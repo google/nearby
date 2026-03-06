@@ -30,6 +30,9 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/signin_attempt.h"
+#include "location/nearby/sharing/lib/account/fake_account_manager.h"
+#include "location/nearby/sharing/lib/account/mock_account_observer.h"
 #include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -48,11 +51,8 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/implementation/signin_attempt.h"
-#include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "internal/test/mock_account_observer.h"
 #include "sharing/advertisement.h"
 #include "sharing/advertisement_capabilities.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -1705,7 +1705,7 @@ TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterReceiveSurfaceIsAdvertisingAllContacts) {
   SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  ::nearby::AccountManager::Account account;
+  AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
   local_device_data_manager()->SetDeviceName(kDeviceName);
@@ -1759,7 +1759,7 @@ TEST_F(NearbySharingServiceImplTest,
        BackgroundRegisterReceiveSurfaceIsAdvertisingSelectedContacts) {
   SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
-  ::nearby::AccountManager::Account account;
+  AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
@@ -4883,7 +4883,7 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
 
 TEST_F(NearbySharingServiceImplTest, NotifyLogoutSucceededWithCredentialError) {
   TestObserver observer(service_.get());
-  ::nearby::AccountManager::Account account;
+  AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
 

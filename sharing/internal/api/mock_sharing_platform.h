@@ -19,11 +19,11 @@
 #include <memory>
 #include <vector>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "gmock/gmock.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/api/app_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"

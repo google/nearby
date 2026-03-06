@@ -17,15 +17,14 @@
 
 #include <memory>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/base/nullability.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/public/context.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class NearbyShareContactManagerImpl : public NearbyShareContactManager {
  public:
@@ -45,7 +44,6 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
   std::unique_ptr<TaskRunner> executor_ = nullptr;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_CONTACTS_NEARBY_SHARE_CONTACT_MANAGER_IMPL_H_

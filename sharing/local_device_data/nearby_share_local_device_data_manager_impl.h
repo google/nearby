@@ -18,9 +18,9 @@
 #include <memory>
 #include <string>
 
+#include "location/nearby/sharing/lib/account/account_manager.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
