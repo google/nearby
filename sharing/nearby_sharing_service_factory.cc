@@ -70,7 +70,6 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       std::move(service_thread), context_.get(), sharing_platform,
       nearby_identity_client_.get(),
-      nearby_share_client_.get(),
       std::move(nearby_connections_manager),
       std::move(nearby_share_contact_manager), analytics_recorder,
       supports_file_sync);

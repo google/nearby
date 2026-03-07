@@ -114,7 +114,6 @@ using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
 using ::nearby::sharing::api::SharingPlatform;
-using ::nearby::sharing::api::SharingRpcClient;
 using ::nearby::sharing::api::IdentityRpcClient;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -238,7 +237,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
     SharingPlatform& sharing_platform,
     nearby::sharing::api::IdentityRpcClient* absl_nonnull
         nearby_identity_client,
-    nearby::sharing::api::SharingRpcClient* absl_nonnull nearby_share_client,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
     std::unique_ptr<NearbyShareContactManager> contact_manager,
     analytics::AnalyticsRecorder* analytics_recorder, bool supports_file_sync)
@@ -250,7 +248,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       analytics_recorder_(*analytics_recorder),
       supports_file_sync_(supports_file_sync),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
-      nearby_share_client_(nearby_share_client),
+      nearby_identity_client_(nearby_identity_client),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               preference_manager_, account_manager_, device_info_)),
