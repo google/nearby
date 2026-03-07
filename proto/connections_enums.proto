@@ -1447,6 +1447,11 @@ enum OperationResultCode {
   DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NETWORK_NOT_AVAILABLE = 5058;
   // Failed to upgrade to high speed medium because no incoming HTTP connection
   DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_INCOMING_HTTP_CONNECTION = 5059;
+  // Failed to upgrade to high speed medium because there is no USB device
+  // connected
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NO_CONNECTED_DEVICE = 5060;
+  // Failed to upgrade to high speed medium because the upgrade is interrupted
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_INTERRUPTED = 5061;
 }
 
 enum StopAdvertisingReason {

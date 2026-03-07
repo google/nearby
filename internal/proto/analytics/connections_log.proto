@@ -580,6 +580,9 @@ message ConnectionsLog {
     // The number of network interfaces on the device for the upgrade medium
     // that can be used for bandwidth upgrade and are IPv6 only.
     optional int32 num_ipv6_only_interfaces = 13;
+    // The number of times the upgrade attempt is tried.
+    // This count is reset to 0 when the upgrade is successful.
+    optional int32 try_count = 14;
   }
 
   // Next Id: 22
