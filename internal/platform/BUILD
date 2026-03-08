@@ -289,6 +289,41 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc_medium",
+    srcs = ["tachyon_express_signaling_messenger.cc"],
+    hdrs = [
+        "tachyon_express_signaling_messenger.h",
+        "webrtc.h",
+    ],
+    visibility = [
+        "//connections/implementation/mediums:__subpackages__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        ":logging",
+        ":types",
+        "//internal/account",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/proto:messaging_cc_grpc_proto",
+        "//internal/proto:tachyon_cc_proto",
+        "//internal/rpc:utils",
+        "//location/nearby/sharing/lib/account:account_manager",
+        "//third_party/grpc:gpr",
+        "//third_party/grpc:grpc++",
+        "//util/random:mt_random",
+        "//util/random:util",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "comm",
     srcs = [
         "awdl.cc",
@@ -306,7 +341,6 @@ cc_library(
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "credential_storage_impl.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -335,7 +369,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
-        # TODO: Support WebRTC
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -343,7 +376,6 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
     ],

@@ -39,7 +39,6 @@
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/webrtc.h"
 #include "proto/mediums/web_rtc_signaling_frames.pb.h"
-#include "webrtc/api/jsep.h"
 
 namespace nearby {
 namespace connections {

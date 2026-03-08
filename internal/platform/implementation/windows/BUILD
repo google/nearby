@@ -244,6 +244,25 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc",
+    srcs = ["webrtc.cc"],
+    hdrs = ["webrtc.h"],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    tags = ["windows"],
+    deps = [
+        "//internal/platform:logging",
+        "//internal/platform:webrtc_medium",
+        "//internal/platform/implementation:comm",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "windows",
     srcs = [
         "ble.cc",
@@ -268,7 +287,6 @@ cc_library(
         "preferences_manager.cc",
         "preferences_repository.cc",
         "system_clock.cc",
-        "webrtc.cc",
         "wifi_direct_medium.cc",
         "wifi_direct_server_socket.cc",
         "wifi_direct_socket.cc",
@@ -301,7 +319,6 @@ cc_library(
         "nearby_server_socket.h",
         "preferences_manager.h",
         "preferences_repository.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -346,7 +363,6 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:uuid",
@@ -358,11 +374,6 @@ cc_library(
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/windows/generated:types",
         "//third_party/intel/pie",
-        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
-        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
-        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -437,6 +448,34 @@ cc_proto_library(
 )
 
 cc_test(
+    name = "webrtc_test",
+    size = "small",
+    srcs = [
+        "webrtc_test.cc",
+    ],
+    tags = ["nozapfhahn"],
+    deps = [
+        ":crypto",
+        ":preferences_manager_test_cc_proto",
+        ":test_utils",
+        ":types",
+        ":webrtc",
+        ":windows",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//net/proto2/contrib/parse_proto:parse_text_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+        "@com_google_googletest//:gtest_main",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_test(
     name = "impl_test",
     size = "small",
     srcs = [
@@ -460,7 +499,6 @@ cc_test(
         "thread_pool_test.cc",
         "timer_test.cc",
         "utils_test.cc",
-        "webrtc_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",

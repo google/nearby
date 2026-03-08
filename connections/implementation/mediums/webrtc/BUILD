@@ -39,11 +39,11 @@ cc_library(
     deps = [
         ":data_types",
         "//connections:core_types",
-        "//connections/implementation/mediums:webrtc_utils",
+        "//connections/implementation/mediums:real_webrtc_utils",
         "//internal/platform:base",
-        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform:webrtc_medium",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
         "@com_google_absl//absl/base:core_headers",
@@ -91,11 +91,11 @@ cc_test(
     deps = [
         ":data_types",
         ":webrtc",
-        "//connections/implementation/mediums:webrtc_utils",
+        "//connections/implementation/mediums:real_webrtc_utils",
         "//internal/platform:base",
-        "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform:webrtc_medium",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
         "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
         "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",

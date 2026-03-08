@@ -122,6 +122,7 @@ objc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:webrtc_medium",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",

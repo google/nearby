@@ -42,7 +42,6 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
-#include "webrtc/api/jsep.h"
 
 namespace nearby {
 namespace connections {

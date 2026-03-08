@@ -42,7 +42,11 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
+#ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc_peer_id.h"
+#else  // NO_WEBRTC
+#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
+#endif  // NO_WEBRTC
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"

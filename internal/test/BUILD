@@ -18,6 +18,14 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 licenses(["notice"])
 
 cc_library(
+    name = "fake_webrtc",
+    srcs = ["fake_webrtc.cc"],
+    hdrs = ["fake_webrtc.h"],
+    visibility = ["//connections/implementation/mediums:__subpackages__"],
+    deps = ["//internal/platform:webrtc_medium"],
+)
+
+cc_library(
     name = "test",
     srcs = [
         "fake_clock.cc",
@@ -33,9 +41,6 @@ cc_library(
         "fake_single_thread_executor.h",
         "fake_task_runner.h",
         "fake_timer.h",
-    ],
-    copts = [
-        "-Ithird_party",
     ],
     visibility = ["//visibility:public"],
     deps = [

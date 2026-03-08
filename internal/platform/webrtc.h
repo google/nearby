@@ -27,7 +27,6 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
 

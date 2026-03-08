@@ -18,7 +18,11 @@
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc.h"
+#else  // NO_WEBRTC
+#include "connections/implementation/mediums/webrtc_stub.h"
+#endif  // NO_WEBRTC
 #include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"

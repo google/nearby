@@ -48,7 +48,11 @@
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
+#ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc_peer_id.h"
+#else  // NO_WEBRTC
+#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
+#endif  // NO_WEBRTC
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"

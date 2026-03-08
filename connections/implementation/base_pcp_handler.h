@@ -39,7 +39,11 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
+#ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc_peer_id.h"
+#else  // NO_WEBRTC
+#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
+#endif  // NO_WEBRTC
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/implementation/webrtc_state.h"

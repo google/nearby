@@ -18,6 +18,31 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 licenses(["notice"])
 
 cc_library(
+    name = "real_webrtc_medium",
+    srcs = ["webrtc.cc"],
+    hdrs = ["webrtc.h"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+    ],
+    deps = [
+        ":real_webrtc_utils",
+        "//connections/implementation/mediums/webrtc",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/platform:webrtc_medium",
+        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "mediums",
     srcs = [
         "awdl.cc",
@@ -25,7 +50,6 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
-        "webrtc.cc",
         "webrtc_stub.cc",
         "wifi_direct.cc",
         "wifi_hotspot.cc",
@@ -37,7 +61,6 @@ cc_library(
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
-        "webrtc.h",
         "webrtc_stub.h",
         "wifi.h",
         "wifi_direct.h",
@@ -45,6 +68,7 @@ cc_library(
         "wifi_lan.h",
     ],
     copts = ["-DNO_WEBRTC"],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
@@ -59,7 +83,6 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/ble:bloom_filter",
         "//connections/implementation/mediums/multiplex",
-        "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -74,7 +97,6 @@ cc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # TODO: Support WebRTC
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -90,17 +112,33 @@ cc_library(
 )
 
 cc_library(
+    name = "real_webrtc_utils",
+    srcs = ["webrtc_peer_id.cc"],
+    hdrs = [
+        "webrtc_peer_id.h",
+        "webrtc_socket.h",
+    ],
+    visibility = [
+        "//connections/implementation/mediums/webrtc:__subpackages__",
+    ],
+    deps = [
+        ":utils",
+        "//connections/implementation/mediums/webrtc:data_types",
+        "//internal/platform:base",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "webrtc_utils",
     srcs = [
-        "webrtc_peer_id.cc",
         "webrtc_peer_id_stub.cc",
     ],
     hdrs = [
-        "webrtc_peer_id.h",
         "webrtc_peer_id_stub.h",
-        "webrtc_socket.h",
         "webrtc_socket_stub.h",
     ],
+    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
@@ -108,7 +146,6 @@ cc_library(
     ],
     deps = [
         ":utils",
-        "//connections/implementation/mediums/webrtc:data_types",
         "//internal/platform:base",
         "@com_google_absl//absl/strings",
     ],
@@ -199,15 +236,15 @@ cc_test(
         "requires-net:external",
     ],
     deps = [
-        ":mediums",
-        ":webrtc_utils",
+        ":real_webrtc_medium",
+        ":real_webrtc_utils",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform:webrtc_medium",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/test",
+        "//internal/test:fake_webrtc",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
