@@ -107,6 +107,7 @@ objc_library(
         "//internal/crypto_cros",
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:tachyon_express_signaling_messenger",
         "//internal/platform:types",
         "//internal/proto:tachyon_cc_proto",
         "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",

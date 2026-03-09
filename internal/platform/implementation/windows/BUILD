@@ -244,6 +244,24 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc",
+    srcs = ["webrtc.cc"],
+    hdrs = ["webrtc.h"],
+    tags = ["windows"],
+    deps = [
+        "//internal/platform:logging",
+        "//internal/platform:tachyon_express_signaling_messenger",
+        "//internal/platform/implementation:comm",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "windows",
     srcs = [
         "ble.cc",
@@ -268,7 +286,6 @@ cc_library(
         "preferences_manager.cc",
         "preferences_repository.cc",
         "system_clock.cc",
-        "webrtc.cc",
         "wifi_direct_medium.cc",
         "wifi_direct_server_socket.cc",
         "wifi_direct_socket.cc",
@@ -301,7 +318,6 @@ cc_library(
         "nearby_server_socket.h",
         "preferences_manager.h",
         "preferences_repository.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -437,6 +453,22 @@ cc_proto_library(
 )
 
 cc_test(
+    name = "webrtc_test",
+    size = "small",
+    srcs = ["webrtc_test.cc"],
+    deps = [
+        ":webrtc",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform_impl",
+        "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "impl_test",
     size = "small",
     srcs = [
@@ -460,7 +492,6 @@ cc_test(
         "thread_pool_test.cc",
         "timer_test.cc",
         "utils_test.cc",
-        "webrtc_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",
