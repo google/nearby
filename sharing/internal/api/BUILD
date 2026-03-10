@@ -31,6 +31,7 @@ cc_library(
         "system_info.h",
     ],
     visibility = [
+        "//internal/account:__pkg__",
         "//location/nearby/analytics/cpp/logging:__pkg__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/sharing/lib:__subpackages__",
