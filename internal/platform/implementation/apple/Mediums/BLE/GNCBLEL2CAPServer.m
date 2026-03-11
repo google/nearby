@@ -86,6 +86,10 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
     _peripheralManager.peripheralDelegate = self;
   }
 
+  if (_PSM > 0) {
+    GNCLoggerInfo((@"[NEARBY] Unpublish L2CAP channel with PSM: %@"), @(_PSM));
+    [_peripheralManager unpublishL2CAPChannel:_PSM];
+  }
   if (_peripheralManager.state == CBManagerStatePoweredOn) {
     // Bluetooth link is already encrypted, however encryption is not required here to avoid getting
     // insufficient authentication errors due to initialization order.
