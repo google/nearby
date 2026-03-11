@@ -272,7 +272,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
                            this),
           absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                            this)),
-      sync_manager_(&preference_manager_) {
+      sync_manager_(nearby_identity_client_, &preference_manager_) {
   CHECK(nearby_connections_manager_);
   CHECK(analytics_recorder);
 
