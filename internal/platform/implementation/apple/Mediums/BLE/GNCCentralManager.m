@@ -22,8 +22,10 @@ NS_ASSUME_NONNULL_BEGIN
 @implementation CBCentralManager (GNCCentralManagerAdditions)
 
 - (void)setCentralDelegate:(nullable id<GNCCentralManagerDelegate>)centralDelegate {
-  NSAssert([centralDelegate conformsToProtocol:@protocol(CBCentralManagerDelegate)],
-           @"centralDelegate must conform to protocol CBCentralManagerDelegate");
+  if (centralDelegate) {
+    NSAssert([centralDelegate conformsToProtocol:@protocol(CBCentralManagerDelegate)],
+             @"centralDelegate must conform to protocol CBCentralManagerDelegate");
+  }
   self.delegate = (id<CBCentralManagerDelegate>)centralDelegate;
 }
 

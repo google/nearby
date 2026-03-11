@@ -24,16 +24,19 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNCBLEMedium (Testing)
 
 /**
- * Creates a BLE Medium with a provided central manager.
+ * Creates a BLE Medium with a provided central manager and peripheral manager.
  *
- * This is only exposed for testing and can be used to inject a fake central manager.
+ * This is only exposed for tests and can be used to inject a fake central manager and
+ * peripheral manager.
  *
  * @param centralManager The central manager instance.
+ * @param peripheralManager The peripheral manager instance.
  * @param queue The queue to run on, this must match the queue that the central manager's delegate
- *              is running on. Defaults to the main queue when @c nil.
+ *              is running on.
  */
 - (instancetype)initWithCentralManager:(id<GNCCentralManager>)centralManager
-                                 queue:(nullable dispatch_queue_t)queue;
+                     peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
+                                 queue:(dispatch_queue_t)queue;
 
 - (NSDictionary<CBUUID *, NSData *> *)decodeAdvertisementData:
     (NSDictionary<NSString *, id> *)advertisementData;

@@ -23,9 +23,6 @@
 #include <utility>
 #include <vector>
 
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
@@ -33,7 +30,10 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEMedium+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCentralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheral.h"
 #include "internal/platform/implementation/apple/ble_utils.h"
@@ -71,7 +71,11 @@ static const char *const kTestServiceID = "TestServiceID";
 
 - (void)setUp {
   [super setUp];
-  _fakeGNCBLEMedium = [[GNCFakeBLEMedium alloc] init];
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  _fakeGNCBLEMedium = [[GNCFakeBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                   peripheralManager:fakePeripheralManager
+                                                               queue:dispatch_get_main_queue()];
   _medium = std::make_unique<nearby::apple::BleMedium>((GNCBLEMedium *)_fakeGNCBLEMedium);
 }
 

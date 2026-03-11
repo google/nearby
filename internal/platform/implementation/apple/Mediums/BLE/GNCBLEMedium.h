@@ -106,15 +106,6 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
  */
 - (instancetype)init;
 
-/**
- * Initializes the BLE medium with a custom central manager.
- *
- * @param centralManager The central manager to use for BLE operations.
- * @param queue The queue to use for all internal operations.
- */
-- (instancetype)initWithCentralManager:(id<GNCCentralManager>)centralManager
-                                 queue:(nullable dispatch_queue_t)queue;
-
 /** The hardware supports BOTH advertising extensions and extended scans. */
 @property(nonatomic, readonly) BOOL supportsExtendedAdvertisements;
 

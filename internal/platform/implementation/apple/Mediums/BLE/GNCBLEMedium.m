@@ -22,10 +22,10 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManagerMultiplexer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/NSData+GNCWebSafeBase64.h"
 
@@ -41,11 +41,16 @@ static NSError *AlreadyScanningError() {
 }
 
 @interface GNCBLEMedium () <GNCCentralManagerDelegate, CBCentralManagerDelegate>
+- (instancetype)initWithCentralManager:(id<GNCCentralManager>)centralManager
+                     peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
+                                 queue:(dispatch_queue_t)queue;
 @end
 
 @implementation GNCBLEMedium {
   dispatch_queue_t _queue;
   id<GNCCentralManager> _centralManager;
+  id<GNCPeripheralManager> _peripheralManager;
+  GNCPeripheralManagerMultiplexer *_multiplexer;
 
   // The active GATT server, or @nil if one hasn't been started yet.
   GNCBLEGATTServer *_server;
@@ -84,31 +89,45 @@ static NSError *AlreadyScanningError() {
 
   // The block to call when the BLE connection times out.
   dispatch_block_t _connectionTimeoutBlock;
+
+  // The set of connected peripherals.
+  NSMutableSet<NSUUID *> *_connectedPeripherals;
 }
 
 - (instancetype)init {
   dispatch_queue_t queue = dispatch_queue_create(kBLEMediumQueueLabel, DISPATCH_QUEUE_SERIAL);
   CBCentralManager *centralManager =
-      [[CBCentralManager alloc] initWithDelegate:self
+      [[CBCentralManager alloc] initWithDelegate:nil
                                            queue:queue
                                          options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
-  return [self initWithCentralManager:centralManager queue:queue];
+  CBPeripheralManager *peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil
+                                                                                   queue:queue];
+  return [self initWithCentralManager:centralManager
+                    peripheralManager:peripheralManager
+                                queue:queue];
 }
 
 // This is private and should only be used for tests. The provided central manager must call
 // delegate methods on the main queue.
 - (instancetype)initWithCentralManager:(id<GNCCentralManager>)centralManager
-                                 queue:(nullable dispatch_queue_t)queue {
+                     peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
+                                 queue:(dispatch_queue_t)queue {
   self = [super init];
   if (self) {
-    _queue = queue ?: dispatch_get_main_queue();
+    _queue = queue;
     _centralManager = centralManager;
     _centralManager.centralDelegate = self;
+    _peripheralManager = peripheralManager;
+    if (GNCFeatureFlags.sharedPeripheralManagerEnabled && _peripheralManager) {
+      _multiplexer = [[GNCPeripheralManagerMultiplexer alloc] initWithCallbackQueue:_queue];
+      _peripheralManager.peripheralDelegate = _multiplexer;
+    }
     _gattConnectionCompletionHandlers = [NSMutableDictionary dictionary];
     _gattDisconnectionHandlers = [NSMutableDictionary dictionary];
     _scanningServiceUUIDs = [NSMutableArray array];
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
     _l2capPSM = 0;
+    _connectedPeripherals = [NSMutableSet set];
   }
   return self;
 }
@@ -150,15 +169,22 @@ static NSError *AlreadyScanningError() {
   return NO;
 }
 
+- (void)dealloc {
+  [_centralManager stopScan];
+  _centralManager.centralDelegate = nil;
+
+  [_peripheralManager stopAdvertising];
+  _peripheralManager.peripheralDelegate = nil;
+}
+
 - (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)serviceData
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
     if (!_server) {
       if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
-        // TODO (edwinwu): Implement shared peripheral manager.
-        // For now, raise an exception.
-        [NSException raise:NSInvalidArgumentException
-                    format:@"Not implemented for shared manager is enabled."];
+        _server = [[GNCBLEGATTServer alloc] initWithPeripheralManager:_peripheralManager
+                                                                queue:_queue];
+        [_multiplexer addListener:_server];
       } else {
         // In legacy mode, we pass nil (or a separate manager) and do NOT add to multiplexer.
         // GNCBLEGATTServer will create its own internal manager.
@@ -205,7 +231,7 @@ static NSError *AlreadyScanningError() {
     [_scanningServiceUUIDs addObjectsFromArray:serviceUUIDs];
     _advertisementFoundHandler = advertisementFoundHandler;
 
-    [self internalStartScanningIfPoweredOn];
+    [self updateScanningState];
     if (completionHandler) {
       completionHandler(nil);
     }
@@ -226,7 +252,7 @@ static NSError *AlreadyScanningError() {
 
 - (void)resumeMediumScanning:(nullable GNCStartScanningCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
-    [self internalStartScanningIfPoweredOn];
+    [self updateScanningState];
     if (completionHandler) {
       completionHandler(nil);
     }
@@ -238,10 +264,9 @@ static NSError *AlreadyScanningError() {
   dispatch_async(_queue, ^{
     if (!_server) {
       if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
-        // TODO (edwinwu): Implement shared peripheral manager.
-        // For now, raise an exception.
-        [NSException raise:NSInvalidArgumentException
-                    format:@"Not implemented for shared manager is enabled."];
+        _server = [[GNCBLEGATTServer alloc] initWithPeripheralManager:_peripheralManager
+                                                                queue:_queue];
+        [_multiplexer addListener:_server];
       } else {
         _server = [[GNCBLEGATTServer alloc] initWithPeripheralManager:nil queue:nil];
       }
@@ -291,10 +316,15 @@ static NSError *AlreadyScanningError() {
   dispatch_async(_queue, ^{
     if (!_l2capServer) {
       if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
-        // TODO (edwinwu): Implement shared peripheral manager.
-        // For now, raise an exception.
-        [NSException raise:NSInvalidArgumentException
-                    format:@"Not implemented for shared manager is enabled."];
+        _l2capServer = [[GNCBLEL2CAPServer alloc]
+            initWithPeripheralManager:peripheralManager ?: _peripheralManager
+                                queue:peripheralManager ? dispatch_get_main_queue() : _queue];
+        // Only add to multiplexer if we are using the internal shared manager.
+        // If a specific manager was passed in (e.g. for testing?), we might still need logic here.
+        // But typically `peripheralManager` is nil in prod.
+        if (peripheralManager == nil || peripheralManager == _peripheralManager) {
+          [_multiplexer addListener:_l2capServer];
+        }
       } else {
         // Legacy mode
         _l2capServer = [[GNCBLEL2CAPServer alloc]
@@ -351,23 +381,32 @@ static NSError *AlreadyScanningError() {
 
 #pragma mark - Internal
 
-- (void)internalStartScanningIfPoweredOn {
+- (void)updateScanningState {
   dispatch_assert_queue(_queue);
   // Scanning can only be done when powered on and must be restarted if bluetooth is turned off
   // then back on. This will be called anytime the central manager's state changes, so
   // @c scanForPeripheralsWithServices:options: will be called anytime state transitions back to
   // powered on.
-  if (_centralManager.state == CBManagerStatePoweredOn && _scanningServiceUUIDs.count > 0) {
-    // Stop scanning just in case something outside of this class is already scanning.
-    [_centralManager stopScan];
-    [_centralManager
-        scanForPeripheralsWithServices:_scanningServiceUUIDs
-                               // Nearby relies on the existence of an advertisement for endpoint
-                               // discovery/lost events, so we must set this key to keep the stream
-                               // of duplicate delegate events flowing. This has adverse effect on
-                               // battery life, but currently necessary.
-                               options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}];
+  if (_centralManager.state != CBManagerStatePoweredOn) {
+    return;
   }
+
+  // If there are any connected peripherals, stop scanning to avoid high interrupt load on the
+  // Bluetooth controller, which can cause system-level crashes (XPC connection invalid).
+  if (_connectedPeripherals.count > 0 || _scanningServiceUUIDs.count == 0) {
+    [_centralManager stopScan];
+    return;
+  }
+
+  // Stop scanning just in case something outside of this class is already scanning.
+  [_centralManager stopScan];
+  [_centralManager
+      scanForPeripheralsWithServices:_scanningServiceUUIDs
+                             // Nearby relies on the existence of an advertisement for endpoint
+                             // discovery/lost events, so we must set this key to keep the stream
+                             // of duplicate delegate events flowing. This has adverse effect on
+                             // battery life, but currently necessary.
+                             options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}];
 }
 
 - (NSDictionary<CBUUID *, NSData *> *)decodeAdvertisementData:
@@ -479,7 +518,7 @@ static NSError *AlreadyScanningError() {
     return;
   }
   dispatch_assert_queue(_queue);
-  [self internalStartScanningIfPoweredOn];
+  [self updateScanningState];
 }
 
 - (void)gnc_centralManager:(id<GNCCentralManager>)central
@@ -496,6 +535,9 @@ static NSError *AlreadyScanningError() {
       didConnectPeripheral:(id<GNCPeripheral>)peripheral {
   dispatch_assert_queue(_queue);
   [self cancelConnectionTimeout];
+  [_connectedPeripherals addObject:peripheral.identifier];
+  [self updateScanningState];
+
   if (_l2capPSM > 0) {
     [self internalOpenL2CAPChannel:peripheral];
     return;
@@ -541,6 +583,9 @@ static NSError *AlreadyScanningError() {
     didDisconnectPeripheral:(id<GNCPeripheral>)peripheral
                       error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
+  [_connectedPeripherals removeObject:peripheral.identifier];
+  [self updateScanningState];
+
   GNCGATTDisconnectionHandler handler = _gattDisconnectionHandlers[peripheral.identifier];
   _gattDisconnectionHandlers[peripheral.identifier] = nil;
   if (handler) {

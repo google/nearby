@@ -32,7 +32,7 @@ objc_library(
         "GNCBLEL2CAPFakeInputOutputStream.m",
         "GNCBLEL2CAPServerTest.mm",
         "GNCBLEL2CAPStreamTest.m",
-        "GNCBLEMediumTest.m",
+        "GNCBLEMediumTest.mm",
         "GNCFakeBLEGATTServer.m",
         "GNCFakeBLEMedium.m",
         "GNCFakeCBL2CAPChannel.m",

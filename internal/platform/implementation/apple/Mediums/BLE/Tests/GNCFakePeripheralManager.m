@@ -140,6 +140,7 @@ static const uint16_t kPSM = 192;
     GNCFakeCBL2CAPChannel *fakeChannel = [[GNCFakeCBL2CAPChannel alloc] init];
     fakeChannel.inputStream = fakeStream.inputStream;
     fakeChannel.outputStream = fakeStream.outputStream;
+    fakeChannel.PSM = _PSM;
     [_peripheralDelegate gnc_peripheralManager:self
                            didOpenL2CAPChannel:(CBL2CAPChannel *)fakeChannel
                                          error:_didOpenL2CAPChannelError];

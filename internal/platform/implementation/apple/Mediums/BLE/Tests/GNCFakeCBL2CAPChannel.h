@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 /** The socket file descriptor for the L2CAP channel. */
 @property(nonatomic, readonly) int socketFD;
 /** The PSM (Protocol/Service Multiplexer) of the L2CAP channel. */
-@property(nonatomic, readonly) CBL2CAPPSM PSM;
+@property(nonatomic, readwrite) CBL2CAPPSM PSM;
 
 @end
 
