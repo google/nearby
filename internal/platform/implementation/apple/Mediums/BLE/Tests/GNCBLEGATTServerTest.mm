@@ -22,6 +22,9 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEGATTServer+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 static NSString *const kServiceUUID1 = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 static NSString *const kServiceUUID2 = @"0000FEF4-0000-1000-8000-00805F9B34FB";
 static NSString *const kCharacteristicUUID1 = @"00000000-0000-3000-8000-000000000000";
@@ -34,11 +37,60 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
 #pragma mark - Create Characteristic
 
-- (void)testCreateCharacteristic {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+- (void)tearDown {
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+  [super tearDown];
+}
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+- (void)testInit_setsDelegateCorrectlyBasedOnFlag {
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+    GNCBLEGATTServer *server =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+
+    if (enabled.boolValue) {
+      // In shared mode, functionality is delegated to the multiplexer, so the server should NOT
+      // self-assign as delegate.
+      XCTAssertNil(fakePeripheralManager.peripheralDelegate);
+    } else {
+      // In legacy mode, the server owns the manager and sets itself as delegate.
+      XCTAssertEqual(fakePeripheralManager.peripheralDelegate, server);
+    }
+  }
+}
+
+- (void)testInit_throwsWithNilManagerWhenFlagEnabled {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableSharedPeripheralManager,
+      true);
+
+  XCTAssertThrowsSpecificNamed(
+      [[GNCBLEGATTServer alloc] initWithPeripheralManager:(id<GNCPeripheralManager>)nil
+                                                    queue:dispatch_get_main_queue()],
+      NSException, NSInvalidArgumentException);
+}
+
+- (void)testCreateCharacteristic {
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -62,13 +114,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                       }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testCreateMultipleCharacteristicsForOneService {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -105,13 +167,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[ expectation1, expectation2 ] timeout:3];
   XCTAssertEqual(fakePeripheralManager.services.count, 1);
   XCTAssertEqual(fakePeripheralManager.services[0].characteristics.count, 2);
+  }
 }
 
 - (void)testCreateDuplicateCharacteristics {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -140,13 +212,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[ expectation ] timeout:3];
   XCTAssertEqual(fakePeripheralManager.services.count, 1);
   XCTAssertEqual(fakePeripheralManager.services[0].characteristics.count, 1);
+  }
 }
 
 - (void)testCreateDuplicatePendingCharacteristics {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
@@ -171,13 +253,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                               }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testCreateCharacteristicNotPoweredOn {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
@@ -198,13 +290,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                               }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testCreateCharacteristicServiceFailure {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   fakePeripheralManager.didAddServiceError = [NSError errorWithDomain:@"fake" code:0 userInfo:nil];
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
@@ -228,15 +330,25 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                               }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 #pragma mark - Read Request
 
 - (void)testReadRequest {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -265,14 +377,24 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                 characteristic:characteristicUUID];
 
   [self waitForExpectations:@[ fakePeripheralManager.respondToRequestSuccessExpectation ]
-                    timeout:0];
+                    timeout:3];
+  }
 }
 
-- (void)testReadRequestInvalidService {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+- (void)testReadRequestInvalidCharacteristic {
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -292,77 +414,110 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                completionHandler:^(NSError *error) {
                                                  [expectation fulfill];
                                                }];
+                              }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+
+  CBUUID *invalidCharacteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID2];
+
+  [fakePeripheralManager
+      simulatePeripheralManagerDidReceiveReadRequestForService:serviceUUID
+                                                characteristic:invalidCharacteristicUUID];
+
+  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:3];
+  }
+}
+
+- (void)testReadRequestInvalidService {
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
+
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Create characteristic."];
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
+  CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
+  [gattServer createCharacteristicWithServiceID:serviceUUID
+                             characteristicUUID:characteristicUUID
+                                    permissions:CBAttributePermissionsReadable
+                                     properties:CBCharacteristicPropertyRead
+                              completionHandler:^(GNCBLEGATTCharacteristic *characteristic,
+                                                  NSError *error) {
+                                [expectation fulfill];
                               }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
 
   CBUUID *invalidServiceUUID = [CBUUID UUIDWithString:kServiceUUID2];
 
+  // Expectation that we *should not* receive a response.
+  fakePeripheralManager.respondToRequestSuccessExpectation.inverted = YES;
+  fakePeripheralManager.respondToRequestErrorExpectation.inverted = YES;
+
   [fakePeripheralManager
       simulatePeripheralManagerDidReceiveReadRequestForService:invalidServiceUUID
                                                 characteristic:characteristicUUID];
 
-  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:0];
-}
-
-- (void)testReadRequestInvalidCharacteristic {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
-
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
-
-  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
-
-  XCTestExpectation *expectation =
-      [[XCTestExpectation alloc] initWithDescription:@"Create and update characteristic."];
-
-  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
-  CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
-  [gattServer createCharacteristicWithServiceID:serviceUUID
-                             characteristicUUID:characteristicUUID
-                                    permissions:CBAttributePermissionsReadable
-                                     properties:CBCharacteristicPropertyRead
-                              completionHandler:^(GNCBLEGATTCharacteristic *characteristic,
-                                                  NSError *error) {
-                                [gattServer updateCharacteristic:characteristic
-                                                           value:[NSData data]
-                                               completionHandler:^(NSError *error) {
-                                                 [expectation fulfill];
-                                               }];
-                              }];
-
-  [self waitForExpectations:@[ expectation ] timeout:3];
-
-  CBUUID *invalidCharacteristicUUID =
-      [CBUUID UUIDWithString:kCharacteristicUUID2];
-
-  [fakePeripheralManager
-      simulatePeripheralManagerDidReceiveReadRequestForService:serviceUUID
-                                                characteristic:invalidCharacteristicUUID];
-
-  [self waitForExpectations:@[ fakePeripheralManager.respondToRequestErrorExpectation ] timeout:0];
+  [self waitForExpectations:@[
+    fakePeripheralManager.respondToRequestSuccessExpectation,
+    fakePeripheralManager.respondToRequestErrorExpectation
+  ]
+                    timeout:3];
+  }
 }
 
 #pragma mark - Stop
 
 - (void)testStop {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
-  [gattServer stop];
+    [gattServer stop];
 
-  XCTAssertEqual(fakePeripheralManager.services.count, 0);
+    XCTAssertEqual(fakePeripheralManager.services.count, 0);
+  }
 }
 
 #pragma mark - Start Advertising
 
 - (void)testStartAdvertisingNoServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -377,13 +532,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingEmptyServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -402,13 +567,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingShortServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -429,13 +604,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertising20ByteServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -457,13 +642,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingLongServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -482,13 +677,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
          }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingWithEmojiServiceData {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -510,13 +715,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
          }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingMultipleServices {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -536,13 +751,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingNotPoweredOn {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   XCTestExpectation *expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Start advertising."];
@@ -556,13 +781,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingStartFailure {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   fakePeripheralManager.didStartAdvertisingError = [NSError errorWithDomain:@"fake"
                                                                        code:0
@@ -581,13 +816,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartAdvertisingAlreadyAdvertising {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   fakePeripheralManager.didStartAdvertisingError = [NSError errorWithDomain:@"fake"
                                                                        code:0
@@ -608,13 +853,23 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 - (void)testStartStopStartAdvertising {
-  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
 
-  GNCBLEGATTServer *gattServer =
-      [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager];
+    GNCBLEGATTServer *gattServer =
+        [[GNCBLEGATTServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                      queue:dispatch_get_main_queue()];
+    if (enabled.boolValue) {
+      fakePeripheralManager.peripheralDelegate = gattServer;
+    }
 
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
@@ -648,6 +903,9 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                  }];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
+  }
 }
 
 @end
+
+

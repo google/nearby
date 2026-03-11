@@ -15,6 +15,8 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManager.h"
+
 @class GNCBLEL2CAPStream;
 @protocol GNCPeripheralManager;
 
@@ -42,7 +44,7 @@ typedef void (^GNCOpenL2CAPServerChannelOpendCompletionHandler)(GNCBLEL2CAPStrea
  *
  * @note The public APIs of this class are thread safe.
  */
-@interface GNCBLEL2CAPServer : NSObject
+@interface GNCBLEL2CAPServer : NSObject <GNCPeripheralManagerDelegate>
 
 // Represents a PSM (Protocol/Service Multiplexer) value for an L2CAP channel.
 @property(atomic, readonly) CBL2CAPPSM PSM;
@@ -56,6 +58,8 @@ typedef void (^GNCOpenL2CAPServerChannelOpendCompletionHandler)(GNCBLEL2CAPStrea
  */
 - (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
                                     queue:(nullable dispatch_queue_t)queue;
+
+- (instancetype)init NS_UNAVAILABLE;
 
 /**
  * Starts listening for an L2CAP channel.

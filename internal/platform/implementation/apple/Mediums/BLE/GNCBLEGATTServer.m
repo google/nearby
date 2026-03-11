@@ -59,30 +59,33 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
   NSDictionary<NSString *, id> *_advertisementData;
 }
 
-- (instancetype)init {
+- (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
+                                    queue:(nullable dispatch_queue_t)queue {
   self = [super init];
   if (self) {
-    _queue = dispatch_queue_create(kGNCBLEGATTServerQueueLabel, DISPATCH_QUEUE_SERIAL);
-    _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil queue:_queue];
-    // Set for @c GNCPeripheralManager to be able to forward callbacks.
-    _peripheralManager.peripheralDelegate = self;
-    _services = [[NSMutableDictionary alloc] init];
-    _pendingCharacteristics = [[NSMutableDictionary alloc] init];
-    _characteristicValues = [[NSMutableDictionary alloc] init];
-    _advertisementData = nil;
-  }
-  return self;
-}
+    _queue = queue ?: dispatch_queue_create(kGNCBLEGATTServerQueueLabel, DISPATCH_QUEUE_SERIAL);
+    if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
+      if (!peripheralManager) {
+        // In shared mode, the peripheral manager must be injected.
+        [NSException raise:NSInvalidArgumentException
+                    format:@"Peripheral manager cannot be nil when shared manager is enabled."];
+      }
+      _peripheralManager = peripheralManager;
+      // In shared mode, do NOT set the delegate. The Multiplexer handles callbacks.
+    } else {
+      // Legacy mode: Create a new manager if one isn't provided.
+      if (!peripheralManager) {
+        peripheralManager = [[CBPeripheralManager alloc]
+            initWithDelegate:self
+                       queue:_queue
+                     options:@{CBPeripheralManagerOptionShowPowerAlertKey : @NO}];
+      }
+      _peripheralManager = peripheralManager;
+      // In legacy mode, we own the manager (or use the injected one as if we own it) and set the
+      // delegate.
+      _peripheralManager.peripheralDelegate = self;
+    }
 
-// This is private and should only be used for tests. The provided peripheral manager must call
-// delegate methods on the main queue.
-- (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
-  self = [super init];
-  if (self) {
-    _queue = dispatch_get_main_queue();
-    _peripheralManager = peripheralManager;
-    // Set for @c GNCPeripheralManager to be able to forward callbacks.
-    _peripheralManager.peripheralDelegate = self;
     _services = [[NSMutableDictionary alloc] init];
     _pendingCharacteristics = [[NSMutableDictionary alloc] init];
     _characteristicValues = [[NSMutableDictionary alloc] init];
@@ -342,6 +345,12 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
         didReceiveReadRequest:(CBATTRequest *)request {
   dispatch_assert_queue(_queue);
+  if (!_services[request.characteristic.service.UUID]) {
+    // This server does not own the requested service. Ignore the request to allow other listeners
+    // (or future listeners) to handle it.
+    return;
+  }
+
   NSData *value =
       _characteristicValues[request.characteristic.service.UUID][request.characteristic.UUID];
   if (!value) {

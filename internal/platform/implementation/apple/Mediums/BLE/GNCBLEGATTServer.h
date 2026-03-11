@@ -15,6 +15,8 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManager.h"
+
 @class GNCBLEGATTCharacteristic;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -57,7 +59,18 @@ typedef void (^GNCStopAdvertisingCompletionHandler)(NSError *_Nullable error);
  *
  * @note The public APIs of this class are thread safe.
  */
-@interface GNCBLEGATTServer : NSObject
+@interface GNCBLEGATTServer : NSObject <GNCPeripheralManagerDelegate>
+
+/**
+ * Initializes the GATT server.
+ *
+ * @param peripheralManager The peripheral manager to use.
+ * @param queue The queue to use for delegate callbacks and internal operations.
+ */
+- (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager
+                                    queue:(nullable dispatch_queue_t)queue;
+
+- (instancetype)init NS_UNAVAILABLE;
 
 /**
  * Creates a characteristic and adds it to the GATT server.

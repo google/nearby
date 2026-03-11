@@ -29,4 +29,7 @@
 /** Checks whether BLE L2CAP refactor is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL refactorBleL2capEnabled;
 
+/** Checks whether shared peripheral manager is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL sharedPeripheralManagerEnabled;
+
 @end
