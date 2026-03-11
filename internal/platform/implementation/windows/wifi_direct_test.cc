@@ -19,6 +19,8 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/wifi_direct.h"
@@ -28,7 +30,13 @@
 namespace nearby {
 namespace windows {
 namespace {
-
+constexpr absl::string_view kServiceNamePrefix =
+    "com.google.nearby.connection.";
+// Tests are prefixed with DISABLED_ for several reasons: 1. They require user
+// interaction, 2. They have access to Windows APIs and physical WiFi hardware.
+// These tests are intended for validation on actual Windows machines, 3. By
+// using the DISABLED_ prefix, we can Keep the code in the repo and prevent CI
+// failures.
 TEST(WifiDirectMedium, DISABLED_StartWifiDirect) {
   int run_test;
   LOG(INFO) << "Run StartWifiDirect test case? input 0 or 1:";
@@ -72,7 +80,9 @@ TEST(WifiDirectMedium, DISABLED_ConnectWifiDirect) {
     LOG(INFO) << "Enter pin: ";
     std::string pin;
     std::cin >> pin;
-    credentials.SetServiceName(service_name);
+    std::string service_name_with_prefix =
+        absl::StrCat(kServiceNamePrefix, service_name);
+    credentials.SetServiceName(service_name_with_prefix);
     credentials.SetPin(pin);
 
     EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));
@@ -147,7 +157,9 @@ TEST(WifiDirectMedium, DISABLED_WifiDirectConnectToServiceServer) {
     LOG(INFO) << "Enter pin: ";
     std::string pin;
     std::cin >> pin;
-    credentials.SetServiceName(service_name);
+    std::string service_name_with_prefix =
+        absl::StrCat(kServiceNamePrefix, service_name);
+    credentials.SetServiceName(service_name_with_prefix);
     credentials.SetPin(pin);
 
     EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));

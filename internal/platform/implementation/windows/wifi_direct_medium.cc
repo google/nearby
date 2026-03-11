@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -41,6 +42,15 @@ namespace nearby {
 namespace windows {
 namespace {
 constexpr int kWaitingForConnectionTimeoutSeconds = 90;  // seconds
+// The prefix of the service name.
+// Fully Qualified Service Name (FQSN) must follow reverse-DNS notation to
+// ensure uniqueness and cross-platform compatibility. Otherwise, Windows
+// prefixes the service name with "org.wi-fi.wfds.", which prevents Android
+// devices from discovering the service.
+// https://www.wi-fi.org/file-member/wi-fi-peer-to-peer-services-technical-specification-package
+// Wi-Fi_Peer-to-Peer_Services_Technical_Specification_v1.2.pdf chapter 3.2
+constexpr absl::string_view kServiceNamePrefix =
+    "com.google.nearby.connection.";
 }  // namespace
 
 WifiDirectMedium::WifiDirectMedium() {
@@ -294,7 +304,8 @@ bool WifiDirectMedium::StartWifiDirect(
   std::string pin = absl::StrFormat("%04x", prng.NextUint32());
   credentials_go_->SetPin(pin);
 
-  std::string service_name = "NC-" + std::to_string(prng.NextUint32());
+  std::string service_name =
+      absl::StrCat(kServiceNamePrefix, std::to_string(prng.NextUint32()));
   credentials_go_->SetServiceName(service_name);
   LOG(INFO) << "service_name:pin " << service_name << ":" << pin;
 
