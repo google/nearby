@@ -105,6 +105,7 @@ namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::EventType;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::nearby::analytics::HasEventType;
@@ -219,103 +220,149 @@ TEST_F(AwdlBwuHandlerTest,
 
 TEST_F(AwdlBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  ClientProxy client(&mock_event_logger_);
-  client.GetAnalyticsRecorder().OnStartAdvertising(
-      Strategy::kP2pPointToPoint,
-      {location::nearby::proto::connections::Medium::BLUETOOTH},
-      /*advertising_metadata_params=*/nullptr);
-  client.GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
-      std::string(kEndpointId),
-      location::nearby::proto::connections::Medium::BLUETOOTH,
-      location::nearby::proto::connections::Medium::AWDL,
-      location::nearby::proto::connections::ConnectionAttemptDirection::
-          OUTGOING,
-      /*connection_token=*/"");
-  client.AddCancellationFlag(std::string(kEndpointId));
+  // The reason for putting ClientProxy inside a C++ { } block so it destructs
+  // before the simulated clock is restored. Otherwise, the simulated clock
+  // would stopped before ClientProxy went out of scope, causing its destructor
+  // to log the session duration using the real system clock. If 1 or more
+  // real-world milliseconds elapsed between the test start and test end, this
+  // duration evaluated to something > 0.
+  {
+    ClientProxy client(&mock_event_logger_);
+    client.GetAnalyticsRecorder().OnStartAdvertising(
+        Strategy::kP2pPointToPoint,
+        {location::nearby::proto::connections::Medium::BLUETOOTH},
+        /*advertising_metadata_params=*/nullptr);
+    client.GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+        std::string(kEndpointId),
+        location::nearby::proto::connections::Medium::BLUETOOTH,
+        location::nearby::proto::connections::Medium::AWDL,
+        location::nearby::proto::connections::ConnectionAttemptDirection::
+            OUTGOING,
+        /*connection_token=*/"");
+    client.AddCancellationFlag(std::string(kEndpointId));
 
-  auto awdl_server_socket = std::make_unique<MockAwdlServerSocket>();
+    auto awdl_server_socket = std::make_unique<MockAwdlServerSocket>();
+    auto* awdl_server_socket_ptr = awdl_server_socket.get();
+    EXPECT_CALL(*awdl_server_socket_ptr, GetPort())
+        .WillRepeatedly(Return(8080));
+    EXPECT_CALL(*awdl_server_socket_ptr, Accept())
+        .WillOnce(Return(ByMove(nullptr)));
+    EXPECT_CALL(*awdl_server_socket_ptr, Close())
+        .WillRepeatedly(Return(Exception{Exception::kSuccess}));
 
-  EXPECT_CALL(*awdl_medium_mock, ListenForService(_, 0))
-      .WillOnce(Return(ByMove(std::move(awdl_server_socket))));
-  EXPECT_CALL(*awdl_medium_mock, StartAdvertising(_)).WillOnce(Return(true));
+    EXPECT_CALL(*awdl_medium_mock, ListenForService(_, 0))
+        .WillOnce(Return(ByMove(std::move(awdl_server_socket))));
 
-  ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
-      &client, std::string(kServiceId), std::string(kEndpointId));
+    std::string captured_service_name;
+    std::string captured_service_type;
+    EXPECT_CALL(*awdl_medium_mock, StartAdvertising(_))
+        .WillOnce([&](const NsdServiceInfo& nsd_service_info) {
+          captured_service_name = nsd_service_info.GetServiceName();
+          captured_service_type = nsd_service_info.GetServiceType();
+          return true;
+        });
 
-  EXPECT_FALSE(result.Empty());
-  OfflineFrame result_frame;
-  EXPECT_TRUE(result_frame.ParseFromString(std::string(result)));
-  EXPECT_TRUE(result_frame.has_v1());
-  EXPECT_TRUE(result_frame.v1().has_bandwidth_upgrade_negotiation());
-  EXPECT_TRUE(result_frame.v1()
-                  .bandwidth_upgrade_negotiation()
-                  .has_upgrade_path_info());
-  EXPECT_TRUE(result_frame.v1()
-                  .bandwidth_upgrade_negotiation()
-                  .upgrade_path_info()
-                  .has_awdl_credentials());
+    ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+        &client, std::string(kServiceId), std::string(kEndpointId));
 
-  constexpr absl::string_view kClientSessionLog = R"pb(
-    event_type: CLIENT_SESSION
-    client_session { duration_millis: 0 }
-    version: "v1.5.0"
-  )pb";
-  constexpr absl::string_view kExpectedUpgradeLog = R"pb(
-    event_type: CLIENT_SESSION
-    client_session {
-      duration_millis: 0
-      strategy_session {
+    EXPECT_FALSE(result.Empty());
+    OfflineFrame expected_frame;
+    expected_frame.set_version(OfflineFrame::V1);
+    expected_frame.mutable_v1()->set_type(
+        V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+    auto* bwu_frame =
+        expected_frame.mutable_v1()->mutable_bandwidth_upgrade_negotiation();
+    bwu_frame->set_event_type(
+        BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+    auto* upgrade_path_info = bwu_frame->mutable_upgrade_path_info();
+    upgrade_path_info->set_medium(
+        BandwidthUpgradeNegotiationFrame::UpgradePathInfo::AWDL);
+    upgrade_path_info->set_supports_client_introduction_ack(true);
+    upgrade_path_info->set_supports_disabling_encryption(true);
+    auto* awdl_credentials = upgrade_path_info->mutable_awdl_credentials();
+    awdl_credentials->set_service_name(captured_service_name);
+    awdl_credentials->set_service_type(captured_service_type);
+
+    // The password is automatically generated and set in the handle start, we
+    // can obtain it from the credential Since we mock StartAcceptingConnections
+    // instead of using real awdl, GetPskInfo won't work perfectly. However
+    // InitializeUpgradedMediumForEndpoint internally calls
+    // parser::ForBwuAwdlPathAvailable which puts the generated password. We
+    // will extract it from result directly to build expected frame.
+    OfflineFrame result_frame;
+    EXPECT_TRUE(result_frame.ParseFromString(std::string(result)));
+    awdl_credentials->set_password(result_frame.v1()
+                                       .bandwidth_upgrade_negotiation()
+                                       .upgrade_path_info()
+                                       .awdl_credentials()
+                                       .password());
+
+    EXPECT_THAT(result_frame, EqualsProto(expected_frame));
+
+    constexpr absl::string_view kClientSessionLog = R"pb(
+      event_type: CLIENT_SESSION
+      client_session { duration_millis: 0 }
+      version: "v1.5.0"
+    )pb";
+    constexpr absl::string_view kExpectedUpgradeLog = R"pb(
+      event_type: CLIENT_SESSION
+      client_session {
         duration_millis: 0
-        strategy: P2P_POINT_TO_POINT
-        role: ADVERTISER
-        advertising_phase {
+        strategy_session {
           duration_millis: 0
-          medium: BLUETOOTH
-          advertising_metadata {
-            supports_extended_ble_advertisements: false
-            connected_ap_frequency: 0
-            supports_nfc_technology: false
+          strategy: P2P_POINT_TO_POINT
+          role: ADVERTISER
+          advertising_phase {
+            duration_millis: 0
+            medium: BLUETOOTH
+            advertising_metadata {
+              supports_extended_ble_advertisements: false
+              connected_ap_frequency: 0
+              supports_nfc_technology: false
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
-          stop_reason: FINISH_SESSION_STOP_ADVERTISING
-        }
-        upgrade_attempt {
-          direction: OUTGOING
-          duration_millis: 0
-          from_medium: BLUETOOTH
-          to_medium: AWDL
-          upgrade_result: UNFINISHED_ERROR
-          error_stage: UPGRADE_UNFINISHED
-          connection_token: ""
-          operation_result {
-            result_category: CATEGORY_DEVICE_STATE_ERROR
-            result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+          upgrade_attempt {
+            direction: OUTGOING
+            duration_millis: 0
+            from_medium: BLUETOOTH
+            to_medium: AWDL
+            upgrade_result: UNFINISHED_ERROR
+            error_stage: UPGRADE_UNFINISHED
+            connection_token: ""
+            operation_result {
+              result_category: CATEGORY_DEVICE_STATE_ERROR
+              result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+            }
           }
         }
       }
-    }
-    version: "v1.5.0"
-  )pb";
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_STRATEGY_SESSION))))
-      .Times(1);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::START_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(EqualsProto(kClientSessionLog))))
-      .Times(2);
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(EqualsProto(kExpectedUpgradeLog))));
-  // Flush pending logs.
-  client.GetAnalyticsRecorder().LogSession();
+      version: "v1.5.0"
+    )pb";
+    EXPECT_CALL(mock_event_logger_,
+                Log(Matcher<const ConnectionsLog&>(
+                    HasEventType(EventType::STOP_STRATEGY_SESSION))))
+        .Times(1);
+    EXPECT_CALL(mock_event_logger_,
+                Log(Matcher<const ConnectionsLog&>(
+                    HasEventType(EventType::STOP_CLIENT_SESSION))))
+        .Times(3);
+    EXPECT_CALL(mock_event_logger_,
+                Log(Matcher<const ConnectionsLog&>(
+                    HasEventType(EventType::START_CLIENT_SESSION))))
+        .Times(3);
+    EXPECT_CALL(
+        mock_event_logger_,
+        Log(Matcher<const ConnectionsLog&>(EqualsProto(kClientSessionLog))))
+        .Times(2);
+    EXPECT_CALL(
+        mock_event_logger_,
+        Log(Matcher<const ConnectionsLog&>(EqualsProto(kExpectedUpgradeLog))));
+    // Flush pending logs.
+    client.GetAnalyticsRecorder().LogSession();
+    handler_.RevertInitiatorState();
+  }
+  MediumEnvironment::Instance().Stop();
 }
 
 TEST_F(AwdlBwuHandlerTest, OnIncomingAwdlConnection_Success) {
