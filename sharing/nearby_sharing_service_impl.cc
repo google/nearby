@@ -1508,17 +1508,12 @@ NearbySharingServiceImpl::CreateEndpointInfo(
   ShareTargetType device_type =
       static_cast<ShareTargetType>(device_info_.GetDeviceType());
 
-  AdvertisementCapabilities capabilities{};
-  if (supports_file_sync_ && NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableFileSync)) {
-    capabilities.Add(AdvertisementCapabilities::Capability::kFileSync);
-  }
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_key), device_type, device_name,
       visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE
           ? static_cast<uint8_t>(GetReceivingVendorId())
           : static_cast<uint8_t>(BlockedVendorId::kNone),
-      std::move(capabilities));
+      /*capabilities=*/{});
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {
