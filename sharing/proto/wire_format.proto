@@ -183,7 +183,7 @@ message Frame {
   optional V1Frame v1 = 2;
 }
 
-// NEXT_ID=9
+// NEXT_ID=10
 message V1Frame {
   enum FrameType {
     UNKNOWN_FRAME_TYPE = 0;
@@ -197,6 +197,7 @@ message V1Frame {
     // No longer used.
     PROGRESS_UPDATE = 7;
     FILE_SYNC = 8;
+    BINDINGS = 9;
   }
 
   optional FrameType type = 1;
@@ -209,6 +210,7 @@ message V1Frame {
   optional CertificateInfoFrame certificate_info = 6 [deprecated = true];
   optional ProgressUpdateFrame progress_update = 7 [deprecated = true];
   optional SyncFrame file_sync = 8;
+  optional BindingFrame bindings = 9;
 }
 
 // An introduction packet sent by the sending side. Contains a list of files
@@ -278,6 +280,37 @@ message SyncFolder {
   // of a valid index_id. If an index is reset, all sequence numbers need to be
   // regenerated, including max_sequence.
   optional int64 max_sequence = 4;
+}
+
+// Messages used to create pair bindings between devices.
+// An initiator device requests a new bindingId from the BE using the
+// InitiateBinding rpc.  This new bindingId is passed to the peer device using
+// a BindingRequest frame.  The peer device will use this bindingId to call
+// JoinBinding rpc.  If successful, the peer device is response with a
+// BindingResponse frame with status of SUCCESS.
+message BindingFrame {
+  oneof content {
+    BindingRequest binding_request = 1;
+    BindingResponse binding_response = 2;
+  }
+}
+
+message BindingRequest {
+  enum Type {
+    UNKNOWN = 0;
+    FILESYNC = 1;
+  }
+  optional string binding_id = 1;
+  optional Type type = 2;
+}
+
+message BindingResponse {
+  enum Status {
+    UNKNOWN = 0;
+    SUCCESS = 1;
+    FAILURE = 2;  // TODO: b/485307320 - Add more specific error codes.
+  }
+  optional Status status = 1;
 }
 
 // A response packet sent by the receiving side. Accepts or rejects the list of
