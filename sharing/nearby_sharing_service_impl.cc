@@ -430,16 +430,16 @@ void NearbySharingServiceImpl::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     BlockedVendorId blocked_vendor_id, bool disable_wifi_hotspot,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_send_surface",
       [this, transfer_callback, discovery_callback, state, blocked_vendor_id,
        disable_wifi_hotspot,
-       status_codes_callback = std::move(status_codes_callback)]() {
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         if (state != SendSurfaceState::kForeground &&
             state != SendSurfaceState::kBackground) {
           LOG(ERROR) << "Invalid SendSurfaceState: " << static_cast<int>(state);
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
         DCHECK(transfer_callback);
@@ -456,7 +456,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
             background_send_surface_map_.contains(transfer_callback)) {
           VLOG(1) << "RegisterSendSurface failed. Already registered for a "
                      "different state.";
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
         BlockedVendorId sending_id = GetSendingVendorId();
@@ -464,7 +464,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           LOG(INFO) << "RegisterSendSurface failed. Already registered to "
                        "block a different vendor ID "
                     << static_cast<uint32_t>(sending_id);
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
         WrappedShareTargetDiscoveredCallback wrapped_callback(
@@ -483,8 +483,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           VLOG(1)
               << "Ignore registering (and unregistering if registered) send "
                  "surface because we're currently receiving files.";
-          std::move(status_codes_callback)(
-              StatusCodes::kTransferAlreadyInProgress);
+          status_codes_callback(StatusCodes::kTransferAlreadyInProgress);
           return;
         }
 
@@ -538,17 +537,17 @@ void NearbySharingServiceImpl::RegisterSendSurface(
                 << background_send_surface_map_.size();
 
         InvalidateSendSurfaceState();
-        std::move(status_codes_callback)(StatusCodes::kOk);
+        status_codes_callback(StatusCodes::kOk);
       });
 }
 
 void NearbySharingServiceImpl::UnregisterSendSurface(
     TransferUpdateCallback* transfer_callback,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_unregister_send_surface",
       [this, transfer_callback,
-       status_codes_callback = std::move(status_codes_callback)]() {
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         StatusCodes status_codes =
             InternalUnregisterSendSurface(transfer_callback);
 
@@ -557,23 +556,23 @@ void NearbySharingServiceImpl::UnregisterSendSurface(
                 << ", background_send_surface_map_:"
                 << background_send_surface_map_.size();
 
-        std::move(status_codes_callback)(status_codes);
+        status_codes_callback(status_codes);
       });
 }
 
 void NearbySharingServiceImpl::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
     BlockedVendorId vendor_id,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_receive_surface",
       [this, transfer_callback, state, vendor_id,
-       status_codes_callback = std::move(status_codes_callback)]() {
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         if (state != ReceiveSurfaceState::kForeground &&
             state != ReceiveSurfaceState::kBackground) {
           LOG(ERROR) << "Invalid ReceiveSurfaceState: "
                      << static_cast<int>(state);
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
         DCHECK(transfer_callback);
@@ -591,14 +590,14 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
         if (GetReceiveCallbacksMapFromState(state).contains(
                 transfer_callback)) {
           VLOG(1) << "transfer callback already registered, ignoring";
-          std::move(status_codes_callback)(StatusCodes::kOk);
+          status_codes_callback(StatusCodes::kOk);
           return;
         }
         if (foreground_receive_callbacks_map_.contains(transfer_callback) ||
             background_receive_callbacks_map_.contains(transfer_callback)) {
           LOG(ERROR) << ":  transfer callback already registered but for a "
                         "different state.";
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
         if (ShouldBlockSurfaceRegistration(vendor_id,
@@ -609,7 +608,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                      << static_cast<uint32_t>(vendor_id)
                      << " because the current vendor_id is "
                      << static_cast<uint32_t>(GetReceivingVendorId());
-          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          status_codes_callback(StatusCodes::kInvalidArgument);
           return;
         }
 
@@ -652,33 +651,34 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           certificate_manager_->ForceUploadPrivateCertificates();
         }
         InvalidateReceiveSurfaceState();
-        std::move(status_codes_callback)(StatusCodes::kOk);
+        status_codes_callback(StatusCodes::kOk);
       });
 }
 
 void NearbySharingServiceImpl::UnregisterReceiveSurface(
     TransferUpdateCallback* transfer_callback,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_unregister_receive_surface",
       [this, transfer_callback,
-       status_codes_callback = std::move(status_codes_callback)]() {
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         StatusCodes status_codes =
             InternalUnregisterReceiveSurface(transfer_callback);
         VLOG(1) << "UnregisterReceiveSurface: foreground_receive_callbacks_:"
                 << foreground_receive_callbacks_map_.size()
                 << ", background_receive_callbacks_:"
                 << background_receive_callbacks_map_.size();
-        std::move(status_codes_callback)(status_codes);
+        status_codes_callback(status_codes);
         return;
       });
 }
 
 void NearbySharingServiceImpl::ClearForegroundReceiveSurfaces(
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_clear_foreground_receive_surfaces",
-      [this, status_codes_callback = std::move(status_codes_callback)]() {
+      [this,
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
         std::vector<TransferUpdateCallback*> fg_receivers;
         for (const auto& callback : foreground_receive_callbacks_map_) {
           fg_receivers.push_back(callback.first);
@@ -689,7 +689,7 @@ void NearbySharingServiceImpl::ClearForegroundReceiveSurfaces(
           if (InternalUnregisterReceiveSurface(callback) != StatusCodes::kOk)
             status = StatusCodes::kError;
         }
-        std::move(status_codes_callback)(status);
+        status_codes_callback(status);
       });
 }
 
@@ -974,11 +974,6 @@ void NearbySharingServiceImpl::SetVisibility(
 
 NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
-}
-
-NearbyShareLocalDeviceDataManager*
-NearbySharingServiceImpl::GetLocalDeviceDataManager() {
-  return local_device_data_manager_.get();
 }
 
 NearbyShareContactManager* NearbySharingServiceImpl::GetContactManager() {

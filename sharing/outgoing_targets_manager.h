@@ -22,6 +22,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
@@ -93,6 +94,8 @@ class OutgoingTargetsManager {
 
   void ForEachShareTarget(
       absl::AnyInvocable<void(const ShareTarget&)> callback);
+
+  std::vector<std::string> GetBindingIds(int64_t share_target_id);
 
  private:
   // If an existing target matching either endpoint_id or share_target.device_id

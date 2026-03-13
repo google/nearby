@@ -27,6 +27,8 @@
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
+#include "sharing/certificates/test_util.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
@@ -779,6 +781,37 @@ TEST_F(OutgoingTargetsManagerTest, AllTargetsLostConnectedSessionsNotClosed) {
   EXPECT_TRUE(has_targets);
   EXPECT_NE(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
             nullptr);
+}
+
+TEST_F(OutgoingTargetsManagerTest, GetBindingIds_NonExistentTarget) {
+  EXPECT_TRUE(outgoing_targets_manager_.GetBindingIds(1234).empty());
+}
+
+TEST_F(OutgoingTargetsManagerTest, GetBindingIds_NoCertificate) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+
+  EXPECT_TRUE(outgoing_targets_manager_.GetBindingIds(kShareTargetId).empty());
+}
+
+TEST_F(OutgoingTargetsManagerTest, GetBindingIds_WithCertificate) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  NearbyShareDecryptedPublicCertificate cert =
+      GetNearbyShareTestDecryptedPublicCertificate();
+
+  outgoing_targets_manager_.OnShareTargetDiscovered(target, kEndpointId, cert);
+
+  std::vector<std::string> binding_ids =
+      outgoing_targets_manager_.GetBindingIds(kShareTargetId);
+  EXPECT_THAT(binding_ids, ElementsAre(cert.binding_id()));
 }
 
 }  // namespace

@@ -122,19 +122,19 @@ class NearbySharingServiceImpl
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
       bool disable_wifi_hotspot,
-      std::function<void(StatusCodes)> status_codes_callback) override;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
   void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) override;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
   void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
       Advertisement::BlockedVendorId vendor_id,
-      std::function<void(StatusCodes)> status_codes_callback) override;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
   void UnregisterReceiveSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) override;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
   void ClearForegroundReceiveSurfaces(
-      std::function<void(StatusCodes)> status_codes_callback) override;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
   bool IsTransferring() const override;
   bool IsScanning() const override;
   bool IsBluetoothPresent() const override;
@@ -159,7 +159,6 @@ class NearbySharingServiceImpl
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
   NearbyShareSettings* GetSettings() override;
-  NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() override;
   NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;
   AccountManager* GetAccountManager() override;
@@ -167,6 +166,10 @@ class NearbySharingServiceImpl
   void SetAlternateServiceUuidForDiscovery(
       uint16_t alternate_service_uuid) override {
     alternate_service_uuid_ = alternate_service_uuid;
+  }
+  SyncManager& sync_manager() override { return sync_manager_; }
+  OutgoingTargetsManager& outgoing_targets_manager() override {
+    return outgoing_targets_manager_;
   }
 
   // NearbyConnectionsManager::IncomingConnectionListener:

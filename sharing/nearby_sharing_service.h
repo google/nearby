@@ -20,14 +20,15 @@
 #include <memory>
 #include <string>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
+#include "sharing/outgoing_targets_manager.h"
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_update_callback.h"
 
@@ -140,28 +141,28 @@ class NearbySharingService {
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
       bool disable_wifi_hotspot,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current send surface.
   virtual void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Registers a receiver surface for handling payload transfer status, and
   // advertises the vendor ID specified by |vendor_id|.
   virtual void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
       Advertisement::BlockedVendorId vendor_id,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current receive surface.
   virtual void UnregisterReceiveSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters all foreground receive surfaces.
   virtual void ClearForegroundReceiveSurfaces(
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Returns true if there is an ongoing file transfer.
   virtual bool IsTransferring() const = 0;
@@ -215,13 +216,14 @@ class NearbySharingService {
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
-  virtual NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() = 0;
   virtual NearbyShareContactManager* GetContactManager() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;
   virtual AccountManager* GetAccountManager() = 0;
   virtual Clock& GetClock() = 0;
   virtual void SetAlternateServiceUuidForDiscovery(
       uint16_t alternate_service_uuid) = 0;
+  virtual SyncManager& sync_manager() = 0;
+  virtual OutgoingTargetsManager& outgoing_targets_manager() = 0;
 };
 
 }  // namespace nearby::sharing

@@ -342,4 +342,19 @@ void OutgoingTargetsManager::ForEachShareTarget(
   }
 }
 
+std::vector<std::string> OutgoingTargetsManager::GetBindingIds(
+    int64_t share_target_id) {
+  std::vector<std::string> binding_ids;
+  auto session_it = outgoing_share_session_map_.find(share_target_id);
+  if (session_it == outgoing_share_session_map_.end()) {
+    return {};
+  }
+  std::optional<NearbyShareDecryptedPublicCertificate> certificate =
+      session_it->second.certificate();
+  if (certificate.has_value()) {
+    return {certificate->binding_id()};
+  }
+  return {};
+}
+
 }  // namespace nearby::sharing
