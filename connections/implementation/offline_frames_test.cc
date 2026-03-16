@@ -737,35 +737,6 @@ TEST(OfflineFramesTest, CanGenerateDisconnection) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroduction) {
-  constexpr absl::string_view kExpected =
-      R"pb(
-    version: V1
-    v1: <
-      type: AUTO_RECONNECT
-      auto_reconnect: < event_type: CLIENT_INTRODUCTION endpoint_id: "ABC" >
-    >)pb";
-  ByteArray bytes = ForAutoReconnectIntroduction(std::string(kEndpointId));
-  auto response = FromBytes(bytes);
-  ASSERT_TRUE(response.ok());
-  OfflineFrame message = response.result();
-  EXPECT_THAT(message, EqualsProto(kExpected));
-}
-
-TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
-  constexpr absl::string_view kExpected =
-      R"pb(
-    version: V1
-    v1: <
-      type: AUTO_RECONNECT
-      auto_reconnect: < event_type: CLIENT_INTRODUCTION_ACK >
-    >)pb";
-  ByteArray bytes = ForAutoReconnectIntroductionAck();
-  auto response = FromBytes(bytes);
-  ASSERT_TRUE(response.ok());
-  OfflineFrame message = response.result();
-  EXPECT_THAT(message, EqualsProto(kExpected));
-}
 
 TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   constexpr absl::string_view kExpected =

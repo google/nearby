@@ -303,18 +303,12 @@ class ClientProxy final {
     return supports_safe_to_disconnect_;
   }
 
-  bool IsSupportAutoReconnect() const { return support_auto_reconnect_; }
-
-  const std::int32_t& GetLocalSafeToDisconnectVersion() const {
-    return local_safe_to_disconnect_version_;
-  }
   std::optional<std::int32_t> GetRemoteSafeToDisconnectVersion(
       absl::string_view endpoint_id) const;
   void SetRemoteSafeToDisconnectVersion(
       absl::string_view endpoint_id,
       const std::int32_t& safe_to_disconnect_version);
   bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
-  bool IsAutoReconnectEnabled(absl::string_view endpoint_id);
   bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
 
   // Returns the multiplex socket supports status for local device.
@@ -549,8 +543,6 @@ class ClientProxy final {
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
   bool supports_safe_to_disconnect_;
-  bool support_auto_reconnect_;
-  std::int32_t local_safe_to_disconnect_version_;
   // Allowed to use WebRTC over non-cellular networks.
   bool webrtc_non_cellular_ = false;
   // Whether DCT is enabled.

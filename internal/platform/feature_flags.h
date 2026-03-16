@@ -75,14 +75,6 @@ class FeatureFlags {
     // auto-resume 5. non-distance-constraint-recovery 6. payload_ack
     std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
     std::int32_t min_nc_version_supports_auto_reconnect = 3;
-    absl::Duration safe_to_disconnect_reconnect_retry_delay_millis =
-        absl::Milliseconds(4000);
-    absl::Duration safe_to_disconnect_reconnect_timeout_millis =
-        absl::Milliseconds(15000);
-    std::int32_t safe_to_disconnect_reconnect_retry_attempts = 3;
-    absl::Duration
-        safe_to_disconnect_reconnect_skip_duplicated_endpoint_duration =
-            absl::Milliseconds(2000);
     // Android code won't be able to launch "payload_received_ack" feature for
     // in near future, so change "payload_received_ack" version from "2" to "5"
     // after auto-reconnect and auto-resume.

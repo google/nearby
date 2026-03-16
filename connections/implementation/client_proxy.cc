@@ -119,14 +119,11 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
   supports_safe_to_disconnect_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::
           kEnableSafeToDisconnect);
-  support_auto_reconnect_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableAutoReconnect);
-  local_safe_to_disconnect_version_ = NearbyFlags::GetInstance().GetInt64Flag(
-      config_package_nearby::nearby_connections_feature::
-          kSafeToDisconnectVersion);
   LOG(INFO) << "[safe-to-disconnect]: Local enabled: "
-            << supports_safe_to_disconnect_
-            << "; Version: " << local_safe_to_disconnect_version_;
+            << supports_safe_to_disconnect_ << "; Version: "
+            << NearbyFlags::GetInstance().GetInt64Flag(
+                   config_package_nearby::nearby_connections_feature::
+                       kSafeToDisconnectVersion);
   // Generate a 7 bits dedup value.
   absl::BitGen bitgen;
   dct_dedup_ = absl::Uniform(bitgen, 0, 1 << 7);
@@ -1008,14 +1005,6 @@ bool ClientProxy::IsSafeToDisconnectEnabled(absl::string_view endpoint_id) {
               .min_nc_version_supports_safe_to_disconnect);
 }
 
-bool ClientProxy::IsAutoReconnectEnabled(absl::string_view endpoint_id) {
-  return IsSupportAutoReconnect() &&
-         GetRemoteSafeToDisconnectVersion(endpoint_id).has_value() &&
-         (GetRemoteSafeToDisconnectVersion(endpoint_id) >=
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .min_nc_version_supports_auto_reconnect);
-}
 
 bool ClientProxy::IsPayloadReceivedAckEnabled(absl::string_view endpoint_id) {
   return IsSupportSafeToDisconnect() &&

@@ -37,9 +37,6 @@ constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
 // When true, enable advertising for instant on lost feature.
 constexpr auto kEnableAdvertisingForInstantOnLost =
     flags::Flag<bool>(kConfigPackage, "45708614", true);
-// Enable/Disable auto_reconnect feature.
-constexpr auto kEnableAutoReconnect =
-    flags::Flag<bool>(kConfigPackage, "45427690", false);
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);
@@ -109,7 +106,8 @@ constexpr auto kRefactorBleL2cap =
 constexpr auto kEnableSharedPeripheralManager =
     flags::Flag<bool>(kConfigPackage, "45770787", false);
 // Set the safe-to-disconnect version.
-// 0. Disabled all. 1. safe-to-disconnect 2. reserved 3. auto-reconnect
+// 0. Disabled all. 1. safe-to-disconnect 2. reserved 3.
+// auto-reconnect(deprecated)
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);

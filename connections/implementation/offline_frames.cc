@@ -38,7 +38,6 @@ namespace {
 
 using ExceptionOrOfflineFrame =
     ExceptionOr<::location::nearby::connections::OfflineFrame>;
-using ::location::nearby::connections::AutoReconnectFrame;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
@@ -574,30 +573,6 @@ ByteArray ForDisconnection(bool request_safe_to_disconnect,
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForAutoReconnectIntroduction(const std::string& endpoint_id) {
-  OfflineFrame frame;
-
-  frame.set_version(OfflineFrame::V1);
-  auto* v1_frame = frame.mutable_v1();
-  v1_frame->set_type(V1Frame::AUTO_RECONNECT);
-  auto* auto_reconnect = v1_frame->mutable_auto_reconnect();
-  auto_reconnect->set_endpoint_id(endpoint_id);
-  auto_reconnect->set_event_type(AutoReconnectFrame::CLIENT_INTRODUCTION);
-
-  return ToBytes(std::move(frame));
-}
-
-ByteArray ForAutoReconnectIntroductionAck() {
-  OfflineFrame frame;
-
-  frame.set_version(OfflineFrame::V1);
-  auto* v1_frame = frame.mutable_v1();
-  v1_frame->set_type(V1Frame::AUTO_RECONNECT);
-  auto* auto_reconnect = v1_frame->mutable_auto_reconnect();
-  auto_reconnect->set_event_type(AutoReconnectFrame::CLIENT_INTRODUCTION_ACK);
-
-  return ToBytes(std::move(frame));
-}
 
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
   switch (medium) {

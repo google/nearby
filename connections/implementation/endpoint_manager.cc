@@ -782,10 +782,6 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
                 << (safe_disconnect_result ? "true" : "false");
     }
   }
-  if (safe_disconnect_result ==
-      ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION) {
-    // TODO(b/297259496): Autoreconnect
-  }
 
   // Unregistering from channel_manager_ will also serve to terminate
   // the dedicated handler and KeepAlive threads we started when we registered
