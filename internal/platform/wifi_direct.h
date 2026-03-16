@@ -198,13 +198,20 @@ class WifiDirectMedium {
   WifiDirectCredentials* GetCredential() { return &wifi_direct_credentials_; }
 
   bool IsInterfaceValid() const {
-    CHECK(impl_);
+    if (impl_ == nullptr) return false;
     return impl_->IsInterfaceValid();
+  }
+
+  // This is used to check if the Windows Firewall rule "WFD ASP Coordination
+  // Protocol (UDP-In)" is enabled. GO interface is not valid if the rule is
+  // disabled.
+  bool IsGOInterfaceValid() const {
+    if (impl_ == nullptr) return false;
+    return impl_->IsGOInterfaceValid();
   }
 
   bool IsValid() const { return impl_ != nullptr; }
   api::WifiDirectMedium& GetImpl() {
-    CHECK(impl_);
     return *impl_;
   }
 
