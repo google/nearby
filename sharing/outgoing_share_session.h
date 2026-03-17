@@ -34,7 +34,6 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -159,6 +158,10 @@ class OutgoingShareSession : public ShareSession {
 
   const std::vector<Payload>& file_payloads() const { return file_payloads_; }
 
+  // Returns true if the session is a transfer session.
+  // Otherwise, it is a pairing session.
+  bool is_transfer_session() const { return is_transfer_session_; }
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -196,6 +199,8 @@ class OutgoingShareSession : public ShareSession {
   bool advanced_protection_enabled_ = false;
   bool advanced_protection_mismatch_ = false;
   bool is_connecting_ = false;
+  // Session can be for transfer or pairing.
+  bool is_transfer_session_ = false;
 };
 
 }  // namespace nearby::sharing

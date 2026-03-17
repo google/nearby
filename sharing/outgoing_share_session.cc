@@ -40,7 +40,6 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_sharing_util.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -151,6 +150,7 @@ void OutgoingShareSession::InvokeTransferUpdateCallback(
 bool OutgoingShareSession::InitiateSendAttachments(
     std::unique_ptr<AttachmentContainer> attachment_container) {
   SetAttachmentContainer(std::move(*attachment_container));
+  is_transfer_session_ = true;
   is_connecting_ = true;
 
   // Set session ID.

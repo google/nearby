@@ -737,16 +737,6 @@ void NearbySharingServiceImpl::SendAttachments(
             return;
           }
         }
-        // Outgoing connections always announces with contacts visibility.
-        std::optional<std::vector<uint8_t>> endpoint_info =
-            CreateEndpointInfo(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
-                               local_device_data_manager_->GetDeviceName());
-        if (!endpoint_info) {
-          LOG(WARNING) << "Could not create local endpoint info.";
-          std::move(status_codes_callback)(StatusCodes::kError);
-          return;
-        }
-
         OutgoingShareSession* session =
             outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
         if (!session) {
@@ -754,29 +744,39 @@ void NearbySharingServiceImpl::SendAttachments(
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
-
-        app_info_->SetActiveFlag();
-
+        StatusCodes status_code = StatusCodes::kOk;
         if (session->InitiateSendAttachments(
-                std::move(attachment_container))) {
-          OutgoingSessionConnect(*session, std::move(*endpoint_info));
+                std::move(attachment_container ))) {
+          status_code = ConnectOutgoingSessionOnServiceThread(*session);
         }
-        std::move(status_codes_callback)(StatusCodes::kOk);
+        std::move(status_codes_callback)(status_code);
       });
 }
 
-void NearbySharingServiceImpl::OutgoingSessionConnect(
-  OutgoingShareSession& session, std::vector<uint8_t> endpoint_info) {
+NearbySharingService::StatusCodes
+NearbySharingServiceImpl::ConnectOutgoingSessionOnServiceThread(
+    OutgoingShareSession& session) {
+  // Outgoing connections always announces with contacts visibility.
+  std::optional<std::vector<uint8_t>> endpoint_info =
+      CreateEndpointInfo(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+                          local_device_data_manager_->GetDeviceName());
+  if (!endpoint_info) {
+    LOG(WARNING) << "Could not create local endpoint info.";
+    return StatusCodes::kError;
+  }
+  app_info_->SetActiveFlag();
+
   OnTransferStarted(/*is_incoming=*/false);
   is_connecting_ = true;
   InvalidateSendSurfaceState();
 
   int64_t share_target_id = session.share_target().id;
   session.Connect(
-      std::move(endpoint_info), settings_->GetDataUsage(),
+      std::move(*endpoint_info), settings_->GetDataUsage(),
       GetDisableWifiHotspotState(),
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingConnection, this,
                        share_target_id));
+  return StatusCodes::kOk;
 }
 
 bool NearbySharingServiceImpl::OutgoingSessionAccept(
@@ -1366,7 +1366,7 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
 
 void NearbySharingServiceImpl::AdapterPoweredChanged(
     sharing::api::BluetoothAdapter* adapter, bool powered) {
-  // When adpater is powered on, it takes some time for the RFCOMM service to
+  // When adapter is powered on, it takes some time for the RFCOMM service to
   // be ready.  If we don't wait the RfCommServiceProvider::CreateAsync() call
   // fails with a "device is not ready for use" error.
   // Waiting 500ms seems to be enough to allow it to reliably work.
@@ -2521,10 +2521,19 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
+  if (session->is_transfer_session()) {
+    BeginOutgoingTransfer(*session);
+  } else {
+    BeginOutgoingPairing(*session);
+  }
+}
 
+void NearbySharingServiceImpl::BeginOutgoingTransfer(
+    OutgoingShareSession& session) {
   VLOG(1) << __func__ << ": Preparing to send introduction to "
-          << share_target_id;
-  if (!session->SendIntroduction([this, share_target_id]() {
+          << session.share_target().id;
+  if (!session.SendIntroduction([this, share_target_id =
+                                           session.share_target().id]() {
         VLOG(1)
             << "Outgoing mutual acceptance timed out, closing connection for "
             << share_target_id;
@@ -2537,25 +2546,32 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
       })) {
     LOG(WARNING) << __func__
                  << ": No payloads tied to transfer, disconnecting.";
-    session->Abort(TransferMetadata::Status::kMediaUnavailable);
+    session.Abort(TransferMetadata::Status::kMediaUnavailable);
     return;
   }
   // Auto Accept if key verification is successful or skip sender confirmation.
   bool protection_enabled =
       preference_manager_.GetBoolean(PrefNames::kAdvancedProtectionEnabled,
                                      /*default_value=*/false);
-  session->SetAdvancedProtectionStatus(protection_enabled,
-                                       /*advanced_protection_mismatch=*/false);
-  if (session->token().empty() || !protection_enabled) {
+  session.SetAdvancedProtectionStatus(protection_enabled,
+                                      /*advanced_protection_mismatch=*/false);
+  if (session.token().empty() || !protection_enabled) {
     // Auto accept if no token or if advanced protection is disabled.
-    OutgoingSessionAccept(*session);
+    OutgoingSessionAccept(session);
   } else {
-    session->UpdateTransferMetadata(
+    session.UpdateTransferMetadata(
         TransferMetadataBuilder()
             .set_status(TransferMetadata::Status::kAwaitingLocalConfirmation)
-            .set_token(session->token())
+            .set_token(session.token())
             .build());
   }
+}
+
+void NearbySharingServiceImpl::BeginOutgoingPairing(
+    OutgoingShareSession& session) {
+  VLOG(1) << __func__ << ": Preparing to initiate pairing with "
+          << session.share_target().id;
+  // TODO(ftsui): Implement this.
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(

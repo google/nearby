@@ -293,8 +293,8 @@ class NearbySharingServiceImpl
                             absl::string_view endpoint_id,
                             NearbyConnection* connection, Status status);
 
-  void OutgoingSessionConnect(OutgoingShareSession& session,
-                              std::vector<uint8_t> endpoint_info);
+  StatusCodes ConnectOutgoingSessionOnServiceThread(
+      OutgoingShareSession& session);
 
   void Fail(IncomingShareSession& session, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(
@@ -317,6 +317,8 @@ class NearbySharingServiceImpl
       int64_t share_target_id,
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       ::location::nearby::proto::sharing::OSType share_target_os_type);
+  void BeginOutgoingTransfer(OutgoingShareSession& session);
+  void BeginOutgoingPairing(OutgoingShareSession& session);
   void OnIncomingSessionFrameRead(
       int64_t share_target_id,
       bool is_timeout,
