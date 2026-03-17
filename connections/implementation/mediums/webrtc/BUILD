@@ -45,7 +45,10 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # TODO: Support WebRTC
+        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
@@ -97,8 +100,9 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

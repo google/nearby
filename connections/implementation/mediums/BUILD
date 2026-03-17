@@ -74,7 +74,8 @@ cc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # TODO: Support WebRTC
+        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
