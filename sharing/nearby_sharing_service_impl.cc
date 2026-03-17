@@ -968,6 +968,10 @@ void NearbySharingServiceImpl::SetVisibility(
           }
         }
         settings_->SetVisibility(visibility, expiration);
+        if (visibility ==
+            proto::DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS) {
+          NL_CHECK(false) << "CHECK FAIL";
+        }
         std::move(callback)(StatusCodes::kOk);
       });
 }
