@@ -336,7 +336,7 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
     request.set_page_token(*next_page_token_);
   }
   nearby_identity_client_->QuerySharedCredentials(
-      std::move(request),
+      std::move(request), api::IdentityRpcClient::kTimeout,
       [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
                  response) mutable {
         if (!response.ok()) {
@@ -545,7 +545,7 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
   bool regenerate_certificates = false;
   absl::Notification notification;
   nearby_identity_client_->PublishDevice(
-      std::move(request),
+      std::move(request), api::IdentityRpcClient::kTimeout,
       [&upload_certificates_succeeded, &regenerate_certificates,
        &notification](const absl::StatusOr<PublishDeviceResponse>& response) {
         upload_certificates_succeeded = response.ok();
@@ -877,7 +877,7 @@ bool NearbyShareCertificateManagerImpl::UpdateAccountInfoInExecutor() {
   bool get_account_info_succeeded = false;
   absl::Notification notification;
   nearby_identity_client_->GetAccountInfo(
-      std::move(request),
+      std::move(request), api::IdentityRpcClient::kTimeout,
       [this, &get_account_info_succeeded, &notification](
           const absl::StatusOr<GetAccountInfoResponse>& response) mutable {
         if (!response.ok()) {
