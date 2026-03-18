@@ -112,6 +112,10 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
   std::vector<ServiceAddress> service_addresses;
   bool has_ipv4_address = false;
   for (int i = 0; i < ip_address_max_retries; i++) {
+    // Force refresh network info since assignment of the well known
+    // static IP address to the hotspot interface does not trigger the IP
+    // interface change notification in network_monitor.cc.
+    NetworkInfo::GetNetworkInfo().Refresh();
     for (const auto& net_interface :
         NetworkInfo::GetNetworkInfo().GetInterfaces()) {
       // service_addresses should only have addresses from a single interface.
@@ -120,11 +124,13 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
         LOG(INFO) << "Found Wifi Hotspot interface, index: "
                   << net_interface.index;
         for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
+          VLOG(1) << "Found ipv6 address: " << ipaddress.ToString();
           // IPv6 link-local addresses are allowed and preferred since it skips
           // the DHCP wait time.
           service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
         }
         for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
+          VLOG(1) << "Found ipv4 address: " << ipaddress.ToString();
           // Skip link-local IPv4 addresses.
           if (ipaddress.IsV4LinkLocal()) {
             continue;
