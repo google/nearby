@@ -627,6 +627,10 @@ enum ServerActionName {
 
   // used for analytics logger to record action name.
   DOWNLOAD_CERTIFICATES_INFO = 12;
+
+  INITIATE_BINDING = 13;
+  JOIN_BINDING = 14;
+  DELETE_BINDING = 15;
 }
 
 // The Fast Share server response state.
