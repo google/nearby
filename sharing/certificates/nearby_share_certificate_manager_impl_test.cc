@@ -39,6 +39,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
@@ -48,6 +49,7 @@
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/certificates/test_util.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/public/pref_names.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
@@ -70,6 +72,10 @@ using ::google::nearby::identity::v1::PublishDeviceRequest;
 using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
 using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsRequest;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsResponse;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::PublicCertificate;
 using ::testing::Not;
@@ -100,6 +106,7 @@ class NearbyShareCertificateManagerImplTest
   ~NearbyShareCertificateManagerImplTest() override = default;
 
   void SetUp() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
     ON_CALL(mock_sharing_platform_, GetPreferenceManager)
         .WillByDefault(ReturnRef(preference_manager_));
     ON_CALL(mock_sharing_platform_, GetAccountManager)
@@ -304,7 +311,7 @@ class NearbyShareCertificateManagerImplTest
               std::max(max_not_after_self_share, cert.not_after());
           break;
         default:
-          DCHECK(false);
+          FAIL() << "Unexpected visibility: " << cert.visibility();
           break;
       }
 
@@ -402,6 +409,78 @@ class NearbyShareCertificateManagerImplTest
   QuerySharedCredentialsResponse BuildQuerySharedCredentialsResponse(
       size_t page_number, absl::string_view page_token) {
     QuerySharedCredentialsResponse response;
+    int i = 0;
+    for (auto public_certificate : public_certificates_) {
+      auto* shared_credential = response.add_shared_credentials();
+      shared_credential->set_id(page_number * 100 + i);
+      if (i % 2 == 0) {
+        shared_credential->set_data_type(
+            google::nearby::identity::v1::SharedCredential::
+                DATA_TYPE_PUBLIC_CERTIFICATE);
+      } else {
+        shared_credential->set_data_type(
+            google::nearby::identity::v1::SharedCredential::
+                DATA_TYPE_SHARED_CREDENTIAL);
+      }
+      *shared_credential->mutable_data() =
+          public_certificate.SerializeAsString();
+      i++;
+    }
+    response.set_next_page_token(page_token);
+    return response;
+  }
+
+  void QuerySharedCredentialsWithBindingIdsFlow(
+      size_t num_pages, DownloadPublicCertificatesResult result) {
+    size_t prev_num_results = download_scheduler_->handled_results().size();
+    cert_store_->SetPublicCertificateIds(kPublicCertificateIds);
+
+    size_t initial_num_notifications =
+        num_public_certs_downloaded_notifications_;
+    size_t initial_num_public_cert_exp_reschedules =
+        public_cert_exp_scheduler_->num_reschedule_calls();
+
+    std::vector<absl::StatusOr<QuerySharedCredentialsWithBindingIdsResponse>>
+        responses;
+    std::string page_token;
+    for (size_t page_number = 0; page_number < num_pages; ++page_number) {
+      bool last_page = page_number == num_pages - 1;
+      if (last_page && result == DownloadPublicCertificatesResult::kHttpError) {
+        responses.push_back(absl::InternalError(""));
+        break;
+      }
+      page_token = last_page ? std::string()
+                             : absl::StrCat(kPageTokenPrefix, page_number);
+      responses.push_back(BuildQuerySharedCredentialsWithBindingIdsResponse(
+          page_number, page_token));
+    }
+
+    identity_client_.SetQuerySharedCredentialsWithBindingIdsResponses(
+        responses);
+    cert_store_->SetAddPublicCertificatesResult(
+        result != DownloadPublicCertificatesResult::kStorageError);
+    download_scheduler_->InvokeRequestCallback();
+    Sync();
+
+    std::vector<QuerySharedCredentialsWithBindingIdsRequest> requests =
+        identity_client_.query_shared_credentials_with_binding_ids_requests();
+    EXPECT_EQ(requests.size(), num_pages);
+    EXPECT_EQ(requests.back().name(), absl::StrCat("devices/", kDeviceId));
+    ASSERT_EQ(download_scheduler_->handled_results().size(),
+              prev_num_results + 1);
+
+    bool success = result == DownloadPublicCertificatesResult::kSuccess;
+    EXPECT_EQ(download_scheduler_->handled_results().back(), success);
+    EXPECT_EQ(num_public_certs_downloaded_notifications_,
+              initial_num_notifications + (success ? 1u : 0u));
+    EXPECT_EQ(public_cert_exp_scheduler_->num_reschedule_calls(),
+              initial_num_public_cert_exp_reschedules + (success ? 1u : 0u));
+  }
+
+  QuerySharedCredentialsWithBindingIdsResponse
+  BuildQuerySharedCredentialsWithBindingIdsResponse(
+      size_t page_number, absl::string_view page_token) {
+    QuerySharedCredentialsWithBindingIdsResponse response;
     int i = 0;
     for (auto public_certificate : public_certificates_) {
       auto* shared_credential = response.add_shared_credentials();
@@ -697,6 +776,24 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        QuerySharedCredentialsRPCFailure) {
   Initialize();
   ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsFlow(
+      /*num_pages=*/2, DownloadPublicCertificatesResult::kHttpError));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       QuerySharedCredentialsWithBindingIdsSuccess) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kEnableFileSync, true);
+  Initialize();
+  ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
+      /*num_pages=*/2, DownloadPublicCertificatesResult::kSuccess));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       QuerySharedCredentialsWithBindingIdsRPCFailure) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kEnableFileSync, true);
+  Initialize();
+  ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
       /*num_pages=*/2, DownloadPublicCertificatesResult::kHttpError));
 }
 

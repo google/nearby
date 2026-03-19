@@ -45,6 +45,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
@@ -54,6 +55,7 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -82,6 +84,10 @@ using ::google::nearby::identity::v1::PublishDeviceRequest;
 using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
 using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsRequest;
+using ::google::nearby::identity::v1::
+    QuerySharedCredentialsWithBindingIdsResponse;
 using ::google::nearby::identity::v1::SharedCredential;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::PublicCertificateDatabase;
@@ -372,6 +378,55 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
       });
 }
 
+
+void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
+    QuerySharedCredentialsWithBindingIdsFetchNextPage() {
+  LOG(INFO) << __func__
+            << ": Downloading public certificates with binding ids page="
+            << page_number_;
+  page_number_++;
+  QuerySharedCredentialsWithBindingIdsRequest request;
+  request.set_name(absl::StrCat("devices/", device_id_));
+  if (next_page_token_.has_value()) {
+    request.set_page_token(*next_page_token_);
+  }
+  nearby_identity_client_->QuerySharedCredentialsWithBindingIds(
+      std::move(request), api::IdentityRpcClient::kTimeout,
+      [this](const absl::StatusOr<QuerySharedCredentialsWithBindingIdsResponse>&
+                 response) mutable {
+        if (!response.ok()) {
+          LOG(WARNING) << "Failed to download public certificates: "
+                       << response.status();
+          std::move(download_callback_)(response.status());
+          return;
+        }
+        for (const auto& credential : response->shared_credentials()) {
+          if (credential.data_type() !=
+              SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE) {
+            continue;
+          }
+          PublicCertificate certificate;
+          if (!certificate.ParseFromString(credential.data())) {
+            LOG(ERROR) << "Failed parsing to PublicCertificate, credential.id: "
+                       << credential.id() << " data: "
+                       << absl::BytesToHexString(credential.data());
+            continue;
+          }
+          VLOG(1) << "Successfully parsed credential: " << credential.id();
+          certificates_.push_back(certificate);
+        }
+
+        if (response->next_page_token().empty()) {
+          LOG(INFO) << "Completed download of " << certificates_.size()
+                    << " certificates";
+          std::move(download_callback_)(std::move(certificates_));
+          return;
+        }
+        next_page_token_ = response->next_page_token();
+        QuerySharedCredentialsWithBindingIdsFetchNextPage();
+      });
+}
+
 bool NearbyShareCertificateManagerImpl::UpdatePublicCertificates(
     const std::vector<PublicCertificate>& certificates) {
   // Save certificates to store.
@@ -437,7 +492,12 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
         }
         notification.Notify();
       });
-  context->QuerySharedCredentialsFetchNextPage();
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::kEnableFileSync)) {
+    context->QuerySharedCredentialsWithBindingIdsFetchNextPage();
+  } else {
+    context->QuerySharedCredentialsFetchNextPage();
+  }
   // Wait for all pages of certificates to be downloaded.
   // MUST not terminate early, otherwise notification will go out of scope, and
   // the callback will call Notify on a destroyed object.

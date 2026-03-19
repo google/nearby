@@ -118,6 +118,7 @@ class NearbyShareCertificateManagerImpl
     // On successful download, if  page token in the response is empty, the
     // |download_success_callback_| is invoked with all downloaded certificates.
     void QuerySharedCredentialsFetchNextPage();
+    void QuerySharedCredentialsWithBindingIdsFetchNextPage();
 
    private:
     nearby::sharing::api::IdentityRpcClient* absl_nonnull const
