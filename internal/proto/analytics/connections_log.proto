@@ -451,6 +451,9 @@ message ConnectionsLog {
 
     // The speed test report.
     optional SpeedTestReport speed_test_report = 15;
+
+    // The count of long inactivity events without any payload transfer.
+    optional int32 inactivity_count = 16;
   }
 
   message SpeedTestReport {
@@ -459,6 +462,9 @@ message ConnectionsLog {
 
     // Whether the throughput is incoming or outgoing.
     optional bool is_incoming = 2;
+
+    // The RSSI (radio signal strength indicator) in dBm.
+    optional int32 rssi = 3;
   }
 
   // Contains the transfer statistics for a DCT payload.
