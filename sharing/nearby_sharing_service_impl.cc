@@ -2443,7 +2443,7 @@ void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
   if (is_timeout) {
     LOG(WARNING) << __func__ << ": Timed out reading frame from target: "
                  << share_target_id;
-    session->Abort(TransferMetadata::Status::kFailed);
+    session->Abort(TransferMetadata::Status::kTimedOut);
     return;
   }
   if (!frame.has_value()) {
@@ -2609,7 +2609,8 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 }
 
 void NearbySharingServiceImpl::OnReceiveConnectionResponse(
-    int64_t share_target_id, std::optional<ConnectionResponseFrame> frame) {
+    int64_t share_target_id, bool is_timeout,
+    std::optional<ConnectionResponseFrame> frame) {
   OutgoingShareSession* session =
       outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
@@ -2620,7 +2621,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
   }
 
   std::optional<TransferMetadata::Status> status =
-      session->HandleConnectionResponse(std::move(frame));
+      session->HandleConnectionResponse(is_timeout, std::move(frame));
   if (status.has_value()) {
     session->Abort(*status);
     return;

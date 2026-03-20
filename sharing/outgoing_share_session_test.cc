@@ -45,7 +45,6 @@
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/analytics/nearby_sharing_log.proto.static_reflection.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -61,7 +60,6 @@ namespace {
 using ::location::nearby::proto::sharing::EstablishConnectionStatus;
 using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
-using ::location::nearby::proto::sharing::OSType;
 using ::nearby::analytics::HasCategory;
 using ::nearby::analytics::HasEventType;
 using ::nearby::sharing::analytics::proto::SharingLog;
@@ -507,7 +505,7 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
   EXPECT_THAT(status.has_value(), IsFalse());
 
   fake_clock_.FastForward(absl::Seconds(60));
@@ -517,9 +515,9 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotConnected) {
-  EXPECT_THAT(
-      session_.AcceptTransfer([](std::optional<ConnectionResponseFrame>) {}),
-      IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [](bool, std::optional<ConnectionResponseFrame>) {}),
+              IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
@@ -527,9 +525,9 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
 
-  EXPECT_THAT(
-      session_.AcceptTransfer([](std::optional<ConnectionResponseFrame>) {}),
-      IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [](bool, std::optional<ConnectionResponseFrame>) {}),
+              IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
@@ -553,12 +551,12 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
 
   bool connection_response_received = false;
-  EXPECT_THAT(
-      session_.AcceptTransfer([&connection_response_received](
-                                  std::optional<ConnectionResponseFrame>) {
-        connection_response_received = true;
-      }),
-      IsTrue());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [&connection_response_received](
+                      bool, std::optional<ConnectionResponseFrame>) {
+                    connection_response_received = true;
+                  }),
+              IsTrue());
 
   // Send response frame
   nearby::sharing::service::proto::Frame frame =
@@ -575,19 +573,28 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   EXPECT_THAT(connection_response_received, IsTrue());
 }
 
-TEST_F(OutgoingShareSessionTest, HandleConnectionResponseEmptyResponse) {
+TEST_F(OutgoingShareSessionTest, HandleConnectionResponseEmptyResponseFailed) {
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(std::nullopt);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, std::nullopt);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kFailed));
+}
+
+TEST_F(OutgoingShareSessionTest,
+       HandleConnectionResponseEmptyResponseTimedOut) {
+  std::optional<TransferMetadata::Status> status =
+      session_.HandleConnectionResponse(/*is_timeout=*/true, std::nullopt);
+
+  ASSERT_THAT(status.has_value(), IsTrue());
+  EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kTimedOut));
 }
 
 TEST_F(OutgoingShareSessionTest, HandleConnectionResponseRejectResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::REJECT);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kRejected));
@@ -598,7 +605,7 @@ TEST_F(OutgoingShareSessionTest,
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::NOT_ENOUGH_SPACE);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kNotEnoughSpace));
@@ -609,7 +616,7 @@ TEST_F(OutgoingShareSessionTest,
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(),
@@ -620,7 +627,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseTimeoutResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::TIMED_OUT);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/true, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kTimedOut));
@@ -636,7 +643,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsFalse());
 }

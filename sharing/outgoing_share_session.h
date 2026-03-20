@@ -80,14 +80,16 @@ class OutgoingShareSession : public ShareSession {
   // ConnectionResponseFrame.
   bool AcceptTransfer(
       std::function<
-          void(std::optional<
-               nearby::sharing::service::proto::ConnectionResponseFrame>)>
+          void(bool is_timeout,
+               std::optional<
+                   nearby::sharing::service::proto::ConnectionResponseFrame>)>
           response_callback);
 
   // Process the ConnectionResponseFrame.
   // On success, returns std::nullopt.
   // On failure, returns the status if the connection should be aborted.
   std::optional<TransferMetadata::Status> HandleConnectionResponse(
+      bool is_timeout,
       std::optional<nearby::sharing::service::proto::ConnectionResponseFrame>
           response);
 

@@ -316,7 +316,8 @@ bool OutgoingShareSession::FillIntroductionFrame(
 }
 
 bool OutgoingShareSession::AcceptTransfer(
-    std::function<void(std::optional<ConnectionResponseFrame>)>
+    std::function<void(bool is_timeout,
+                       std::optional<ConnectionResponseFrame>)>
         response_callback) {
   if (!IsConnected()) {
     LOG(WARNING) << "Accept invoked for unconnected share target";
@@ -339,10 +340,10 @@ bool OutgoingShareSession::AcceptTransfer(
       [callback = std::move(response_callback)](bool is_timeout,
                                                 std::optional<V1Frame> frame) {
         if (!frame.has_value()) {
-          callback(std::nullopt);
+          callback(is_timeout, std::nullopt);
           return;
         }
-        callback(frame->connection_response());
+        callback(is_timeout, frame->connection_response());
       },
       kReadResponseFrameTimeout);
   return true;
@@ -429,14 +430,15 @@ bool OutgoingShareSession::SendIntroduction(
 
 std::optional<TransferMetadata::Status>
 OutgoingShareSession::HandleConnectionResponse(
-    std::optional<ConnectionResponseFrame> response) {
+    bool is_timeout, std::optional<ConnectionResponseFrame> response) {
   // Stop accept timer.
   mutual_acceptance_timeout_.reset();
 
   if (!response.has_value()) {
     LOG(WARNING)
         << "Failed to read a response from the remote device. Disconnecting.";
-    return TransferMetadata::Status::kFailed;
+    return is_timeout ? TransferMetadata::Status::kTimedOut
+                      : TransferMetadata::Status::kFailed;
   }
 
   VLOG(1) << "Successfully read the connection response frame.";
