@@ -39,14 +39,12 @@
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
+#include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
-#endif
-#ifndef NEARBY_CHROMIUM
-#include "internal/platform/implementation/preferences_manager.h"
 #endif
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_direct.h"
