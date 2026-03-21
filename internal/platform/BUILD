@@ -70,6 +70,7 @@ cc_library(
         "//:__subpackages__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:partners",
+        "//location/nearby/testing/nearby_native/client_windows/connections:__pkg__",
     ],
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
