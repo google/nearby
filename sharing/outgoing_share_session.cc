@@ -41,6 +41,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_sharing_util.h"
 #include "sharing/payload_tracker.h"
+#include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
@@ -55,6 +56,8 @@ namespace {
 using ::location::nearby::proto::sharing::ConnectionLayerStatus;
 using ::location::nearby::proto::sharing::EstablishConnectionStatus;
 using ::nearby::sharing::proto::DataUsage;
+using ::nearby::sharing::service::proto::BindingRequest;
+using ::nearby::sharing::service::proto::BindingResponse;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
@@ -630,6 +633,45 @@ OutgoingShareSession::ProcessPayloadTransferUpdates() {
         get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));
   }
   return metadata;
+}
+
+void OutgoingShareSession::StartPeerBinding(
+    std::string binding_id, BindingRequest::Type binding_type,
+    absl::AnyInvocable<void(BindingResponse::Status)> callback) {
+  Frame frame;
+  frame.set_version(Frame::V1);
+  V1Frame* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BINDINGS);
+  BindingRequest* binding_request =
+      v1_frame->mutable_bindings()->mutable_binding_request();
+  binding_request->set_binding_id(binding_id);
+  binding_request->set_type(binding_type);
+  WriteFrame(frame);
+  LOG(INFO) << "Waiting for bindings response frame from " << share_target().id;
+  UpdateTransferMetadata(
+      TransferMetadataBuilder()
+          .set_token(token())
+          .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
+          .build());
+  frames_reader()->ReadFrame(
+      nearby::sharing::service::proto::V1Frame::BINDINGS,
+      [callback = std::move(callback)](
+          bool is_timeout, std::optional<V1Frame> frame) mutable {
+        if (!frame.has_value()) {
+          std::move(callback)(BindingResponse::FAILURE);
+          return;
+        }
+        if (!frame->has_bindings() ||
+            !frame->bindings().has_binding_response() ||
+            frame->bindings().binding_response().status() !=
+                BindingResponse::SUCCESS) {
+          std::move(callback)(BindingResponse::FAILURE);
+          return;
+        }
+        // Peer binding flow completed successfully.
+        std::move(callback)(BindingResponse::SUCCESS);
+      },
+      kReadResponseFrameTimeout);
 }
 
 }  // namespace nearby::sharing

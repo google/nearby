@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
@@ -66,21 +67,21 @@ IncomingFramesReader::~IncomingFramesReader() {
 }
 
 void IncomingFramesReader::ReadFrame(
-    std::function<void(bool is_timeout, std::optional<V1Frame>)> callback,
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   ProcessReadRequest(std::nullopt, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::ReadFrame(
     FrameType frame_type,
-    std::function<void(bool is_timeout, std::optional<V1Frame>)> callback,
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   ProcessReadRequest(frame_type, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::ProcessReadRequest(
     std::optional<FrameType> frame_type,
-    std::function<void(bool is_timeout, std::optional<V1Frame>)> callback,
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   std::unique_ptr<V1Frame> cached_frame;
   {

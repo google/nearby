@@ -28,6 +28,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/task_runner.h"
 #include "internal/test/fake_clock.h"
@@ -142,18 +143,18 @@ class MockIncomingFramesReader : public IncomingFramesReader {
                            NearbyConnection* connection)
       : IncomingFramesReader(service_thread, connection) {}
 
-  MOCK_METHOD(
-      void, ReadFrame,
-      (std::function<void(bool is_timeout, std::optional<V1Frame>)> callback,
-       absl::Duration timeout),
-      (override));
+  MOCK_METHOD(void, ReadFrame,
+              (absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)>
+                   callback,
+               absl::Duration timeout),
+              (override));
 
-  MOCK_METHOD(
-      void, ReadFrame,
-      (service::proto::V1Frame_FrameType frame_type,
-       std::function<void(bool is_timeout, std::optional<V1Frame>)> callback,
-       absl::Duration timeout),
-      (override));
+  MOCK_METHOD(void, ReadFrame,
+              (service::proto::V1Frame_FrameType frame_type,
+               absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)>
+                   callback,
+               absl::Duration timeout),
+              (override));
 };
 
 PairedKeyVerificationRunner::PairedKeyVerificationResult Merge(
@@ -240,9 +241,9 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
                 ReadFrame(testing::Eq(V1Frame::PAIRED_KEY_ENCRYPTION),
                           testing::_, testing::Eq(kTimeout)))
         .WillOnce(testing::WithArg<1>(
-            [frame_type](
-                std::function<void(bool is_timeout, std::optional<V1Frame>)>
-                    callback) {
+            [frame_type](absl::AnyInvocable<void(bool is_timeout,
+                                                 std::optional<V1Frame>)>
+                             callback) {
               if (frame_type == ReturnFrameType::kNull) {
                 std::move(callback)(/*is_timeout=*/false, std::nullopt);
                 return;
@@ -302,7 +303,8 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
                 ReadFrame(testing::Eq(V1Frame::PAIRED_KEY_RESULT), testing::_,
                           testing::Eq(kTimeout)))
         .WillOnce(testing::WithArg<1>(
-            [=](std::function<void(bool is_timeout, std::optional<V1Frame>)>
+            [=](absl::AnyInvocable<void(bool is_timeout,
+                                        std::optional<V1Frame>)>
                     callback) {
               if (frame_type == ReturnFrameType::kNull) {
                 std::move(callback)(/*is_timeout=*/false, std::nullopt);

@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "net/proto2/contrib/parse_proto/parse_text_proto.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -63,6 +64,8 @@ using ::location::nearby::proto::sharing::EventType;
 using ::nearby::analytics::HasCategory;
 using ::nearby::analytics::HasEventType;
 using ::nearby::sharing::analytics::proto::SharingLog;
+using ::nearby::sharing::service::proto::BindingRequest;
+using ::nearby::sharing::service::proto::BindingResponse;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
@@ -71,6 +74,7 @@ using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::_;
 using ::testing::AllOf;
 using ::testing::Eq;
+using ::protobuf_matchers::EqualsProto;
 using ::testing::InSequence;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
@@ -916,5 +920,184 @@ TEST_F(OutgoingShareSessionTest,
   EXPECT_TRUE(session_.certificate().has_value());
   EXPECT_THAT(session_.endpoint_id(), Eq(endpoint_id_org));
 }
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
+  session_.set_session_id(1234);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request {
+                  binding_id: "test_binding_id"
+                  type: FILESYNC
+                }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+
+  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
+                            [&binding_response_status](
+                                BindingResponse::Status status) {
+                              binding_response_status = status;
+                            });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Send response frame
+  nearby::sharing::service::proto::Frame response_frame =
+     proto2::contrib::parse_proto::ParseTextProtoOrDie(
+      R"pb(
+        version: V1
+        v1 {
+          type: BINDINGS
+          bindings {
+            binding_response {
+              status: SUCCESS
+            }
+          }
+        }
+      )pb"
+     );
+  std::vector<uint8_t> data;
+  data.resize(response_frame.ByteSizeLong());
+  EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
+              IsTrue());
+  connection.WriteMessage(std::move(data));
+
+  EXPECT_THAT(binding_response_status, Eq(BindingResponse::SUCCESS));
+}
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
+  session_.set_session_id(1234);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request {
+                  binding_id: "test_binding_id"
+                  type: FILESYNC
+                }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+
+  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
+                            [&binding_response_status](
+                                BindingResponse::Status status) {
+                              binding_response_status = status;
+                            });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Fast forward to the disconnection timeout.
+  fake_clock_.FastForward(absl::Seconds(60));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+
+  EXPECT_THAT(binding_response_status, Eq(BindingResponse::FAILURE));
+}
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
+  session_.set_session_id(1234);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request {
+                  binding_id: "test_binding_id"
+                  type: FILESYNC
+                }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+
+  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
+                            [&binding_response_status](
+                                BindingResponse::Status status) {
+                              binding_response_status = status;
+                            });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Send response frame
+  nearby::sharing::service::proto::Frame response_frame =
+     proto2::contrib::parse_proto::ParseTextProtoOrDie(
+      R"pb(
+        version: V1
+        v1 {
+          type: BINDINGS
+          bindings {
+            binding_response {
+              status: FAILURE
+            }
+          }
+        }
+      )pb"
+     );
+  std::vector<uint8_t> data;
+  data.resize(response_frame.ByteSizeLong());
+  EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
+              IsTrue());
+  connection.WriteMessage(std::move(data));
+
+  EXPECT_THAT(binding_response_status, Eq(BindingResponse::FAILURE));
+}
+
 }  // namespace
 }  // namespace nearby::sharing

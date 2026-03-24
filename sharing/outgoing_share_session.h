@@ -164,6 +164,17 @@ class OutgoingShareSession : public ShareSession {
   // Otherwise, it is a pairing session.
   bool is_transfer_session() const { return is_transfer_session_; }
 
+  // Initiates the peer binding message exchange with the remote device.
+  // `binding_id` is the result of a successful call to InitiateBinding rpc.
+  // `callback` is called when either a BindingResponse frame is received or a
+  // timeout occurs.
+  void StartPeerBinding(
+      std::string binding_id,
+      nearby::sharing::service::proto::BindingRequest::Type binding_type,
+      absl::AnyInvocable<
+          void(nearby::sharing::service::proto::BindingResponse::Status)>
+          callback);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;

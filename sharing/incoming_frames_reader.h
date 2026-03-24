@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/task_runner.h"
@@ -54,7 +55,7 @@ class IncomingFramesReader
   // Note: Callers are expected wait for `callback` to be run before scheduling
   // subsequent calls to ReadFrame(..).
   virtual void ReadFrame(
-      std::function<
+      absl::AnyInvocable<
           void(bool is_timeout,
                std::optional<nearby::sharing::service::proto::V1Frame>)>
           callback,
@@ -70,7 +71,7 @@ class IncomingFramesReader
   // subsequent calls to ReadFrame(..).
   virtual void ReadFrame(
       nearby::sharing::service::proto::V1Frame::FrameType frame_type,
-      std::function<
+      absl::AnyInvocable<
           void(bool is_timeout,
                std::optional<nearby::sharing::service::proto::V1Frame>)>
           callback,
@@ -84,8 +85,9 @@ class IncomingFramesReader
   struct ReadFrameInfo {
     std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
         frame_type = std::nullopt;
-    std::function<void(bool is_timeout,
-                       std::optional<nearby::sharing::service::proto::V1Frame>)>
+    absl::AnyInvocable<void(
+        bool is_timeout,
+        std::optional<nearby::sharing::service::proto::V1Frame>)>
         callback = nullptr;
     absl::Duration timeout = absl::ZeroDuration();
   };
@@ -93,7 +95,7 @@ class IncomingFramesReader
   void ProcessReadRequest(
       std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
           frame_type,
-      std::function<
+      absl::AnyInvocable<
           void(bool is_timeout,
                std::optional<nearby::sharing::service::proto::V1Frame>)>
           callback,
