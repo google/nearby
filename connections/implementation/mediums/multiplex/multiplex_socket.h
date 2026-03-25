@@ -98,7 +98,7 @@ class MultiplexSocket {
   }
 
   // Gets the virtual socket by service id.
-  MediumSocket* GetVirtualSocket(const std::string& service_id);
+  std::shared_ptr<MediumSocket> GetVirtualSocket(const std::string& service_id);
   // Gets the virtual socket count.
   int GetVirtualSocketCount();
 
