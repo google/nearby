@@ -134,7 +134,6 @@ class ImplementationPlatform {
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
   static std::unique_ptr<WifiDirectMedium> CreateWifiDirectMedium();
   static std::unique_ptr<Timer> CreateTimer();
-  static std::unique_ptr<DeviceInfo> CreateDeviceInfo();
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
@@ -145,10 +144,17 @@ class ImplementationPlatform {
           state_updated_callback) {
     return nullptr;
   }
+  static std::unique_ptr<nearby::api::PreferencesManager>
+  CreatePreferencesManager(absl::string_view path) {
+    return nullptr;
+  }
 #else
   static std::unique_ptr<AppLifecycleMonitor> CreateAppLifecycleMonitor(
       std::function<void(AppLifecycleMonitor::AppLifecycleState)>
           state_updated_callback);
+  static std::unique_ptr<nearby::api::PreferencesManager>
+  CreatePreferencesManager(absl::string_view path);
+  static std::unique_ptr<DeviceInfo> CreateDeviceInfo();
 #endif
 
   // Gets HTTP response from remote server.
@@ -159,16 +165,6 @@ class ImplementationPlatform {
   //         return WebResponse if HTTP status code between 200 and 300.
   //         other cases will return absl Status in error.
   static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
-
-#if defined(NEARBY_CHROMIUM)
-  static std::unique_ptr<nearby::api::PreferencesManager>
-  CreatePreferencesManager(absl::string_view path) {
-    return nullptr;
-  }
-#else
-  static std::unique_ptr<nearby::api::PreferencesManager>
-  CreatePreferencesManager(absl::string_view path);
-#endif
 };
 
 }  // namespace api

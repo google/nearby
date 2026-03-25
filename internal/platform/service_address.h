@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_SERVICE_ADDRESS_H_
 
 #include <cstdint>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,18 @@ void AbslStringify(Sink& sink, const ServiceAddress& service_address) {
           service_address.address.begin(), service_address.address.end())),
       service_address.port);
 }
+
+#ifdef NEARBY_CHROMIUM
+// Support logging of ServiceAddress (Chromium does not use absl log).
+inline std::ostream& operator<<(std::ostream& os,
+                                const ServiceAddress& service_address) {
+  return os << "["
+            << WifiUtils::GetHumanReadableIpAddress(
+                   std::string(service_address.address.begin(),
+                               service_address.address.end()))
+            << "]:" << service_address.port;
+}
+#endif
 
 void ServiceAddressToProto(
     const ServiceAddress& service_address,

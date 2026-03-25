@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_SHARED_FILE_H_
 #define PLATFORM_IMPL_SHARED_FILE_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -23,6 +22,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
@@ -49,7 +49,7 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
-  explicit IOFile(absl::string_view file_path) : path_(file_path) {};
+  explicit IOFile(absl::string_view file_path) : path_(file_path) {}
   void OpenForRead();
   void OpenForWrite();
 

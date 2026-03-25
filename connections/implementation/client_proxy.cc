@@ -60,7 +60,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#ifndef NEARBY_CHROMIUM
 #include "internal/platform/device_info_impl.h"
+#endif
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
@@ -1329,6 +1331,12 @@ std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {
   return dct_endpoint_id_;
 }
 
+#ifdef NEARBY_CHROMIUM
+void ClientProxy::InitializePreferencesManager() {
+  // This method is not currently used by Chromium.
+  NOTREACHED();
+}
+#else
 void ClientProxy::InitializePreferencesManager() {
   LOG(INFO) << "ClientProxy [InitializePreferencesManager]: client="
             << GetClientId();
@@ -1350,6 +1358,7 @@ void ClientProxy::InitializePreferencesManager() {
                << GetClientId();
   }
 }
+#endif
 
 void ClientProxy::SaveClientInfoToPreferences() {
   MutexLock lock(&mutex_);
