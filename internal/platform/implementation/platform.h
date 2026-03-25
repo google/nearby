@@ -155,7 +155,6 @@ class ImplementationPlatform {
   static std::unique_ptr<nearby::api::PreferencesManager>
   CreatePreferencesManager(absl::string_view path);
   static std::unique_ptr<DeviceInfo> CreateDeviceInfo();
-#endif
 
   // Gets HTTP response from remote server.
   //
@@ -165,6 +164,7 @@ class ImplementationPlatform {
   //         return WebResponse if HTTP status code between 200 and 300.
   //         other cases will return absl Status in error.
   static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
+#endif
 };
 
 }  // namespace api
