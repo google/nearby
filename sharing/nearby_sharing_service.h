@@ -206,6 +206,12 @@ class NearbySharingService {
       int64_t share_target_id,
       std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
 
+  virtual void InitiatePairing(
+      int64_t share_target_id,
+      service::proto::BindingRequest::Type binding_type,
+      absl::AnyInvocable<void(StatusCodes status_codes) &&>
+          status_codes_callback) = 0;
+
   // Checks to make sure visibility setting is valid and updates the service's
   // visibility if so.
   virtual void SetVisibility(

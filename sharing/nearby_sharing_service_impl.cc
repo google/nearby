@@ -33,6 +33,7 @@
 
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -113,10 +114,12 @@ using ::absl::Milliseconds;
 using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
-using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::api::IdentityRpcClient;
+using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
+using ::nearby::sharing::service::proto::BindingRequest;
+using ::nearby::sharing::service::proto::BindingResponse;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 
@@ -946,6 +949,33 @@ void NearbySharingServiceImpl::DoCancel(
   }
 
   std::move(status_codes_callback)(StatusCodes::kOk);
+}
+
+void NearbySharingServiceImpl::InitiatePairing(
+    int64_t share_target_id, BindingRequest::Type binding_type,
+    absl::AnyInvocable<void(StatusCodes status_codes) &&>
+        status_codes_callback) {
+  RunOnNearbySharingServiceThread(
+      "api_initiate_pairing",
+      [this, share_target_id, binding_type,
+       status_codes_callback = std::move(status_codes_callback)]() mutable {
+        LOG(INFO) << "InitiatePairing is called";
+        OutgoingShareSession* session =
+            outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+        if (!session) {
+          LOG(WARNING) << "InitiatePairing invoked for unknown share target";
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        if (binding_type != BindingRequest::FILESYNC) {
+          LOG(WARNING) << __func__ << "Only FileSync bindings are supported.";
+          std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
+          return;
+        }
+        // Start connection without attachments will initiate pairing.
+        std::move(status_codes_callback)(
+            ConnectOutgoingSessionOnServiceThread(*session));
+      });
 }
 
 void NearbySharingServiceImpl::SetVisibility(
@@ -2571,7 +2601,79 @@ void NearbySharingServiceImpl::BeginOutgoingPairing(
     OutgoingShareSession& session) {
   VLOG(1) << __func__ << ": Preparing to initiate pairing with "
           << session.share_target().id;
-  // TODO(ftsui): Implement this.
+  // Verify that remote really authenticated with self share certificate.
+  if (!session.self_share()) {
+    LOG(WARNING) << __func__ << ": Not self share, skipping pairing.";
+    session.Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    return;
+  }
+  // Call InitiateBinding rpc.
+  sync_manager_.AsyncInitiateSyncBinding(
+      [this, share_target_id = session.share_target().id](
+          absl::StatusOr<std::string> binding_status) {
+        LOG(INFO) << __func__ << ": Sync binding rpc completed.";
+        OnInitiateSyncBindingResponse(share_target_id,
+                                      std::move(binding_status));
+      });
+}
+
+void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
+    int64_t share_target_id, absl::StatusOr<std::string> binding_status) {
+  RunOnNearbySharingServiceThread(
+      "start_peer_binding",
+      [this, share_target_id, binding_status = std::move(binding_status)]() {
+        OutgoingShareSession* session =
+            outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+        if (!session || !session->IsConnected()) {
+          LOG(WARNING) << __func__
+                       << ": Session not connected, stop binding to: "
+                       << share_target_id;
+          return;
+        }
+        if (binding_status.ok()) {
+          std::string binding_id = binding_status.value();
+          LOG(INFO) << __func__
+                    << ": Sync binding rpc succeeded: id=" << binding_id;
+          session->StartPeerBinding(
+              binding_id, BindingRequest::FILESYNC,
+              [this, share_target_id,
+               binding_id](BindingResponse::Status status) {
+                OnPeerSyncBindingComplete(share_target_id, binding_id, status);
+              });
+        } else {
+          LOG(INFO) << __func__ << ": Sync binding rpc failed.";
+          session->Abort(TransferMetadata::Status::kFailed);
+        }
+      });
+}
+
+void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
+    int64_t share_target_id, absl::string_view binding_id,
+    BindingResponse::Status status) {
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+  if (!session || !session->IsConnected()) {
+    LOG(WARNING) << __func__ << ": Session not connected, stop binding to: "
+                 << share_target_id;
+    return;
+  }
+  if (status != BindingResponse::SUCCESS) {
+    LOG(INFO) << __func__ << ": Sync binding response failed.";
+    session->Abort(TransferMetadata::Status::kFailed);
+    return;
+  }
+  sync::SyncBinding binding;
+  binding.set_binding_id(binding_id);
+  binding.set_source_name(session->share_target().device_name);
+  // Set default destination directory to Downloads/`device_name`.
+  FilePath destination_path{settings_->GetCustomSavePath()};
+  destination_path.append(FilePath(session->share_target().device_name));
+  binding.set_destination_directory(destination_path.ToString());
+  sync_manager_.AddSyncBinding(binding);
+  session->UpdateTransferMetadata(
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build());
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(

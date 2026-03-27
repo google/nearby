@@ -394,6 +394,7 @@ cc_library(
         "//location/nearby/sharing/lib/account:account_manager",
         "//location/nearby/sharing/lib/rpc:grpc_async_client_factory",
         "//location/nearby/sharing/lib/rpc:sharing_rpc_client",
+        "//location/nearby/sharing/lib/sync:sync_binding_prefs_cc_proto",
         "//location/nearby/sharing/lib/sync:sync_manager",
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",

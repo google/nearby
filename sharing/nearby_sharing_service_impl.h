@@ -34,6 +34,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -155,6 +156,10 @@ class NearbySharingServiceImpl
   void Cancel(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
+  void InitiatePairing(int64_t share_target_id,
+                       service::proto::BindingRequest::Type binding_type,
+                       absl::AnyInvocable<void(StatusCodes status_codes) &&>
+                           status_codes_callback) override;
   void SetVisibility(
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
@@ -401,6 +406,13 @@ class NearbySharingServiceImpl
   bool OutgoingSessionAccept(OutgoingShareSession& session);
   void OnIncomingFilesMetadataUpdated(int64_t share_target_id,
                                       TransferMetadata metadata, bool success);
+  // Called when InitiateBinding rpc returns.
+  void OnInitiateSyncBindingResponse(
+      int64_t share_target_id, absl::StatusOr<std::string> binding_status);
+  // Called when Bindings response frame is received from the peer.
+  void OnPeerSyncBindingComplete(
+      int64_t share_target_id, absl::string_view binding_id,
+      service::proto::BindingResponse::Status status);
 
   // Notify all registered send surfaces of share target state changes.
   void NotifyShareTargetDiscovered(const ShareTarget& share_target);

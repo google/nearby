@@ -117,6 +117,12 @@ class FakeNearbySharingService : public NearbySharingService {
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
 
+  void InitiatePairing(
+      int64_t share_target_id,
+      service::proto::BindingRequest::Type binding_type,
+      absl::AnyInvocable<void(StatusCodes status_codes) &&>
+          status_codes_callback) override {}
+
   std::string Dump() const override;
   bool IsBluetoothPresent() const override { return true; }
   bool IsBluetoothPowered() const override { return true; }
