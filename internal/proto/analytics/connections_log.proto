@@ -451,6 +451,13 @@ message ConnectionsLog {
 
     // The speed test report.
     optional SpeedTestReport speed_test_report = 15;
+
+    // The count of long inactivity events without any payload transfer.
+    optional int32 inactivity_count = 16;
+
+    // The RSSI (radio signal strength indicator) in dBm.
+    // INTERNET_RSSI_UNKNOWN (-127) if unknown.
+    optional int32 rssi = 17;
   }
 
   message SpeedTestReport {
