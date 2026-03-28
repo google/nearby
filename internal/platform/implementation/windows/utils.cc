@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -65,104 +66,105 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
   }
 }
 
-void GetIpAddresses(int family, std::vector<std::string>& wifi_addresses,
-                    std::vector<std::string>& ethernet_addresses,
-                    std::vector<std::string>& other_addresses) {
-  static constexpr int kDefaultBufferSize = 15 * 1024;  // default to 15K buffer
-  static constexpr int kMaxBufferSize =
-      45 * 1024;  // Try to increase buffer 2 times.
+template <typename F>
+void ForEachUpAdapter(int family, F&& func) {
+  static constexpr int kDefaultBufferSize = 15 * 1024;
+  static constexpr int kMaxBufferSize = 45 * 1024;
   static constexpr ULONG kDefaultFlags =
       GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
       GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+
   ULONG buffer_size = 0;
-  // A string to own the memory for IP_ADAPTER_ADDRESSES.
   std::string address_buffer;
   ULONG error_code = ERROR_NO_DATA;
   IP_ADAPTER_ADDRESSES* addresses = nullptr;
+
   do {
     buffer_size += kDefaultBufferSize;
     address_buffer.reserve(buffer_size);
     addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(address_buffer.data());
-    error_code = GetAdaptersAddresses(
-        family, kDefaultFlags, /*reserved=*/nullptr, addresses, &buffer_size);
+    error_code = GetAdaptersAddresses(family, kDefaultFlags, nullptr, addresses,
+                                      &buffer_size);
   } while (error_code == ERROR_BUFFER_OVERFLOW &&
            buffer_size <= kMaxBufferSize);
-  if (error_code != ERROR_NO_DATA && error_code != NO_ERROR) {
-    LOG(ERROR) << __func__
-               << ": Cannot get adapter addresses. Error code: " << error_code;
+
+  if (error_code != NO_ERROR) {
+    if (error_code != ERROR_NO_DATA) {
+      LOG(ERROR) << __func__
+                 << ": Cannot get adapter addresses. Error: " << error_code;
+    }
     return;
   }
-  if (error_code == ERROR_NO_DATA) {
-    LOG(INFO) << __func__ << ": No IPv4 addresses found.";
-    return;
+
+  for (IP_ADAPTER_ADDRESSES* adapter = addresses; adapter != nullptr;
+       adapter = adapter->Next) {
+    if (adapter->OperStatus == IfOperStatusUp) {
+      func(adapter);
+    }
   }
-  IP_ADAPTER_ADDRESSES* next_address = addresses;
-  while (next_address != nullptr) {
-    if (next_address->OperStatus == IfOperStatusUp) {
-      if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
-        VLOG(1) << "Found ethernet adater: " << next_address->AdapterName
-                << " index: " << next_address->IfIndex
-                << " v6 index: " << next_address->Ipv6IfIndex;
-        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
-                              ethernet_addresses);
-      } else if (next_address->IfType == IF_TYPE_IEEE80211) {
-        VLOG(1) << "Found wifi adapter: " << next_address->AdapterName
-                << " index: " << next_address->IfIndex
-                << " v6 index: " << next_address->Ipv6IfIndex;
-        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
-                              wifi_addresses);
-      } else if (next_address->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
-        // Skip loopback interfaces.
-        VLOG(1) << "Found other adapter: " << next_address->AdapterName;
-        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
-                              other_addresses);
+}
+
+void GetIpAddresses(int family, std::vector<std::string>& wifi_addresses,
+                    std::vector<std::string>& ethernet_addresses,
+                    std::vector<std::string>& other_addresses) {
+  ForEachUpAdapter(family, [&](IP_ADAPTER_ADDRESSES* adapter) {
+    if (adapter->IfType == IF_TYPE_ETHERNET_CSMACD) {
+      VLOG(1) << "Found ethernet adapter: " << adapter->AdapterName;
+      AddIpUnicastAddresses(adapter->FirstUnicastAddress, ethernet_addresses);
+    } else if (adapter->IfType == IF_TYPE_IEEE80211) {
+      VLOG(1) << "Found wifi adapter: " << adapter->AdapterName;
+      AddIpUnicastAddresses(adapter->FirstUnicastAddress, wifi_addresses);
+    } else if (adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
+      VLOG(1) << "Found other adapter: " << adapter->AdapterName;
+      AddIpUnicastAddresses(adapter->FirstUnicastAddress, other_addresses);
+    }
+  });
+}
+
+void GetWifiDirectAddress(int family,
+                          std::vector<std::string>& wifi_addresses) {
+  ForEachUpAdapter(family, [&](IP_ADAPTER_ADDRESSES* adapter) {
+    if (adapter->IfType == IF_TYPE_IEEE80211) {
+      std::wstring description = adapter->Description;
+      if (description.find(L"Wi-Fi Direct") !=  // NOLINT - ClangTidy asks to 
+                                   // replace find() with absl::StrContains(),
+                                   // but this is not applicable to wide string
+                                   // and will cause compile error.
+          std::wstring::npos) {
+        VLOG(1) << "Found wifi direct adapter: " << adapter->AdapterName;
+        AddIpUnicastAddresses(adapter->FirstUnicastAddress, wifi_addresses);
       }
     }
-    next_address = next_address->Next;
-  }
+  });
 }
 
 }  // namespace
 
 std::string ipaddr_4bytes_to_dotdecimal_string(
     absl::string_view ipaddr_4bytes) {
-  if (ipaddr_4bytes.size() != 4) {
-    return {};
-  }
-
-  in_addr address;
-  address.S_un.S_un_b.s_b1 = ipaddr_4bytes[0];
-  address.S_un.S_un_b.s_b2 = ipaddr_4bytes[1];
-  address.S_un.S_un_b.s_b3 = ipaddr_4bytes[2];
-  address.S_un.S_un_b.s_b4 = ipaddr_4bytes[3];
-  char* ipv4_address = inet_ntoa(address);
-  if (ipv4_address == nullptr) {
-    return {};
-  }
-
-  return std::string(ipv4_address);
+  if (ipaddr_4bytes.size() != 4) return {};
+  in_addr addr;
+  memcpy(&addr, ipaddr_4bytes.data(), 4);
+  char* ipv4_address = inet_ntoa(addr);
+  return ipv4_address ? ipv4_address : "";
 }
 
 std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
-  if (ipv4_s.empty()) {
-    return {};
-  }
-
-  in_addr address;
-  address.S_un.S_addr = inet_addr(ipv4_s.c_str());
-  char ipv4_b[5];
-  ipv4_b[0] = address.S_un.S_un_b.s_b1;
-  ipv4_b[1] = address.S_un.S_un_b.s_b2;
-  ipv4_b[2] = address.S_un.S_un_b.s_b3;
-  ipv4_b[3] = address.S_un.S_un_b.s_b4;
-  ipv4_b[4] = 0;
-
-  return std::string(ipv4_b, 4);
+  if (ipv4_s.empty()) return {};
+  in_addr addr;
+  addr.S_un.S_addr = inet_addr(ipv4_s.c_str());
+  return std::string(reinterpret_cast<const char*>(&addr.S_un.S_addr), 4);
 }
 
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
   GetIpAddresses(AF_INET, result, result, result);
+  return result;
+}
+
+std::vector<std::string> GetIpv4WifiDirectAddresses() {
+  std::vector<std::string> result;
+  GetWifiDirectAddress(AF_INET, result);
   return result;
 }
 
@@ -322,8 +324,7 @@ GUID InspectableReader::ReadGuid(IInspectable inspectable) {
   if (property_value == nullptr) {
     throw std::invalid_argument("no property value interface.");
   }
-  if (property_value.Type() !=
-      winrt::Windows::Foundation::PropertyType::Guid) {
+  if (property_value.Type() != winrt::Windows::Foundation::PropertyType::Guid) {
     throw std::invalid_argument("not guid data type.");
   }
 
@@ -398,10 +399,10 @@ bool IsIntelWifiAdapter() {
       // Hardware IDs look like: PCI\VEN_8086&DEV_2723...,
       // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/identifiers-for-pci-devices
       // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-models-section
-      if (hardware_id.find(L"VEN_8086") !=  // NOLINT - ClangTidy asks to replace
-                                      // find() with absl::StrContains(), but
-                                      // this is not applicable to wide string
-                                      // and will cause compile error.
+      if (hardware_id.find(L"VEN_8086") != // NOLINT - ClangTidy asks to replace
+                               // find() with absl::StrContains(), but
+                               // this is not applicable to wide string
+                               // and will cause compile error.
           std::wstring::npos) {
         // 5. Ensure it's a Wi-Fi/Wireless device
         // We check the description to make sure we aren't flagging an Intel

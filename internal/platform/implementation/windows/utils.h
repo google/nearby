@@ -43,6 +43,9 @@ ByteArray Sha256(absl::string_view input, size_t size);
 // Reads the IPv4 addresses
 std::vector<std::string> GetIpv4Addresses();
 
+// Reads the IPv4 addresses of the WiFi Direct interfaces.
+std::vector<std::string> GetIpv4WifiDirectAddresses();
+
 // Help methods to convert between Uuid and winrt::guid
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid);
 winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid);
