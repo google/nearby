@@ -44,7 +44,6 @@ cc_library(
         "//internal/platform:types",
         "//location/nearby/sharing/lib/account:account_manager",
         "//location/nearby/sharing/lib/sync:sync_binding_prefs_cc_proto",
-        "//location/nearby/sharing/lib/sync:sync_config_prefs_cc_proto",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings:string_view",

@@ -236,8 +236,6 @@ cc_library(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/platform:types",
-        "//location/nearby/sharing/lib/sync:sync_config_prefs_cc_proto",
-        "//location/nearby/sharing/lib/sync:sync_manager",
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",
         "//sharing/certificates",

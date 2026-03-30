@@ -67,7 +67,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
   preference_manager.Remove(PrefNames::kUsers);
   preference_manager.SetBoolean(PrefNames::kAdvancedProtectionEnabled, false);
 
-  preference_manager.RemoveAllSyncConfigs();
   preference_manager.RemoveAllBindingConfigs();
 }
 

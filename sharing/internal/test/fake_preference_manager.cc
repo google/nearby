@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
-#include "location/nearby/sharing/lib/sync/sync_config_prefs.pb.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -37,7 +36,6 @@ namespace nearby {
 using ::nearby::sharing::PrefNames;
 using ::nearby::sharing::api::PrivateCertificateData;
 using ::nearby::sharing::sync::SyncBindingPrefs;
-using ::nearby::sharing::sync::SyncConfigPrefs;
 
 // Preference suffix for the sync binding information.
 constexpr absl::string_view kFileSyncBindingName = "FileSync";
@@ -245,12 +243,6 @@ void FakePreferenceManager::RemoveDictionaryItem(
   NotifyPreferenceChanged(key);
 }
 
-void FakePreferenceManager::SetSyncConfigValue(absl::string_view binding_id,
-                                               const SyncConfigPrefs& value) {
-  SetValue(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id),
-           value.SerializeAsString());
-}
-
 void FakePreferenceManager::SetSyncBindingValue(
     const SyncBindingPrefs& value) {
   SetValue(absl::StrCat(PrefNames::kBindingConfigPrefix, kFileSyncBindingName),
@@ -341,21 +333,6 @@ std::optional<std::string> FakePreferenceManager::GetDictionaryStringValue(
   return GetDictionaryValue<std::string>(key, dictionary_item);
 }
 
-std::optional<SyncConfigPrefs> FakePreferenceManager::GetSyncConfigValue(
-    absl::string_view binding_id) const {
-  std::string serialized_sync_config;
-  serialized_sync_config =
-      GetString(absl::StrCat(PrefNames::kSyncConfigPrefix, binding_id), "");
-  if (serialized_sync_config.empty()) {
-    return std::nullopt;
-  }
-  SyncConfigPrefs sync_config;
-  if (!sync_config.ParseFromString(serialized_sync_config)) {
-    return std::nullopt;
-  }
-  return sync_config;
-}
-
 std::optional<SyncBindingPrefs> FakePreferenceManager::GetSyncBindingValue()
     const {
   std::string serialized_sync_binding;
@@ -379,13 +356,6 @@ void FakePreferenceManager::Remove(absl::string_view key) {
     dictionaries_.erase(key);
   }
   NotifyPreferenceChanged(key);
-}
-
-void FakePreferenceManager::RemoveAllSyncConfigs() {
-  absl::MutexLock lock(mutex_);
-  absl::erase_if(values_, [](const auto& item) {
-    return item.first.starts_with(PrefNames::kSyncConfigPrefix);
-  });
 }
 
 void FakePreferenceManager::RemoveAllBindingConfigs() {

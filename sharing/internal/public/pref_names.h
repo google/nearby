@@ -61,13 +61,6 @@ class PrefNames {
   // TODO: b/485304482 - define data format for binding configs.
   static constexpr absl::string_view kBindingConfigPrefix =
       "nearby_sharing.binding_config.";
-
-  // Sync configs preferences are stored in pref keys:
-  //   kSyncConfigPrefix + <binding ID>
-  // Example: "nearby_sharing.sync_config.01243347-2343-4324-3423-432432432432"
-  // Data stored in sync config prefs is a SyncConfig proto.
-  static constexpr absl::string_view kSyncConfigPrefix =
-      "nearby_sharing.sync_config.";
 };
 
 }  // namespace nearby::sharing
