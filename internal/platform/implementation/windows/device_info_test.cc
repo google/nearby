@@ -40,23 +40,20 @@ TEST(DeviceInfo, GetOsType) {
 }
 
 TEST(DeviceInfo, DISABLED_GetLocalAppDataPath) {
-  EXPECT_TRUE(DeviceInfo().GetLocalAppDataPath().has_value());
+  EXPECT_FALSE(
+      DeviceInfo().GetLocalAppDataPath(FilePath("sub_path")).IsEmpty());
 }
 
 TEST(DeviceInfo, DISABLED_GetDownloadPath) {
-  EXPECT_TRUE(DeviceInfo().GetDownloadPath().has_value());
+  EXPECT_FALSE(DeviceInfo().GetDownloadPath().IsEmpty());
 }
 
 TEST(DeviceInfo, DISABLED_GetTemporaryPath) {
-  EXPECT_TRUE(DeviceInfo().GetTemporaryPath().has_value());
+  EXPECT_FALSE(DeviceInfo().GetTemporaryPath().IsEmpty());
 }
 
 TEST(DeviceInfo, DISABLED_GetLogPath) {
-  EXPECT_TRUE(DeviceInfo().GetLogPath().has_value());
-}
-
-TEST(DeviceInfo, DISABLED_GetCrashDumpPath) {
-  EXPECT_TRUE(DeviceInfo().GetCrashDumpPath().has_value());
+  EXPECT_FALSE(DeviceInfo().GetLogPath().IsEmpty());
 }
 
 TEST(DeviceInfo, DISABLED_IsScreenLocked) {

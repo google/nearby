@@ -46,12 +46,10 @@ class DeviceInfo {
   virtual OsType GetOsType() const = 0;
 
   // Gets known paths of current user.
-  virtual std::optional<FilePath> GetDownloadPath() const = 0;
-  virtual std::optional<FilePath> GetLocalAppDataPath() const = 0;
-  virtual std::optional<FilePath> GetCommonAppDataPath() const = 0;
-  virtual std::optional<FilePath> GetTemporaryPath() const = 0;
-  virtual std::optional<FilePath> GetLogPath() const = 0;
-  virtual std::optional<FilePath> GetCrashDumpPath() const = 0;
+  virtual FilePath GetDownloadPath() const = 0;
+  virtual FilePath GetLocalAppDataPath(FilePath sub_path) const = 0;
+  virtual FilePath GetTemporaryPath() const = 0;
+  virtual FilePath GetLogPath() const = 0;
 
   // Monitor screen status
   virtual bool IsScreenLocked() const = 0;

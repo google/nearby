@@ -44,32 +44,19 @@ api::DeviceInfo::OsType DeviceInfoImpl::GetOsType() const {
 }
 
 FilePath DeviceInfoImpl::GetDownloadPath() const {
-  std::optional<FilePath> path = device_info_impl_->GetDownloadPath();
-  if (path.has_value()) {
-    return *path;
-  }
-  return Files::GetTemporaryDirectory();
+  return device_info_impl_->GetDownloadPath();
 }
 
 FilePath DeviceInfoImpl::GetAppDataPath() const {
-  std::optional<FilePath> path = device_info_impl_->GetLocalAppDataPath();
-  if (path.has_value()) {
-    return *path;
-  }
-  return Files::GetTemporaryDirectory();
+  return device_info_impl_->GetLocalAppDataPath(FilePath());
 }
 
 FilePath DeviceInfoImpl::GetTemporaryPath() const {
-  std::optional<FilePath> path = device_info_impl_->GetTemporaryPath();
-  if (path.has_value()) {
-    return *path;
-  }
-  return Files::GetTemporaryDirectory();
+  return device_info_impl_->GetTemporaryPath();
 }
 
 FilePath DeviceInfoImpl::GetLogPath() const {
-  std::optional<FilePath> path = device_info_impl_->GetLogPath();
-  return path.value_or(GetTemporaryPath());
+  return device_info_impl_->GetLogPath();
 }
 
 std::optional<size_t> DeviceInfoImpl::GetAvailableDiskSpaceInBytes(

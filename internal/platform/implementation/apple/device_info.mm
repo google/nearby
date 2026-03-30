@@ -79,7 +79,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
 #endif
 }
 
-std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
+FilePath DeviceInfo::GetDownloadPath() const {
   NSFileManager *manager = [NSFileManager defaultManager];
 
   NSError *error = nil;
@@ -90,28 +90,22 @@ std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
                                            error:&error];
   if (!downloadsURL) {
     GNCLoggerError(@"Failed to get download path: %@", error);
-    return std::nullopt;
+    return GetTemporaryPath();
   }
 
   return FilePath(absl::string_view([downloadsURL.path cString]));
 }
 
-std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
-  return FilePath(absl::string_view([GNCLocalAppDataPath().path cString]));
+FilePath DeviceInfo::GetLocalAppDataPath(FilePath sub_path) const {
+  return FilePath(absl::string_view([GNCLocalAppDataPath().path cString])).append(sub_path);
 }
 
-std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const { return GetLocalAppDataPath(); }
-
-std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
+FilePath DeviceInfo::GetTemporaryPath() const {
   return FilePath(absl::string_view([NSTemporaryDirectory() cString]));
 }
 
-std::optional<FilePath> DeviceInfo::GetLogPath() const {
+FilePath DeviceInfo::GetLogPath() const {
   return FilePath(absl::string_view([GNCLogPath().path cString]));
-}
-
-std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
-  return FilePath(absl::string_view([GNCCrashDumpPath().path cString]));
 }
 
 bool DeviceInfo::IsScreenLocked() const { return false; }

@@ -45,33 +45,24 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
-  std::optional<FilePath> GetDownloadPath() const override {
+  FilePath GetDownloadPath() const override {
     return Files::GetTemporaryDirectory();
   }
 
-  std::optional<FilePath> GetLocalAppDataPath() const override {
+  FilePath GetLocalAppDataPath(FilePath sub_path) const override {
     if (MediumEnvironment::Instance()
             .GetEnvironmentConfig()
             .use_temporary_directory_for_app_path) {
-      return Files::GetTemporaryDirectory();
+      return Files::GetTemporaryDirectory().append(sub_path);
     }
-
-    return GetAppDataPath();
+    return GetAppDataPath().append(sub_path);
   }
 
-  std::optional<FilePath> GetCommonAppDataPath() const override {
+  FilePath GetTemporaryPath() const override {
     return Files::GetTemporaryDirectory();
   }
 
-  std::optional<FilePath> GetTemporaryPath() const override {
-    return Files::GetTemporaryDirectory();
-  }
-
-  std::optional<FilePath> GetLogPath() const override {
-    return Files::GetTemporaryDirectory();
-  }
-
-  std::optional<FilePath> GetCrashDumpPath() const override {
+  FilePath GetLogPath() const override {
     return Files::GetTemporaryDirectory();
   }
 

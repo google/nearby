@@ -49,27 +49,20 @@
 }
 
 - (void)testGetDownloadPath {
-  XCTAssertNotNil(@(_deviceInfo->GetDownloadPath().value().GetPath().c_str()));
+  XCTAssertNotNil(@(_deviceInfo->GetDownloadPath().GetPath().c_str()));
 }
 
 - (void)testGetLocalAppDataPath {
-  XCTAssertNotNil(@(_deviceInfo->GetLocalAppDataPath().value().GetPath().c_str()));
-}
-
-- (void)testGetCommonAppDataPath {
-  XCTAssertNotNil(@(_deviceInfo->GetCommonAppDataPath().value().GetPath().c_str()));
+  XCTAssertNotNil(
+      @(_deviceInfo->GetLocalAppDataPath(nearby::FilePath("sub_path")).GetPath().c_str()));
 }
 
 - (void)testGetTemporaryPath {
-  XCTAssertNotNil(@(_deviceInfo->GetTemporaryPath().value().GetPath().c_str()));
+  XCTAssertNotNil(@(_deviceInfo->GetTemporaryPath().GetPath().c_str()));
 }
 
 - (void)testGetLogPath {
-  XCTAssertNotNil(@(_deviceInfo->GetLogPath().value().GetPath().c_str()));
-}
-
-- (void)testGetCrashDumpPath {
-  XCTAssertNotNil(@(_deviceInfo->GetCrashDumpPath().value().GetPath().c_str()));
+  XCTAssertNotNil(@(_deviceInfo->GetLogPath().GetPath().c_str()));
 }
 
 - (void)testIsScreenLocked {

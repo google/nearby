@@ -30,26 +30,10 @@
 #include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "winrt/Windows.Foundation.Collections.h"
-#include "winrt/Windows.Foundation.h"
-#include "winrt/Windows.System.h"
 
 namespace nearby::windows {
 
-using IInspectable = winrt::Windows::Foundation::IInspectable;
-using KnownUserProperties = winrt::Windows::System::KnownUserProperties;
-using User = winrt::Windows::System::User;
-using UserType = winrt::Windows::System::UserType;
-using UserAuthenticationStatus =
-    winrt::Windows::System::UserAuthenticationStatus;
-
 using ::nearby::windows::string_utils::WideStringToString;
-
-template <typename T>
-using IVectorView = winrt::Windows::Foundation::Collections::IVectorView<T>;
-
-template <typename T>
-using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   std::optional<std::wstring> device_name = GetDnsHostName();
@@ -60,7 +44,6 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
-  // TODO(b/230132370): return correct device type on the Windows platform.
   return api::DeviceInfo::DeviceType::kLaptop;
 }
 
@@ -68,7 +51,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
+FilePath DeviceInfo::GetDownloadPath() const {
   PWSTR path;
   HRESULT result =
       SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_DEFAULT, nullptr, &path);
@@ -79,37 +62,19 @@ std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
   }
 
   CoTaskMemFree(path);
-  return std::nullopt;
-}
-
-std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
-  return nearby::platform::windows::GetLocalAppDataPath(FilePath());
-}
-
-std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
-  PWSTR path;
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT,
-                                        /*hToken=*/nullptr, &path);
-  if (result == S_OK) {
-    std::wstring common_app_data_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(common_app_data_path));
-  }
-
-  CoTaskMemFree(path);
-  return std::nullopt;
-}
-
-std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
   return Files::GetTemporaryDirectory();
 }
 
-std::optional<FilePath> DeviceInfo::GetLogPath() const {
-  return nearby::platform::windows::GetLogPath();
+FilePath DeviceInfo::GetLocalAppDataPath(FilePath sub_path) const {
+  return nearby::platform::windows::GetLocalAppDataPath(sub_path);
 }
 
-std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
-  return nearby::platform::windows::GetCrashDumpPath();
+FilePath DeviceInfo::GetTemporaryPath() const {
+  return Files::GetTemporaryDirectory();
+}
+
+FilePath DeviceInfo::GetLogPath() const {
+  return nearby::platform::windows::GetLogPath();
 }
 
 bool DeviceInfo::IsScreenLocked() const {
