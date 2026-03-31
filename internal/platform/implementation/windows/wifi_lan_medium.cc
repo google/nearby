@@ -64,6 +64,7 @@ using ::winrt::Windows::Devices::Enumeration::DeviceInformationKind;
 using ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
 using ::winrt::Windows::Devices::Enumeration::DeviceWatcher;
 using ::winrt::Windows::Foundation::Collections::IMapView;
+using ::winrt::Windows::Foundation::IInspectable;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 
 // mDNS text attributes

@@ -24,22 +24,35 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby::windows {
 
-// Returns the first IP address.
+// Returns the first IPv4 address.
 std::string WifiLanServerSocket::GetIPAddress() const {
   // Just pick an IP address from the list of available addresses.
-  std::vector<std::string> ip_addresses = GetIpv4Addresses();
-  if (ip_addresses.empty()) {
-    LOG(ERROR) << "No IP addresses found.";
-    return "";
+  const NetworkInfo& network_info = NetworkInfo::GetNetworkInfo();
+  for (const NetworkInfo::InterfaceInfo& net_interface :
+       network_info.GetInterfaces()) {
+    if (net_interface.type != InterfaceType::kWifi &&
+        net_interface.type != InterfaceType::kEthernet) {
+      continue;
+    }
+    for (const SocketAddress& v4_address : net_interface.ipv4_addresses) {
+      // Ignore link local addresses.
+      if (v4_address.IsV4LinkLocal()) {
+        continue;
+      }
+      ServiceAddress service_address = v4_address.ToServiceAddress(0);
+      return std::string(service_address.address.begin(),
+                         service_address.address.end());
+    }
   }
-  return ipaddr_dotdecimal_to_4bytes_string(ip_addresses.front());
+  return "";
 }
 
 // Blocks until either:

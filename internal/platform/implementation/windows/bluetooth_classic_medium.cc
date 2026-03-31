@@ -16,6 +16,7 @@
 
 #include <windows.h>
 
+#include <cstdint>
 #include <functional>
 #include <ios>
 #include <memory>
@@ -39,7 +40,6 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 
@@ -71,6 +71,16 @@ constexpr int kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
 constexpr wchar_t kBluetoothSelector[] =
     L"System.Devices.Aep.ProtocolId:=\"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}"
     L"\"";
+
+// The Id of the Service Name SDP attribute
+constexpr uint16_t SdpServiceNameAttributeId = 0x100;
+
+// The SDP Type of the Service Name SDP attribute.
+// The first byte in the SDP Attribute encodes the SDP Attribute Type as
+// follows:
+//    -  the Attribute Type size in the least significant 3 bits,
+//    -  the SDP Attribute Type value in the most significant 5 bits.
+constexpr char SdpServiceNameAttributeType = (4 << 3) | 5;
 
 void DumpDeviceInformation(
     const IMapView<winrt::hstring, IInspectable>& properties) {
@@ -462,17 +472,17 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requested_service) {
     }
 
     auto attributes = requested_service.GetSdpRawAttributesAsync().get();
-    if (!attributes.HasKey(Constants::SdpServiceNameAttributeId)) {
+    if (!attributes.HasKey(SdpServiceNameAttributeId)) {
       LOG(ERROR) << __func__ << ": Missing SdpServiceNameAttributeId.";
       return false;
     }
 
-    auto attribute_reader = DataReader::FromBuffer(
-        attributes.Lookup(Constants::SdpServiceNameAttributeId));
+    auto attribute_reader =
+        DataReader::FromBuffer(attributes.Lookup(SdpServiceNameAttributeId));
 
     auto attribute_type = attribute_reader.ReadByte();
 
-    if (attribute_type != Constants::SdpServiceNameAttributeType) {
+    if (attribute_type != SdpServiceNameAttributeType) {
       LOG(ERROR) << __func__ << ": Missing SdpServiceNameAttributeType.";
       return false;
     }
@@ -958,7 +968,7 @@ bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
     auto sdp_writer = DataWriter();
 
     // Write the Service Name Attribute.
-    sdp_writer.WriteByte(Constants::SdpServiceNameAttributeType);
+    sdp_writer.WriteByte(SdpServiceNameAttributeType);
 
     // The length of the UTF-8 encoded Service Name SDP Attribute.
     sdp_writer.WriteByte(service_name.size());
@@ -968,8 +978,8 @@ bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
     sdp_writer.WriteString(winrt::to_hstring(service_name));
 
     // Set the SDP Attribute on the RFCOMM Service Provider.
-    rfcomm_provider.SdpRawAttributes().Insert(
-        Constants::SdpServiceNameAttributeId, sdp_writer.DetachBuffer());
+    rfcomm_provider.SdpRawAttributes().Insert(SdpServiceNameAttributeId,
+                                              sdp_writer.DetachBuffer());
 
     return true;
   } catch (...) {

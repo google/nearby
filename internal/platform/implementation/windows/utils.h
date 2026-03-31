@@ -23,25 +23,12 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
-
-using winrt::Windows::Foundation::IInspectable;
-
-std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
-std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
-
-// Helpers to windows platform
-ByteArray Sha256(absl::string_view input, size_t size);
-
-// Reads the IPv4 addresses
-std::vector<std::string> GetIpv4Addresses();
 
 // Help methods to convert between Uuid and winrt::guid
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid);
@@ -57,31 +44,18 @@ std::optional<std::wstring> GetDnsHostName();
 // Returns true if the system has an Intel Wi-Fi adapter.
 bool IsIntelWifiAdapter();
 
-namespace Constants {
-// The Id of the Service Name SDP attribute
-const uint16_t SdpServiceNameAttributeId = 0x100;
-
-// The SDP Type of the Service Name SDP attribute.
-// The first byte in the SDP Attribute encodes the SDP Attribute Type as
-// follows:
-//    -  the Attribute Type size in the least significant 3 bits,
-//    -  the SDP Attribute Type value in the most significant 5 bits.
-const char SdpServiceNameAttributeType = (4 << 3) | 5;
-
-// Possible values for the adapter type. Refer to:
-// https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_adapter_info
-const uint16_t kInterfaceTypeEthernet = 6;
-const uint16_t kInterfaceTypeWifi = 71;
-}  // namespace Constants
-
 class InspectableReader {
  public:
-  static bool ReadBoolean(IInspectable inspectable);
-  static uint16_t ReadUint16(IInspectable inspectable);
-  static uint32_t ReadUint32(IInspectable inspectable);
-  static std::string ReadString(IInspectable inspectable);
-  static std::vector<std::string> ReadStringArray(IInspectable inspectable);
-  static GUID ReadGuid(IInspectable inspectable);
+  static bool ReadBoolean(winrt::Windows::Foundation::IInspectable inspectable);
+  static uint16_t ReadUint16(
+      winrt::Windows::Foundation::IInspectable inspectable);
+  static uint32_t ReadUint32(
+      winrt::Windows::Foundation::IInspectable inspectable);
+  static std::string ReadString(
+      winrt::Windows::Foundation::IInspectable inspectable);
+  static std::vector<std::string> ReadStringArray(
+      winrt::Windows::Foundation::IInspectable inspectable);
+  static GUID ReadGuid(winrt::Windows::Foundation::IInspectable inspectable);
 };
 
 }  // namespace windows
