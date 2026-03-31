@@ -89,9 +89,6 @@ static NSError *AlreadyScanningError() {
 
   // The block to call when the BLE connection times out.
   dispatch_block_t _connectionTimeoutBlock;
-
-  // The set of connected peripherals.
-  NSMutableSet<NSUUID *> *_connectedPeripherals;
 }
 
 - (instancetype)init {
@@ -127,7 +124,6 @@ static NSError *AlreadyScanningError() {
     _scanningServiceUUIDs = [NSMutableArray array];
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
     _l2capPSM = 0;
-    _connectedPeripherals = [NSMutableSet set];
   }
   return self;
 }
@@ -387,26 +383,17 @@ static NSError *AlreadyScanningError() {
   // then back on. This will be called anytime the central manager's state changes, so
   // @c scanForPeripheralsWithServices:options: will be called anytime state transitions back to
   // powered on.
-  if (_centralManager.state != CBManagerStatePoweredOn) {
-    return;
-  }
-
-  // If there are any connected peripherals, stop scanning to avoid high interrupt load on the
-  // Bluetooth controller, which can cause system-level crashes (XPC connection invalid).
-  if (_connectedPeripherals.count > 0 || _scanningServiceUUIDs.count == 0) {
+  if (_centralManager.state == CBManagerStatePoweredOn && _scanningServiceUUIDs.count > 0) {
+    // Stop scanning just in case something outside of this class is already scanning.
     [_centralManager stopScan];
-    return;
+    [_centralManager
+        scanForPeripheralsWithServices:_scanningServiceUUIDs
+                               // Nearby relies on the existence of an advertisement for endpoint
+                               // discovery/lost events, so we must set this key to keep the stream
+                               // of duplicate delegate events flowing. This has adverse effect on
+                               // battery life, but currently necessary.
+                               options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}];
   }
-
-  // Stop scanning just in case something outside of this class is already scanning.
-  [_centralManager stopScan];
-  [_centralManager
-      scanForPeripheralsWithServices:_scanningServiceUUIDs
-                             // Nearby relies on the existence of an advertisement for endpoint
-                             // discovery/lost events, so we must set this key to keep the stream
-                             // of duplicate delegate events flowing. This has adverse effect on
-                             // battery life, but currently necessary.
-                             options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}];
 }
 
 - (NSDictionary<CBUUID *, NSData *> *)decodeAdvertisementData:
@@ -535,8 +522,6 @@ static NSError *AlreadyScanningError() {
       didConnectPeripheral:(id<GNCPeripheral>)peripheral {
   dispatch_assert_queue(_queue);
   [self cancelConnectionTimeout];
-  [_connectedPeripherals addObject:peripheral.identifier];
-  [self updateScanningState];
 
   if (_l2capPSM > 0) {
     [self internalOpenL2CAPChannel:peripheral];
@@ -583,8 +568,6 @@ static NSError *AlreadyScanningError() {
     didDisconnectPeripheral:(id<GNCPeripheral>)peripheral
                       error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  [_connectedPeripherals removeObject:peripheral.identifier];
-  [self updateScanningState];
 
   GNCGATTDisconnectionHandler handler = _gattDisconnectionHandlers[peripheral.identifier];
   _gattDisconnectionHandlers[peripheral.identifier] = nil;
