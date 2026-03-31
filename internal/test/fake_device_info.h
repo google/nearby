@@ -27,14 +27,15 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
-#include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 
-class FakeDeviceInfo : public DeviceInfo {
+class FakeDeviceInfo : public api::DeviceInfo {
  public:
-  std::string GetOsDeviceName() const override { return device_name_; }
+  std::optional<std::string> GetOsDeviceName() const override {
+    return device_name_;
+  }
 
   api::DeviceInfo::DeviceType GetDeviceType() const override {
     return device_type_;
@@ -46,8 +47,10 @@ class FakeDeviceInfo : public DeviceInfo {
     return download_path_;
   }
 
-  FilePath GetAppDataPath() const override {
-    return app_data_path_;
+  FilePath GetLocalAppDataPath(FilePath sub_path) const override {
+    FilePath path = app_data_path_;
+    path.append(sub_path);
+    return path;
   }
 
   FilePath GetTemporaryPath() const override { return temp_path_; }

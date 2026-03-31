@@ -30,7 +30,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//location/nearby/sharing/lib/account:account_manager",
         "//sharing/common:enum",

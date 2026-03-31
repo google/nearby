@@ -28,7 +28,7 @@
 #include "absl/time/time.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -138,7 +138,8 @@ class NearbyShareSettings
   };
 
   NearbyShareSettings(
-      Context* context, nearby::Clock* clock, nearby::DeviceInfo& device_info,
+      Context* context, nearby::Clock* clock,
+      nearby::api::DeviceInfo& device_info,
       nearby::sharing::api::PreferenceManager& preference_manager,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
       analytics::AnalyticsRecorder* analytics_recorder = nullptr);
@@ -220,7 +221,7 @@ class NearbyShareSettings
   mutable absl::Mutex mutex_;
   Context* context_;
   nearby::Clock* const clock_;
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   // Used to create analytics events.

@@ -15,12 +15,14 @@
 #ifndef PLATFORM_API_DEVICE_INFO_H_
 #define PLATFORM_API_DEVICE_INFO_H_
 
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 
 namespace nearby {
 namespace api {
@@ -29,6 +31,23 @@ class DeviceInfo {
  public:
   enum class ScreenStatus { kUndetermined = 0, kLocked, kUnlocked };
   enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop };
+  template <typename Sink>
+  void AbslStringify(Sink& sink, DeviceType device_type) {
+    switch (device_type) {
+      case DeviceType::kUnknown:
+        sink.Append("Unknown");
+        return;
+      case DeviceType::kPhone:
+        sink.Append("Phone");
+        return;
+      case DeviceType::kTablet:
+        sink.Append("Tablet");
+        return;
+      case DeviceType::kLaptop:
+        sink.Append("PC");
+        return;
+    }
+  }
   enum class OsType {
     kUnknown = 0,
     kAndroid,
@@ -50,6 +69,11 @@ class DeviceInfo {
   virtual FilePath GetLocalAppDataPath(FilePath sub_path) const = 0;
   virtual FilePath GetTemporaryPath() const = 0;
   virtual FilePath GetLogPath() const = 0;
+
+  virtual std::optional<size_t> GetAvailableDiskSpaceInBytes(
+      const FilePath& path) const {
+        return Files::GetAvailableDiskSpaceInBytes(path);
+  };
 
   // Monitor screen status
   virtual bool IsScreenLocked() const = 0;

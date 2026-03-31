@@ -258,12 +258,10 @@ cc_library(
     srcs = ["nearby_connection_impl.cc"],
     hdrs = ["nearby_connection_impl.h"],
     deps = [
-        ":connection_types",
         ":types",
-        "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "//sharing/internal/public:logging",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -303,8 +301,6 @@ cc_library(
     hdrs = ["nearby_sharing_util.h"],
     deps = [
         ":types",
-        "//internal/base:file_path",
-        "//internal/platform:types",
         "//proto:sharing_enums_cc_proto",
         "//sharing/certificates",
         "//sharing/common:enum",
@@ -382,6 +378,7 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/base",
         "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/network:url",
         "//internal/platform:base",

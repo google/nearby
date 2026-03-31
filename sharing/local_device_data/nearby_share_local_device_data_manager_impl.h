@@ -20,7 +20,7 @@
 
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -40,7 +40,7 @@ class NearbyShareLocalDeviceDataManagerImpl
    public:
     static std::unique_ptr<NearbyShareLocalDeviceDataManager> Create(
         nearby::sharing::api::PreferenceManager& preference_manager,
-        AccountManager& account_manager, nearby::DeviceInfo& device_info);
+        AccountManager& account_manager, nearby::api::DeviceInfo& device_info);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
@@ -61,7 +61,7 @@ class NearbyShareLocalDeviceDataManagerImpl
  private:
   NearbyShareLocalDeviceDataManagerImpl(
       nearby::sharing::api::PreferenceManager& preference_manager,
-      AccountManager& account_manager, nearby::DeviceInfo& device_info);
+      AccountManager& account_manager, nearby::api::DeviceInfo& device_info);
 
   DeviceNameValidationResult ValidateDeviceName(absl::string_view name);
 
@@ -73,7 +73,7 @@ class NearbyShareLocalDeviceDataManagerImpl
 
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
 };
 
 }  // namespace nearby::sharing

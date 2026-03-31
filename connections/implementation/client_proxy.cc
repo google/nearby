@@ -61,7 +61,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #ifndef NEARBY_CHROMIUM
-#include "internal/platform/device_info_impl.h"
+#include "internal/platform/implementation/device_info.h"
 #endif
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
@@ -1340,10 +1340,11 @@ void ClientProxy::InitializePreferencesManager() {
 void ClientProxy::InitializePreferencesManager() {
   LOG(INFO) << "ClientProxy [InitializePreferencesManager]: client="
             << GetClientId();
-  auto device_info_ = std::make_unique<nearby::DeviceInfoImpl>();
+  std::unique_ptr<nearby::api::DeviceInfo> device_info_ =
+      nearby::api::ImplementationPlatform::CreateDeviceInfo();
 
   FilePath preferences_path =
-      device_info_->GetAppDataPath().append(FilePath(kPreferencesFilePath));
+      device_info_->GetLocalAppDataPath(FilePath(kPreferencesFilePath));
 
   if (!Files::FileExists(preferences_path)) {
     Files::CreateDirectories(preferences_path);

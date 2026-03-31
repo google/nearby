@@ -23,9 +23,8 @@
 
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/substitute.h"
-#include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -41,8 +40,6 @@ namespace nearby::sharing {
 namespace {
 using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
-
-constexpr absl::string_view kDefaultDeviceName = "$0\'s $1";
 
 // Returns a truncated version of |name| that is |max_length| characters long.
 // For example, name="Reallylongname" with max_length=9 will return "Really...".
@@ -71,7 +68,7 @@ NearbyShareLocalDeviceDataManagerImpl::Factory*
 std::unique_ptr<NearbyShareLocalDeviceDataManager>
 NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
     PreferenceManager& preference_manager,
-    AccountManager& account_manager, nearby::DeviceInfo& device_info) {
+    AccountManager& account_manager, nearby::api::DeviceInfo& device_info) {
   if (test_factory_) {
     return test_factory_->CreateInstance();
   }
@@ -90,7 +87,7 @@ NearbyShareLocalDeviceDataManagerImpl::Factory::~Factory() = default;
 
 NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
     PreferenceManager& preference_manager, AccountManager& account_manager,
-    nearby::DeviceInfo& device_info)
+    nearby::api::DeviceInfo& device_info)
     : preference_manager_(preference_manager),
       account_manager_(account_manager),
       device_info_(device_info) {}
@@ -147,20 +144,24 @@ std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
   if (os_type == DeviceInfo::OsType::kMacOS ||
       os_type == DeviceInfo::OsType::kIos || !account.has_value() ||
       account->given_name.empty()) {
-    std::string device_name = device_info_.GetOsDeviceName();
+    std::string device_name =
+        device_info_.GetOsDeviceName().value_or("unknown");
     return GetTruncatedName(device_name, kNearbyShareDeviceNameMaxLength);
   }
   std::string given_name = account->given_name;
-  std::string device_type = device_info_.GetDeviceTypeName();
-  uint64_t untruncated_length =
-      absl::Substitute(kDefaultDeviceName, given_name, device_type).length();
+  DeviceInfo::DeviceType device_type = device_info_.GetDeviceType();
+  std::string device_name = absl::StrCat(given_name, "'s ", device_type);
+  uint64_t untruncated_length = device_name.length();
+  if (untruncated_length <= kNearbyShareDeviceNameMaxLength) {
+    return device_name;
+  }
   uint64_t overflow_length =
       untruncated_length - kNearbyShareDeviceNameMaxLength;
 
   std::string truncated_name =
       GetTruncatedName(given_name, given_name.length() - overflow_length);
 
-  return absl::Substitute(kDefaultDeviceName, truncated_name, device_type);
+  return absl::StrCat(truncated_name, "'s ", device_type);
 }
 
 }  // namespace nearby::sharing

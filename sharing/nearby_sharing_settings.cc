@@ -26,7 +26,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -69,8 +69,8 @@ ShowNotificationStatus GetNotificationStatus(
 }  // namespace
 
 NearbyShareSettings::NearbyShareSettings(
-    Context* context, nearby::Clock* clock, nearby::DeviceInfo& device_info,
-    PreferenceManager& preference_manager,
+    Context* context, nearby::Clock* clock,
+    nearby::api::DeviceInfo& device_info, PreferenceManager& preference_manager,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     analytics::AnalyticsRecorder* analytics_recorder)
     : context_(context),

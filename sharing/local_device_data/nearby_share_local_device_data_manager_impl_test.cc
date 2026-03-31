@@ -109,11 +109,11 @@ class NearbyShareLocalDeviceDataManagerImplTest
   }
 
   std::string GetDeviceName() const {
-    return fake_device_info_.GetOsDeviceName();
+    return fake_device_info_.GetOsDeviceName().value_or("unknown");
   }
 
-  std::string GetDeviceTypeName() const {
-    return fake_device_info_.GetDeviceTypeName();
+  nearby::FakeDeviceInfo::DeviceType GetDeviceType() const {
+    return fake_device_info_.GetDeviceType();
   }
 
  protected:
@@ -138,7 +138,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, DefaultDeviceName) {
   fake_account_manager().SetAccount(account);
   EXPECT_EQ(absl::Substitute(kDefaultDeviceName,
                              kFakeGivenName,
-                             GetDeviceTypeName()),
+                             GetDeviceType()),
             manager()->GetDeviceName());
 
   // Make sure that when we use a given name that is very long we truncate
@@ -152,7 +152,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, SetDeviceName) {
   CreateManager();
 
   std::string expected_default_device_name =
-      absl::Substitute(kDefaultDeviceName, kFakeGivenName, GetDeviceTypeName());
+      absl::Substitute(kDefaultDeviceName, kFakeGivenName, GetDeviceType());
   EXPECT_EQ(manager()->GetDeviceName(), expected_default_device_name);
   EXPECT_TRUE(notifications().empty());
 

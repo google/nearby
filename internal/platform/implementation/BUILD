@@ -54,6 +54,7 @@ cc_library(
     ],
     deps = [
         "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:mac_address",
@@ -151,6 +152,7 @@ cc_library(
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//sharing/internal/impl/common:__subpackages__",
     ],
     deps = [
         ":comm",

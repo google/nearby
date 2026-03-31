@@ -32,7 +32,7 @@
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/advertisement.h"
@@ -150,7 +150,8 @@ std::string PayloadStatusToString(PayloadStatus status) {
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
     TaskRunner* connections_callback_task_runner, Context* context,
-    ConnectivityManager& connectivity_manager, nearby::DeviceInfo& device_info,
+    ConnectivityManager& connectivity_manager,
+    nearby::api::DeviceInfo& device_info,
     std::unique_ptr<NearbyConnectionsService> nearby_connections_service)
     : connections_callback_task_runner_(connections_callback_task_runner),
       context_(context),

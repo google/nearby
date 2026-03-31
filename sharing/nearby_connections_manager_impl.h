@@ -27,7 +27,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
@@ -49,7 +49,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   explicit NearbyConnectionsManagerImpl(
       nearby::TaskRunner* connections_callback_task_runner, Context* context,
       nearby::ConnectivityManager& connectivity_manager,
-      nearby::DeviceInfo& device_info,
+      nearby::api::DeviceInfo& device_info,
       std::unique_ptr<NearbyConnectionsService> nearby_connections_service);
   ~NearbyConnectionsManagerImpl() override;
   NearbyConnectionsManagerImpl(const NearbyConnectionsManagerImpl&) = delete;
@@ -146,7 +146,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   nearby::TaskRunner* const connections_callback_task_runner_;
   Context* const context_;
   nearby::ConnectivityManager& connectivity_manager_;
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
 
   // Nearby Connections Manager is called from different threads and may have
   // multiple calls to the class from one thread. To avoid deadlock and access

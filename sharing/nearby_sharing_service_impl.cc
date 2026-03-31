@@ -49,7 +49,6 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
@@ -281,7 +280,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
 
   is_shutting_down_ = std::make_unique<bool>(false);
   FilePath profile_path =
-      device_info_.GetAppDataPath().append(FilePath(kProfileRelativePath));
+      device_info_.GetLocalAppDataPath(FilePath(kProfileRelativePath));
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
@@ -2692,15 +2691,16 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
       session.session_id(), session.share_target(),
       /*referrer_package=*/std::nullopt, session.os_type());
 
-  if (IsOutOfStorage(device_info_, save_path,
-                     session.attachment_container().GetStorageSize())) {
+  std::optional<size_t> available_storage =
+      device_info_.GetAvailableDiskSpaceInBytes(save_path);
+  if (available_storage.has_value() &&
+      *available_storage <= session.attachment_container().GetStorageSize()) {
     Fail(session, TransferMetadata::Status::kNotEnoughSpace);
     LOG(WARNING) << __func__
                  << ": Not enough space on the receiver. We have informed "
                  << session.share_target().id;
     return;
   }
-
   OnStorageCheckCompleted(session);
 }
 

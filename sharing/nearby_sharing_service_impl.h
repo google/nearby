@@ -39,7 +39,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
@@ -425,7 +425,7 @@ class NearbySharingServiceImpl
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;
   Context* const context_;
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
   // Used to create analytics events.

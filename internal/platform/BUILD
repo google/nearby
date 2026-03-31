@@ -210,7 +210,6 @@ cc_library(
     srcs = [
         "blocking_queue_stream.cc",
         "clock_impl.cc",
-        "device_info_impl.cc",
         "monitored_runnable.cc",
         "pending_job_registry.cc",
         "pipe.cc",
@@ -231,8 +230,6 @@ cc_library(
         "condition_variable.h",
         "count_down_latch.h",
         "crypto.h",
-        "device_info.h",
-        "device_info_impl.h",
         "direct_executor.h",
         "file.h",
         "future.h",
