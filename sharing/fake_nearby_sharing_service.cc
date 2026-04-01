@@ -18,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
@@ -165,6 +166,14 @@ void FakeNearbySharingService::Cancel(
   status_codes_callback(StatusCodes::kOk);
 }
 
+void FakeNearbySharingService::InitiatePairing(
+    int64_t share_target_id, service::proto::BindingRequest::Type binding_type,
+    absl::AnyInvocable<void(StatusCodes status_codes) &&>
+        status_codes_callback) {
+  initiate_pairing_callbacks_[share_target_id] =
+      std::move(status_codes_callback);
+}
+
 std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }
@@ -279,6 +288,17 @@ void FakeNearbySharingService::FireShareTargetLost(ShareTarget share_target) {
   for (auto& entry : background_send_surface_map_) {
     entry.second.OnShareTargetLost(share_target);
   }
+}
+
+void FakeNearbySharingService::FireInitiatePairingResult(
+    int64_t share_target_id, StatusCodes status) {
+  auto it = initiate_pairing_callbacks_.find(share_target_id);
+  if (it == initiate_pairing_callbacks_.end()) {
+    return;
+  }
+  auto callback = std::move(it->second);
+  initiate_pairing_callbacks_.erase(it);
+  std::move(callback)(status);
 }
 
 }  // namespace sharing

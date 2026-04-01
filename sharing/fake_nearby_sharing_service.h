@@ -121,7 +121,7 @@ class FakeNearbySharingService : public NearbySharingService {
       int64_t share_target_id,
       service::proto::BindingRequest::Type binding_type,
       absl::AnyInvocable<void(StatusCodes status_codes) &&>
-          status_codes_callback) override {}
+          status_codes_callback) override;
 
   std::string Dump() const override;
   bool IsBluetoothPresent() const override { return true; }
@@ -180,6 +180,7 @@ class FakeNearbySharingService : public NearbySharingService {
   void FireShareTargetDiscovered(ShareTarget share_target);
   void FireShareTargetUpdated(ShareTarget share_target);
   void FireShareTargetLost(ShareTarget share_target);
+  void FireInitiatePairingResult(int64_t share_target_id, StatusCodes status);
 
  private:
   ObserverList<Observer> observers_;
@@ -202,6 +203,9 @@ class FakeNearbySharingService : public NearbySharingService {
   FakeNearbyIdentityClient identity_rpc_client_;
   std::unique_ptr<SyncManager> sync_manager_;
   std::unique_ptr<OutgoingTargetsManager> outgoing_targets_manager_;
+  absl::flat_hash_map<int64_t,
+                      absl::AnyInvocable<void(StatusCodes status_codes) &&>>
+      initiate_pairing_callbacks_;
 };
 
 }  // namespace sharing
