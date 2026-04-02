@@ -17,6 +17,9 @@
 #import <Network/Network.h>
 #import <XCTest/XCTest.h>
 
+#include <optional>
+#include <string>
+
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -72,6 +75,38 @@ NS_ASSUME_NONNULL_BEGIN
   NSData *receivedData = [_socket readMaxLength:0 error:&error];
 
   XCTAssertNil(receivedData);
+  XCTAssertNil(error);
+}
+
+- (void)testReadStringWithMaxLength_Success {
+  NSError *error = nil;
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+  dispatch_data_t dispatchData = dispatch_data_create(testData.bytes, testData.length, dispatch_get_main_queue(), ^{});
+  _fakeConnection.dataToReceive = dispatchData;
+
+  std::optional<std::string> receivedString = [_socket readStringWithMaxLength:testData.length error:&error];
+
+  XCTAssertTrue(receivedString.has_value());
+  XCTAssertEqualObjects(@(receivedString.value().c_str()), testString);
+  XCTAssertNil(error);
+}
+
+- (void)testReadStringWithMaxLength_Error {
+  NSError *error = nil;
+  _fakeConnection.simulateReceiveFailure = YES;
+
+  std::optional<std::string> receivedString = [_socket readStringWithMaxLength:10 error:&error];
+
+  XCTAssertFalse(receivedString.has_value());
+  XCTAssertNil(error);  // Fake doesn't produce an NSError
+}
+
+- (void)testReadStringWithMaxLength_Zero {
+  NSError *error = nil;
+  std::optional<std::string> receivedString = [_socket readStringWithMaxLength:0 error:&error];
+
+  XCTAssertFalse(receivedString.has_value());
   XCTAssertNil(error);
 }
 

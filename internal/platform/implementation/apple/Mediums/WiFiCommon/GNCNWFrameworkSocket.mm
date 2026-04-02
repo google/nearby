@@ -17,6 +17,9 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#include <optional>
+#include <string>
+
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
@@ -83,6 +86,52 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     *error = blockError;
   }
   return blockResult;
+}
+
+- (std::optional<std::string>)readStringWithMaxLength:(NSUInteger)length error:(NSError **)error {
+  if (!self.connection) {
+    if (error) {
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorUnknown
+                               userInfo:nil];
+    }
+    return std::nullopt;
+  }
+
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block std::string resultString;
+  __block NSError *blockError = nil;
+  __block BOOL contentReceived = NO;
+
+  [self.connection
+      receiveMessageWithMinLength:(uint32_t)length
+                        maxLength:(uint32_t)length
+                completionHandler:^(dispatch_data_t _Nullable content,
+                                    nw_content_context_t _Nullable context, bool isComplete,
+                                    nw_error_t _Nullable receiveError) {
+                  if (receiveError) {
+                    blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                  }
+                  if (content) {
+                    contentReceived = YES;
+                    // OPTIMIZATION: Copy directly from dispatch_data_t into std::string
+                    resultString.reserve(dispatch_data_get_size(content));
+                    dispatch_data_apply(content, ^bool(dispatch_data_t region, size_t offset,
+                                                       const void *buffer, size_t size) {
+                      resultString.append((const char *)buffer, size);
+                      return true;
+                    });
+                  }
+                  dispatch_semaphore_signal(semaphore);
+                }];
+
+  // Block the current thread until the network callback completes.
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+
+  if (error != nil) {
+    *error = blockError;
+  }
+  return (!contentReceived) ? std::nullopt : std::make_optional(std::move(resultString));
 }
 
 - (BOOL)write:(NSData *)data error:(NSError **)error {

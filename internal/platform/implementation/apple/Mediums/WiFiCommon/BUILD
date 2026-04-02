@@ -32,7 +32,7 @@ objc_library(
         "GNCNWFramework.m",
         "GNCNWFrameworkError.m",
         "GNCNWFrameworkServerSocket.m",
-        "GNCNWFrameworkSocket.m",
+        "GNCNWFrameworkSocket.mm",
         "GNCNWListenerImpl.m",
         "GNCNWParameters.m",
     ],

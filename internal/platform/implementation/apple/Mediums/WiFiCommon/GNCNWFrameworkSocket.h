@@ -15,6 +15,12 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#ifdef __cplusplus
+#include <optional>
+#include <string>
+#endif
+
+
 @protocol GNCNWConnection;
 
 @interface GNCNWFrameworkSocket : NSObject
@@ -43,6 +49,21 @@
  *                   requested length.
  */
 - (nullable NSData *)readMaxLength:(NSUInteger)length error:(NSError **_Nullable)error;
+
+/**
+ * Reads the requested amount of bytes from the connection and converts it to a string.
+ *
+ * Blocks execution until the bytes have been read or an error occurs.
+ *
+ * @param length The number of bytes to read.
+ * @param[out] error Error that will be populated on failure. A read may return non-nil data along
+ *                   with an error. This normally happens if the data read is shorter than the
+ *                   requested length.
+ */
+#ifdef __cplusplus
+- (std::optional<std::string>)readStringWithMaxLength:(NSUInteger)length
+                                                error:(NSError **_Nullable)error;
+#endif
 
 /**
  * Writes the given data to the connection.
