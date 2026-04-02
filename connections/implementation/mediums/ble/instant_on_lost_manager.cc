@@ -206,10 +206,7 @@ bool InstantOnLostManager::StartInstantOnLostAdvertisement() {
 
   StopOnLostAdvertising();
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kDisableInstantOnLostOnBleWithoutExtended) &&
-      !ble_medium_.IsExtendedAdvertisementsAvailable()) {
+  if (!ble_medium_.IsExtendedAdvertisementsAvailable()) {
     LOG(WARNING)
         << __func__
         << ":  Disabling instant on lost on BLE without extended advertising.";
