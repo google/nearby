@@ -92,7 +92,7 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   if (!self.connection) {
     if (error) {
       *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
-                                   code:GNCNWFrameworkErrorUnknown
+                                   code:GNCNWFrameworkErrorNotConnected
                                userInfo:nil];
     }
     return std::nullopt;
@@ -183,6 +183,50 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     *error = blockError;
   }
   return signaled && blockSuccess;
+}
+
+- (BOOL)writeBytes:(const void *)bytes length:(NSUInteger)length error:(NSError **)error {
+  if (!self.connection) {
+    if (error) {
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorNotConnected
+                               userInfo:nil];
+    }
+    return NO;
+  }
+
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+
+  __block NSError *blockError = nil;
+
+  // OPTIMIZATION: Use DISPATCH_DATA_DESTRUCTOR_DEFAULT to perform a
+  // single copy into a GCD-managed buffer. No NSData required.
+  // TODO: edwinwu - Investigate to see if it is worth to make it zero-copy by replacing
+  // DISPATCH_DATA_DESTRUCTOR_DEFAULT with a custom empty destructor:
+  //     dispatch_data_t dispatchData = dispatch_data_create(bytes, length, nil, ^{
+  //         // Zero-copy: ownership remains with the caller.
+  //     });
+  dispatch_data_t dispatchData =
+      dispatch_data_create(bytes, length, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+  [self.connection sendData:dispatchData
+                    context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
+                 isComplete:NO
+          completionHandler:^(nw_error_t _Nullable sendError) {
+            if (sendError) {
+              blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
+            }
+            dispatch_semaphore_signal(semaphore);
+          }];
+
+  // Wait until signaled or the 5-second timeout passes
+  intptr_t waitResult = dispatch_semaphore_wait(
+      semaphore,
+      dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kConnectionWriteTimeout * NSEC_PER_SEC)));
+  if (error != nil) {
+    *error = blockError;
+  }
+  return (waitResult == 0) && (blockError == nil);
 }
 
 - (void)close {

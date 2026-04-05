@@ -76,6 +76,17 @@
 - (BOOL)write:(NSData *)data error:(NSError **_Nullable)error;
 
 /**
+ * Writes raw bytes to the connection.
+ *
+ * @param bytes The buffer to write.
+ * @param length The number of bytes to write.
+ * @param error Error that will be populated on failure.
+ */
+- (BOOL)writeBytes:(const void *)bytes 
+            length:(NSUInteger)length 
+             error:(NSError **_Nullable)error;
+
+/**
  * Gracefully closes the connection to remote endpoint.
  *
  * If a read or write is in progress, they will be unblocked with an error.

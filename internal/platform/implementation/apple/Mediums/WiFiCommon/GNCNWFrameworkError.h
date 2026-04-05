@@ -26,4 +26,5 @@ typedef NS_ERROR_ENUM(GNCNWFrameworkErrorDomain, GNCNWFrameworkError){
     GNCNWFrameworkErrorUnknown,
     GNCNWFrameworkErrorTimedOut,
     GNCNWFrameworkErrorDuplicateDiscovererForServiceType,
+    GNCNWFrameworkErrorNotConnected,
 };
