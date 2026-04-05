@@ -1272,17 +1272,26 @@ enum OperationResultCode : int {
   DCT_ERROR_SERVICE_CANCELLED = 5022,
   DCT_ERROR_UNVERIFIED_INTEGRITY = 5023,
   DCT_ERROR_HTTP_SERVER_CLOSED = 5024,
+  DCT_ERROR_CHECKIN_FAILURE = 5025,
+  DCT_ERROR_REMOTE_ATTESTATION_TIMEOUT = 5026,
+  DCT_ERROR_REMOTE_ATTESTATION_NULL_PACKET = 5027,
+  DCT_ERROR_REMOTE_ATTESTATION_STATUS_NOT_AVAILABLE = 5028,
+  DCT_ERROR_REMOTE_ATTESTATION_HASH_TOO_SHORT = 5029,
+  DCT_ERROR_REMOTE_ATTESTATION_APPLE_INTEGRITY_UNAVAILABLE = 5030,
+  DCT_ERROR_LOCAL_ATTESTATION_PLAY_INTEGRITY_UNAVAILABLE = 5031,
+  DCT_ERROR_LOCAL_ATTESTATION_TIMEOUT = 5032,
+  DCT_ERROR_PARALLEL_ATTESTATION_TIMEOUT = 5033,
 };
 
 extern const uint32_t OperationResultCode_internal_data_[];
 inline constexpr OperationResultCode OperationResultCode_MIN =
     static_cast<OperationResultCode>(0);
 inline constexpr OperationResultCode OperationResultCode_MAX =
-    static_cast<OperationResultCode>(5024);
+    static_cast<OperationResultCode>(5033);
 inline bool OperationResultCode_IsValid(int value) {
   return ::google::protobuf::internal::ValidateEnum(value, OperationResultCode_internal_data_);
 }
-inline constexpr int OperationResultCode_ARRAYSIZE = 5024 + 1;
+inline constexpr int OperationResultCode_ARRAYSIZE = 5033 + 1;
 const ::std::string& OperationResultCode_Name(OperationResultCode value);
 template <typename T>
 const ::std::string& OperationResultCode_Name(T value) {
