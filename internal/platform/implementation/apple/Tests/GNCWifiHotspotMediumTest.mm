@@ -154,6 +154,10 @@ const char kIPAddress[] = "192.168.1.2";
 }
 
 - (void)testOutputStreamWrite {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      false);
+
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
       _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
@@ -165,6 +169,29 @@ const char kIPAddress[] = "192.168.1.2";
 
   XCTAssertTrue(writeResult.Ok());
   XCTAssertEqualObjects(fakeSocket.writtenData, data);
+
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+}
+
+- (void)testOutputStreamWrite_SingleCopyEnabled {
+  // Enable the flag
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      true);
+
+  nearby::CancellationFlag cancellationFlag;
+  std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
+  GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
+  NSData *data = [@"TestDataOpt" dataUsingEncoding:NSUTF8StringEncoding];
+  absl::string_view data_str(reinterpret_cast<const char *>(data.bytes), data.length);
+
+  nearby::Exception writeResult = socket->GetOutputStream().Write(data_str);
+
+  XCTAssertTrue(writeResult.Ok());
+  XCTAssertEqualObjects(fakeSocket.writtenData, data);
+
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
 }
 
 - (void)testSocketClose {

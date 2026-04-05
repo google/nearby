@@ -74,6 +74,17 @@
   return YES;
 }
 
+- (BOOL)writeBytes:(const void *)bytes length:(NSUInteger)length error:(NSError **)error {
+  if (self.writeError) {
+    if (error) {
+      *error = self.writeError;
+    }
+    return NO;
+  }
+  [self.writtenData appendBytes:bytes length:length];
+  return YES;
+}
+
 - (void)close {
   self.isClosed = YES;
 }

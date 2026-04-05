@@ -246,6 +246,39 @@ static const int kTestPort = 1234;
   XCTAssertTrue(serverSocket->Close().Ok());
 }
 
+- (void)testOutputStreamWrite_SingleCopyEnabled {
+  // Enable the flag.
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      true);
+
+  // Create a server socket and accept a client.
+  std::unique_ptr<nearby::api::AwdlServerSocket> serverSocket =
+      _awdlMedium->ListenForService(kTestPort);
+  GNCFakeNWFrameworkServerSocket* fakeServerSocket =
+      (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
+  GNCFakeNWFrameworkSocket* fakeSocket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  fakeServerSocket.socketToReturnOnAccept = fakeSocket;
+  std::unique_ptr<nearby::api::AwdlSocket> clientSocket = serverSocket->Accept();
+  XCTAssertTrue(clientSocket != nullptr);
+
+  // Test output stream.
+  nearby::OutputStream& outputStream = clientSocket->GetOutputStream();
+  absl::string_view writeData("optimized write data");
+  XCTAssertTrue(outputStream.Write(writeData).Ok());
+  XCTAssertEqualObjects(fakeSocket.writtenData,
+                        [@"optimized write data" dataUsingEncoding:NSUTF8StringEncoding]);
+
+  // Clean up.
+  XCTAssertTrue(clientSocket->Close().Ok());
+  XCTAssertTrue(serverSocket->Close().Ok());
+
+  // Reset the flag.
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+}
+
 - (void)testOutputStreamClose {
   // Create a server socket and accept a client.
   std::unique_ptr<nearby::api::AwdlServerSocket> serverSocket =
