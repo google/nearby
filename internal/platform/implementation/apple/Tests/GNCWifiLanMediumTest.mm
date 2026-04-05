@@ -18,6 +18,9 @@
 
 #include <string>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
@@ -118,6 +121,10 @@
 }
 
 - (void)testSocketAndStream {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      false);
+
   // Create a server socket.
   std::unique_ptr<nearby::api::WifiLanServerSocket> serverSocket =
       _wifiLanMedium->ListenForService(1234);
@@ -155,6 +162,38 @@
   // Test closing the server socket.
   XCTAssertTrue(serverSocket->Close().Ok());
   XCTAssertTrue(fakeServerSocket.isClosed);
+  // Reset the flag.
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+}
+
+- (void)testSocketAndStream_SingleCopyEnabled {
+  // Enable the flag
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      true);
+
+  // Create a server socket and accept a client.
+  std::unique_ptr<nearby::api::WifiLanServerSocket> serverSocket =
+      _wifiLanMedium->ListenForService(1234);
+  GNCFakeNWFrameworkServerSocket* fakeServerSocket =
+      (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
+  GNCFakeNWFrameworkSocket* fakeSocket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  fakeServerSocket.socketToReturnOnAccept = fakeSocket;
+
+  std::unique_ptr<nearby::api::WifiLanSocket> clientSocket = serverSocket->Accept();
+  nearby::InputStream& inputStream = clientSocket->GetInputStream();
+
+  // Test optimized single-copy read.
+  fakeSocket.dataToRead = [@"optimized data" dataUsingEncoding:NSUTF8StringEncoding];
+  nearby::ExceptionOr<nearby::ByteArray> readData = inputStream.Read(14);
+
+  XCTAssertTrue(readData.ok());
+  XCTAssertEqual(std::string(readData.result()), "optimized data");
+
+  // Reset the flag.
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
 }
 
 - (void)testServerSocketGetIPAddress {

@@ -32,4 +32,7 @@
 /** Checks whether shared peripheral manager is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL sharedPeripheralManagerEnabled;
 
+/** Checks whether single copy read/write is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL singleCopyEnabled;
+
 @end

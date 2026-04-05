@@ -18,6 +18,9 @@
 
 #include <string>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
@@ -45,6 +48,7 @@ static const int kTestPort = 1234;
 
 - (void)tearDown {
   _awdlMedium.reset();
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
   [super tearDown];
 }
 
@@ -128,6 +132,10 @@ static const int kTestPort = 1234;
 }
 
 - (void)testSocketAndStream {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      false);
+
   // Create a server socket.
   std::unique_ptr<nearby::api::AwdlServerSocket> serverSocket =
       _awdlMedium->ListenForService(kTestPort);
@@ -165,6 +173,49 @@ static const int kTestPort = 1234;
   // Test closing the server socket.
   XCTAssertTrue(serverSocket->Close().Ok());
   XCTAssertTrue(fakeServerSocket.isClosed);
+}
+
+- (void)testSocketAndStream_SingleCopyEnabled {
+  // Enable the flag.
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      true);
+
+  // Create a server socket.
+  std::unique_ptr<nearby::api::AwdlServerSocket> serverSocket =
+      _awdlMedium->ListenForService(kTestPort);
+  XCTAssertTrue(serverSocket != nullptr);
+
+  GNCFakeNWFrameworkServerSocket* fakeServerSocket =
+      (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
+  GNCFakeNWFrameworkSocket* fakeSocket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  fakeServerSocket.socketToReturnOnAccept = fakeSocket;
+
+  // Accept a client socket.
+  std::unique_ptr<nearby::api::AwdlSocket> clientSocket = serverSocket->Accept();
+  XCTAssertTrue(clientSocket != nullptr);
+
+  // Test input stream with optimized single-copy read.
+  nearby::InputStream& inputStream = clientSocket->GetInputStream();
+  fakeSocket.dataToRead = [@"optimized awdl data" dataUsingEncoding:NSUTF8StringEncoding];
+  // "optimized awdl data" is 19 bytes.
+  nearby::ExceptionOr<nearby::ByteArray> readData = inputStream.Read(19);
+
+  XCTAssertTrue(readData.ok());
+  XCTAssertEqual(std::string(readData.result()), "optimized awdl data");
+
+  // Test output stream.
+  nearby::OutputStream& outputStream = clientSocket->GetOutputStream();
+  absl::string_view writeData("write data");
+  XCTAssertTrue(outputStream.Write(writeData).Ok());
+  XCTAssertEqualObjects(fakeSocket.writtenData,
+                        [@"write data" dataUsingEncoding:NSUTF8StringEncoding]);
+
+  // Clean up.
+  XCTAssertTrue(clientSocket->Close().Ok());
+  XCTAssertTrue(serverSocket->Close().Ok());
 }
 
 - (void)testServerSocketGetIPAddress {

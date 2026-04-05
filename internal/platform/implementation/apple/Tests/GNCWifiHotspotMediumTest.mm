@@ -19,8 +19,11 @@
 
 #include <string>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+
 #import "internal/platform/implementation/apple/Mediums/CoreLocation/CLLocationManager/Fake/CLLocationManagerFake.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
@@ -59,8 +62,8 @@ const char kIPAddress[] = "192.168.1.2";
   _medium.locationManager = _fakeLocationManager;
   _hotspotMedium = std::make_unique<nearby::apple::WifiHotspotMedium>(_medium);
   _service_address = {
-    .address = {static_cast<char>(192), static_cast<char>(168), 1, 2},
-    .port = 1234,
+      .address = {static_cast<char>(192), static_cast<char>(168), 1, 2},
+      .port = 1234,
   };
 }
 
@@ -98,6 +101,10 @@ const char kIPAddress[] = "192.168.1.2";
 }
 
 - (void)testInputStreamRead {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      false);
+
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
       _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
@@ -110,6 +117,28 @@ const char kIPAddress[] = "192.168.1.2";
   XCTAssertTrue(readData.ok());
   XCTAssertEqual(readData.result().size(), 4);
   XCTAssertEqual(strncmp(readData.result().data(), "Test", 4), 0);
+
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+}
+
+- (void)testInputStreamRead_SingleCopyEnabled {
+  // Enable the flag
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::kEnableSingleCopy,
+      true);
+
+  nearby::CancellationFlag cancellationFlag;
+  std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
+  GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
+  fakeSocket.dataToRead = [@"HotspotOpt" dataUsingEncoding:NSUTF8StringEncoding];
+
+  nearby::ExceptionOr<nearby::ByteArray> readData = socket->GetInputStream().Read(10);
+
+  XCTAssertTrue(readData.ok());
+  XCTAssertEqual(std::string(readData.result()), "HotspotOpt");
+
+  nearby::NearbyFlags::GetInstance().ResetOverridedValues();
 }
 
 - (void)testInputStreamClose {

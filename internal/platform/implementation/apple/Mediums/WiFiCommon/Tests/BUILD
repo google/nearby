@@ -29,7 +29,7 @@ objc_library(
         "GNCFakeNWConnection.m",
         "GNCFakeNWFramework.m",
         "GNCFakeNWFrameworkServerSocket.m",
-        "GNCFakeNWFrameworkSocket.m",
+        "GNCFakeNWFrameworkSocket.mm",
         "GNCFakeNWListener.m",
     ],
     hdrs = [

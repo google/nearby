@@ -111,6 +111,9 @@ constexpr auto kEnableSharedPeripheralManager =
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
+// Enable/Disable single copy read/write for input/output buffers.
+constexpr auto kEnableSingleCopy =
+    flags::Flag<bool>(kConfigPackage, "45775979", true);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

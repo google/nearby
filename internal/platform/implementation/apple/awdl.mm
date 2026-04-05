@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
@@ -35,12 +36,22 @@ AwdlInputStream::AwdlInputStream(GNCNWFrameworkSocket* socket) : socket_(socket)
 
 ExceptionOr<ByteArray> AwdlInputStream::Read(std::int64_t size) {
   NSError* error = nil;
-  NSData* data = [socket_ readMaxLength:size error:&error];
-  if (data == nil) {
-    GNCLoggerError(@"Error reading socket: %@", error);
-    return {Exception::kIo};
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    auto result = [socket_ readStringWithMaxLength:size error:&error];
+    if (!result.has_value()) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    // OPTIMIZATION: Zero-copy transfer from std::string to ByteArray
+    return ExceptionOr<ByteArray>{ByteArray(std::move(result.value()))};
+  } else {
+    NSData* data = [socket_ readMaxLength:size error:&error];
+    if (data == nil) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
   }
-  return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
 }
 
 Exception AwdlInputStream::Close() {

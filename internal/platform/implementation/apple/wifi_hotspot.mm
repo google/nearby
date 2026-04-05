@@ -23,6 +23,8 @@
 #include <arpa/inet.h>
 #include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag_listener.h"
+
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
@@ -43,12 +45,22 @@ WifiHotspotInputStream::WifiHotspotInputStream(GNCNWFrameworkSocket* socket) : s
 
 ExceptionOr<ByteArray> WifiHotspotInputStream::Read(std::int64_t size) {
   NSError* error = nil;
-  NSData* data = [socket_ readMaxLength:size error:&error];
-  if (data == nil) {
-    GNCLoggerError(@"Error reading socket: %@", error);
-    return {Exception::kIo};
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    auto result = [socket_ readStringWithMaxLength:size error:&error];
+    if (!result.has_value()) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    // OPTIMIZATION: Zero-copy transfer from std::string to ByteArray
+    return ExceptionOr<ByteArray>{ByteArray(std::move(result.value()))};
+  } else {
+    NSData* data = [socket_ readMaxLength:size error:&error];
+    if (data == nil) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
   }
-  return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
 }
 
 Exception WifiHotspotInputStream::Close() {
@@ -150,7 +162,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   }
   // 4 bytes IP address format.
   NSData* host_ip_address = [NSData dataWithBytes:service_address.address.data()
-                                            length:service_address.address.size()];
+                                           length:service_address.address.size()];
   host = [GNCIPv4Address addressFromData:host_ip_address];
   GNCLoggerInfo(@"Connect to Hotspot host server: %@", [host dottedRepresentation]);
 

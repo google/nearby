@@ -44,6 +44,25 @@
   return [NSData data];
 }
 
+- (std::optional<std::string>)readStringWithMaxLength:(NSUInteger)length error:(NSError **)error {
+  if (self.readError) {
+    if (error) *error = self.readError;
+    return std::nullopt;
+  }
+  if (self.dataToRead) {
+    NSData *data = self.dataToRead;
+    self.dataToRead = nil;
+    NSUInteger actualLength = MIN(length, data.length);
+    if (data.length > actualLength) {
+      self.dataToRead =
+          [data subdataWithRange:NSMakeRange(actualLength, data.length - actualLength)];
+    }
+    NSData *returnData = [data subdataWithRange:NSMakeRange(0, actualLength)];
+    return std::string((const char *)returnData.bytes, returnData.length);
+  }
+  return std::string();
+}
+
 - (BOOL)write:(NSData *)data error:(NSError **)error {
   if (self.writeError) {
     if (error) {
