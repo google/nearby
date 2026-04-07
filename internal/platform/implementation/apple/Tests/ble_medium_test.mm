@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
@@ -32,10 +33,11 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEMedium+Testing.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEGATTServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCentralManager.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEMedium.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeSocket.h"
 #include "internal/platform/implementation/apple/ble_utils.h"
 #include "internal/platform/implementation/ble.h"
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
@@ -50,6 +52,9 @@ class BleMediumPeer {
   }
   static void SetSocketPeripheralManager(BleMedium *ble_medium, GNSPeripheralManager *manager) {
     ble_medium->socketPeripheralManager_ = manager;
+  }
+  static GNSPeripheralServiceManager *GetSocketPeripheralServiceManager(BleMedium *ble_medium) {
+    return ble_medium->socketPeripheralServiceManager_;
   }
 };
 
@@ -74,8 +79,8 @@ static const char *const kTestServiceID = "TestServiceID";
   GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
   _fakeGNCBLEMedium = [[GNCFakeBLEMedium alloc] initWithCentralManager:fakeCentralManager
-                                                   peripheralManager:fakePeripheralManager
-                                                               queue:dispatch_get_main_queue()];
+                                                     peripheralManager:fakePeripheralManager
+                                                                 queue:dispatch_get_main_queue()];
   _medium = std::make_unique<nearby::apple::BleMedium>((GNCBLEMedium *)_fakeGNCBLEMedium);
 }
 
@@ -229,8 +234,8 @@ static const char *const kTestServiceID = "TestServiceID";
 #pragma mark - GATT Server Tests
 
 - (void)testStartGattServer_Success {
-  _fakeGNCBLEMedium.fakeGATTServer =
-      [[GNCFakeBLEGATTServer alloc] initWithPeripheralManager:nil queue:nil];
+  _fakeGNCBLEMedium.fakeGATTServer = [[GNCFakeBLEGATTServer alloc] initWithPeripheralManager:nil
+                                                                                       queue:nil];
   auto gatt_server = _medium->StartGattServer({});
 
   XCTAssertNotEqual(gatt_server.get(), nullptr);
@@ -474,7 +479,10 @@ static const char *const kTestServiceID = "TestServiceID";
 
 #pragma mark - Server Socket Tests
 
-- (void)testOpenServerSocket_Success {
+- (void)testOpenServerSocket_Success_LegacyPath {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(NO);
+
   id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
   OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
                                    bleServiceAddedCompletion:[OCMArg any]])
@@ -487,6 +495,85 @@ static const char *const kTestServiceID = "TestServiceID";
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
   XCTAssertNotEqual(server_socket.get(), nullptr);
+
+  GNSPeripheralServiceManager *serviceManager =
+      nearby::apple::BleMediumPeer::GetSocketPeripheralServiceManager(_medium.get());
+  XCTAssertNotNil(serviceManager);
+}
+
+- (void)testOpenServerSocket_Success_OptimizedPath {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+
+  GNSPeripheralServiceManager *serviceManager =
+      nearby::apple::BleMediumPeer::GetSocketPeripheralServiceManager(_medium.get());
+  XCTAssertNotNil(serviceManager);
+}
+
+- (void)testOpenServerSocket_OptimizedPath_AcceptSocketAfterClose {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+  __block BOOL (^capturedHandler)(GNSSocket *) = nil;
+  id mockServiceManagerClass = OCMClassMock([GNSPeripheralServiceManager class]);
+  OCMStub([mockServiceManagerClass alloc]).andReturn(mockServiceManagerClass);
+  OCMStub([mockServiceManagerClass initWithBleServiceUUID:[OCMArg any]
+                                 addPairingCharacteristic:NO
+                                shouldAcceptSocketHandler:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        BOOL (^handler)(GNSSocket *);
+        [invocation getArgument:&handler atIndex:4];
+        capturedHandler = handler;
+      })
+      .andReturn(mockServiceManagerClass);
+
+  auto server_socket_for_handler_capture = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket_for_handler_capture.get(), nullptr);
+  XCTAssertNotNil(capturedHandler);
+
+  // Invoke the shouldAcceptSocketHandler with a fake socket.
+  GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
+  BOOL result = capturedHandler((GNSSocket *)fakeSocket);
+  XCTAssertTrue(result);
+
+  // Close the server_socket. This triggers the close notifier, setting server_socket_ptr_ to null.
+  server_socket_for_handler_capture->Close();
+
+  // Now simulate the connection completing. It should safely ignore the connection because
+  // server_socket_ptr_ is null, preventing use-after-free or deadlocks.
+  [fakeSocket simulateSocketDidConnect];
+
+  // Since we use dispatch_async internally for connection callback, give it a small amount of time
+  // to process so we know it didn't crash.
+  XCTestExpectation *expectation2 = [self expectationWithDescription:@"Wait for async execution"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    [expectation2 fulfill];
+  });
+  [self waitForExpectations:@[ expectation2 ] timeout:1.0];
 }
 
 - (void)testOpenServerSocket_Failure {

@@ -207,6 +207,13 @@ class BleMedium : public api::ble::BleMedium {
                                   NSDictionary<CBUUID *, NSData *> *service_data);
   NSDate *GetLastTimestampToCleanExpiredAdvertisementPackets();
 
+  // Opens a BLE server socket based on service ID with deadlock safety.
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocketWithDeadlockSafety(
+      const std::string &service_id);
+
+  // Opens a BLE server socket based on service ID using the legacy implementation.
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocketLegacy(const std::string &service_id);
+
   // The executor for handling callbacks.
   apple::SingleThreadExecutor callback_executor_;
 
@@ -237,6 +244,11 @@ class BleMedium : public api::ble::BleMedium {
   // callback.
   api::ble::BleMedium::ScanningCallback scanning_cb_;
 
+  // Used for the BleServerSocket.
+  absl::Mutex server_socket_mutex_;
+  BleServerSocket *server_socket_ptr_ ABSL_GUARDED_BY(server_socket_mutex_) = nullptr;
+
+  // Used for the L2CAP server socket.
   absl::Mutex l2cap_server_socket_mutex_;
   BleL2capServerSocket *l2cap_server_socket_ptr_ = nullptr;
 
