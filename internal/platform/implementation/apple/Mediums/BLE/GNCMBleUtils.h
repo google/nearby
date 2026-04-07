@@ -90,9 +90,11 @@ NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData
 
 /**
  * Calls the completion handler with (a) YES if the GNSSocket connected, or (b) NO if it failed to
- * connect for any reason. The completion handler is called on the main queue.
+ * connect for any reason. The completion handler is called on the given queue. If the queue is nil,
+ * the completion handler is called on the main queue.
  */
-void GNCMWaitForConnection(GNSSocket *socket, GNCMBoolHandler completion);
+void GNCMWaitForConnection(GNSSocket *socket, dispatch_queue_t _Nullable queue,
+                           GNCMBoolHandler completion);
 
 #ifdef __cplusplus
 }  // extern "C"

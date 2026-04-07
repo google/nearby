@@ -465,7 +465,7 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocket(
          initWithBleServiceUUID:[CBUUID UUIDWithString:kWeaveServiceUUID]
        addPairingCharacteristic:NO
       shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-        GNCMWaitForConnection(socket, ^(BOOL didConnect) {
+        GNCMWaitForConnection(socket, nil, ^(BOOL didConnect) {
           GNCMBleConnection *connection =
               [GNCMBleConnection connectionWithSocket:socket
                                             // This must be nil as the advertiser even though we
@@ -603,7 +603,7 @@ std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
                                dispatch_semaphore_signal(semaphore);
                                return;
                              }
-                             GNCMWaitForConnection(nssocket, ^(BOOL didConnect) {
+                             GNCMWaitForConnection(nssocket, nil, ^(BOOL didConnect) {
                                if (!didConnect) {
                                  dispatch_semaphore_signal(semaphore);
                                  return;

@@ -131,8 +131,27 @@ static const NSTimeInterval kWaitForConnectionTimeout = 6.0;  // Allow for the 5
   GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
 
   XCTestExpectation *expectation = [self expectationWithDescription:@"Connection success"];
-  GNCMWaitForConnection((GNSSocket *)fakeSocket, ^(BOOL flag) {
+  GNCMWaitForConnection((GNSSocket *)fakeSocket, nil, ^(BOOL flag) {
     XCTAssertTrue(flag);
+    [expectation fulfill];
+  });
+
+  // Simulate the connection callback
+  [fakeSocket simulateSocketDidConnect];
+
+  [self waitForExpectationsWithTimeout:kTimeout handler:nil];
+}
+
+- (void)testWaitForConnection_CustomQueue {
+  GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
+  dispatch_queue_t customQueue = dispatch_queue_create("com.google.nearby.testQueue", DISPATCH_QUEUE_SERIAL);
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"Connection success on custom queue"];
+  GNCMWaitForConnection((GNSSocket *)fakeSocket, customQueue, ^(BOOL flag) {
+    XCTAssertTrue(flag);
+    // Verify that we are on the custom queue
+    const char *label = dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
+    XCTAssertEqual(strcmp(label, "com.google.nearby.testQueue"), 0);
     [expectation fulfill];
   });
 
@@ -147,7 +166,7 @@ static const NSTimeInterval kWaitForConnectionTimeout = 6.0;  // Allow for the 5
 
   XCTestExpectation *expectation =
       [self expectationWithDescription:@"Connection failed on disconnect"];
-  GNCMWaitForConnection((GNSSocket *)fakeSocket, ^(BOOL flag) {
+  GNCMWaitForConnection((GNSSocket *)fakeSocket, nil, ^(BOOL flag) {
     XCTAssertFalse(flag);
     [expectation fulfill];
   });
@@ -164,7 +183,7 @@ static const NSTimeInterval kWaitForConnectionTimeout = 6.0;  // Allow for the 5
 
   XCTestExpectation *expectation =
       [self expectationWithDescription:@"Connection failed on timeout"];
-  GNCMWaitForConnection((GNSSocket *)fakeSocket, ^(BOOL flag) {
+  GNCMWaitForConnection((GNSSocket *)fakeSocket, nil, ^(BOOL flag) {
     XCTAssertFalse(flag);
     [expectation fulfill];
   });

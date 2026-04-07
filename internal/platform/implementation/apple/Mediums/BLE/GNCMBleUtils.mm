@@ -235,18 +235,20 @@ NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData
 
 @end
 
-void GNCMWaitForConnection(GNSSocket *socket, GNCMBoolHandler completion) {
+void GNCMWaitForConnection(GNSSocket *socket, dispatch_queue_t _Nullable queue,
+                           GNCMBoolHandler completion) {
   // This function passes YES to the completion when the socket has successfully connected, and
   // otherwise passes NO to the completion after a timeout of several seconds.  We shouldn't retain
   // the completion after it's been called, so store it in a __block variable and nil it out once
   // the socket has connected.
   __block GNCMBoolHandler completionRef = completion;
+  dispatch_queue_t targetQueue = queue ?: dispatch_get_main_queue();
 
   // The delegate listens for the socket connection callbacks.  It's retained by the block passed to
   // dispatch_after below, so it will live long enough to do its job.
   GNCMBleSocketDelegate *delegate =
       [GNCMBleSocketDelegate delegateWithConnectedHandler:^(BOOL didConnect) {
-        dispatch_async(dispatch_get_main_queue(), ^{
+        dispatch_async(targetQueue, ^{
           if (completionRef) completionRef(didConnect);
           completionRef = nil;
         });
@@ -254,9 +256,10 @@ void GNCMWaitForConnection(GNSSocket *socket, GNCMBoolHandler completion) {
   socket.delegate = delegate;
   dispatch_after(
       dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kBleSocketConnectionTimeout * NSEC_PER_SEC)),
-      dispatch_get_main_queue(), ^{
+      targetQueue, ^{
         (void)delegate;  // make sure it's retained until the timeout
         if (completionRef) completionRef(NO);
+        completionRef = nil;
       });
 }
 
