@@ -89,9 +89,9 @@ class FakeSocket : public MediumSocket {
 
   InputStream& GetInputStream() override { return *reader_1_; }
   OutputStream& GetOutputStream() override {
-    return IsVirtualSocket() ? *virtual_output_stream_
-                             : *writer_2_;
-  }  Exception Close() override {
+    return IsVirtualSocket() ? *virtual_output_stream_ : *writer_2_;
+  }
+  Exception Close() override {
     if (IsVirtualSocket()) {
       LOG(INFO) << "Multiplex: Closing virtual socket: " << this;
       CloseLocal();
@@ -117,8 +117,8 @@ class FakeSocket : public MediumSocket {
     }
 
     auto virtual_socket = std::make_shared<FakeSocket>(medium, outputstream);
-    LOG(WARNING) << "Created the virtual socket for Medium: "
-                 << Medium_Name(virtual_socket->GetMedium());
+    LOG(INFO) << "Created the virtual socket for Medium: "
+              << Medium_Name(virtual_socket->GetMedium());
 
     if (virtual_sockets_ptr_ == nullptr) {
       virtual_sockets_ptr_ = virtual_sockets_ptr;
@@ -181,13 +181,11 @@ TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
           fake_socket_ptr, std::string(SERVICE_ID_2), /*first_frame_len*/ 0);
   ASSERT_EQ(multiplex_socket_incoming_2, multiplex_socket_incoming);
 
+  std::shared_ptr<MediumSocket> virtual_socket_shared =
+      multiplex_socket_incoming->GetVirtualSocket(std::string(SERVICE_ID_1));
+  ASSERT_NE(virtual_socket_shared, nullptr);
   FakeSocket* virtual_socket =
-      (FakeSocket*)multiplex_socket_incoming->GetVirtualSocket(
-          std::string(SERVICE_ID_1));
-  if (virtual_socket == nullptr) {
-    LOG(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
-    return;
-  }
+      static_cast<FakeSocket*>(virtual_socket_shared.get());
 
   SingleThreadExecutor executor;
   FakeSocket* socket = fake_socket_ptr.get();
@@ -254,13 +252,11 @@ TEST(MultiplexSocketTest, CreateIncomingVirtualSocketSuccess) {
           fake_socket_ptr, std::string(SERVICE_ID_1), /*first_frame_len*/ 0);
   ASSERT_NE(multiplex_socket_incoming, nullptr);
 
+  std::shared_ptr<MediumSocket> virtual_socket_shared =
+      multiplex_socket_incoming->GetVirtualSocket(std::string(SERVICE_ID_1));
+  ASSERT_NE(virtual_socket_shared, nullptr);
   FakeSocket* virtual_socket =
-      (FakeSocket*)multiplex_socket_incoming->GetVirtualSocket(
-          std::string(SERVICE_ID_1));
-  if (virtual_socket == nullptr) {
-    LOG(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
-    return;
-  }
+      static_cast<FakeSocket*>(virtual_socket_shared.get());
 
   SingleThreadExecutor executor;
   FakeSocket* socket = fake_socket_ptr.get();
@@ -296,42 +292,57 @@ TEST(MultiplexSocketTest,
       fake_socket_ptr, std::string(SERVICE_ID_2));
   ASSERT_EQ(multiplex_socket_2, multiplex_socket);
   multiplex_socket->Enable();
-  FakeSocket* virtual_socket = (FakeSocket*)multiplex_socket->GetVirtualSocket(
-      std::string(SERVICE_ID_1));
-  if (virtual_socket == nullptr) {
-    LOG(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
-    return;
-  }
+  std::shared_ptr<MediumSocket> virtual_socket_shared =
+      multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_1));
+  ASSERT_NE(virtual_socket_shared, nullptr);
+  FakeSocket* virtual_socket =
+      static_cast<FakeSocket*>(virtual_socket_shared.get());
 
+  // This is a timeout test, the real timeout is 3s which is too long for a
+  // unit test, so we set a short timeout for flakiness test to avoid long wait
+  // time.
+  auto flags = FeatureFlags::GetInstance().GetFlags();
+  auto original_flags = flags;
+  flags.multiplex_socket_connection_response_timeout_millis =
+      absl::Milliseconds(200);
+  FeatureFlags::GetMutableInstanceForTesting().SetFlags(flags);
+
+  CountDownLatch latch(2);
   SingleThreadExecutor establish_socket_executor;
-  establish_socket_executor.Execute([&multiplex_socket]() {
+  establish_socket_executor.Execute([&multiplex_socket, &latch]() {
     LOG(INFO) << "EstablishVirtualSocket";
     MediumSocket* socket =
         multiplex_socket->EstablishVirtualSocket(std::string(SERVICE_ID_2));
     LOG(INFO) << "EstablishVirtualSocket finished";
     EXPECT_EQ(socket, nullptr);
+    latch.CountDown();
   });
 
   SingleThreadExecutor read_executor;
-  read_executor.Execute([&multiplex_socket, &fake_socket_ptr]() {
+  read_executor.Execute([&multiplex_socket, &fake_socket_ptr, &latch]() {
     auto reader = fake_socket_ptr->reader_2_.get();
     LOG(INFO) << "reader_2_ Read start";
     ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
     if (!read_int.ok()) {
       ADD_FAILURE() << "Failed to read. Exception:" << read_int.exception();
+    } else {
+      auto length = read_int.result();
+      LOG(INFO) << " length:" << length;
+      EXPECT_GT(length, 0);
     }
-    auto length = read_int.result();
-    LOG(INFO) << " length:" << length;
-    EXPECT_GT(length, 0);
     EXPECT_EQ(multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2)),
               nullptr);
+    latch.CountDown();
   });
 
-  absl::SleepFor(absl::Milliseconds(300));
+  EXPECT_TRUE(latch.Await(absl::Seconds(1)).result());
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
   multiplex_socket->ShutdownAll();
+
+  // Restore the original flags.
+  FeatureFlags::GetMutableInstanceForTesting().SetFlags(original_flags);
 }
 
 TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {

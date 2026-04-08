@@ -264,7 +264,8 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
   return virtual_socket;
 }
 
-MediumSocket* MultiplexSocket::GetVirtualSocket(const std::string& service_id) {
+std::shared_ptr<MediumSocket> MultiplexSocket::GetVirtualSocket(
+    const std::string& service_id) {
   MutexLock lock(&virtual_socket_mutex_);
   LOG(INFO) << __func__ << " service_id=" << service_id << ", Salt="
             << multiplex_output_stream_.GetServiceIdHashSalt(service_id)
@@ -275,7 +276,7 @@ MediumSocket* MultiplexSocket::GetVirtualSocket(const std::string& service_id) {
     LOG(INFO) << "Not found!";
     return nullptr;
   }
-  return item->second.get();
+  return item->second;
 }
 
 int MultiplexSocket::GetVirtualSocketCount() {
@@ -659,7 +660,8 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   RunOffloadThread(
       "VirtualSocketClosed", [this, service_id, &latch, &shutdown]() {
         LOG(INFO) << "Try to close Virtual socket: " << service_id;
-        MediumSocket* virtual_socket = GetVirtualSocket(service_id);
+        std::shared_ptr<MediumSocket> virtual_socket =
+            GetVirtualSocket(service_id);
         {
           MutexLock lock(&virtual_socket_mutex_);
           LOG(INFO) << "virtual_socket:" << virtual_socket;

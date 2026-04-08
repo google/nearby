@@ -334,7 +334,8 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
                   callback(
                       service_id,
                       *(down_cast<WifiLanSocket*>(
-                          multiplex_socket->GetVirtualSocket(service_id))));
+                          multiplex_socket->GetVirtualSocket(service_id)
+                              .get())));
                   callback_called = true;
                 }
               }
@@ -595,9 +596,9 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
     MultiplexSocket* multiplex_socket =
         MultiplexSocket::CreateOutgoingSocket(physical_socket_ptr, service_id);
 
-    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
+    auto virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
     // Should not happen.
-    auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket);
+    auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket.get());
     if (wlan_socket == nullptr) {
       LOG(INFO) << "Failed to cast to WifiLanSocket for " << service_id
                 << " with ip_address: "

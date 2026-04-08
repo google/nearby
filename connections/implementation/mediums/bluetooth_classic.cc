@@ -433,7 +433,8 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
             if (callback) {
               callback(service_id,
                        *(down_cast<BluetoothSocket*>(
-                           multiplex_socket->GetVirtualSocket(service_id))));
+                           multiplex_socket->GetVirtualSocket(service_id)
+                               .get())));
               callback_called = true;
             }
           }
@@ -613,9 +614,9 @@ ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
     MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
         std::move(physical_socket_ptr), service_id);
 
-    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
+    auto virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
     // Should not happen.
-    auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
+    auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket.get());
     if (bluetooth_socket == nullptr) {
       LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
                 << " with " << bluetooth_device.GetName();
