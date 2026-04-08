@@ -44,8 +44,6 @@ cc_test(
     srcs = ["ed25519_unittest.cc"],
     copts = [
         "-DUNIT_TEST",
-        "-Wno-inconsistent-missing-override",
-        "-Wno-non-virtual-dtor",
         "-Ithird_party",
     ],
     deps = [
