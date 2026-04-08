@@ -83,6 +83,9 @@ constexpr auto kUpdateTrack =
 // Timeout between displays of the conflict banner.
 constexpr auto kConflictBannerTimeout =
     flags::Flag<int64_t>(kConfigPackage, "45668886", 604800);
+// When true, enables the backup feature.
+constexpr auto kEnableBackup =
+    flags::Flag<bool>(kConfigPackage, "45776229", false);
 // Enable a persistent BETA label.
 constexpr auto kEnableBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
@@ -115,6 +118,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45762616, kEnableFileSync},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45683539, kUseAlternateServiceUuidForDiscovery},
+      {45776229, kEnableBackup},
       {45662570, kEnableBetaLabel},
       {45661130, kEnableConflictBanner},
       {45720206, kEnableFlutterHooks},
