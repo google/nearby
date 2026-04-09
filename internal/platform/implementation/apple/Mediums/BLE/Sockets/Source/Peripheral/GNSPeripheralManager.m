@@ -371,7 +371,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 }
 
 - (void)updateBTCrashLoopHeuristic {
-  NSAssert(_cbPeripheralManager.state == CBCentralManagerStateResetting, @"Unexpected CB state %@",
+  NSAssert(_cbPeripheralManager.state == CBManagerStateResetting, @"Unexpected CB state %@",
            CBManagerStateString(_cbPeripheralManager.state));
   NSDate *now = [NSDate date];
   if ([now timeIntervalSinceDate:_btCrashLastResettingDate] >

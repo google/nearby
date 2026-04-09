@@ -99,8 +99,6 @@ cc_test(
     ],
     copts = [
         "-DUNIT_TEST",
-        "-Wno-inconsistent-missing-override",
-        "-Wno-non-virtual-dtor",
         "-Ithird_party",
     ],
     deps = [

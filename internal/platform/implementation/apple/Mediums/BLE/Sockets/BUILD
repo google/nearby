@@ -30,9 +30,6 @@ objc_library(
     ]) + [
         "Source/GNSCentral.h",
     ],
-    copts = [
-        "-Wno-enum-compare",  # TODO(b/418286948): Remove this when the error is fixed.
-    ],
     deps = [
         ":Shared",
         "//internal/platform/implementation/apple/Log:GNCLogger",
@@ -50,9 +47,6 @@ objc_library(
         "Source/Peripheral/*.h",
     ]) + [
         "Source/GNSPeripheral.h",
-    ],
-    copts = [
-        "-Wno-enum-compare",  # TODO(b/418286948): Remove this when the error is fixed.
     ],
     deps = [
         ":Shared",
