@@ -247,20 +247,11 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
           BlePeripheral lost_peripheral = it.second.peripheral;
           lost_peripheral.SetId(ByteArray(gatt_advertisement));
           if (gatt_advertisement.IsValid()) {
-            if (NearbyFlags::GetInstance().GetBoolFlag(
-                    config_package_nearby::nearby_connections_feature::
-                        kEnableScanningForInstantOnLost)) {
-              AddInstantLostAdvertisement(it.second.advertisement_header);
-              discovery_cb_it->second.discovered_peripheral_callback
-                  .instant_lost_cb(lost_peripheral, it.second.service_id,
-                                   gatt_advertisement.GetData(),
-                                   gatt_advertisement.IsFastAdvertisement());
-            } else {
-              discovery_cb_it->second.discovered_peripheral_callback
-                  .peripheral_lost_cb(lost_peripheral, it.second.service_id,
-                                      gatt_advertisement.GetData(),
-                                      gatt_advertisement.IsFastAdvertisement());
-            }
+            AddInstantLostAdvertisement(it.second.advertisement_header);
+            discovery_cb_it->second.discovered_peripheral_callback
+                .instant_lost_cb(lost_peripheral, it.second.service_id,
+                                 gatt_advertisement.GetData(),
+                                 gatt_advertisement.IsFastAdvertisement());
             LOG(INFO) << __func__ << ": OnLost triggered for service_id "
                       << it.second.service_id;
           }
