@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -160,6 +161,10 @@ class NearbyShareSettings
   proto::DeviceVisibility GetLastVisibility() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::string GetCustomSavePath() const;
+
+  nearby::sharing::sync::SyncBindingPrefs GetSyncBindingPrefs() const;
+  void SetSyncBindingPrefs(
+      const nearby::sharing::sync::SyncBindingPrefs& prefs);
 
   // Returns true if the feature is disabled by policy.
   bool IsDisabledByPolicy() const;

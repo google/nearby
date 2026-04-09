@@ -48,6 +48,7 @@ using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::FastInitiationNotificationState;
+using ::nearby::sharing::sync::SyncBindingPrefs;
 
 constexpr absl::string_view kPreferencesObserverName =
     "nearby-sharing-settings";
@@ -184,6 +185,16 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
 std::string NearbyShareSettings::GetCustomSavePath() const {
   return preference_manager_.GetString(
       PrefNames::kCustomSavePath, device_info_.GetDownloadPath().ToString());
+}
+
+SyncBindingPrefs NearbyShareSettings::GetSyncBindingPrefs() const {
+  return preference_manager_.GetSyncBindingValue().value_or(
+      SyncBindingPrefs());
+}
+
+void NearbyShareSettings::SetSyncBindingPrefs(
+    const SyncBindingPrefs& prefs) {
+  preference_manager_.SetSyncBindingValue(prefs);
 }
 
 bool NearbyShareSettings::IsDisabledByPolicy() const { return false; }

@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
@@ -43,6 +45,7 @@ namespace {
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::FastInitiationNotificationState;
+using ::protobuf_matchers::EqualsProto;
 
 constexpr char kDefaultDeviceName[] = "Josh's Chromebook";
 
@@ -384,6 +387,35 @@ TEST_F(NearbyShareSettingsTest, SetVisibilityWithExpirationTooLong) {
   absl::Duration time_diff = fallback_visibility.fallback_time -
                              expected_fallback_time;
   EXPECT_LT(absl::AbsDuration(time_diff), absl::Seconds(1));
+}
+
+TEST_F(NearbyShareSettingsTest, GetSyncBindingPrefs_NoBindings) {
+  EXPECT_THAT(settings()->GetSyncBindingPrefs(),
+            EqualsProto(sync::SyncBindingPrefs::default_instance()));
+}
+
+TEST_F(NearbyShareSettingsTest, GetSyncBindingPerfs_Success) {
+  sync::SyncBindingPrefs sync_binding_prefs;
+  sync_binding_prefs.add_sync_bindings()->set_binding_id("binding_id");
+  sync_binding_prefs.add_sync_bindings()->set_source_name("source_name");
+  sync_binding_prefs.add_sync_bindings()->set_destination_directory(
+      "destination_name");
+  preference_manager_.SetSyncBindingValue(sync_binding_prefs);
+  EXPECT_THAT(settings()->GetSyncBindingPrefs(),
+              EqualsProto(sync_binding_prefs));
+}
+
+TEST_F(NearbyShareSettingsTest, SetSyncBindingPerfs_Success) {
+  sync::SyncBindingPrefs sync_binding_prefs;
+  sync_binding_prefs.add_sync_bindings()->set_binding_id("binding_id");
+  sync_binding_prefs.add_sync_bindings()->set_source_name("source_name");
+  sync_binding_prefs.add_sync_bindings()->set_destination_directory(
+      "destination_name");
+  settings()->SetSyncBindingPrefs(sync_binding_prefs);
+  auto sync_binding_value = preference_manager_.GetSyncBindingValue();
+  ASSERT_TRUE(sync_binding_value.has_value());
+  EXPECT_THAT(sync_binding_value.value(),
+              EqualsProto(sync_binding_prefs));
 }
 
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
