@@ -219,6 +219,7 @@ message IntroductionFrame {
     UNKNOWN = 0;
     NEARBY_SHARE = 1;
     REMOTE_COPY = 2;
+    TAP_TO_SHARE = 9;
   }
 
   repeated FileMetadata file_metadata = 1;
