@@ -21,6 +21,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,6 +51,10 @@ class BleMedium : public api::ble::BleMedium {
   friend class BleMediumPeer;
 
  public:
+  // Define factory types for managers.
+  using PeripheralManagerFactory = std::function<GNSPeripheralManager *()>;
+  using CentralManagerFactory = std::function<GNSCentralManager *(CBUUID *)>;
+
   BleMedium();
   // For testing only.
   explicit BleMedium(GNCBLEMedium *medium);
@@ -216,6 +221,10 @@ class BleMedium : public api::ble::BleMedium {
 
   // The executor for handling callbacks.
   apple::SingleThreadExecutor callback_executor_;
+
+  // Factories for lazy initialization
+  PeripheralManagerFactory peripheral_manager_factory_ = nullptr;
+  CentralManagerFactory central_manager_factory_ = nullptr;
 
   GNCBLEMedium *medium_;
 

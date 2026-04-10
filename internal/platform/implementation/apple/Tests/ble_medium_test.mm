@@ -47,11 +47,13 @@ namespace apple {
 
 class BleMediumPeer {
  public:
-  static void SetSocketCentralManager(BleMedium *ble_medium, GNSCentralManager *manager) {
-    ble_medium->socketCentralManager_ = manager;
+  static void SetPeripheralManagerFactory(BleMedium *ble_medium,
+                                          BleMedium::PeripheralManagerFactory factory) {
+    ble_medium->peripheral_manager_factory_ = std::move(factory);
   }
-  static void SetSocketPeripheralManager(BleMedium *ble_medium, GNSPeripheralManager *manager) {
-    ble_medium->socketPeripheralManager_ = manager;
+  static void SetCentralManagerFactory(BleMedium *ble_medium,
+                                       BleMedium::CentralManagerFactory factory) {
+    ble_medium->central_manager_factory_ = std::move(factory);
   }
   static GNSPeripheralServiceManager *GetSocketPeripheralServiceManager(BleMedium *ble_medium) {
     return ble_medium->socketPeripheralServiceManager_;
@@ -86,6 +88,28 @@ static const char *const kTestServiceID = "TestServiceID";
 
 - (void)tearDown {
   [super tearDown];
+}
+
+- (void)testOpenServerSocket_UsesFactoryForInitialization {
+  __block BOOL factoryWasCalled = NO;
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    factoryWasCalled = YES;
+    return mockPeripheralManager;
+  });
+
+  // This call should trigger the factory inside BleMedium.
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+
+  XCTAssertTrue(factoryWasCalled, @"BleMedium should have requested the manager from the factory.");
+  XCTAssertNotEqual(server_socket.get(), nullptr);
 }
 
 #pragma mark - Advertising Tests
@@ -431,7 +455,9 @@ static const char *const kTestServiceID = "TestServiceID";
   id mockCentralManager = OCMClassMock([GNSCentralManager class]);
   OCMStub([mockCentralManager retrieveCentralPeerWithIdentifier:fakePeripheral.identifier])
       .andReturn(nil);
-  nearby::apple::BleMediumPeer::SetSocketCentralManager(_medium.get(), mockCentralManager);
+  nearby::apple::BleMediumPeer::SetCentralManagerFactory(_medium.get(), ^(CBUUID *uuid) {
+    return mockCentralManager;
+  });
 
   auto socket = _medium->Connect(kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
                                  fakePeripheral.identifier.hash, nullptr);
@@ -469,7 +495,9 @@ static const char *const kTestServiceID = "TestServiceID";
   id mockCentralManager = OCMClassMock([GNSCentralManager class]);
   OCMStub([mockCentralManager retrieveCentralPeerWithIdentifier:fakePeripheral.identifier])
       .andReturn(mockCentralPeerManager);
-  nearby::apple::BleMediumPeer::SetSocketCentralManager(_medium.get(), mockCentralManager);
+  nearby::apple::BleMediumPeer::SetCentralManagerFactory(_medium.get(), ^(CBUUID *uuid) {
+    return mockCentralManager;
+  });
 
   auto socket = _medium->Connect(kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
                                  fakePeripheral.identifier.hash, nullptr);
@@ -490,7 +518,9 @@ static const char *const kTestServiceID = "TestServiceID";
                void (^completion)(NSError *error)) {
         completion(nil);
       });
-  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
 
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
@@ -512,7 +542,9 @@ static const char *const kTestServiceID = "TestServiceID";
                void (^completion)(NSError *error)) {
         completion(nil);
       });
-  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
 
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
@@ -534,7 +566,9 @@ static const char *const kTestServiceID = "TestServiceID";
                void (^completion)(NSError *error)) {
         completion(nil);
       });
-  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
 
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
   XCTAssertNotEqual(server_socket.get(), nullptr);
@@ -570,9 +604,10 @@ static const char *const kTestServiceID = "TestServiceID";
   // Since we use dispatch_async internally for connection callback, give it a small amount of time
   // to process so we know it didn't crash.
   XCTestExpectation *expectation2 = [self expectationWithDescription:@"Wait for async execution"];
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-    [expectation2 fulfill];
-  });
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [expectation2 fulfill];
+                 });
   [self waitForExpectations:@[ expectation2 ] timeout:1.0];
 }
 
@@ -584,7 +619,9 @@ static const char *const kTestServiceID = "TestServiceID";
                void (^completion)(NSError *error)) {
         completion([NSError errorWithDomain:@"test" code:0 userInfo:nil]);
       });
-  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
 
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
@@ -599,7 +636,9 @@ static const char *const kTestServiceID = "TestServiceID";
                void (^completion)(NSError *error)){
           // Do not call completion to simulate timeout.
       });
-  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
 
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 

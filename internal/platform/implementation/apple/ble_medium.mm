@@ -193,7 +193,11 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  if (central_manager_factory_) {
+    socketCentralManager_ = central_manager_factory_(serviceUUID);
+  } else {
+    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  }
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -247,7 +251,11 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel t
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  if (central_manager_factory_) {
+    socketCentralManager_ = central_manager_factory_(serviceUUID);
+  } else {
+    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  }
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -294,7 +302,11 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
+  if (central_manager_factory_) {
+    socketCentralManager_ = central_manager_factory_(serviceUUIDs[0]);
+  } else {
+    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
+  }
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -460,12 +472,12 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketWithDeadlo
   auto server_socket = std::make_unique<BleServerSocket>();
 
   if (socketPeripheralManager_ == nil) {
-    socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
-                                                                  restoreIdentifier:nil];
-  }
-  if (socketPeripheralManager_ == nil) {
-    GNCLoggerError(@"Failed to create peripheral manager.");
-    return nullptr;
+    if (peripheral_manager_factory_) {
+      socketPeripheralManager_ = peripheral_manager_factory_();
+    } else {
+      socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
+                                                                    restoreIdentifier:nil];
+    }
   }
 
   // Fix for b/494335036 (Registry + Background Queue)
@@ -543,12 +555,12 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketLegacy(
   auto server_socket = std::make_unique<BleServerSocket>();
 
   if (socketPeripheralManager_ == nil) {
-    socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
-                                                                  restoreIdentifier:nil];
-  }
-  if (socketPeripheralManager_ == nil) {
-    GNCLoggerError(@"Failed to create peripheral manager.");
-    return nullptr;
+    if (peripheral_manager_factory_) {
+      socketPeripheralManager_ = peripheral_manager_factory_();
+    } else {
+      socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
+                                                                    restoreIdentifier:nil];
+    }
   }
 
   // Raw pointer for closure capture in the legacy path (risks use-after-free).
