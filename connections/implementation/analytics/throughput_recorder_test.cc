@@ -16,12 +16,13 @@
 
 #include <stdint.h>
 
-#include <ostream>
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/logging.h"
 #include "proto/connections_enums.pb.h"
 
@@ -226,6 +227,33 @@ TEST_F(ThroughputRecorderTest, OnTPRecorderNotStarted) {
   auto throughput =
       TPRecorder->GetThroughput(location::nearby::proto::connections::BLE, 0);
   EXPECT_FALSE(throughput.dump());
+}
+
+TEST_F(ThroughputRecorderTest, SharedPtrExtendsLifetimeAfterStop) {
+  int64_t payload_id = 12345;
+
+  // Get the shared_ptr from the container
+  std::shared_ptr<ThroughputRecorder> recorder =
+      ThroughputRecorderContainer::GetInstance().GetTPRecorder(
+          payload_id, PayloadDirection::OUTGOING_PAYLOAD);
+
+  // Start the recorder so Stop() will return true later
+  recorder->Start(PayloadType::kFile, PayloadDirection::OUTGOING_PAYLOAD);
+
+  EXPECT_NE(recorder, nullptr);
+  EXPECT_EQ(recorder.use_count(), 2);  // 1 in container, 1 held locally
+
+  // Simulate the payload being destroyed, which calls StopTPRecorder
+  ThroughputRecorderContainer::GetInstance().StopTPRecorder(
+      payload_id, PayloadDirection::OUTGOING_PAYLOAD);
+
+  // Verify the container no longer holds it, but our local shared_ptr keeps
+  // it alive
+  EXPECT_EQ(recorder.use_count(), 1);
+
+  // Verify we can still safely call methods on it without a Use-After-Free
+  recorder->MarkAsSuccess();
+  EXPECT_TRUE(recorder->Stop());
 }
 
 }  // namespace

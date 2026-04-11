@@ -16,6 +16,7 @@
 #define NEARBY_CONNECTIONS_IMPLEMENTATION_ANALYTICS_THROUGHPUT_RECORDER_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -117,8 +118,18 @@ class ThroughputRecorderContainer {
   static ThroughputRecorderContainer& GetInstance();
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  ThroughputRecorder* GetTPRecorder(int64_t payload_id,
-                                    PayloadDirection payload_direction)
+  // Returns a shared pointer to the ThroughputRecorder for the given payload.
+  //
+  // We return a std::shared_ptr instead of a raw pointer to prevent a
+  // Use-After-Free race condition (b/500710468). Background threads (e.g.,
+  // payload transfer loops processing incoming/outgoing frames) might still be
+  // active and attempting to record metrics concurrently with the payload's
+  // destruction. Because payload destruction calls StopTPRecorder() to remove
+  // the recorder from this container, returning a shared_ptr ensures the
+  // recorder object remains safely alive in memory until the active background
+  // thread has finished using it.
+  std::shared_ptr<ThroughputRecorder> GetTPRecorder(
+      int64_t payload_id, PayloadDirection payload_direction)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void StopTPRecorder(int64_t payload_id, PayloadDirection payload_direction)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -134,7 +145,8 @@ class ThroughputRecorderContainer {
 
   Mutex mutex_;
   // std::pair<int64_t, PayloadDirection> for <payload id, payload direction>
-  absl::flat_hash_map<std::pair<int64_t, PayloadDirection>, ThroughputRecorder*>
+  absl::flat_hash_map<std::pair<int64_t, PayloadDirection>,
+                      std::shared_ptr<ThroughputRecorder>>
       throughput_recorders_ ABSL_GUARDED_BY(mutex_);
 };
 
