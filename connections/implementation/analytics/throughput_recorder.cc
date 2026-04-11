@@ -16,16 +16,15 @@
 
 #include <stdint.h>
 
-#include <new>
-#include <ostream>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -278,18 +277,17 @@ void ThroughputRecorderContainer::Shutdown() {
   for (auto& throughput_recorder : throughput_recorders_) {
     VLOG(1) << "Stop instance: " << throughput_recorder.second;
     throughput_recorder.second->Stop();
-    delete throughput_recorder.second;
   }
   throughput_recorders_.clear();
 }
 
-ThroughputRecorder* ThroughputRecorderContainer::GetTPRecorder(
+std::shared_ptr<ThroughputRecorder> ThroughputRecorderContainer::GetTPRecorder(
     const int64_t payload_id, PayloadDirection payload_direction) {
   MutexLock lock(&mutex_);
   auto it = throughput_recorders_.find(
       std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
   if (it == throughput_recorders_.end()) {
-    auto instance = new ThroughputRecorder(payload_id);
+    auto instance = std::make_shared<ThroughputRecorder>(payload_id);
     std::string direction =
         (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
                                                                   : "; Send";
@@ -316,7 +314,6 @@ void ThroughputRecorderContainer::StopTPRecorder(
     VLOG(1) << "Found and stop/delete ThroughputRecorder instance : "
             << &(it->second) << " for payload_id:" << payload_id << direction;
     it->second->Stop();
-    delete it->second;
     throughput_recorders_.erase(
         std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
     return;

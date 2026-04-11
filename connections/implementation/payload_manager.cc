@@ -364,7 +364,6 @@ void PayloadManager::DisconnectFromEndpointManager() {
 
 PayloadManager::~PayloadManager() {
   VLOG(1) << "PayloadManager: going down; self=" << this;
-  ThroughputRecorderContainer::GetInstance().Shutdown();
   DisconnectFromEndpointManager();
   CancelAllPayloads();
   VLOG(1) << "PayloadManager: turn down payload executors; self=" << this;
@@ -388,6 +387,9 @@ PayloadManager::~PayloadManager() {
   VLOG(1) << "PayloadManager: turn down notification executor; self=" << this;
   // Stop all the ongoing Runnables (as gracefully as possible).
   payload_status_update_executor_.Shutdown();
+
+  // Shutdown the throughput recorders ONLY AFTER all executors have stopped.
+  ThroughputRecorderContainer::GetInstance().Shutdown();
 
   VLOG(1) << "PayloadManager: down; self=" << this;
 }
@@ -795,9 +797,8 @@ PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                       const std::string& endpoint_id,
                                       const std::string& save_path) {
   ErrorOr<std::unique_ptr<InternalPayload>> result =
-      CreateIncomingInternalPayload(frame, save_path.empty()
-                                               ? custom_save_path_
-                                               : save_path);
+      CreateIncomingInternalPayload(
+          frame, save_path.empty() ? custom_save_path_ : save_path);
   if (result.has_error()) {
     return {result.error()};
   }
