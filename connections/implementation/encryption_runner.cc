@@ -14,7 +14,6 @@
 
 #include "connections/implementation/encryption_runner.h"
 
-#include <cinttypes>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -22,7 +21,6 @@
 
 #include "securegcm/ukey2_handshake.h"
 #include "absl/strings/ascii.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -139,8 +137,7 @@ class ServerRunnable final {
       return;
     }
 
-    Exception write_exception =
-        channel_->Write(ByteArray(std::move(*server_init)));
+    Exception write_exception = channel_->Write(*server_init);
     if (!write_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -198,7 +195,7 @@ class ServerRunnable final {
   void HandleAlertException(
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
     Exception write_exception =
-        channel_->Write(ByteArray(*parse_result.alert_to_send));
+        channel_->Write(*parse_result.alert_to_send);
     if (!write_exception.Ok()) {
       LOG(WARNING) << "In StartServer(), client " << client_->GetClientId()
                    << " failed to pass the alert error message to endpoint(id="
@@ -251,7 +248,7 @@ class ClientRunnable final {
       return;
     }
 
-    Exception write_init_exception = channel_->Write(ByteArray(*client_init));
+    Exception write_init_exception = channel_->Write(*client_init);
     if (!write_init_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -298,7 +295,7 @@ class ClientRunnable final {
     }
 
     Exception write_finish_exception =
-        channel_->Write(ByteArray(*client_finish));
+        channel_->Write(*client_finish);
     if (!write_finish_exception.Ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -330,8 +327,7 @@ class ClientRunnable final {
 
   void HandleAlertException(
       const securegcm::UKey2Handshake::ParseResult& parse_result) const {
-    Exception write_exception =
-        channel_->Write(ByteArray(*parse_result.alert_to_send));
+    Exception write_exception = channel_->Write(*parse_result.alert_to_send);
     if (!write_exception.Ok()) {
       LOG(WARNING) << "In StartClient(), client " << client_->GetClientId()
                    << " failed to pass the alert error message to endpoint(id="

@@ -40,7 +40,7 @@ class MockEndpointChannel : public EndpointChannel {
  public:
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData&), (override));
-  MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
+  MOCK_METHOD(Exception, Write, (absl::string_view data), (override));
   MOCK_METHOD(Exception, Write, (absl::string_view data, PacketMetaData&),
               (override));
   MOCK_METHOD(void, Close, (), (override));
@@ -87,8 +87,8 @@ class MockEndpointChannel : public EndpointChannel {
 TEST(ConnectionsAuthenticationTransportTest, TestWriteMessage) {
   MockEndpointChannel channel;
   ConnectionsAuthenticationTransport transport(channel);
-  EXPECT_CALL(channel, Write(_)).WillOnce([&channel](const ByteArray& data) {
-    channel.messages_.push_back(data.string_data());
+  EXPECT_CALL(channel, Write(_)).WillOnce([&channel](absl::string_view data) {
+    channel.messages_.push_back(std::string(data));
     return Exception{
         .value = Exception::Value::kSuccess,
     };

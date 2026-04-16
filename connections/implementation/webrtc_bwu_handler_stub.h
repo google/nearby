@@ -68,7 +68,7 @@ class WebrtcBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(

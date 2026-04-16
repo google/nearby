@@ -207,7 +207,7 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
     if (decrypted.ok()) {
       VLOG(1) << "Message decrypted after "
               << SystemClock::ElapsedRealtime() - start_time;
-      return parser::FromBytes(decrypted.result());
+      return parser::FromBytes(decrypted.result().AsStringView());
     }
     if (decrypted.exception() == Exception::kExecution) {
       return decrypted.exception();
@@ -245,7 +245,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
       }
       return ExceptionOr<bool>(bytes.exception());
     }
-    ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes.result());
+    ExceptionOr<OfflineFrame> wrapped_frame =
+        parser::FromBytes(bytes.result().AsStringView());
     if (!wrapped_frame.ok() && try_decrypting) {
       // Workaround for a race condition where the remote party has sent an
       // encrypted message but our end was still configured as unencrypted when
@@ -668,7 +669,7 @@ std::vector<std::string> EndpointManager::SendPayloadChunk(
     const PayloadTransferFrame::PayloadChunk& payload_chunk,
     const std::vector<std::string>& endpoint_ids,
     PacketMetaData& packet_meta_data) {
-  ByteArray bytes =
+  std::string bytes =
       parser::ForDataPayloadTransfer(payload_header, payload_chunk);
 
   return SendTransferFrameBytes(
@@ -743,7 +744,7 @@ std::vector<std::string> EndpointManager::SendControlMessage(
     const PayloadTransferFrame::PayloadHeader& header,
     const PayloadTransferFrame::ControlMessage& control,
     const std::vector<std::string>& endpoint_ids) {
-  ByteArray bytes = parser::ForControlPayloadTransfer(header, control);
+  std::string bytes = parser::ForControlPayloadTransfer(header, control);
   PacketMetaData packet_meta_data;
 
   return SendTransferFrameBytes(
@@ -920,7 +921,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 
 std::vector<std::string> EndpointManager::SendPayloadAck(
     std::int64_t payload_id, const std::vector<std::string>& endpoint_ids) {
-  ByteArray bytes = parser::ForPayloadAckPayloadTransfer(payload_id);
+  std::string bytes = parser::ForPayloadAckPayloadTransfer(payload_id);
   PacketMetaData packet_meta_data;
 
   return SendTransferFrameBytes(
@@ -932,7 +933,7 @@ std::vector<std::string> EndpointManager::SendPayloadAck(
 }
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
-    const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
+    const std::vector<std::string>& endpoint_ids, const std::string& bytes,
     std::int64_t payload_id, std::int64_t offset,
     const std::string& packet_type, PacketMetaData& packet_meta_data) {
   std::vector<std::string> failed_endpoint_ids;
@@ -954,7 +955,7 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     }
 
     Exception write_exception =
-        channel->Write(bytes.AsStringView(), packet_meta_data);
+        channel->Write(bytes, packet_meta_data);
     if (!write_exception.Ok()) {
       failed_endpoint_ids.push_back(endpoint_id);
       LOG(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;

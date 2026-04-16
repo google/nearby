@@ -47,7 +47,6 @@
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
 #include "connections/medium_selector.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
@@ -341,12 +340,12 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     }
 
     std::string service_id = channel->GetServiceId();
-    ByteArray bytes = handler->InitializeUpgradedMediumForEndpoint(
+    std::string bytes = handler->InitializeUpgradedMediumForEndpoint(
         client, service_id, endpoint_id);
 
     // Because we grab the endpointChannel first thing, it is possible the
     // endpointChannel is stale by the time we attempt to write over it.
-    if (bytes.Empty()) {
+    if (bytes.empty()) {
       LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
                  << endpoint_id << " to medium "
                  << location::nearby::proto::connections::Medium_Name(
@@ -1138,7 +1137,7 @@ bool BwuManager::ReadClientIntroductionFrame(
   auto data = channel->Read();
   timeout_alarm.Cancel();
   if (!data.ok()) return false;
-  auto transfer(parser::FromBytes(data.result()));
+  auto transfer(parser::FromBytes(data.result().AsStringView()));
   if (!transfer.ok()) {
     LOG(ERROR) << "In ReadClientIntroductionFrame, attempted to read a "
                   "ClientIntroductionFrame from EndpointChannel "
@@ -1189,7 +1188,7 @@ bool BwuManager::ReadClientIntroductionAckFrame(EndpointChannel* channel) {
   auto data = channel->Read();
   timeout_alarm.Cancel();
   if (!data.ok()) return false;
-  auto transfer(parser::FromBytes(data.result()));
+  auto transfer(parser::FromBytes(data.result().AsStringView()));
   if (!transfer.ok()) return false;
   OfflineFrame frame = transfer.result();
   if (!frame.has_v1() || !frame.v1().has_bandwidth_upgrade_negotiation())

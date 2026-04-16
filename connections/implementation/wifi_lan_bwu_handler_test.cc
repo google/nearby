@@ -29,7 +29,6 @@
 #include "connections/strategy.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
@@ -271,12 +270,12 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   address_candidate->set_port(8888);
   upgrade_path_info->set_supports_client_introduction_ack(true);
 
-  ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));
 
-  EXPECT_FALSE(result.Empty());
+  EXPECT_FALSE(result.empty());
   OfflineFrame result_frame;
-  EXPECT_TRUE(result_frame.ParseFromString(std::string(result)));
+  EXPECT_TRUE(result_frame.ParseFromString(result));
   EXPECT_THAT(result_frame, EqualsProto(expected_frame));
 
   constexpr absl::string_view kClientSessionLog = R"pb(

@@ -27,7 +27,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
@@ -116,7 +115,7 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
   return {std::move(channel)};
 }
 
-ByteArray BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   MacAddress mac_address = bluetooth_medium_.GetAddress();

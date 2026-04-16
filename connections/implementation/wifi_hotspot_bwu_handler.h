@@ -24,7 +24,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/wifi_hotspot.h"
 
@@ -68,7 +67,7 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
   };
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(

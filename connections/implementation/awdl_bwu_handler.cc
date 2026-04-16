@@ -185,7 +185,7 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
 // Called by BWU initiator. Set up AWDL upgraded medium for this endpoint,
 // and returns a upgrade path info (service_name, port) for remote party to
 // perform discovery.
-ByteArray AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   if (!awdl_medium_.IsAcceptingConnections(upgrade_service_id)) {

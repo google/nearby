@@ -68,7 +68,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData & packet_meta_data),
               (override));
-  MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
+  MOCK_METHOD(Exception, Write, (absl::string_view data), (override));
   MOCK_METHOD(Exception, Write,
               (absl::string_view data, PacketMetaData& packet_meta_data),
               (override));
@@ -277,11 +277,12 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
 
-  auto read_data = parser::ForConnectionRequestConnections({}, connection_info);
+  std::string read_data =
+      parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
   EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(read_data)))
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(read_data))))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
@@ -429,7 +430,9 @@ class EndpointManagerFuzzTest
 
 auto InvalidPayloadDomain() {
   return Filter(
-      [](ByteArray payload) { return !parser::FromBytes(payload).ok(); },
+      [](ByteArray payload) {
+        return !parser::FromBytes(payload.AsStringView()).ok();
+      },
       Map([](std::string payloadString) { return ByteArray(payloadString); },
           String()));
 }
@@ -461,7 +464,7 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
-  ByteArray decrypted_data =
+  std::string decrypted_data =
       parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
@@ -470,7 +473,7 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
       .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
-      .WillOnce(Return(ExceptionOr<ByteArray>(decrypted_data)));
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(decrypted_data))));
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
   em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,

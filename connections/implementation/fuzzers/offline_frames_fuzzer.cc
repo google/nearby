@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "absl/strings/string_view.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/byte_array.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  nearby::ByteArray byte_array;
-  byte_array.SetData(reinterpret_cast<const char*>(data), size);
-
+  absl::string_view byte_array(reinterpret_cast<const char*>(data), size);
   nearby::connections::parser::FromBytes(byte_array);
 
   return 0;

@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
@@ -27,7 +28,6 @@
 #include "connections/medium_selector.h"
 #include "connections/status.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
@@ -49,19 +49,12 @@ using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 
-ByteArray ToBytes(OfflineFrame&& frame) {
-  ByteArray bytes(frame.ByteSizeLong());
-  frame.set_version(OfflineFrame::V1);
-  frame.SerializeToArray(bytes.data(), bytes.size());
-  return bytes;
-}
-
 }  // namespace
 
-ExceptionOrOfflineFrame FromBytes(const ByteArray& bytes) {
+ExceptionOrOfflineFrame FromBytes(absl::string_view bytes) {
   OfflineFrame frame;
 
-  if (frame.ParseFromString(std::string(bytes))) {
+  if (frame.ParseFromString(bytes)) {
     Exception validation_exception = EnsureValidOfflineFrame(frame);
     if (validation_exception.Raised()) {
       return ExceptionOrOfflineFrame(validation_exception);
@@ -80,7 +73,7 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
   return V1Frame::UNKNOWN_FRAME_TYPE;
 }
 
-ByteArray ForConnectionRequestConnections(
+std::string ForConnectionRequestConnections(
     const location::nearby::connections::ConnectionsDevice&
         proto_connections_device,
     const ConnectionInfo& connection_info) {
@@ -139,10 +132,10 @@ ByteArray ForConnectionRequestConnections(
         connection_info.keep_alive_timeout_millis);
   }
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForConnectionRequestPresence(
+std::string ForConnectionRequestPresence(
     const location::nearby::connections::PresenceDevice& proto_presence_device,
     const ConnectionInfo& connection_info) {
   OfflineFrame frame;
@@ -184,10 +177,10 @@ ByteArray ForConnectionRequestPresence(
         connection_info.keep_alive_timeout_millis);
   }
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
+std::string ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
                                 std::int32_t multiplex_socket_bitmask) {
   OfflineFrame frame;
 
@@ -210,10 +203,10 @@ ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
           config_package_nearby::nearby_connections_feature::
               kSafeToDisconnectVersion));
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForDataPayloadTransfer(
+std::string ForDataPayloadTransfer(
     const PayloadTransferFrame::PayloadHeader& header,
     const PayloadTransferFrame::PayloadChunk& chunk) {
   OfflineFrame frame;
@@ -226,10 +219,10 @@ ByteArray ForDataPayloadTransfer(
   *sub_frame->mutable_payload_header() = header;
   *sub_frame->mutable_payload_chunk() = chunk;
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForControlPayloadTransfer(
+std::string ForControlPayloadTransfer(
     const PayloadTransferFrame::PayloadHeader& header,
     const PayloadTransferFrame::ControlMessage& control) {
   OfflineFrame frame;
@@ -242,10 +235,10 @@ ByteArray ForControlPayloadTransfer(
   *sub_frame->mutable_payload_header() = header;
   *sub_frame->mutable_control_message() = control;
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id) {
+std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -259,10 +252,10 @@ ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id) {
   header.set_total_size(InternalPayload::kIndeterminateSize);
   *sub_frame->mutable_payload_header() = header;
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuWifiHotspotPathAvailable(
+std::string ForBwuWifiHotspotPathAvailable(
     BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
         credentials,
     bool supports_disabling_encryption) {
@@ -282,10 +275,10 @@ ByteArray ForBwuWifiHotspotPathAvailable(
   auto* wifi_hotspot_credentials =
       upgrade_path_info->mutable_wifi_hotspot_credentials();
   *wifi_hotspot_credentials = std::move(credentials);
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuWifiLanPathAvailable(
+std::string ForBwuWifiLanPathAvailable(
     const std::vector<ServiceAddress>& addresses) {
   OfflineFrame frame;
 
@@ -314,10 +307,10 @@ ByteArray ForBwuWifiLanPathAvailable(
       VLOG(1) << "ForBwuWifiLanPathAvailable: " << address;
     }
   }
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
+std::string ForBwuAwdlPathAvailable(const std::string& service_name,
                                   const std::string& service_type,
                                   const std::string& password,
                                   bool supports_disabling_encryption) {
@@ -339,10 +332,10 @@ ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
   awdl_socket->set_service_type(service_type);
   awdl_socket->set_password(password);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
+std::string ForBwuWifiAwarePathAvailable(const std::string& service_id,
                                        const std::string& service_info,
                                        const std::string& password,
                                        bool supports_disabling_encryption) {
@@ -365,10 +358,10 @@ ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
   wifi_aware_credentials->set_service_info(service_info);
   if (!password.empty()) wifi_aware_credentials->set_password(password);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuWifiDirectPathAvailable(
+std::string ForBwuWifiDirectPathAvailable(
     const std::string& ssid, const std::string& password, std::int32_t port,
     std::int32_t frequency, bool supports_disabling_encryption,
     const std::string& gateway, const std::string& service_name,
@@ -396,10 +389,10 @@ ByteArray ForBwuWifiDirectPathAvailable(
   wifi_direct_credentials->set_service_name(service_name);
   wifi_direct_credentials->set_pin(pin);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
+std::string ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        MacAddress mac_address) {
   OfflineFrame frame;
 
@@ -417,10 +410,10 @@ ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
   bluetooth_credentials->set_mac_address(mac_address.ToString());
   bluetooth_credentials->set_service_name(service_id);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id,
+std::string ForBwuWebrtcPathAvailable(const std::string& peer_id,
                                     const LocationHint& location_hint) {
   OfflineFrame frame;
 
@@ -438,10 +431,10 @@ ByteArray ForBwuWebrtcPathAvailable(const std::string& peer_id,
   auto* local_location_hint = webrtc_credentials->mutable_location_hint();
   *local_location_hint = location_hint;
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuLastWrite() {
+std::string ForBwuLastWrite() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -451,10 +444,10 @@ ByteArray ForBwuLastWrite() {
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::LAST_WRITE_TO_PRIOR_CHANNEL);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuSafeToClose() {
+std::string ForBwuSafeToClose() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -464,10 +457,10 @@ ByteArray ForBwuSafeToClose() {
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::SAFE_TO_CLOSE_PRIOR_CHANNEL);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuIntroduction(const std::string& endpoint_id,
+std::string ForBwuIntroduction(const std::string& endpoint_id,
                              bool supports_disabling_encryption) {
   OfflineFrame frame;
 
@@ -482,10 +475,10 @@ ByteArray ForBwuIntroduction(const std::string& endpoint_id,
   client_introduction->set_supports_disabling_encryption(
       supports_disabling_encryption);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuIntroductionAck() {
+std::string ForBwuIntroductionAck() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -495,10 +488,10 @@ ByteArray ForBwuIntroductionAck() {
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::CLIENT_INTRODUCTION_ACK);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuFailure(const UpgradePathInfo& info) {
+std::string ForBwuFailure(const UpgradePathInfo& info) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -511,10 +504,10 @@ ByteArray ForBwuFailure(const UpgradePathInfo& info) {
 
   *sub_frame->mutable_upgrade_path_info() = info;
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForBwuPathRequest(const std::vector<Medium>& mediums,
+std::string ForBwuPathRequest(const std::vector<Medium>& mediums,
                             const MediumRole& medium_role) {
   OfflineFrame frame;
 
@@ -533,10 +526,10 @@ ByteArray ForBwuPathRequest(const std::vector<Medium>& mediums,
       upgrade_path_request->mutable_medium_meta_data()->mutable_medium_role();
   role->MergeFrom(medium_role);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForKeepAlive() {
+std::string ForKeepAlive() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -544,10 +537,10 @@ ByteArray ForKeepAlive() {
   v1_frame->set_type(V1Frame::KEEP_ALIVE);
   v1_frame->mutable_keep_alive();
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForKeepAlive(bool ack, uint32_t seq_num) {
+std::string ForKeepAlive(bool ack, uint32_t seq_num) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -556,10 +549,10 @@ ByteArray ForKeepAlive(bool ack, uint32_t seq_num) {
   KeepAliveFrame* keep_alive = v1_frame->mutable_keep_alive();
   keep_alive->set_ack(ack);
   keep_alive->set_seq_num(seq_num);
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
-ByteArray ForDisconnection(bool request_safe_to_disconnect,
+std::string ForDisconnection(bool request_safe_to_disconnect,
                            bool ack_safe_to_disconnect) {
   OfflineFrame frame;
 
@@ -570,7 +563,7 @@ ByteArray ForDisconnection(bool request_safe_to_disconnect,
   disconnection->set_request_safe_to_disconnect(request_safe_to_disconnect);
   disconnection->set_ack_safe_to_disconnect(ack_safe_to_disconnect);
 
-  return ToBytes(std::move(frame));
+  return frame.SerializeAsString();
 }
 
 

@@ -35,7 +35,6 @@
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
 #include "internal/platform/awdl.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -211,10 +210,10 @@ TEST_F(AwdlBwuHandlerTest,
   EXPECT_CALL(*awdl_medium_mock, ListenForService(_, 0))
       .WillOnce(Return(ByMove(nullptr)));
 
-  ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));
 
-  EXPECT_TRUE(result.Empty());
+  EXPECT_TRUE(result.empty());
   MediumEnvironment::Instance().Stop();
 }
 
@@ -262,10 +261,10 @@ TEST_F(AwdlBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
           return true;
         });
 
-    ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+    std::string result = handler_.InitializeUpgradedMediumForEndpoint(
         &client, std::string(kServiceId), std::string(kEndpointId));
 
-    EXPECT_FALSE(result.Empty());
+    EXPECT_FALSE(result.empty());
     OfflineFrame expected_frame;
     expected_frame.set_version(OfflineFrame::V1);
     expected_frame.mutable_v1()->set_type(
@@ -290,7 +289,7 @@ TEST_F(AwdlBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
     // parser::ForBwuAwdlPathAvailable which puts the generated password. We
     // will extract it from result directly to build expected frame.
     OfflineFrame result_frame;
-    EXPECT_TRUE(result_frame.ParseFromString(std::string(result)));
+    EXPECT_TRUE(result_frame.ParseFromString(result));
     awdl_credentials->set_password(result_frame.v1()
                                        .bandwidth_upgrade_negotiation()
                                        .upgrade_path_info()
@@ -398,9 +397,9 @@ TEST_F(AwdlBwuHandlerTest, OnIncomingAwdlConnection_Success) {
                          std::unique_ptr<BwuHandler::IncomingSocketConnection>
                              connection) { latch.CountDown(); });
 
-  ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));
-  EXPECT_FALSE(result.Empty());
+  EXPECT_FALSE(result.empty());
 
   auto await_result = latch.Await(absl::Seconds(5));
   EXPECT_TRUE(await_result.ok());
@@ -448,9 +447,9 @@ TEST_F(AwdlBwuHandlerTest, AwdlIncomingSocket_ToStringAndClose) {
         latch.CountDown();
       });
 
-  ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));
-  EXPECT_FALSE(result.Empty());
+  EXPECT_FALSE(result.empty());
 
   auto await_result = latch.Await(absl::Seconds(5));
   EXPECT_TRUE(await_result.ok());

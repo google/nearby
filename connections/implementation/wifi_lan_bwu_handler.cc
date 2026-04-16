@@ -27,7 +27,6 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
@@ -118,7 +117,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 // Called by BWU initiator. Set up WifiLan upgraded medium for this endpoint,
 // and returns a upgrade path info (ip address, port) for remote party to
 // perform discovery.
-ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {

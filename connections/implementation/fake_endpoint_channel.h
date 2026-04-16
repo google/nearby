@@ -50,7 +50,7 @@ class FakeEndpointChannel : public EndpointChannel {
     read_timestamp_ = SystemClock::ElapsedRealtime();
     return read_output_;
   }
-  Exception Write(const ByteArray& data) override {
+  Exception Write(absl::string_view data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return write_output_;
   }

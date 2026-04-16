@@ -227,12 +227,12 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   EXPECT_EQ(channel_a_raw->GetType(), "ENCRYPTED_BLUETOOTH");
   EXPECT_EQ(channel_b_raw->GetType(), "ENCRYPTED_BLUETOOTH");
 
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a_raw->Write(tx_message);
   ByteArray rx_message = std::move(channel_b_raw->Read().result());
 
   // Verify expectations.
-  EXPECT_EQ(rx_message, tx_message);
+  EXPECT_EQ(rx_message.AsStringView(), tx_message);
   {
     absl::MutexLock lock(mutex);
     std::string message{tx_message};

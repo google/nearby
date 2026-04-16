@@ -65,7 +65,7 @@ void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
 // Called by BWU initiator. Set up WebRTC upgraded medium for this endpoint,
 // and returns a upgrade path info (PeerId, LocationHint) for remote party to
 // perform discovery.
-ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   return {};

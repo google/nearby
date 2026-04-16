@@ -174,7 +174,7 @@ class BaseEndpointChannelTest : public ::testing::Test {
     NearbyFlags::GetInstance().ResetOverridedValues();
   }
 
-  const ByteArray kTestData{"test_data"};
+  const absl::string_view kTestData = "test_data";
 };
 
 TEST_F(BaseEndpointChannelTest, ReadSucceedsWhenFlagDisabled) {
@@ -189,7 +189,7 @@ TEST_F(BaseEndpointChannelTest, ReadSucceedsWhenFlagDisabled) {
 
   channel_a.Write(kTestData);
   ByteArray rx_message = std::move(channel_b.Read().result());
-  EXPECT_EQ(rx_message, kTestData);
+  EXPECT_EQ(rx_message.AsStringView(), kTestData);
 }
 
 TEST_F(BaseEndpointChannelTest, ReadCallsDispatchPacketWhenFlagEnabled) {
@@ -203,13 +203,14 @@ TEST_F(BaseEndpointChannelTest, ReadCallsDispatchPacketWhenFlagEnabled) {
   TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
 
   EXPECT_CALL(channel_b, DispatchPacket)
-      .WillOnce(::testing::Return(ExceptionOr<ByteArray>(kTestData)));
+      .WillOnce(::testing::Return(
+          ExceptionOr<ByteArray>(ByteArray(std::string(kTestData)))));
 
   channel_a.Write(kTestData);
 
   auto read_byte = channel_b.Read();
   EXPECT_TRUE(read_byte.ok());
-  EXPECT_EQ(read_byte.result(), kTestData);
+  EXPECT_EQ(read_byte.result().AsStringView(), kTestData);
 }
 
 TEST_F(BaseEndpointChannelTest,
@@ -243,10 +244,10 @@ TEST_F(BaseEndpointChannelTest, ReadWrite) {
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
   TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
   TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a.Write(tx_message);
   ByteArray rx_message = std::move(channel_b.Read().result());
-  EXPECT_EQ(rx_message, tx_message);
+  EXPECT_EQ(rx_message.AsStringView(), tx_message);
 }
 
 TEST_F(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
@@ -332,12 +333,12 @@ TEST_F(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   EXPECT_EQ(channel_b.GetType(), "BLE");
 
   // Start data transfer
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a.Write(tx_message);
   ByteArray rx_message = std::move(channel_b.Read().result());
 
   // Verify expectations.
-  EXPECT_EQ(rx_message, tx_message);
+  EXPECT_EQ(rx_message.AsStringView(), tx_message);
   {
     absl::MutexLock lock(mutex);
     std::string message{tx_message};
@@ -396,12 +397,12 @@ TEST_F(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   EXPECT_TRUE(channel_b.IsEncrypted());
 
   // Start data transfer
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a.Write(tx_message);
   ByteArray rx_message = std::move(channel_b.Read().result());
 
   // Verify expectations.
-  EXPECT_EQ(rx_message, tx_message);
+  EXPECT_EQ(rx_message.AsStringView(), tx_message);
   {
     absl::MutexLock lock(mutex);
     std::string message{tx_message};
@@ -432,8 +433,8 @@ TEST_F(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   EXPECT_EQ(channel_b.GetType(), "WIFI_LAN");
 
   // Start data transfer
-  ByteArray tx_message{"data message"};
-  ByteArray more_message{"more data"};
+  absl::string_view tx_message = "data message";
+  absl::string_view more_message = "more data";
   channel_a.Write(tx_message);
   ByteArray rx_message = std::move(channel_b.Read().result());
 
@@ -459,7 +460,7 @@ TEST_F(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   // Resume; verify that data transfer comepleted.
   channel_a.Resume();
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
-  EXPECT_EQ(read_more, more_message);
+  EXPECT_EQ(read_more.AsStringView(), more_message);
 
   // Shutdown test environment.
   channel_a.Close(DisconnectionReason::LOCAL_DISCONNECTION);
@@ -506,14 +507,14 @@ TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   EXPECT_EQ(channel_b.GetType(), "ENCRYPTED_BLUETOOTH");
 
   // An unencrypted KeepAlive should succeed.
-  ByteArray keep_alive_message = parser::ForKeepAlive();
+  std::string keep_alive_message = parser::ForKeepAlive();
   channel_a.Write(keep_alive_message);
   ExceptionOr<ByteArray> result = channel_b.Read();
   EXPECT_TRUE(result.ok());
-  EXPECT_EQ(result.result(), keep_alive_message);
+  EXPECT_EQ(result.result().AsStringView(), keep_alive_message);
 
   // An unencrypted data frame should fail.
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a.Write(tx_message);
   result = channel_b.Read();
   EXPECT_FALSE(result.ok());

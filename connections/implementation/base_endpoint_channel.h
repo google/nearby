@@ -55,7 +55,7 @@ class BaseEndpointChannel : public EndpointChannel {
   ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data)
       ABSL_LOCKS_EXCLUDED(reader_mutex_, crypto_mutex_,
                           last_read_mutex_) override;
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
   Exception Write(absl::string_view data, PacketMetaData& packet_meta_data)
       ABSL_LOCKS_EXCLUDED(writer_mutex_, crypto_mutex_) override;
   void Close() ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;

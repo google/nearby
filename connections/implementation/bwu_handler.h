@@ -21,7 +21,6 @@
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -53,7 +52,7 @@ class BwuHandler {
   // that hasn't already been done), and returns a serialized UpgradePathInfo
   // that can be sent to the Responder.
   // @BwuHandlerThread
-  virtual ByteArray InitializeUpgradedMediumForEndpoint(
+  virtual std::string InitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id) = 0;
 

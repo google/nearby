@@ -18,7 +18,6 @@
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -33,7 +32,7 @@ void ConnectionsAuthenticationTransport::WriteMessage(
     absl::string_view message) const {
   // channel_ should never be null.
   CHECK(channel_ != nullptr);
-  channel_->Write(ByteArray(message.data(), message.size()));
+  channel_->Write(message);
 }
 
 std::string ConnectionsAuthenticationTransport::ReadMessage() const {

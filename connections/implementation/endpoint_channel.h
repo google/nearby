@@ -43,7 +43,7 @@ class EndpointChannel {
 
   virtual ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) = 0;
 
-  virtual Exception Write(const ByteArray& data) = 0;  // throws Exception::IO
+  virtual Exception Write(absl::string_view data) = 0;  // throws Exception::IO
 
   virtual Exception Write(
       absl::string_view data,
