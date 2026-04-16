@@ -2477,8 +2477,8 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
     return ExceptionOr<OfflineFrame>(wrapped_bytes.exception());
   }
 
-  ByteArray bytes = std::move(wrapped_bytes.result());
-  ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes);
+  ExceptionOr<OfflineFrame> wrapped_frame =
+      parser::FromBytes(wrapped_bytes.result().AsStringView());
   if (wrapped_frame.GetException().Raised(Exception::kInvalidProtocolBuffer)) {
     return ExceptionOr<OfflineFrame>(Exception::kIo);
   }

@@ -157,7 +157,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
         // and let it through if it is, otherwise message is erased.
         // TODO(apolyudov): verify this happens at most once per session.
         result = {};
-        auto parsed = parser::FromBytes(ByteArray(input));
+        auto parsed = parser::FromBytes(input);
         if (parsed.ok()) {
           if (parser::GetFrameType(parsed.result()) ==
               location::nearby::connections::V1Frame::KEEP_ALIVE) {
@@ -190,9 +190,9 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
   return ExceptionOr<ByteArray>(result);
 }
 
-Exception BaseEndpointChannel::Write(const ByteArray& data) {
+Exception BaseEndpointChannel::Write(absl::string_view data) {
   PacketMetaData packet_meta_data;
-  return Write(data.AsStringView(), packet_meta_data);
+  return Write(data, packet_meta_data);
 }
 
 Exception BaseEndpointChannel::Write(absl::string_view data,

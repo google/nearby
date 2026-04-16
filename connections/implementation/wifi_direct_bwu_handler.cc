@@ -28,7 +28,6 @@
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
@@ -49,7 +48,7 @@ WifiDirectBwuHandler::WifiDirectBwuHandler(
 // Called by BWU initiator. Set up WifiDirect upgraded medium for this
 // endpoint, and returns an upgrade path info (ServiceName, Pin for Wifi WPS,
 // Gateway used as IPAddress, Port) for remote party to perform connection.
-ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   // Create WifiDirect GO

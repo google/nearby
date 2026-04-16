@@ -88,7 +88,6 @@ using ::nearby::analytics::HasEventType;
 using ::testing::_;
 using ::testing::AtLeast;
 using ::protobuf_matchers::EqualsProto;
-using ::testing::Invoke;
 using ::testing::Matcher;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
@@ -171,7 +170,7 @@ class MockEndpointChannel : public BaseEndpointChannel {
         output_stream_(std::move(writer)) {}
 
   ExceptionOr<ByteArray> DoRead() { return BaseEndpointChannel::Read(); }
-  Exception DoWrite(const ByteArray& data) {
+  Exception DoWrite(absl::string_view data) {
     if (broken_write_) {
       return {Exception::kFailed};
     }
@@ -182,7 +181,7 @@ class MockEndpointChannel : public BaseEndpointChannel {
   }
 
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
-  MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
+  MOCK_METHOD(Exception, Write, (absl::string_view data), (override));
   MOCK_METHOD(void, CloseImpl, (), (override));
   MOCK_METHOD(location::nearby::proto::connections::Medium, GetMedium, (),
               (const, override));
@@ -576,26 +575,26 @@ class BasePcpHandlerTest
     // the peer channel. The rest of the exchange must happen for the benefit of
     // DH key exchange.
     EXPECT_CALL(*channel_a, Read())
-        .WillRepeatedly(Invoke(
-            [channel = channel_a.get()]() { return channel->DoRead(); }));
+        .WillRepeatedly(
+            [channel = channel_a.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_a, Write(_))
         .WillOnce(Return(Exception{Exception::kSuccess}))
         .WillRepeatedly(
-            Invoke([channel = channel_a.get()](const ByteArray& data) {
+            [channel = channel_a.get()](absl::string_view data) {
               return channel->DoWrite(data);
-            }));
+            });
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
     EXPECT_CALL(*channel_a, IsPaused).WillRepeatedly(Return(false));
     EXPECT_CALL(*channel_b, Read())
-        .WillRepeatedly(Invoke(
-            [channel = channel_b.get()]() { return channel->DoRead(); }));
+        .WillRepeatedly(
+            [channel = channel_b.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_b, Write(_))
         .WillRepeatedly(
-            Invoke([channel = channel_b.get()](const ByteArray& data) {
+            [channel = channel_b.get()](absl::string_view data) {
               return channel->DoWrite(data);
-            }));
+            });
     EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_b, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -622,20 +621,20 @@ class BasePcpHandlerTest
     // the peer channel. The rest of the exchange must happen for the benefit of
     // DH key exchange.
     EXPECT_CALL(*channel_a, Read())
-        .WillRepeatedly(Invoke(
-            [channel = channel_a.get()]() { return channel->DoRead(); }));
+        .WillRepeatedly(
+            [channel = channel_a.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
     EXPECT_CALL(*channel_a, IsPaused).WillRepeatedly(Return(false));
     EXPECT_CALL(*channel_b, Read())
-        .WillRepeatedly(Invoke(
-            [channel = channel_b.get()]() { return channel->DoRead(); }));
+        .WillRepeatedly(
+            [channel = channel_b.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_b, Write(_))
         .WillRepeatedly(
-            Invoke([channel = channel_b.get()](const ByteArray& data) {
+            [channel = channel_b.get()](absl::string_view data) {
               return channel->DoWrite(data);
-            }));
+            });
     EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_b, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -675,15 +674,15 @@ class BasePcpHandlerTest
     auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
-        .WillOnce(Invoke([&channel_a, connect_medium](
-                             ClientProxy* client,
-                             MockPcpHandler::DiscoveredEndpoint* endpoint) {
+        .WillOnce([&channel_a, connect_medium](
+                      ClientProxy* client,
+                      MockPcpHandler::DiscoveredEndpoint* endpoint) {
           return MockPcpHandler::ConnectImplResult{
               .medium = connect_medium,
               .status = {Status::kSuccess},
               .endpoint_channel = std::move(channel_a),
           };
-        }));
+        });
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -756,15 +755,15 @@ class BasePcpHandlerTest
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
         .WillRepeatedly(
-            Invoke([&channel_a, connect_medium](
-                       ClientProxy* client,
-                       MockPcpHandler::DiscoveredEndpoint* endpoint) {
+            [&channel_a, connect_medium](
+                ClientProxy* client,
+                MockPcpHandler::DiscoveredEndpoint* endpoint) {
               return MockPcpHandler::ConnectImplResult{
                   .medium = connect_medium,
                   .status = {Status::kSuccess},
                   .endpoint_channel = std::move(channel_a),
               };
-            }));
+            });
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -824,8 +823,8 @@ class BasePcpHandlerTest
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
         .WillRepeatedly(
-            Invoke([&channel_a](ClientProxy* client,
-                                MockPcpHandler::DiscoveredEndpoint* endpoint) {
+            [&channel_a](ClientProxy* client,
+                         MockPcpHandler::DiscoveredEndpoint* endpoint) {
               if (endpoint->medium ==
                   location::nearby::proto::connections::WIFI_LAN) {
                 LOG(INFO) << "Connect with Medium WIFI_LAN failed.";
@@ -844,7 +843,7 @@ class BasePcpHandlerTest
                     .endpoint_channel = std::move(channel_a),
                 };
               }
-            }));
+            });
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -1353,7 +1352,7 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3_ConnectImplFailure) {
   auto allowed_mediums = pcp_handler.GetDiscoveryMediums(client_.get());
 
   EXPECT_CALL(pcp_handler, ConnectImpl)
-      .WillRepeatedly(Invoke(
+      .WillRepeatedly(
           [connect_medium](ClientProxy* client,
                            MockPcpHandler::DiscoveredEndpoint* endpoint) {
             return MockPcpHandler::ConnectImplResult{
@@ -1361,7 +1360,7 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3_ConnectImplFailure) {
                 .status = {Status::kError},
                 .endpoint_channel = nullptr,
             };
-          }));
+          });
 
   for (const auto& discovered_medium : allowed_mediums) {
     pcp_handler.OnEndpointFound(
@@ -1428,7 +1427,7 @@ TEST_P(BasePcpHandlerTest, RequestConnection_ConnectImplFailure) {
   auto allowed_mediums = pcp_handler.GetDiscoveryMediums(client_.get());
 
   EXPECT_CALL(pcp_handler, ConnectImpl)
-      .WillRepeatedly(Invoke(
+      .WillRepeatedly(
           [connect_medium](ClientProxy* client,
                            MockPcpHandler::DiscoveredEndpoint* endpoint) {
             return MockPcpHandler::ConnectImplResult{
@@ -1436,7 +1435,7 @@ TEST_P(BasePcpHandlerTest, RequestConnection_ConnectImplFailure) {
                 .status = {Status::kError},
                 .endpoint_channel = nullptr,
             };
-          }));
+          });
 
   for (const auto& discovered_medium : allowed_mediums) {
     pcp_handler.OnEndpointFound(
@@ -1787,7 +1786,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
   EXPECT_TRUE(client_->IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl(client_.get(), service_id, _))
-      .WillOnce(Invoke([&pcp_handler, &endpoint_id](
+      .WillOnce([&pcp_handler, &endpoint_id](
                            ClientProxy* client, const std::string& service_id,
                            const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
@@ -1803,7 +1802,7 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
                 MockContext{nullptr},
             }));
         return Status{Status::kSuccess};
-      }));
+      });
   pcp_handler.InjectEndpoint(
       client_.get(), service_id,
       OutOfBandConnectionMetadata{
@@ -1851,30 +1850,30 @@ TEST_F(BasePcpHandlerTest,
 
   ::testing::InSequence seq;
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
-      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id,
+      .WillOnce([id = endpoint_id](const std::string& endpoint_id,
                                           const ByteArray& endpoint_info,
                                           const std::string& service_id) {
         EXPECT_EQ(endpoint_id, id);
         EXPECT_EQ(endpoint_info, ByteArray{"ABCD"});
-      }));
+      });
 
   EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call)
-      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id) {
+      .WillOnce([id = endpoint_id](const std::string& endpoint_id) {
         EXPECT_EQ(endpoint_id, id);
-      }));
+      });
 
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
-      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id,
+      .WillOnce([id = endpoint_id](const std::string& endpoint_id,
                                           const ByteArray& endpoint_info,
                                           const std::string& service_id) {
         EXPECT_EQ(endpoint_id, id);
         EXPECT_EQ(endpoint_info, ByteArray{"ABCDEF"});
-      }));
+      });
 
   EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call)
-      .WillOnce(Invoke([id = endpoint_id](const std::string& endpoint_id) {
+      .WillOnce([id = endpoint_id](const std::string& endpoint_id) {
         EXPECT_EQ(endpoint_id, id);
-      }));
+      });
 
   // Found endpoint on Bluetooth
   pcp_handler.OnEndpointFound(
@@ -1964,7 +1963,7 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
   EXPECT_TRUE(client_->IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
-      .WillOnce(Invoke([&pcp_handler, &endpoint_id](
+      .WillOnce([&pcp_handler, &endpoint_id](
                            ClientProxy* client, const std::string& service_id,
                            const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
@@ -1980,7 +1979,7 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
                 MockContext{nullptr},
             }));
         return Status{Status::kSuccess};
-      }));
+      });
   pcp_handler.InjectEndpoint(
       client_.get(), service_id,
       OutOfBandConnectionMetadata{
@@ -2027,7 +2026,7 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
   EXPECT_TRUE(client_->IsDiscovering());
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
-      .WillOnce(Invoke([&pcp_handler, &endpoint_id](
+      .WillOnce([&pcp_handler, &endpoint_id](
                            ClientProxy* client, const std::string& service_id,
                            const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
@@ -2043,7 +2042,7 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
                 MockContext{nullptr},
             }));
         return Status{Status::kSuccess};
-      }));
+      });
   pcp_handler.InjectEndpoint(
       client_.get(), service_id,
       OutOfBandConnectionMetadata{
@@ -2094,7 +2093,7 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
       .Times(2)
       .WillRepeatedly(
-          Invoke([&pcp_handler, &endpoint_id, &first_call](
+          [&pcp_handler, &endpoint_id, &first_call](
                      ClientProxy* client, const std::string& service_id,
                      const OutOfBandConnectionMetadata& metadata) {
             ByteArray endpoint_info;
@@ -2117,7 +2116,7 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
                     MockContext{nullptr},
                 }));
             return Status{Status::kSuccess};
-          }));
+          });
   pcp_handler.InjectEndpoint(
       client_.get(), service_id,
       OutOfBandConnectionMetadata{
@@ -2271,20 +2270,20 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithUnknown) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()->mutable_connection_request()->clear_connections_device();
   frame.mutable_v1()->mutable_connection_request()->clear_presence_device();
   ASSERT_FALSE(frame.v1().connection_request().has_connections_device());
   ASSERT_FALSE(frame.v1().connection_request().has_presence_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
                       client_.get(), ByteArray("remote endpoint"),
@@ -2321,20 +2320,20 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithUnknown) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()->mutable_connection_request()->clear_connections_device();
   frame.mutable_v1()->mutable_connection_request()->clear_presence_device();
   ASSERT_FALSE(frame.v1().connection_request().has_connections_device());
   ASSERT_FALSE(frame.v1().connection_request().has_presence_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
                     client_.get(), ByteArray("remote endpoint"),
@@ -2370,21 +2369,21 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithConnections) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()
       ->mutable_connection_request()
       ->mutable_connections_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
                     client_.get(), ByteArray("remote endpoint"),
@@ -2420,21 +2419,21 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithPresence) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()
       ->mutable_connection_request()
       ->mutable_presence_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_presence_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
                       client_.get(), ByteArray("remote endpoint"),
@@ -2469,21 +2468,21 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithConnections) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()
       ->mutable_connection_request()
       ->mutable_connections_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
                       client_.get(), ByteArray("remote endpoint"),
@@ -2518,21 +2517,21 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
               .local_endpoint_info = ByteArray("local endpoint"),
           });
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()
       ->mutable_connection_request()
       ->mutable_presence_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_presence_device());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
                     client_.get(), ByteArray("remote endpoint"),
@@ -2568,7 +2567,7 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
   auto channel_pair = SetupConnection(Medium::BLUETOOTH);
-  ByteArray serialized_frame = parser::ForConnectionRequestConnections(
+  std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "",
               .local_endpoint_info = ByteArray("local endpoint"),
@@ -2576,12 +2575,12 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   // At this point the connection request doesn't have an endpoint ID field
   // set, so we do that here.
   location::nearby::connections::OfflineFrame frame;
-  frame.ParseFromString(serialized_frame.AsStringView());
+  frame.ParseFromString(serialized_frame);
   frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
   ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
   // do a dummy write to get to the actual write.
-  channel_pair.first->Write(ByteArray());
-  channel_pair.first->Write(ByteArray(frame.SerializeAsString()));
+  channel_pair.first->Write("");
+  channel_pair.first->Write(frame.SerializeAsString());
   absl::string_view expected_log = R"pb(
     event_type: CLIENT_SESSION
     client_session {

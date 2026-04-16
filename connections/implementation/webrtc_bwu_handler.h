@@ -28,7 +28,6 @@
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/medium_selector.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -69,7 +68,7 @@ class WebrtcBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(

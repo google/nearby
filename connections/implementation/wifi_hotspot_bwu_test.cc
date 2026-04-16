@@ -27,7 +27,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -100,11 +99,11 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   // client_hotspot_ap works as Hotspot SoftAP
   SingleThreadExecutor server_executor;
   server_executor.Execute([&]() {
-    ByteArray upgrade_path_available_frame =
+    std::string upgrade_path_available_frame =
         handler_1->InitializeUpgradedMediumForEndpoint(
             &client_hotspot_ap, std::string(kServiceID),
             std::string(kEndpointID));
-    EXPECT_FALSE(upgrade_path_available_frame.Empty());
+    EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
     start_latch.CountDown();

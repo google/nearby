@@ -192,7 +192,7 @@ TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
   SingleThreadExecutor executor;
   FakeSocket* socket = fake_socket_ptr.get();
   executor.Execute([socket]() {
-    ByteArray connection_req_frame = parser::ForConnectionRequestConnections(
+    std::string connection_req_frame = parser::ForConnectionRequestConnections(
         {}, {
                 .local_endpoint_id = "endpoint1",
                 .local_endpoint_info = ByteArray("endpoint1 info"),
@@ -200,7 +200,7 @@ TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
     auto& writer = socket->writer_1_;
     LOG(INFO) << "writer_1_ Write start";
     Base64Utils::WriteInt(writer.get(), connection_req_frame.size());
-    writer->Write(connection_req_frame.AsStringView());
+    writer->Write(connection_req_frame);
     writer->Flush();
     LOG(INFO) << "writer_1_ Write end";
   });

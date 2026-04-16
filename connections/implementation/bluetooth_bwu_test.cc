@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
@@ -23,7 +24,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -83,11 +83,11 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
   // client_1 works as Bluetooth Server Device
   SingleThreadExecutor server_executor;
   server_executor.Execute([&]() {
-    ByteArray upgrade_path_available_frame =
+    std::string upgrade_path_available_frame =
         handler_1->InitializeUpgradedMediumForEndpoint(&client_1,
                                                        /*service_id=*/"A",
                                                        /*endpoint_id=*/"1");
-    EXPECT_FALSE(upgrade_path_available_frame.Empty());
+    EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
     start_latch.CountDown();

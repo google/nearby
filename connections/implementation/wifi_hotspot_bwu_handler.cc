@@ -37,7 +37,6 @@
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
@@ -74,7 +73,7 @@ WifiHotspotBwuHandler::WifiHotspotBwuHandler(
 // Called by BWU initiator. Set up WifiHotspot upgraded medium for this
 // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as
 // IPAddress, Port) for remote party to perform connection.
-ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+std::string WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   // Create SoftAP

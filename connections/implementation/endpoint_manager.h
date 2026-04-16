@@ -16,7 +16,6 @@
 #define CORE_INTERNAL_ENDPOINT_MANAGER_H_
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -24,7 +23,6 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
@@ -283,7 +281,7 @@ class EndpointManager {
 
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,
-      const ByteArray& payload_transfer_frame_bytes, std::int64_t payload_id,
+      const std::string& payload_transfer_frame_bytes, std::int64_t payload_id,
       std::int64_t offset, const std::string& packet_type,
       analytics::PacketMetaData& packet_meta_data);
 

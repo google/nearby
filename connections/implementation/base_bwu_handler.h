@@ -22,7 +22,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
@@ -35,7 +34,7 @@ class BaseBwuHandler : public BwuHandler {
       IncomingConnectionCallback incoming_connection_callback);
 
   // BwuHandler implementation:
-  ByteArray InitializeUpgradedMediumForEndpoint(
+  std::string InitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id) final;
   void RevertInitiatorState() final;
@@ -51,7 +50,7 @@ class BaseBwuHandler : public BwuHandler {
   // respectively, to handle medium-specific logic.
   // HandleRevertInitiatorStateForService is only invoked after the last
   // endpoint for the service is reverted.
-  virtual ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  virtual std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) = 0;
   virtual void HandleRevertInitiatorStateForService(

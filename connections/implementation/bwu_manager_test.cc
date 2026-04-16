@@ -924,12 +924,12 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
   OfflineFrame frame;
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
-  ByteArray bytes = parser::ForBwuWifiDirectPathAvailable(
+  std::string bytes = parser::ForBwuWifiDirectPathAvailable(
       /*ssid=*/"", /*password=*/"", /*port=*/2143,
       /*frequency=*/2412, /*supports_disabling_encryption=*/false,
       /*gateway=*/"123.234.23.1", /*service_name=*/"NC-WifiDirectTest",
       /*pin=*/"b592f7d3");
-  frame.ParseFromString(std::string(bytes));
+  frame.ParseFromString(bytes);
 
   ::nearby::connections::V1Frame* v1_frame = frame.mutable_v1();
   ::nearby::connections::BandwidthUpgradeNegotiationFrame* sub_frame =

@@ -113,8 +113,8 @@ class PayloadSimulationUser : public SimulationUser {
 
     OfflineFrame offline_frame;
 
-    ByteArray bytes = parser::ForDataPayloadTransfer(header, chunk);
-    offline_frame.ParseFromString(std::string(bytes));
+    std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(bytes);
 
     PacketMetaData packet_meta_data;
 

@@ -26,7 +26,6 @@
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "internal/platform/awdl.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
 
@@ -68,7 +67,7 @@ class AwdlBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(

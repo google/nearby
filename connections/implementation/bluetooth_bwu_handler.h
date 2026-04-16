@@ -26,7 +26,6 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -66,7 +65,7 @@ class BluetoothBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final;
   void HandleRevertInitiatorStateForService(

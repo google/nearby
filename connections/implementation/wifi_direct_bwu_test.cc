@@ -28,7 +28,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -98,10 +97,10 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
 
   SingleThreadExecutor wfd_go_executor;
   wfd_go_executor.Execute([&]() {
-    ByteArray upgrade_path_available_frame =
+    std::string upgrade_path_available_frame =
         wfd_go_bwu_handler->InitializeUpgradedMediumForEndpoint(
             &wifi_direct_go, std::string(kServiceID), std::string(kEndpointID));
-    EXPECT_FALSE(upgrade_path_available_frame.Empty());
+    EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
     start_latch.CountDown();

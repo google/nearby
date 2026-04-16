@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/service_address.h"
@@ -43,7 +43,7 @@ using WifiDirectAuthType =
 // Returns OfflineFrame if parser was able to understand it, or
 // Exception::kInvalidProtocolBuffer, if parser failed.
 ExceptionOr<location::nearby::connections::OfflineFrame> FromBytes(
-    const ByteArray& offline_frame_bytes);
+    absl::string_view offline_frame_bytes);
 
 // Returns FrameType of a parsed message, or
 // V1Frame::UNKNOWN_FRAME_TYPE, if frame contents is not recognized.
@@ -51,49 +51,49 @@ location::nearby::connections::V1Frame::FrameType GetFrameType(
     const location::nearby::connections::OfflineFrame& offline_frame);
 
 // Builds Connection Request / Response messages.
-ByteArray ForConnectionRequestConnections(
+std::string ForConnectionRequestConnections(
     const location::nearby::connections::ConnectionsDevice&
         proto_connections_device,
     const ConnectionInfo& connection_info);
-ByteArray ForConnectionRequestPresence(
+std::string ForConnectionRequestPresence(
     const location::nearby::connections::PresenceDevice& proto_presence_device,
     const ConnectionInfo& connection_info);
-ByteArray ForConnectionResponse(
+std::string ForConnectionResponse(
     std::int32_t status, const location::nearby::connections::OsInfo& os_info,
     std::int32_t multiplex_socket_bitmask);
 
 // Builds Payload transfer messages.
-ByteArray ForDataPayloadTransfer(
+std::string ForDataPayloadTransfer(
     const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
         header,
     const location::nearby::connections::PayloadTransferFrame::PayloadChunk&
         chunk);
-ByteArray ForControlPayloadTransfer(
+std::string ForControlPayloadTransfer(
     const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
         header,
     const location::nearby::connections::PayloadTransferFrame::ControlMessage&
         control);
-ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id);
+std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
-ByteArray ForBwuIntroduction(const std::string& endpoint_id,
+std::string ForBwuIntroduction(const std::string& endpoint_id,
                              bool supports_disabling_encryption);
-ByteArray ForBwuIntroductionAck();
-ByteArray ForBwuWifiHotspotPathAvailable(
+std::string ForBwuIntroductionAck();
+std::string ForBwuWifiHotspotPathAvailable(
     location::nearby::connections::BandwidthUpgradeNegotiationFrame::
         UpgradePathInfo::WifiHotspotCredentials credentials,
     bool supports_disabling_encryption);
-ByteArray ForBwuWifiLanPathAvailable(
+std::string ForBwuWifiLanPathAvailable(
     const std::vector<ServiceAddress>& addresses);
-ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
+std::string ForBwuAwdlPathAvailable(const std::string& service_name,
                                   const std::string& service_type,
                                   const std::string& password,
                                   bool supports_disabling_encryption);
-ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
+std::string ForBwuWifiAwarePathAvailable(const std::string& service_id,
                                        const std::string& service_info,
                                        const std::string& password,
                                        bool supports_disabling_encryption);
-ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
+std::string ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         const std::string& password,
                                         std::int32_t port,
                                         std::int32_t frequency,
@@ -101,21 +101,21 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         const std::string& gateway,
                                         const std::string& service_name,
                                         const std::string& pin);
-ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
+std::string ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        MacAddress mac_address);
-ByteArray ForBwuWebrtcPathAvailable(
+std::string ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);
-ByteArray ForBwuFailure(const UpgradePathInfo& info);
-ByteArray ForBwuPathRequest(
+std::string ForBwuFailure(const UpgradePathInfo& info);
+std::string ForBwuPathRequest(
     const std::vector<Medium>& mediums,
     const location::nearby::connections::MediumRole& medium_role);
-ByteArray ForBwuLastWrite();
-ByteArray ForBwuSafeToClose();
+std::string ForBwuLastWrite();
+std::string ForBwuSafeToClose();
 
-ByteArray ForKeepAlive();
-ByteArray ForKeepAlive(bool ack, uint32_t seq_num);
-ByteArray ForDisconnection(bool request_safe_to_disconnect,
+std::string ForKeepAlive();
+std::string ForKeepAlive(bool ack, uint32_t seq_num);
+std::string ForDisconnection(bool request_safe_to_disconnect,
                            bool ack_safe_to_disconnect);
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);

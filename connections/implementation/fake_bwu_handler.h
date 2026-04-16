@@ -87,9 +87,9 @@ class FakeBwuHandler : public BaseBwuHandler {
         medium_, *handle_initialize_calls_[initialize_call_index].service_id);
     FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
     upgraded_channel->set_read_output(
-        ExceptionOr<ByteArray>(parser::ForBwuIntroduction(
+        ExceptionOr<ByteArray>(ByteArray(parser::ForBwuIntroduction(
             *handle_initialize_calls_[initialize_call_index].endpoint_id,
-            false /* supports_disabling_encryption */)));
+            false /* supports_disabling_encryption */))));
     auto connection = std::make_unique<IncomingSocketConnection>();
     connection->channel = std::move(upgraded_channel);
 
@@ -133,7 +133,7 @@ class FakeBwuHandler : public BaseBwuHandler {
   }
 
   // BaseBwuHandler:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final {
     handle_initialize_calls_.push_back({.client = client,
@@ -188,7 +188,7 @@ class FakeBwuHandler : public BaseBwuHandler {
       case location::nearby::proto::connections::BLE_L2CAP:
       case location::nearby::proto::connections::USB:
       case location::nearby::proto::connections::AWDL:
-        return ByteArray{};
+        return {};
     }
   }
 
