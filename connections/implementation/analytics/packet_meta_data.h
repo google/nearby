@@ -19,7 +19,6 @@
 
 #include "absl/time/time.h"
 #include "internal/platform/implementation/system_clock.h"
-#include "internal/platform/system_clock.h"
 
 namespace nearby {
 namespace analytics {
@@ -35,7 +34,7 @@ struct PacketMetaData {
 
   void Reset() {
     file_io_start_time = SystemClock::ElapsedRealtime();
-    socket_io_start_time = SystemClock::ElapsedRealtime();
+    encryption_start_time = SystemClock::ElapsedRealtime();
     socket_io_start_time = SystemClock::ElapsedRealtime();
     packet_size = 0;
   }
@@ -44,7 +43,7 @@ struct PacketMetaData {
     this->packet_size = packet_size;
   }
 
-  int GetPacketSize() {
+  int GetPacketSize() const {
     return packet_size;
   }
 
@@ -72,27 +71,27 @@ struct PacketMetaData {
     socket_io_end_time = SystemClock::ElapsedRealtime();
   }
 
-  int64_t GetEncryptionTimeInMillis() {
+  int64_t GetEncryptionTimeInMillis() const {
     if (encryption_end_time > encryption_start_time) {
       return absl::ToInt64Milliseconds(encryption_end_time -
                                        encryption_start_time);
     }
-    return 0L;
+    return 0;
   }
 
-  int64_t GetFileIoTimeInMillis() {
+  int64_t GetFileIoTimeInMillis() const {
     if (file_io_end_time > file_io_start_time) {
       return absl::ToInt64Milliseconds(file_io_end_time - file_io_start_time);
     }
-    return 0L;
+    return 0;
   }
 
-  int64_t GetSocketIoTimeInMillis() {
+  int64_t GetSocketIoTimeInMillis() const {
     if (socket_io_end_time > socket_io_start_time) {
       return absl::ToInt64Milliseconds(socket_io_end_time -
                                        socket_io_start_time);
     }
-    return 0L;
+    return 0;
   }
 };
 

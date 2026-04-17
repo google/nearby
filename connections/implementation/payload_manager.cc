@@ -209,10 +209,9 @@ bool PayloadManager::SendPayloadLoop(
       VLOG(1) << "Payload xfer done: payload_id="
               << pending_payload.GetInternalPayload()->GetId()
               << "; size=" << next_chunk_offset;
-      ThroughputRecorderContainer::GetInstance()
-          .GetTPRecorder(pending_payload.GetInternalPayload()->GetId(),
-                         PayloadDirection::OUTGOING_PAYLOAD)
-          ->MarkAsSuccess();
+      ThroughputRecorderContainer::GetInstance().MarkAsSuccess(
+          pending_payload.GetInternalPayload()->GetId(),
+          PayloadDirection::OUTGOING_PAYLOAD);
       return false;
     }
   }
@@ -364,7 +363,6 @@ void PayloadManager::DisconnectFromEndpointManager() {
 
 PayloadManager::~PayloadManager() {
   VLOG(1) << "PayloadManager: going down; self=" << this;
-  ThroughputRecorderContainer::GetInstance().Shutdown();
   DisconnectFromEndpointManager();
   CancelAllPayloads();
   VLOG(1) << "PayloadManager: turn down payload executors; self=" << this;
@@ -481,9 +479,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
     std::int64_t next_chunk_offset = 0;
     int index = 0;
 
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_id, PayloadDirection::OUTGOING_PAYLOAD)
-        ->Start(payload_type, PayloadDirection::OUTGOING_PAYLOAD);
+    ThroughputRecorderContainer::GetInstance().Start(
+        payload_id, PayloadDirection::OUTGOING_PAYLOAD, payload_type);
     while (should_continue && !shutdown_.Get()) {
       should_continue =
           SendPayloadLoop(client, *pending_payload, payload_header,
@@ -1326,10 +1323,9 @@ void PayloadManager::ProcessDataPacket(
   Payload::Id payload_id = payload_header.id();
   PendingPayloadHandle pending_payload;
   if (payload_chunk.offset() == 0) {
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_id, PayloadDirection::INCOMING_PAYLOAD)
-        ->Start((PayloadType)payload_header.type(),
-                PayloadDirection::INCOMING_PAYLOAD);
+    ThroughputRecorderContainer::GetInstance().Start(
+        payload_id, PayloadDirection::INCOMING_PAYLOAD,
+        (PayloadType)payload_header.type());
     packet_meta_data.Reset();
     RunOnStatusUpdateThread(
         "process-data-packet", [to_client, from_endpoint_id, payload_header,
@@ -1439,13 +1435,12 @@ void PayloadManager::ProcessDataPacket(
                                 payload_chunk.flags(), payload_chunk.offset(),
                                 payload_body_size);
 
-  ThroughputRecorderContainer::GetInstance()
-      .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
-      ->OnFrameReceived(medium, packet_meta_data);
+  ThroughputRecorderContainer::GetInstance().UpdateFrameData(
+      payload_header.id(), PayloadDirection::INCOMING_PAYLOAD, medium,
+      packet_meta_data);
   if (is_last_chunk) {
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
-        ->MarkAsSuccess();
+    ThroughputRecorderContainer::GetInstance().MarkAsSuccess(
+        payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
   }
 }
 

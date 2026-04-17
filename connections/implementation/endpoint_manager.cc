@@ -457,7 +457,6 @@ EndpointManager::~EndpointManager() {
     MutexLock lock(&mutex_);
     is_shutdown_ = true;
   }
-  analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
     LOG(INFO) << "Bringing down endpoints";
@@ -961,9 +960,9 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
       LOG(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;
       continue;
     }
-    analytics::ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_id, PayloadDirection::OUTGOING_PAYLOAD)
-        ->OnFrameSent(channel->GetMedium(), packet_meta_data);
+    analytics::ThroughputRecorderContainer::GetInstance().UpdateFrameData(
+        payload_id, PayloadDirection::OUTGOING_PAYLOAD, channel->GetMedium(),
+        packet_meta_data);
   }
 
   return failed_endpoint_ids;
