@@ -14,7 +14,9 @@
 
 #include "connections/implementation/connections_authentication_transport.h"
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -24,9 +26,8 @@ namespace nearby {
 namespace connections {
 
 ConnectionsAuthenticationTransport::ConnectionsAuthenticationTransport(
-    const EndpointChannel& channel) {
-  channel_ = const_cast<EndpointChannel*>(&channel);
-}
+    std::shared_ptr<EndpointChannel> channel)
+    : channel_(std::move(channel)) {}
 
 void ConnectionsAuthenticationTransport::WriteMessage(
     absl::string_view message) const {

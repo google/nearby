@@ -116,12 +116,24 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
   EncryptionRunner crypto_b;
   ClientProxy proxy_a;
   ClientProxy proxy_b;
-  CountDownLatch latch(2);
+
+  // Create a shared_ptr for the latch to prevent Use-After-Free if the
+  // negotiation times out and this function returns early.
+  auto latch = std::make_shared<CountDownLatch>(2);
+
+  // Wrap the stack-allocated test channels in non-owning shared_ptrs.
+  // This satisfies the EncryptionRunner API without attempting to free stack
+  // memory.
+  std::shared_ptr<EndpointChannel> shared_channel_a(channel_a,
+                                                    [](EndpointChannel*) {});
+  std::shared_ptr<EndpointChannel> shared_channel_b(channel_b,
+                                                    [](EndpointChannel*) {});
+
   crypto_a.StartClient(
-      &proxy_a, "endpoint_id", channel_a,
+      &proxy_a, "endpoint_id", shared_channel_a,
       {
           .on_success_cb =
-              [&latch, &context_a](
+              [latch, &context_a](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -131,20 +143,20 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_a = std::move(context);
-                latch.CountDown();
+                latch->CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [latch](const std::string& endpoint_id,
+                      std::shared_ptr<EndpointChannel> channel) {
                 LOG(INFO) << "client-A side key negotiation failed";
-                latch.CountDown();
+                latch->CountDown();
               },
       });
   crypto_b.StartServer(
-      &proxy_b, "endpoint_id", channel_b,
+      &proxy_b, "endpoint_id", shared_channel_b,
       {
           .on_success_cb =
-              [&latch, &context_b](
+              [latch, &context_b](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -154,16 +166,16 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_b = std::move(context);
-                latch.CountDown();
+                latch->CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [latch](const std::string& endpoint_id,
+                      std::shared_ptr<EndpointChannel> channel) {
                 LOG(INFO) << "client-B side key negotiation failed";
-                latch.CountDown();
+                latch->CountDown();
               },
       });
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
+  EXPECT_TRUE(latch->Await(absl::Milliseconds(5000)).result());
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
 

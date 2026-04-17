@@ -59,7 +59,7 @@ class EndpointChannelManager final {
   // be closed before continuing the registration.
   void RegisterChannelForEndpoint(ClientProxy* client,
                                   const std::string& endpoint_id,
-                                  std::unique_ptr<EndpointChannel> channel)
+                                  std::shared_ptr<EndpointChannel> channel)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Replaces the EndpointChannel to be associated with an endpoint from here on
@@ -67,7 +67,7 @@ class EndpointChannelManager final {
   // to the newly-provided EndpointChannel.
   void ReplaceChannelForEndpoint(ClientProxy* client,
                                  const std::string& endpoint_id,
-                                 std::unique_ptr<EndpointChannel> channel,
+                                 std::shared_ptr<EndpointChannel> channel,
                                  bool enable_encryption)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -168,7 +168,7 @@ class EndpointChannelManager final {
     // Stores a new EndpointChannel for the endpoint.
     // Prevoius one is destroyed, if it existed.
     void UpdateChannelForEndpoint(const std::string& endpoint_id,
-                                  std::unique_ptr<EndpointChannel> channel);
+                                  std::shared_ptr<EndpointChannel> channel);
 
     // Stores a new EncryptionContext for the endpoint.
     // Prevoius one is destroyed, if it existed.
@@ -207,7 +207,7 @@ class EndpointChannelManager final {
 
   void SetActiveEndpointChannel(ClientProxy* client,
                                 const std::string& endpoint_id,
-                                std::unique_ptr<EndpointChannel> channel,
+                                std::shared_ptr<EndpointChannel> channel,
                                 bool enable_encryption)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

@@ -85,35 +85,38 @@ class MockEndpointChannel : public EndpointChannel {
 };
 
 TEST(ConnectionsAuthenticationTransportTest, TestWriteMessage) {
-  MockEndpointChannel channel;
+  auto channel = std::make_shared<MockEndpointChannel>();
+  auto* channel_ptr = channel.get();
   ConnectionsAuthenticationTransport transport(channel);
-  EXPECT_CALL(channel, Write(_)).WillOnce([&channel](absl::string_view data) {
-    channel.messages_.push_back(std::string(data));
-    return Exception{
-        .value = Exception::Value::kSuccess,
-    };
-  });
+  EXPECT_CALL(*channel, Write(_))
+      .WillOnce([channel_ptr](absl::string_view data) {
+        channel_ptr->messages_.push_back(std::string(data));
+        return Exception{
+            .value = Exception::Value::kSuccess,
+        };
+      });
   transport.WriteMessage("hello world");
-  EXPECT_THAT(channel.messages_, testing::ElementsAre("hello world"));
+  EXPECT_THAT(channel_ptr->messages_, testing::ElementsAre("hello world"));
 }
 
 TEST(ConnectionsAuthenticationTransportTest, TestReadMessage) {
-  MockEndpointChannel channel;
+  auto channel = std::make_shared<MockEndpointChannel>();
+  auto* channel_ptr = channel.get();
   ConnectionsAuthenticationTransport transport(channel);
-  channel.messages_.push_back("hello world");
-  EXPECT_CALL(channel, Read()).WillOnce([&channel]() {
-    std::string ret = channel.messages_[0];
-    channel.messages_.erase(channel.messages_.begin());
+  channel_ptr->messages_.push_back("hello world");
+  EXPECT_CALL(*channel, Read()).WillOnce([channel_ptr]() {
+    std::string ret = channel_ptr->messages_[0];
+    channel_ptr->messages_.erase(channel_ptr->messages_.begin());
     return ExceptionOr<ByteArray>(ByteArray(ret));
   });
   EXPECT_EQ(transport.ReadMessage(), "hello world");
 }
 
 TEST(ConnectionsAuthenticationTransportTest, TestReadMessageFail) {
-  MockEndpointChannel channel;
+  auto channel = std::make_shared<MockEndpointChannel>();
   ConnectionsAuthenticationTransport transport(channel);
-  channel.messages_.push_back("hello world");
-  EXPECT_CALL(channel, Read()).WillOnce([]() {
+  channel->messages_.push_back("hello world");
+  EXPECT_CALL(*channel, Read()).WillOnce([]() {
     return ExceptionOr<ByteArray>(Exception::Value::kIo);
   });
   EXPECT_EQ(transport.ReadMessage(), "");

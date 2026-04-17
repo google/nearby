@@ -46,7 +46,7 @@ EndpointChannelManager::~EndpointChannelManager() {
 
 void EndpointChannelManager::RegisterChannelForEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> channel) {
+    std::shared_ptr<EndpointChannel> channel) {
   MutexLock lock(&mutex_);
 
   LOG(INFO) << "EndpointChannelManager registered channel of type "
@@ -59,7 +59,7 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
 
 void EndpointChannelManager::ReplaceChannelForEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
+    std::shared_ptr<EndpointChannel> channel, bool enable_encryption) {
   MutexLock lock(&mutex_);
   if (client->IsSafeToDisconnectEnabled(endpoint_id) &&
       channel_state_.IsWaitingForSafeToDisconnectTimeout(endpoint_id)) {
@@ -106,7 +106,7 @@ std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
 
 void EndpointChannelManager::SetActiveEndpointChannel(
     ClientProxy* client, const std::string& endpoint_id,
-    std::unique_ptr<EndpointChannel> channel, bool enable_encryption) {
+    std::shared_ptr<EndpointChannel> channel, bool enable_encryption) {
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
   channel->SetAnalyticsRecorder(&client->GetAnalyticsRecorder(), endpoint_id);
@@ -189,7 +189,7 @@ void EndpointChannelManager::ChannelState::DestroyAll() {
 }
 
 void EndpointChannelManager::ChannelState::UpdateChannelForEndpoint(
-    const std::string& endpoint_id, std::unique_ptr<EndpointChannel> channel) {
+    const std::string& endpoint_id, std::shared_ptr<EndpointChannel> channel) {
   // Create EndpointData instance, if necessary, and populate channel.
   endpoints_[endpoint_id].channel = std::move(channel);
 }

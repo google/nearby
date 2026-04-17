@@ -212,8 +212,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       }
       WifiLanConnectionInfo info(
           std::string(ip_address.begin(), ip_address.end()),
-          absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "",
-          {});
+          absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "", {});
       connection_infos.push_back(info);
     }
   }
@@ -424,25 +423,25 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
             pending_connection_info.connection_options.connection_info
                 .supported_wifi_direct_auth_types;
         LOG(INFO) << "Remote supported WifiDirect auth types: "
-                << absl::StrJoin(
-                       remote_supported_wifi_direct_auth_types, ", ",
-                       [](std::string* out, int auth_type) {
-                         absl::StrAppend(
-                             out,
-                             WifiDirectAuthType_Name(
-                                 static_cast<WifiDirectAuthType>(auth_type)));
-                       });
+                  << absl::StrJoin(
+                         remote_supported_wifi_direct_auth_types, ", ",
+                         [](std::string* out, int auth_type) {
+                           absl::StrAppend(
+                               out,
+                               WifiDirectAuthType_Name(
+                                   static_cast<WifiDirectAuthType>(auth_type)));
+                         });
         auto local_supported_wifi_direct_auth_types =
             mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
         LOG(INFO) << "Local supported WifiDirect auth types: "
-                << absl::StrJoin(
-                       local_supported_wifi_direct_auth_types, ", ",
-                       [](std::string* out, int auth_type) {
-                         absl::StrAppend(
-                             out,
-                             WifiDirectAuthType_Name(
-                                 static_cast<WifiDirectAuthType>(auth_type)));
-                       });
+                  << absl::StrJoin(
+                         local_supported_wifi_direct_auth_types, ", ",
+                         [](std::string* out, int auth_type) {
+                           absl::StrAppend(
+                               out,
+                               WifiDirectAuthType_Name(
+                                   static_cast<WifiDirectAuthType>(auth_type)));
+                         });
         bool found_common_auth_type = false;
         for (const auto& auth_type : local_supported_wifi_direct_auth_types) {
           if (auth_type == WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN) {
@@ -587,24 +586,27 @@ void BasePcpHandler::RunOnPcpHandlerThread(const std::string& name,
   serial_executor_.Execute(name, std::move(runnable));
 }
 
-EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
+EncryptionRunner::ResultListener BasePcpHandler::GetResultListener(
+    std::shared_ptr<EndpointChannel> endpoint_channel) {
   return {
       .on_success_cb =
-          [this](const std::string& endpoint_id,
-                 std::unique_ptr<UKey2Handshake> ukey2,
-                 const std::string& auth_token,
-                 const ByteArray& raw_auth_token) {
+          [this, endpoint_channel](const std::string& endpoint_id,
+                                   std::unique_ptr<UKey2Handshake> ukey2,
+                                   const std::string& auth_token,
+                                   const ByteArray& raw_auth_token) {
             RunOnPcpHandlerThread(
                 "encryption-success",
-                [this, endpoint_id, raw_ukey2 = ukey2.release(), auth_token,
+                [this, endpoint_id, endpoint_channel,
+                 raw_ukey2 = ukey2.release(), auth_token,
                  raw_auth_token]() RUN_ON_PCP_HANDLER_THREAD() mutable {
                   OnEncryptionSuccessRunnable(
                       endpoint_id, std::unique_ptr<UKey2Handshake>(raw_ukey2),
-                      auth_token, raw_auth_token);
+                      auth_token, raw_auth_token, endpoint_channel);
                 });
           },
       .on_failure_cb =
-          [this](const std::string& endpoint_id, EndpointChannel* channel) {
+          [this](const std::string& endpoint_id,
+                 std::shared_ptr<EndpointChannel> channel) {
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -622,16 +624,16 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
 EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
     const NearbyDeviceProvider& device_provider,
     const NearbyDevice& remote_device,
-    const EndpointChannel& endpoint_channel) {
+    std::shared_ptr<EndpointChannel> endpoint_channel) {
   return {
       .on_success_cb =
-          [this, &device_provider, &remote_device, &endpoint_channel](
+          [this, &device_provider, &remote_device, endpoint_channel](
               const std::string& endpoint_id,
               std::unique_ptr<UKey2Handshake> ukey2,
               const std::string& auth_token, const ByteArray& raw_auth_token) {
             RunOnPcpHandlerThread(
                 "encryption-success",
-                [this, &device_provider, &remote_device, &endpoint_channel,
+                [this, &device_provider, &remote_device, endpoint_channel,
                  raw_ukey2 = ukey2.release(), auth_token,
                  raw_auth_token]() RUN_ON_PCP_HANDLER_THREAD() mutable {
                   OnEncryptionSuccessRunnableV3(
@@ -641,7 +643,8 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
                 });
           },
       .on_failure_cb =
-          [this](const std::string& endpoint_id, EndpointChannel* channel) {
+          [this](const std::string& endpoint_id,
+                 std::shared_ptr<EndpointChannel> channel) {
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -650,7 +653,7 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
                       << " on medium="
                       << location::nearby::proto::connections::Medium_Name(
                              channel->GetMedium());
-                  OnEncryptionFailureRunnable(endpoint_id, channel);
+                  OnEncryptionFailureRunnable(endpoint_id, std::move(channel));
                 });
           },
   };
@@ -659,8 +662,11 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
 void BasePcpHandler::OnEncryptionSuccessRunnableV3(
     const NearbyDevice& remote_device, std::unique_ptr<UKey2Handshake> ukey2,
     absl::string_view auth_token, const ByteArray& raw_auth_token,
-    const EndpointChannel& endpoint_channel,
+    std::shared_ptr<EndpointChannel> endpoint_channel,
     const NearbyDeviceProvider& device_provider) {
+  // State Management: Ensure the channel is still valid and active.
+  if (endpoint_channel->IsClosed()) return;
+
   // Quick fail if we've been removed from pending connections while we were
   // busy running UKEY2.
   // TODO(b/316421187): Add test coverage
@@ -675,6 +681,11 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
 
+  // Verify pointer equality to avoid accidental action on superseded
+  // channels.
+  if (endpoint_channel != pending_connection_info.channel) {
+    return;
+  }
   // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
@@ -724,7 +735,11 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
 
 void BasePcpHandler::OnEncryptionSuccessRunnable(
     const std::string& endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
-    const std::string& auth_token, const ByteArray& raw_auth_token) {
+    const std::string& auth_token, const ByteArray& raw_auth_token,
+    std::shared_ptr<EndpointChannel> endpoint_channel) {
+  // State Management: Ensure the channel is still active.
+  if (endpoint_channel->IsClosed()) return;
+
   // Quick fail if we've been removed from pending connections while we were
   // busy running UKEY2.
   // TODO(b/316421187): Add test coverage
@@ -737,6 +752,12 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
+
+  // Verify pointer equality to avoid accidental action on superseded
+  // channels.
+  if (endpoint_channel != pending_connection_info.channel) {
+    return;
+  }
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
@@ -801,24 +822,21 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
 }
 
 void BasePcpHandler::OnEncryptionFailureRunnable(
-    const std::string& endpoint_id, EndpointChannel* endpoint_channel) {
+    const std::string& endpoint_id,
+    std::shared_ptr<EndpointChannel> endpoint_channel) {
   auto it = pending_connections_.find(endpoint_id);
   if (it == pending_connections_.end()) {
     LOG(INFO)
-        << "Connection not found on UKEY negotination complete; endpoint_id="
+        << "Connection not found on UKEY negotiation complete; endpoint_id="
         << endpoint_id;
     return;
   }
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
-  // We had a bug here, caused by a race with EncryptionRunner. We now verify
-  // the EndpointChannel to avoid it. In a simultaneous connection, we clean
-  // up one of the two EndpointChannels and then update our pendingConnections
-  // with the winning channel's state. Closing a channel that was in the
-  // middle of EncryptionRunner would trigger onEncryptionFailed, and, since
-  // the map had already updated with the winning EndpointChannel, we closed
-  // it too by accident.
-  if (*endpoint_channel != *pending_connection_info.channel) {
+
+  // Correctly verify pointer equality before potentially destroying a
+  // winning channel.
+  if (endpoint_channel != pending_connection_info.channel) {
     LOG(INFO) << "Not destroying channel [mismatch]: passed="
               << endpoint_channel->GetName()
               << "; expected=" << pending_connection_info.channel->GetName();
@@ -871,8 +889,8 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     connection_info.supported_wifi_direct_auth_types =
         mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
     VLOG(1) << "Set SupportedWifiDirectAuthTypes for WIFI_DIRECT: "
-              << absl::StrJoin(connection_info.supported_wifi_direct_auth_types,
-                               ",");
+            << absl::StrJoin(connection_info.supported_wifi_direct_auth_types,
+                             ",");
   } else {
     connection_info.supported_wifi_direct_auth_types = {};
   }
@@ -904,7 +922,6 @@ Status BasePcpHandler::RequestConnection(
       [this, client, &info, connection_options, endpoint_id,
        result]() RUN_ON_PCP_HANDLER_THREAD() {
         absl::Time start_time = SystemClock::ElapsedRealtime();
-
         DiscoveredEndpoint* endpoint = GetDiscoveredEndpoint(endpoint_id);
         if (endpoint == nullptr) {
           LOG(INFO) << "Discovered endpoint not found: endpoint_id="
@@ -1005,17 +1022,17 @@ Status BasePcpHandler::RequestConnection(
         pending_connection_info.medium = channel->GetMedium();
         pending_connection_info.channel = std::move(channel);
 
-        EndpointChannel* endpoint_channel =
+        std::shared_ptr<EndpointChannel> endpoint_channel =
             pending_connections_
                 .emplace(endpoint_id, std::move(pending_connection_info))
-                .first->second.channel.get();
+                .first->second.channel;
 
         LOG(INFO) << "Initiating secure connection: endpoint_id="
                   << endpoint_id;
         // Next, we'll set up encryption. When it's done, our future will return
         // and RequestConnection() will finish.
         encryption_runner_.StartClient(client, endpoint_id, endpoint_channel,
-                                       GetResultListener());
+                                       GetResultListener(endpoint_channel));
       });
   LOG(INFO) << "Waiting for connection to complete: endpoint_id="
             << endpoint_id;
@@ -1152,10 +1169,10 @@ Status BasePcpHandler::RequestConnectionV3(
         pending_connection_info.medium = channel->GetMedium();
         pending_connection_info.channel = std::move(channel);
 
-        EndpointChannel* endpoint_channel =
+        std::shared_ptr<EndpointChannel> endpoint_channel =
             pending_connections_
                 .emplace(endpoint_id, std::move(pending_connection_info))
-                .first->second.channel.get();
+                .first->second.channel;
 
         LOG(INFO) << "Initiating secure connection: endpoint_id="
                   << endpoint_id;
@@ -1165,7 +1182,7 @@ Status BasePcpHandler::RequestConnectionV3(
         encryption_runner_.StartClient(
             client, endpoint_id, endpoint_channel,
             GetResultListenerV3(*(client->GetLocalDeviceProvider()),
-                                remote_device, *endpoint_channel));
+                                remote_device, endpoint_channel));
       });
   LOG(INFO) << "Waiting for connection to complete: endpoint_id="
             << endpoint_id;
@@ -2133,14 +2150,23 @@ Exception BasePcpHandler::OnIncomingConnection(
   pending_connection_info.medium = channel->GetMedium();
   pending_connection_info.channel = std::move(channel);
 
-  auto* owned_channel = pending_connections_
-                            .emplace(connection_request.endpoint_id(),
-                                     std::move(pending_connection_info))
-                            .first->second.channel.get();
+  auto [it, inserted] = pending_connections_.emplace(
+      connection_request.endpoint_id(), std::move(pending_connection_info));
+  // This should not happen since BreakTie() above should have checked that
+  // the endpoint_id is not already in pending_connections_.
+  if (!inserted) {
+    LOG(ERROR) << "Failed to add incoming connection to pending set; "
+                  "endpoint_id="
+               << connection_request.endpoint_id()
+               << ". Likely a collision with an existing pending connection.";
+    return {Exception::kIo};
+  }
+  std::shared_ptr<EndpointChannel> endpoint_channel = it->second.channel;
 
   // Next, we'll set up encryption.
   encryption_runner_.StartServer(client, connection_request.endpoint_id(),
-                                 owned_channel, GetResultListener());
+                                 endpoint_channel,
+                                 GetResultListener(endpoint_channel));
   return {Exception::kSuccess};
 }
 

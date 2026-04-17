@@ -46,7 +46,7 @@ class EncryptionRunner {
                              const std::string& auth_token,
                              const ByteArray& raw_auth_token);
     void CallFailureCallback(const std::string& endpoint_id,
-                             EndpointChannel* channel);
+                             std::shared_ptr<EndpointChannel> channel);
     void Reset();
 
     // @EncryptionRunnerThread
@@ -66,17 +66,17 @@ class EncryptionRunner {
     //
     // @EncryptionRunnerThread
     absl::AnyInvocable<void(const std::string& endpoint_id,
-                            EndpointChannel* channel) &&>
+                            std::shared_ptr<EndpointChannel> channel)>
         on_failure_cb;
   };
 
   // @AnyThread
   void StartServer(ClientProxy* client, const std::string& endpoint_id,
-                   EndpointChannel* endpoint_channel,
+                   std::shared_ptr<EndpointChannel> endpoint_channel,
                    ResultListener result_listener);
   // @AnyThread
   void StartClient(ClientProxy* client, const std::string& endpoint_id,
-                   EndpointChannel* endpoint_channel,
+                   std::shared_ptr<EndpointChannel> endpoint_channel,
                    ResultListener result_listener);
 
   // @AnyThread

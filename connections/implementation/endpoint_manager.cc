@@ -539,7 +539,7 @@ void EndpointManager::RegisterEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
     const ConnectionResponseInfo& info,
     const ConnectionOptions& connection_options,
-    std::unique_ptr<EndpointChannel> channel,
+    std::shared_ptr<EndpointChannel> channel,
     const ConnectionListener& listener, const std::string& connection_token) {
   CountDownLatch latch(1);
 
@@ -547,95 +547,99 @@ void EndpointManager::RegisterEndpoint(
   // std::unique_ptr<> is not copyable, so we can not pass it to
   // lambda capture, because lambda eventually is converted to
   // std::function<>. Instead, we release() a pointer, and pass a raw pointer,
-  // which is copyalbe. We ignore the risk of job not scheduled (and an
+  // which is copyable. We ignore the risk of job not scheduled (and an
   // associated risk of memory leak), because this may only happen during
   // service shutdown.
-  RunOnEndpointManagerThread(
-      "register-endpoint",
-      [this, client, channel = channel.release(), &endpoint_id, &info,
-       &connection_options, &listener, &connection_token, &latch]() {
-        if (endpoints_.contains(endpoint_id)) {
-          LOG(WARNING) << "Registering duplicate endpoint " << endpoint_id;
-          // We must remove old endpoint state before registering a new one
-          // for the same endpoint_id.
-          RemoveEndpointState(endpoint_id);
-        }
+  RunOnEndpointManagerThread("register-endpoint", [this, client, channel,
+                                                   &endpoint_id, &info,
+                                                   &connection_options,
+                                                   &listener, &connection_token,
+                                                   &latch]() {
+    if (channel->IsClosed()) {
+      LOG(WARNING) << "Channel is closed, skipping endpoint registration "
+                   << endpoint_id;
+      latch.CountDown();
+      return;
+    }
+    if (endpoints_.contains(endpoint_id)) {
+      LOG(WARNING) << "Registering duplicate endpoint " << endpoint_id;
+      // We must remove old endpoint state before registering a new one
+      // for the same endpoint_id.
+      RemoveEndpointState(endpoint_id);
+    }
 
-        absl::Duration keep_alive_interval =
-            absl::Milliseconds(connection_options.keep_alive_interval_millis);
-        absl::Duration keep_alive_timeout =
-            absl::Milliseconds(connection_options.keep_alive_timeout_millis);
-        LOG(INFO) << "Registering endpoint " << endpoint_id << " for client "
-                  << client->GetClientId()
-                  << " with keep-alive frame as interval="
-                  << absl::FormatDuration(keep_alive_interval)
-                  << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
+    absl::Duration keep_alive_interval =
+        absl::Milliseconds(connection_options.keep_alive_interval_millis);
+    absl::Duration keep_alive_timeout =
+        absl::Milliseconds(connection_options.keep_alive_timeout_millis);
+    LOG(INFO) << "Registering endpoint " << endpoint_id << " for client "
+              << client->GetClientId() << " with keep-alive frame as interval="
+              << absl::FormatDuration(keep_alive_interval)
+              << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
 
-        // Pass ownership of channel to EndpointChannelManager
-        LOG(INFO) << "Registering endpoint with channel manager: endpoint "
-                  << endpoint_id;
-        channel_manager_->RegisterChannelForEndpoint(
-            client, endpoint_id, std::unique_ptr<EndpointChannel>(channel));
+    // Pass ownership of channel to EndpointChannelManager
+    LOG(INFO) << "Registering endpoint with channel manager: endpoint "
+              << endpoint_id;
+    channel_manager_->RegisterChannelForEndpoint(client, endpoint_id, channel);
 
-        EndpointState& endpoint_state =
-            endpoints_
-                .emplace(endpoint_id,
-                         EndpointState(endpoint_id, channel_manager_))
-                .first->second;
+    EndpointState& endpoint_state =
+        endpoints_
+            .emplace(endpoint_id, EndpointState(endpoint_id, channel_manager_))
+            .first->second;
 
-        LOG(INFO) << "Starting workers: endpoint " << endpoint_id;
-        // For every endpoint, there's normally only one Read handler instance
-        // running on a dedicated thread. This instance reads data from the
-        // endpoint and delegates incoming frames to various FrameProcessors.
-        // Once the frame has been properly handled, it starts reading again
-        // for the next frame. If the handler fails its read and no other
-        // EndpointChannels are available for this endpoint, a disconnection
-        // will be initiated.
-        endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
+    LOG(INFO) << "Starting workers: endpoint " << endpoint_id;
+    // For every endpoint, there's normally only one Read handler instance
+    // running on a dedicated thread. This instance reads data from the
+    // endpoint and delegates incoming frames to various FrameProcessors.
+    // Once the frame has been properly handled, it starts reading again
+    // for the next frame. If the handler fails its read and no other
+    // EndpointChannels are available for this endpoint, a disconnection
+    // will be initiated.
+    endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
+      EndpointChannelLoopRunnable(
+          "Read", client, endpoint_id,
+          [this, client, endpoint_id](EndpointChannel* channel) {
+            return HandleData(endpoint_id, client, channel);
+          });
+    });
+
+    // For every endpoint, there's only one KeepAliveManager instance
+    // running on a dedicated thread. This instance will periodically send
+    // out a ping* to the endpoint while listening for an incoming pong**.
+    // If it fails to send the ping, or if no pong is heard within
+    // keep_alive_timeout, it initiates a disconnection.
+    //
+    // (*) Bluetooth requires a constant outgoing stream of messages. If
+    // there's silence, Android will break the socket. This is why we
+    // ping.
+    // (**) Wifi Hotspots can fail to notice a connection has been lost,
+    // and they will happily keep writing to /dev/null. This is why we
+    // listen for the pong.
+    VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
+            << endpoint_id;
+    endpoint_state.StartEndpointKeepAliveManager(
+        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
+            Mutex* keep_alive_waiter_mutex,
+            ConditionVariable* keep_alive_waiter) {
           EndpointChannelLoopRunnable(
-              "Read", client, endpoint_id,
-              [this, client, endpoint_id](EndpointChannel* channel) {
-                return HandleData(endpoint_id, client, channel);
+              "KeepAliveManager", client, endpoint_id,
+              [this, keep_alive_interval, keep_alive_timeout,
+               keep_alive_waiter_mutex,
+               keep_alive_waiter](EndpointChannel* channel) {
+                return HandleKeepAlive(
+                    channel, keep_alive_interval, keep_alive_timeout,
+                    keep_alive_waiter_mutex, keep_alive_waiter);
               });
         });
+    LOG(INFO) << "Registering endpoint " << endpoint_id
+              << ", workers started and notifying client.";
 
-        // For every endpoint, there's only one KeepAliveManager instance
-        // running on a dedicated thread. This instance will periodically send
-        // out a ping* to the endpoint while listening for an incoming pong**.
-        // If it fails to send the ping, or if no pong is heard within
-        // keep_alive_timeout, it initiates a disconnection.
-        //
-        // (*) Bluetooth requires a constant outgoing stream of messages. If
-        // there's silence, Android will break the socket. This is why we
-        // ping.
-        // (**) Wifi Hotspots can fail to notice a connection has been lost,
-        // and they will happily keep writing to /dev/null. This is why we
-        // listen for the pong.
-        VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
-                << endpoint_id;
-        endpoint_state.StartEndpointKeepAliveManager(
-            [this, client, endpoint_id, keep_alive_interval,
-             keep_alive_timeout](Mutex* keep_alive_waiter_mutex,
-                                 ConditionVariable* keep_alive_waiter) {
-              EndpointChannelLoopRunnable(
-                  "KeepAliveManager", client, endpoint_id,
-                  [this, keep_alive_interval, keep_alive_timeout,
-                   keep_alive_waiter_mutex,
-                   keep_alive_waiter](EndpointChannel* channel) {
-                    return HandleKeepAlive(
-                        channel, keep_alive_interval, keep_alive_timeout,
-                        keep_alive_waiter_mutex, keep_alive_waiter);
-                  });
-            });
-        LOG(INFO) << "Registering endpoint " << endpoint_id
-                  << ", workers started and notifying client.";
-
-        // It's now time to let the client know of this new connection so that
-        // they can accept or reject it.
-        client->OnConnectionInitiated(endpoint_id, info, connection_options,
-                                      listener, connection_token);
-        latch.CountDown();
-      });
+    // It's now time to let the client know of this new connection so that
+    // they can accept or reject it.
+    client->OnConnectionInitiated(endpoint_id, info, connection_options,
+                                  listener, connection_token);
+    latch.CountDown();
+  });
   latch.Await();
 }
 
@@ -722,7 +726,7 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
     // of `serial_executor_` and will still have access to a valid
     // `is_shutdown_`.
     //
-    // TODO(b/280653613): Develop a more robost solution to prevent
+    // TODO(b/280653613): Develop a more robust solution to prevent
     // accessing an already destroyed `ClientProxy` during destruction.
     {
       MutexLock lock(&mutex_);
@@ -953,8 +957,7 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
       continue;
     }
 
-    Exception write_exception =
-        channel->Write(bytes, packet_meta_data);
+    Exception write_exception = channel->Write(bytes, packet_meta_data);
     if (!write_exception.Ok()) {
       failed_endpoint_ids.push_back(endpoint_id);
       LOG(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;

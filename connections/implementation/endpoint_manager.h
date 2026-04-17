@@ -112,7 +112,7 @@ class EndpointManager {
   void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
                         const ConnectionResponseInfo& info,
                         const ConnectionOptions& connection_options,
-                        std::unique_ptr<EndpointChannel> channel,
+                        std::shared_ptr<EndpointChannel> channel,
                         const ConnectionListener& listener,
                         const std::string& connection_token);
   // Called when a client explicitly asks to disconnect from this endpoint. In

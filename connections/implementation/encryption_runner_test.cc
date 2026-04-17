@@ -123,21 +123,24 @@ class FakeEndpointChannel : public EndpointChannel {
 };
 
 struct User {
-  User(InputStream* reader, OutputStream* writer) : channel(reader, writer) {}
+  User(InputStream* reader, OutputStream* writer)
+      : channel(std::make_shared<FakeEndpointChannel>(reader, writer)) {}
 
-  FakeEndpointChannel channel;
+  std::shared_ptr<FakeEndpointChannel> channel;
   EncryptionRunner crypto;
   ClientProxy client;
 };
 
 struct Response {
+  Response() : latch(2) {}
+  explicit Response(int count) : latch(count) {}
   enum class Status {
     kUnknown = 0,
     kDone = 1,
     kFailed = 2,
   };
 
-  CountDownLatch latch{2};
+  CountDownLatch latch;
   Status server_status = Status::kUnknown;
   Status client_status = Status::kUnknown;
 };
@@ -154,7 +157,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
   Response response;
 
   user_a.crypto.StartServer(
-      &user_a.client, "endpoint_id", &user_a.channel,
+      &user_a.client, "endpoint_id", user_a.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -166,14 +169,14 @@ TEST(EncryptionRunnerTest, ReadWrite) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.server_status = Response::Status::kFailed;
                 response.latch.CountDown();
               },
       });
   user_b.crypto.StartClient(
-      &user_b.client, "endpoint_id", &user_b.channel,
+      &user_b.client, "endpoint_id", user_b.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -185,7 +188,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.client_status = Response::Status::kFailed;
                 response.latch.CountDown();
@@ -203,14 +206,13 @@ TEST(EncryptionRunnerTest, ClientWriteFails) {
               /*writer=*/from_a_to_b.second.get());
   User user_b(/*reader=*/from_a_to_b.first.get(),
               /*writer=*/from_b_to_a.second.get());
-  Response response;
-  response.latch = CountDownLatch(1);
+  Response response(1);
 
   // Close server's input stream, so client can't write to it.
   from_b_to_a.first->Close();
 
   user_b.crypto.StartClient(
-      &user_b.client, "endpoint_id", &user_b.channel,
+      &user_b.client, "endpoint_id", user_b.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -222,7 +224,7 @@ TEST(EncryptionRunnerTest, ClientWriteFails) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.client_status = Response::Status::kFailed;
                 response.latch.CountDown();
@@ -239,14 +241,13 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
               /*writer=*/from_a_to_b.second.get());
   User user_b(/*reader=*/from_a_to_b.first.get(),
               /*writer=*/from_b_to_a.second.get());
-  Response response;
-  response.latch = CountDownLatch(1);
+  Response response(1);
 
   // Close client's input stream, so server can't write to it.
   from_a_to_b.first->Close();
 
   user_a.crypto.StartServer(
-      &user_a.client, "endpoint_id", &user_a.channel,
+      &user_a.client, "endpoint_id", user_a.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -258,22 +259,22 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.server_status = Response::Status::kFailed;
                 response.latch.CountDown();
               },
       });
   user_b.crypto.StartClient(
-      &user_b.client, "endpoint_id", &user_b.channel,
+      &user_b.client, "endpoint_id", user_b.channel,
       {
-          .on_success_cb =
-              [](const std::string& endpoint_id,
-                 std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                 const std::string& auth_token,
-                 const ByteArray& raw_auth_token) {},
+          .on_success_cb = [](const std::string& endpoint_id,
+                              std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                              const std::string& auth_token,
+                              const ByteArray& raw_auth_token) {},
           .on_failure_cb =
-              [](const std::string& endpoint_id, EndpointChannel* channel) {
+              [](const std::string& endpoint_id,
+                 std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
               },
       });
@@ -286,11 +287,10 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage1) {
   auto from_client_to_server = CreatePipe();
   User user_a(/*reader=*/from_client_to_server.first.get(),
               /*writer=*/from_server_to_client.second.get());
-  Response response;
-  response.latch = CountDownLatch(1);
+  Response response(1);
 
   user_a.crypto.StartServer(
-      &user_a.client, "endpoint_id", &user_a.channel,
+      &user_a.client, "endpoint_id", user_a.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -302,7 +302,7 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage1) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.server_status = Response::Status::kFailed;
                 response.latch.CountDown();
@@ -327,11 +327,10 @@ TEST(EncryptionRunnerTest, ServerSendsGarbageMessage2) {
   auto from_client_to_server = CreatePipe();
   User user_b(/*reader=*/from_server_to_client.first.get(),
               /*writer=*/from_client_to_server.second.get());
-  Response response;
-  response.latch = CountDownLatch(1);
+  Response response(1);
 
   user_b.crypto.StartClient(
-      &user_b.client, "endpoint_id", &user_b.channel,
+      &user_b.client, "endpoint_id", user_b.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -343,7 +342,7 @@ TEST(EncryptionRunnerTest, ServerSendsGarbageMessage2) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.client_status = Response::Status::kFailed;
                 response.latch.CountDown();
@@ -373,11 +372,10 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage3) {
               /*writer=*/from_server_to_client.second.get());
   User user_b(/*reader=*/from_server_to_client.first.get(),
               /*writer=*/from_client_to_server.second.get());
-  Response response;
-  response.latch = CountDownLatch(1);
+  Response response(1);
 
   user_a.crypto.StartServer(
-      &user_a.client, "endpoint_id", &user_a.channel,
+      &user_a.client, "endpoint_id", user_a.channel,
       {
           .on_success_cb =
               [&response](const std::string& endpoint_id,
@@ -389,7 +387,7 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage3) {
               },
           .on_failure_cb =
               [&response](const std::string& endpoint_id,
-                          EndpointChannel* channel) {
+                          std::shared_ptr<EndpointChannel> channel) {
                 channel->Close();
                 response.server_status = Response::Status::kFailed;
                 response.latch.CountDown();
@@ -410,7 +408,8 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage3) {
   EXPECT_TRUE(server_init.ok());
 
   // Client crypto parses message 2.
-  client_crypto->ParseHandshakeMessage(std::string(server_init.result()));
+  client_crypto->ParseHandshakeMessage(
+      std::string(server_init.result().data(), server_init.result().size()));
 
   // Client sends garbage instead of message 3
   from_client_to_server.second->Write("Garbage");
