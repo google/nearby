@@ -108,8 +108,7 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     InitializePreferencesManager();
   }
 
-  is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableDct);
+  is_dct_enabled_ = false;
   analytics_recorder_ =
       std::make_unique<analytics::AnalyticsRecorder>(event_logger);
   error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
@@ -153,10 +152,6 @@ std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 
 std::string ClientProxy::GetLocalEndpointId() {
   MutexLock lock(&mutex_);
-  if (IsDctEnabled() && GetEndpointIdForDct().has_value()) {
-    LOG(INFO) << "DCT is using genereted endpoint id.";
-    return GetEndpointIdForDct().value();
-  } else {
     if (!local_endpoint_id_.empty()) {
       LOG(INFO) << __func__
                 << ": Reusing cached endpoint id: " << local_endpoint_id_;
@@ -172,7 +167,6 @@ std::string ClientProxy::GetLocalEndpointId() {
                 << local_endpoint_id_;
     }
     return local_endpoint_id_;
-  }
 }
 
 const NearbyDevice* ClientProxy::GetLocalDevice() {
