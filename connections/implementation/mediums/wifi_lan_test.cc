@@ -168,11 +168,6 @@ TEST_P(WifiLanTest, CanConnect) {
 }
 
 TEST_P(WifiLanTest, CanConnectWithMultiplex) {
-  bool is_multiplex_enabled = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
-      true);
   bool is_multiplex_enabled_wifi_lan = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexWifiLan);
@@ -235,9 +230,6 @@ TEST_P(WifiLanTest, CanConnectWithMultiplex) {
   EXPECT_TRUE(socket_for_server.IsValid());
   EXPECT_TRUE(socket_for_client.IsValid());
   env_.Stop();
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
-      is_multiplex_enabled);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexWifiLan,

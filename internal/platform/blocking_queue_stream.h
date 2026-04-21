@@ -41,9 +41,7 @@ class BlockingQueueStream : public InputStream {
 
  private:
   mutable Mutex mutex_;
-  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex);
+  bool is_multiplex_enabled_ = false;
   ArrayBlockingQueue<ByteArray> blocking_queue_{
       FeatureFlags::GetInstance()
           .GetFlags()

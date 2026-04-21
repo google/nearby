@@ -1207,24 +1207,6 @@ OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
 }
 
 std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplex)) {
-    std::int32_t multiplex_bitmask =
-        (NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnableMultiplexBluetooth)
-             ? kBtMultiplexEnabled
-             : 0) |
-        (NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnableMultiplexWifiLan)
-             ? kWifiLanMultiplexEnabled
-             : 0);
-    LOG(INFO) << "ClientProxy [GetLocalMultiplexSocketBitmask]: "
-              << multiplex_bitmask;
-    return multiplex_bitmask;
-  }
   return 0;
 }
 

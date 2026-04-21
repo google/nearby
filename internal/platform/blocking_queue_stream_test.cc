@@ -24,47 +24,21 @@ namespace nearby {
 namespace {
 
 TEST(BlockingQueueStreamTest, ReadSuccess) {
-  bool is_multiplex_enabled = NearbyFlags::GetInstance().GetBoolFlag(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex, true);
-
-  BlockingQueueStream stream;
-  ByteArray bytes = ByteArray("test1test2test3");
-  stream.Write(bytes);
-  ExceptionOr<ByteArray> result = stream.Read(5);
-  EXPECT_EQ(result.result(), ByteArray("test1"));
-  result = stream.Read(5);
-  EXPECT_EQ(result.result(), ByteArray("test2"));
-  result = stream.Read(5);
-  EXPECT_EQ(result.result(), ByteArray("test3"));
-  stream.Close();
-
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex, is_multiplex_enabled);
-}
-
-TEST(BlockingQueueStreamTest, MultiplexDisabled) {
-  bool is_multiplex_enabled = NearbyFlags::GetInstance().GetBoolFlag(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex, false);
-
   BlockingQueueStream stream;
   ByteArray bytes = ByteArray("test1test2test3");
   stream.Write(bytes);
   ExceptionOr<ByteArray> result = stream.Read(5);
   EXPECT_EQ(result, ExceptionOr<ByteArray>(Exception::kExecution));
   stream.Close();
+}
 
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      connections::config_package_nearby::nearby_connections_feature::
-          kEnableMultiplex, is_multiplex_enabled);
+TEST(BlockingQueueStreamTest, MultiplexDisabled) {
+  BlockingQueueStream stream;
+  ByteArray bytes = ByteArray("test1test2test3");
+  stream.Write(bytes);
+  ExceptionOr<ByteArray> result = stream.Read(5);
+  EXPECT_EQ(result, ExceptionOr<ByteArray>(Exception::kExecution));
+  stream.Close();
 }
 
 }  // namespace
