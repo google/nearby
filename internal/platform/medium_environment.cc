@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -27,6 +28,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
@@ -46,6 +48,7 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/uuid.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/test/fake_clock.h"
@@ -69,10 +72,14 @@ MediumEnvironment& MediumEnvironment::Instance() {
 void MediumEnvironment::Start(EnvironmentConfig config) {
   if (!enabled_.exchange(true)) {
     LOG(INFO) << "MediumEnvironment::Start()";
-    config_ = std::move(config);
-    if (config_.use_simulated_clock) {
+    {
       MutexLock lock(&mutex_);
-      simulated_clock_ = std::make_unique<FakeClock>();
+      config_ = std::move(config);
+      if (config_.use_simulated_clock) {
+        simulated_clock_ = std::make_shared<FakeClock>();
+      } else {
+        simulated_clock_.reset();
+      }
     }
     Reset();
   }
@@ -82,8 +89,8 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
+    MutexLock lock(&mutex_);
     if (config_.use_simulated_clock) {
-      MutexLock lock(&mutex_);
       simulated_clock_.reset();
     }
     config_ = {};
@@ -132,7 +139,8 @@ void MediumEnvironment::Sync(bool enable_notifications) {
   LOG(INFO) << "MediumEnvironment::Sync(): done [count=" << count << "]";
 }
 
-const EnvironmentConfig& MediumEnvironment::GetEnvironmentConfig() {
+EnvironmentConfig MediumEnvironment::GetEnvironmentConfig() {
+  MutexLock lock(&mutex_);
   return config_;
 }
 
@@ -1150,12 +1158,43 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
   FeatureFlags::GetMutableInstanceForTesting().SetFlags(flags);
 }
 
-std::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
+absl::Time MediumEnvironment::Now() {
   MutexLock lock(&mutex_);
   if (simulated_clock_) {
-    return std::optional<FakeClock*>(simulated_clock_.get());
+    return simulated_clock_->Now();
   }
-  return std::nullopt;
+  return absl::Now();
+}
+
+// If simulated_clock_ is valid, it will be advanced by the given duration.
+// If simulated_clock_ is not valid, this method will do nothing.
+void MediumEnvironment::FastForward(absl::Duration duration) {
+  std::shared_ptr<FakeClock> sim_clock;
+  {
+    MutexLock lock(&mutex_);
+    if (simulated_clock_) {
+      sim_clock = simulated_clock_;
+    }
+  }
+  if (sim_clock) {
+    // Mutex is unlocked before calling FastForward to prevent deadlocks.
+    sim_clock->FastForward(duration);
+  }
+}
+
+void MediumEnvironment::AddSimulatedClockObserver(
+    const std::string& name, std::function<void()> observer) {
+  MutexLock lock(&mutex_);
+  if (simulated_clock_) {
+    simulated_clock_->AddObserver(name, std::move(observer));
+  }
+}
+
+void MediumEnvironment::RemoveSimulatedClockObserver(const std::string& name) {
+  MutexLock lock(&mutex_);
+  if (simulated_clock_) {
+    simulated_clock_->RemoveObserver(name);
+  }
 }
 
 void MediumEnvironment::RegisterGattServer(

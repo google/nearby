@@ -25,13 +25,12 @@
 #include "internal/platform/cancelable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/test/fake_clock.h"
 
 namespace nearby {
 
 // kShortDelay must be significant enough to guarantee that OS under heavy load
 // should be able to execute the non-blocking test paths within this time.
-absl::Duration kShortDelay = absl::Milliseconds(100);
+absl::Duration kShortDelay = absl::Milliseconds(200);
 
 // kLongDelay must be long enough to make sure that under OS under heavy load
 // will let kShortDelay fire and jobs scheduled before the kLongDelay fires.
@@ -212,8 +211,6 @@ TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
 
 TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  FakeClock* fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock().value();
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   CountDownLatch first_task_latch(1);
@@ -235,24 +232,23 @@ TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
       },
       kShortDelay);
   EXPECT_EQ(value, 0);
-  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(kShortDelay -
+                                            absl::Milliseconds(1));
   EXPECT_EQ(value, 0);
-  fake_clock->FastForward(absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
   second_task_latch.Await();
   EXPECT_EQ(value, 1);
-  fake_clock->FastForward(kLongDelay - kShortDelay);
+  MediumEnvironment::Instance().FastForward(kLongDelay - kShortDelay);
   first_task_latch.Await();
   EXPECT_EQ(value, 5);
   // Very long sleep to make sure that the sleep is truly simulated.
-  fake_clock->FastForward(absl::Minutes(30));
+  MediumEnvironment::Instance().FastForward(absl::Minutes(30));
   MediumEnvironment::Instance().Stop();
 }
 
 TEST(ScheduledExecutorTest,
      DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  FakeClock* fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock().value();
   {
     ScheduledExecutor executor;
     executor.Schedule(
@@ -262,7 +258,7 @@ TEST(ScheduledExecutorTest,
         },
         kShortDelay);
   }
-  fake_clock->FastForward(absl::Minutes(30));
+  MediumEnvironment::Instance().FastForward(absl::Minutes(30));
   MediumEnvironment::Instance().Stop();
 }
 
@@ -403,8 +399,6 @@ TEST(ScheduledExecutorTest, CanCancelOneOfTwoRepeatedTasks) {
 
 TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  FakeClock* fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock().value();
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   std::atomic_int i = 0;
@@ -419,11 +413,12 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
 
   EXPECT_EQ(value, 0);
   // Advance to just before the first execution.
-  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(kShortDelay -
+                                            absl::Milliseconds(1));
   EXPECT_EQ(value, 0);
 
   // Advance past the first execution.
-  fake_clock->FastForward(absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
   latch[0].Await(absl::Seconds(1));
   EXPECT_EQ(value, 1);
 
@@ -431,11 +426,12 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
   absl::SleepFor(kShortDelay);
 
   // Advance to just before the second execution.
-  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(kShortDelay -
+                                            absl::Milliseconds(1));
   EXPECT_EQ(value, 1);
 
   // Advance past the second execution.
-  fake_clock->FastForward(absl::Milliseconds(1));
+  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
   latch[1].Await(absl::Seconds(1));
   EXPECT_EQ(value, 2);
 
@@ -443,7 +439,7 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
   cancelable.Cancel();
 
   // Advance a long time and make sure it doesn't run again.
-  fake_clock->FastForward(kLongDelay * 5);
+  MediumEnvironment::Instance().FastForward(kLongDelay * 5);
   EXPECT_EQ(value, 2);
 
   MediumEnvironment::Instance().Stop();
