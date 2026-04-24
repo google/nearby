@@ -151,10 +151,7 @@ cc_library(
         "WINVER=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows"],
-    visibility = [
-        "//:__subpackages__",
-        "//location/nearby:__subpackages__",
-    ],
+    visibility = ["//:__subpackages__"],
     deps = [
         ":socket_address",
         ":string_utils",
@@ -175,10 +172,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     tags = ["windows"],
-    visibility = [
-        "//:__subpackages__",
-        "//location/nearby:__subpackages__",
-    ],
+    visibility = ["//location/nearby:__subpackages__"],
 )
 
 cc_library(
@@ -191,10 +185,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     tags = ["windows"],
-    visibility = [
-        "//:__subpackages__",
-        "//location/nearby:__subpackages__",
-    ],
+    visibility = ["//location/nearby:__subpackages__"],
     deps = [
         ":scoped_wlan_memory",
         "//internal/platform:logging",
@@ -413,9 +404,7 @@ cc_library(
         "WINVER=_WIN32_WINNT_WIN10",
     ],
     tags = ["windows"],
-    visibility = [
-        "//:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:logging",
