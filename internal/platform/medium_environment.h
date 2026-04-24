@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -162,7 +163,7 @@ class MediumEnvironment {
   // Returns a Bluetooth Device object matching given mac address to nullptr.
   api::BluetoothDevice* FindBluetoothDevice(MacAddress mac_address);
 
-  const EnvironmentConfig& GetEnvironmentConfig();
+  EnvironmentConfig& GetEnvironmentConfig();
 #ifndef NO_WEBRTC
   // Registers |message_callback| to receive messages sent to device with id
   // |self_id|, and |complete_callback| to notify when signaling is complete.
@@ -334,7 +335,11 @@ class MediumEnvironment {
 
   void SetFeatureFlags(const FeatureFlags::Flags& flags);
 
-  std::optional<FakeClock*> GetSimulatedClock();
+  absl::Time Now();
+  void FastForward(absl::Duration duration);
+  void AddSimulatedClockObserver(const std::string& name,
+                                 std::function<void()> observer);
+  void RemoveSimulatedClockObserver(const std::string& name);
 
   api::ble::BleMedium* FindBleMedium(api::ble::BlePeripheral::UniqueId id);
 
@@ -516,7 +521,7 @@ class MediumEnvironment {
 
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
-  std::unique_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
+  std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   ObserverList<api::BluetoothClassicMedium::Observer> observers_;
   bool ble_extended_advertisements_available_ = false;
 };

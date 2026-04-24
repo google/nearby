@@ -19,6 +19,10 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
+
 namespace nearby {
 
 FakeClock::~FakeClock() {

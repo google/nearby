@@ -53,6 +53,7 @@ class FakeClock : public Clock {
   absl::flat_hash_map<std::string, std::function<void()>> observers_
       ABSL_GUARDED_BY(mutex_);
 };
+
 }  // namespace nearby
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_CLOCK_H_

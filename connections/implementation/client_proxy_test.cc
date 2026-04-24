@@ -360,10 +360,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   ClientProxy* client2() { return client2_.get(); }
 
   void FastForward(absl::Duration duration) {
-    (*env_.GetSimulatedClock())
-        ->FastForward(
-            ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
-            absl::Milliseconds(100));
+    env_.FastForward(duration);
     // make sure the timer based callback is executed.
     absl::SleepFor(absl::Milliseconds(100));
   }

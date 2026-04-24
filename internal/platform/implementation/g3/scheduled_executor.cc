@@ -16,16 +16,15 @@
 
 #include <atomic>
 #include <memory>
-#include <optional>
 #include <utility>
 
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/runnable.h"
-#include "internal/test/fake_clock.h"
 
 namespace nearby {
 namespace g3 {
@@ -66,20 +65,13 @@ class ScheduledCancelable : public api::Cancelable {
 }  // namespace
 
 ScheduledExecutor::ScheduledExecutor() {
-  std::optional<FakeClock*> fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock();
-  if (fake_clock.has_value()) {
-    name_ = absl::StrFormat("G3 scheduled executor %p", this);
-    (*fake_clock)->AddObserver(name_, [this]() { RunReadyTasks(); });
-  }
+  name_ = absl::StrFormat("G3 scheduled executor %p", this);
+  MediumEnvironment::Instance().AddSimulatedClockObserver(
+      name_, [this]() { RunReadyTasks(); });
 }
 
 ScheduledExecutor::~ScheduledExecutor() {
-  std::optional<FakeClock*> fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock();
-  if (fake_clock.has_value()) {
-    (*fake_clock)->RemoveObserver(name_);
-  }
+  MediumEnvironment::Instance().RemoveSimulatedClockObserver(name_);
   executor_.Shutdown();
 }
 
@@ -96,10 +88,10 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
       runnable();
     }
   };
-  std::optional<FakeClock*> fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock();
-  if (fake_clock.has_value()) {
-    absl::Time trigger_time = (*fake_clock)->Now() + delay;
+  if (MediumEnvironment::Instance()
+          .GetEnvironmentConfig()
+          .use_simulated_clock) {
+    absl::Time trigger_time = MediumEnvironment::Instance().Now() + delay;
     absl::MutexLock lock(mutex_);
     tasks_.insert(std::pair<absl::Time, std::unique_ptr<Runnable>>(
         trigger_time, std::make_unique<Runnable>(std::move(task))));
@@ -110,15 +102,12 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 }
 
 void ScheduledExecutor::RunReadyTasks() {
-  std::optional<FakeClock*> fake_clock =
-      MediumEnvironment::Instance().GetSimulatedClock();
   if (executor_.InShutdown()) {
     return;
   }
-  if (!fake_clock.has_value()) {
-    return;
-  }
-  absl::Time current_time = (*fake_clock)->Now();
+  CHECK(
+      MediumEnvironment::Instance().GetEnvironmentConfig().use_simulated_clock);
+  absl::Time current_time = MediumEnvironment::Instance().Now();
   absl::MutexLock lock(mutex_);
   for (auto it = tasks_.begin(); it != tasks_.end();) {
     if (it->first <= current_time) {
