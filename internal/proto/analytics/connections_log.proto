@@ -590,6 +590,9 @@ message ConnectionsLog {
     // The number of times the upgrade attempt is tried.
     // This count is reset to 0 when the upgrade is successful.
     optional int32 try_count = 14;
+    // If true, the upgrade attempt is forced to use the USB medium, regardless
+    // of the available mediums.
+    optional bool is_forced_usb = 15;
   }
 
   // Next Id: 22
