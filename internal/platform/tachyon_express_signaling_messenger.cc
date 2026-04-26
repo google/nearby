@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "third_party/gloop/util/random/mt_random.h"
 #include "third_party/grpc/include/grpc/support/time.h"
 #include "third_party/grpc/include/grpcpp/channel.h"
 #include "third_party/grpc/include/grpcpp/client_context.h"
@@ -42,7 +43,6 @@
 #include "internal/proto/tachyon_common.proto.h"
 #include "internal/proto/tachyon_enums.proto.h"
 #include "internal/rpc/utils.h"
-#include "util/random/mt_random.h"
 #include "util/random/util.h"
 
 namespace nearby {
