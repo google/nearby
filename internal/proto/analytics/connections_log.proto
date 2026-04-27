@@ -458,6 +458,9 @@ message ConnectionsLog {
     // The RSSI (radio signal strength indicator) in dBm.
     // INTERNET_RSSI_UNKNOWN (-127) if unknown.
     optional int32 rssi = 17;
+
+    // If this connection is forced over USB.
+    optional bool is_forced_usb = 18;
   }
 
   message SpeedTestReport {
