@@ -64,9 +64,7 @@ BluetoothClassic::BluetoothClassic(
     BluetoothRadio& radio, std::unique_ptr<BluetoothClassicMedium> medium)
     : radio_(radio),
       adapter_(radio_.GetBluetoothAdapter()),
-      medium_(std::move(medium)) {
-  is_multiplex_enabled_ = false;
-}
+      medium_(std::move(medium)) {}
 
 BluetoothClassic::~BluetoothClassic() {
   // Destructor is not taking locks, but methods it is calling are.
@@ -382,10 +380,10 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
     MultiplexSocket::ListenForIncomingConnection(
         service_id, Medium::BLUETOOTH,
         [&callback](const std::string& listening_service_id,
-                    MediumSocket* virtual_socket) mutable {
+                    std::shared_ptr<MediumSocket> virtual_socket) mutable {
           if (callback) {
             callback(listening_service_id,
-                     *(down_cast<BluetoothSocket*>(virtual_socket)));
+                     *(down_cast<BluetoothSocket*>(virtual_socket.get())));
           }
         });
   }
@@ -415,20 +413,21 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
               MultiplexSocket::CreateIncomingSocket(physical_socket_ptr,
                                                     service_id, 0);
 
-          if (multiplex_socket != nullptr &&
-              multiplex_socket->GetVirtualSocket(service_id)) {
-            multiplex_sockets_.emplace(
-                client_socket.GetRemoteDevice().GetAddress(),
-                multiplex_socket);
-            MultiplexSocket::StopListeningForIncomingConnection(
-                service_id, Medium::BLUETOOTH);
-            LOG(INFO) << "Multiplex virtaul socket created for "
-                      << client_socket.GetRemoteDevice().GetName();
-            if (callback) {
-              callback(service_id,
-                       *(down_cast<BluetoothSocket*>(
-                           multiplex_socket->GetVirtualSocket(service_id))));
-              callback_called = true;
+          if (multiplex_socket != nullptr) {
+            if (auto virtual_socket =
+                    multiplex_socket->GetVirtualSocket(service_id)) {
+              multiplex_sockets_.emplace(
+                  client_socket.GetRemoteDevice().GetAddress(),
+                  multiplex_socket);
+              MultiplexSocket::StopListeningForIncomingConnection(
+                  service_id, Medium::BLUETOOTH);
+              LOG(INFO) << "Multiplex virtaul socket created for "
+                        << client_socket.GetRemoteDevice().GetName();
+              if (callback) {
+                callback(service_id, *(down_cast<BluetoothSocket*>(
+                                         virtual_socket.get())));
+                callback_called = true;
+              }
             }
           }
         }
@@ -509,10 +508,11 @@ ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
       if (it != multiplex_sockets_.end()) {
         MultiplexSocket* multiplex_socket = it->second;
         if (multiplex_socket->IsEnabled()) {
-          auto* virtual_socket =
+          std::shared_ptr<MediumSocket> virtual_socket =
               multiplex_socket->EstablishVirtualSocket(service_id);
           // Should not happen.
-          auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
+          auto* bluetooth_socket =
+              down_cast<BluetoothSocket*>(virtual_socket.get());
           if (bluetooth_socket == nullptr) {
             LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
                       << " with " << bluetooth_device.GetName();
@@ -607,9 +607,10 @@ ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
     MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
         std::move(physical_socket_ptr), service_id);
 
-    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
-    // Should not happen.
-    auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
+    std::shared_ptr<MediumSocket> virtual_socket =
+        multiplex_socket->GetVirtualSocket(service_id);
+
+    auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket.get());
     if (bluetooth_socket == nullptr) {
       LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
                 << " with " << bluetooth_device.GetName();

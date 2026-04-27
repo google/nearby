@@ -44,7 +44,7 @@ namespace multiplex {
 
 using MultiplexEnbaleCb = absl::AnyInvocable<void()>;
 using MultiplexIncomingConnectionCb = absl::AnyInvocable<void(
-    const std::string& service_id, MediumSocket* socket)>;
+    const std::string& service_id, std::shared_ptr<MediumSocket> socket)>;
 
 class MultiplexSocket {
  public:
@@ -82,7 +82,7 @@ class MultiplexSocket {
       const std::string& service_id,
       ::location::nearby::proto::connections::Medium type,
       absl::AnyInvocable<void(const std::string& service_id,
-                              MediumSocket* socket)>
+                              std::shared_ptr<MediumSocket> socket)>
           incoming_connection_cb);
 
   // Stops listening for incoming multiplex connection for {@code service_id} on
@@ -98,7 +98,7 @@ class MultiplexSocket {
   }
 
   // Gets the virtual socket by service id.
-  MediumSocket* GetVirtualSocket(const std::string& service_id);
+  std::shared_ptr<MediumSocket> GetVirtualSocket(const std::string& service_id);
   // Gets the virtual socket count.
   int GetVirtualSocketCount();
 
@@ -106,7 +106,8 @@ class MultiplexSocket {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(virtual_socket_mutex_);
 
   // Establishes the virtual socket by service id.
-  MediumSocket* EstablishVirtualSocket(const std::string& service_id);
+  std::shared_ptr<MediumSocket> EstablishVirtualSocket(
+      const std::string& service_id);
   // Shuts down the multiplex socket.
   void Shutdown();
   bool IsShutdown() { return is_shutdown_; }
@@ -118,11 +119,11 @@ class MultiplexSocket {
 
   // Creates the first virtual socket for the service id. The first virtual
   // socket is created by the sender.
-  MediumSocket* CreateFirstVirtualSocket(
+  std::shared_ptr<MediumSocket> CreateFirstVirtualSocket(
       const std::string& service_id, const std::string& service_id_hash_salt);
   // Creates the virtual socket for the service id.
-  MediumSocket* CreateVirtualSocket(const std::string& service_id,
-                                    const std::string& service_id_hash_salt);
+  std::shared_ptr<MediumSocket> CreateVirtualSocket(
+      const std::string& service_id, const std::string& service_id_hash_salt);
   // Registers the connection response future for the service id.
   std::shared_ptr<Future<::location::nearby::mediums::ConnectionResponseFrame::
                              ConnectionResponseCode>>
@@ -157,7 +158,7 @@ class MultiplexSocket {
   // Handles the physical socket closed.
   void OnPhysicalSocketClosed();
   // Remaps and gets the virtual socket by service id hash.
-  MediumSocket* ReMapAndGetVirtualSocket(
+  std::shared_ptr<MediumSocket> ReMapAndGetVirtualSocket(
       const ByteArray& salted_service_id_hash,
       const std::string& service_id_hash_salt);
   // Handles the virtual socket closed.

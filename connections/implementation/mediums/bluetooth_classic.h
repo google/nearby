@@ -236,7 +236,13 @@ class BluetoothClassic {
       discovery_callbacks_ ABSL_GUARDED_BY(discovery_callbacks_mutex_);
 
   // Whether the multiplex feature is enabled.
-  bool is_multiplex_enabled_ = false;
+  bool is_multiplex_enabled_ =
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplex) &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplexBluetooth);
 
   // A map of Bluetooth MacAddress -> MultiplexSocket.
   absl::flat_hash_map<MacAddress, mediums::multiplex::MultiplexSocket*>

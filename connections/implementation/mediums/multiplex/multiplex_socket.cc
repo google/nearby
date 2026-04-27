@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <new>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -215,7 +214,7 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
                               Utils::GenerateSalt());
 }
 
-MediumSocket* MultiplexSocket::CreateFirstVirtualSocket(
+std::shared_ptr<MediumSocket> MultiplexSocket::CreateFirstVirtualSocket(
     const std::string& service_id, const std::string& service_id_hash_salt) {
   auto output_stream =
       multiplex_output_stream_.CreateVirtualOutputStreamForFirstVirtualSocket(
@@ -227,9 +226,14 @@ MediumSocket* MultiplexSocket::CreateFirstVirtualSocket(
   LOG(INFO) << __func__ << " for service_id=" << service_id
             << ", salt=" << service_id_hash_salt
             << ", salted_service_id_hash_key=" << salted_service_id_hash_key;
-  MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
+  MediumSocket* virtual_socket_ptr = physical_socket_ptr_->CreateVirtualSocket(
       salted_service_id_hash_key, output_stream, medium_, &virtual_sockets_);
 
+  if (virtual_socket_ptr == nullptr) {
+    return nullptr;
+  }
+  std::shared_ptr<MediumSocket> virtual_socket =
+      virtual_sockets_[salted_service_id_hash_key];
   virtual_socket->AddOnSocketClosedListener(
       std::make_unique<absl::AnyInvocable<void()>>(
           [this, service_id]() { OnVirtualSocketClosed(service_id); }));
@@ -242,7 +246,7 @@ MediumSocket* MultiplexSocket::CreateFirstVirtualSocket(
   return virtual_socket;
 }
 
-MediumSocket* MultiplexSocket::CreateVirtualSocket(
+std::shared_ptr<MediumSocket> MultiplexSocket::CreateVirtualSocket(
     const std::string& service_id, const std::string& service_id_hash_salt) {
   auto output_stream = multiplex_output_stream_.CreateVirtualOutputStream(
       service_id, service_id_hash_salt);
@@ -254,9 +258,14 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
             << ", salt=" << service_id_hash_salt
             << ", salted_service_id_hash_key=" << salted_service_id_hash_key;
 
-  MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
+  MediumSocket* virtual_socket_ptr = physical_socket_ptr_->CreateVirtualSocket(
       salted_service_id_hash_key, output_stream, medium_, &virtual_sockets_);
 
+  if (virtual_socket_ptr == nullptr) {
+    return nullptr;
+  }
+  std::shared_ptr<MediumSocket> virtual_socket =
+      virtual_sockets_[salted_service_id_hash_key];
   virtual_socket->AddOnSocketClosedListener(
       std::make_unique<absl::AnyInvocable<void()>>(
           [this, service_id]() { OnVirtualSocketClosed(service_id); }));
@@ -264,7 +273,8 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
   return virtual_socket;
 }
 
-MediumSocket* MultiplexSocket::GetVirtualSocket(const std::string& service_id) {
+std::shared_ptr<MediumSocket> MultiplexSocket::GetVirtualSocket(
+    const std::string& service_id) {
   MutexLock lock(&virtual_socket_mutex_);
   LOG(INFO) << __func__ << " service_id=" << service_id << ", Salt="
             << multiplex_output_stream_.GetServiceIdHashSalt(service_id)
@@ -275,7 +285,7 @@ MediumSocket* MultiplexSocket::GetVirtualSocket(const std::string& service_id) {
     LOG(INFO) << "Not found!";
     return nullptr;
   }
-  return item->second.get();
+  return item->second;
 }
 
 int MultiplexSocket::GetVirtualSocketCount() {
@@ -305,7 +315,7 @@ void MultiplexSocket::UnRegisterConnectionResponse(
   connection_response_futures_.erase(service_id);
 }
 
-MediumSocket* MultiplexSocket::EstablishVirtualSocket(
+std::shared_ptr<MediumSocket> MultiplexSocket::EstablishVirtualSocket(
     const std::string& service_id) {
   if (!IsEnabled()) {
     LOG(ERROR)
@@ -555,7 +565,7 @@ void MultiplexSocket::HandleConnectionRequest(
       << "EstablishVirtualSocket after local device accept the connection "
          "with serviceId="
       << listening_service_id;
-  MediumSocket* virtual_socket =
+  std::shared_ptr<MediumSocket> virtual_socket =
       CreateVirtualSocket(listening_service_id, service_id_hash_salt);
   (*incoming_connection_callback)(std::move(listening_service_id),
                                   virtual_socket);
@@ -620,13 +630,13 @@ void MultiplexSocket::HandleDataFrame(const ByteArray& salted_service_id_hash,
                                       const MultiplexDataFrame& frame) {
   std::string salted_service_id_hash_key =
       GenerateServiceIdHashKey(salted_service_id_hash);
-  MediumSocket* virtual_socket = nullptr;
+  std::shared_ptr<MediumSocket> virtual_socket = nullptr;
   if (service_id_hash_salt.empty()) {
     {
       MutexLock lock(&virtual_socket_mutex_);
       auto item = virtual_sockets_.find(salted_service_id_hash_key);
       if (item != virtual_sockets_.end()) {
-        virtual_socket = item->second.get();
+        virtual_socket = item->second;
       }
     }
   } else {
@@ -659,7 +669,8 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   RunOffloadThread(
       "VirtualSocketClosed", [this, service_id, &latch, &shutdown]() {
         LOG(INFO) << "Try to close Virtual socket: " << service_id;
-        MediumSocket* virtual_socket = GetVirtualSocket(service_id);
+        std::shared_ptr<MediumSocket> virtual_socket =
+            GetVirtualSocket(service_id);
         {
           MutexLock lock(&virtual_socket_mutex_);
           LOG(INFO) << "virtual_socket:" << virtual_socket;
@@ -700,7 +711,7 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   }
 }
 
-MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
+std::shared_ptr<MediumSocket> MultiplexSocket::ReMapAndGetVirtualSocket(
     const ByteArray& salted_service_id_hash,
     const std::string& service_id_hash_salt) {
   std::string salted_service_id_hash_key =
@@ -722,7 +733,7 @@ MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
       }
       if ((service_id_hash_salt == kFakeSalt) ||
           (hash_key == salted_service_id_hash_key)) {
-        return virtual_socket.get();
+        return virtual_socket;
       } else {
         LOG(INFO) << "Remap the virtualSockets.";
         output_stream->SetserviceIdHashSalt(service_id_hash_salt);
@@ -731,7 +742,7 @@ MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
         virtual_sockets_.erase(hash_key);
         virtual_sockets_[salted_service_id_hash_key] = virtual_socket_tmp;
         ListVirtualSocket();
-        return virtual_socket_tmp.get();
+        return virtual_socket_tmp;
       }
     }
   }

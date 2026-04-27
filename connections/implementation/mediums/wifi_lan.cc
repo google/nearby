@@ -270,10 +270,10 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
     MultiplexSocket::ListenForIncomingConnection(
         service_id, Medium::WIFI_LAN,
         [&callback](const std::string& listening_service_id,
-                    MediumSocket* virtual_socket) mutable {
+                    std::shared_ptr<MediumSocket> virtual_socket) mutable {
           if (callback) {
             callback(listening_service_id,
-                     *(down_cast<WifiLanSocket*>(virtual_socket)));
+                     *(down_cast<WifiLanSocket*>(virtual_socket.get())));
           }
         });
   }
@@ -322,20 +322,21 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
               MultiplexSocket* multiplex_socket =
                   MultiplexSocket::CreateIncomingSocket(
                       physical_socket_ptr, service_id, read_int.result());
-              if (multiplex_socket != nullptr &&
-                  multiplex_socket->GetVirtualSocket(service_id)) {
-                multiplex_sockets_.emplace(server_socket.GetIPAddress(),
-                                           multiplex_socket);
-                MultiplexSocket::StopListeningForIncomingConnection(
-                    service_id, Medium::WIFI_LAN);
-                LOG(INFO) << "Multiplex virtaul socket created for "
-                          << server_socket.GetIPAddress();
-                if (callback) {
-                  callback(
-                      service_id,
-                      *(down_cast<WifiLanSocket*>(
-                          multiplex_socket->GetVirtualSocket(service_id))));
-                  callback_called = true;
+              if (multiplex_socket != nullptr) {
+                std::shared_ptr<MediumSocket> virtual_socket =
+                    multiplex_socket->GetVirtualSocket(service_id);
+                if (virtual_socket) {
+                  multiplex_sockets_.emplace(server_socket.GetIPAddress(),
+                                             multiplex_socket);
+                  MultiplexSocket::StopListeningForIncomingConnection(
+                      service_id, Medium::WIFI_LAN);
+                  LOG(INFO) << "Multiplex virtaul socket created for "
+                            << server_socket.GetIPAddress();
+                  if (callback) {
+                    callback(service_id, *(down_cast<WifiLanSocket*>(
+                                             virtual_socket.get())));
+                    callback_called = true;
+                  }
                 }
               }
             }
@@ -568,10 +569,10 @@ ExceptionOr<WifiLanSocket> WifiLan::ConnectWithMultiplexSocketLocked(
         return ExceptionOr<WifiLanSocket>(Exception::kFailed);
       }
       if (multiplex_socket->IsEnabled()) {
-        auto* virtual_socket =
+        std::shared_ptr<MediumSocket> virtual_socket =
             multiplex_socket->EstablishVirtualSocket(service_id);
         // Should not happen.
-        auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket);
+        auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket.get());
         if (wlan_socket == nullptr) {
           LOG(INFO) << "Failed to cast to WifiLanSocket for " << service_id
                     << " with ip_address: "
@@ -595,9 +596,9 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
     MultiplexSocket* multiplex_socket =
         MultiplexSocket::CreateOutgoingSocket(physical_socket_ptr, service_id);
 
-    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
-    // Should not happen.
-    auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket);
+    std::shared_ptr<MediumSocket> virtual_socket =
+        multiplex_socket->GetVirtualSocket(service_id);
+    auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket.get());
     if (wlan_socket == nullptr) {
       LOG(INFO) << "Failed to cast to WifiLanSocket for " << service_id
                 << " with ip_address: "
