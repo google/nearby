@@ -355,6 +355,9 @@ message ConnectionsLog {
 
     // The error code returned by Play Integrity API during device attestation.
     optional int64 play_integrity_error_code = 15;
+
+    // If this connection is forced over USB.
+    optional bool is_forced_usb = 16;
   }
 
   message DeviceInfo {
