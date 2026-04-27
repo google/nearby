@@ -1921,9 +1921,7 @@ void NearbySharingServiceImpl::InvalidateReceiveSurfaceState() {
 
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   // Do not advertise on lock screen unless Self Share is enabled.
-  if (is_screen_locked_ &&
-      !NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableSelfShareUi)) {
+  if (is_screen_locked_) {
     StopAdvertising();
     VLOG(1) << __func__
             << ": Stopping advertising because the screen is locked.";
