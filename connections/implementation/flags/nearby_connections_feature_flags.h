@@ -31,9 +31,6 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
-// Disable instant on lost on BLE without extended feature.
-constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
-    flags::Flag<bool>(kConfigPackage, "45687098", true);
 // When true, enable advertising for instant on lost feature.
 constexpr auto kEnableAdvertisingForInstantOnLost =
     flags::Flag<bool>(kConfigPackage, "45708614", true);
@@ -55,13 +52,6 @@ constexpr auto kEnableDynamicRoleSwitch =
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
-// When true, enable instant on lost feature.
-// When true, enable multiplexing in NC.
-constexpr auto kEnableMultiplex =
-    flags::Flag<bool>(kConfigPackage, "45647946", false);
-// Enable/disable multiplex in NC for AWDL.
-constexpr auto kEnableMultiplexAwdl =
-    flags::Flag<bool>(kConfigPackage, "45690761", false);
 // When true, enable multiplexing in NC for Bluetooth.
 constexpr auto kEnableMultiplexBluetooth =
     flags::Flag<bool>(kConfigPackage, "45676646", false);
@@ -80,9 +70,10 @@ constexpr auto kEnablePayloadReceivedAck =
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
-// When true, enable scanning for instant on lost feature.
-constexpr auto kEnableScanningForInstantOnLost =
-    flags::Flag<bool>(kConfigPackage, "45708613", true);
+// Enable/Disable usage of shared CBPeripheralManager for GATT and L2CAP
+// servers.
+constexpr auto kEnableSharedPeripheralManager =
+    flags::Flag<bool>(kConfigPackage, "45770787", false);
 // Stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
 constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
@@ -101,10 +92,6 @@ constexpr auto kMediumMaxAllowedReadBytes =
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);
-// Enable/Disable usage of shared CBPeripheralManager for GATT and L2CAP
-// servers.
-constexpr auto kEnableSharedPeripheralManager =
-    flags::Flag<bool>(kConfigPackage, "45770787", false);
 // Set the safe-to-disconnect version.
 // 0. Disabled all. 1. safe-to-disconnect 2. reserved 3.
 // auto-reconnect(deprecated)
