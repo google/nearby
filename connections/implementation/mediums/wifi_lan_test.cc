@@ -185,6 +185,7 @@ TEST_P(WifiLanTest, CanConnectWithMultiplex) {
   std::string endpoint_info_name(kEndpointName);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
+  CountDownLatch connect_latch(1);
 
   WifiLanSocket socket_for_server;
   NsdServiceInfo nsd_service_info;
@@ -221,10 +222,11 @@ TEST_P(WifiLanTest, CanConnectWithMultiplex) {
     ErrorOr<WifiLanSocket> socket_for_client_result =
         wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
     socket_for_client = std::move(socket_for_client_result.value());
-    Base64Utils::WriteInt(&socket_for_client_result.value().GetOutputStream(),
-                          4);
+    Base64Utils::WriteInt(&socket_for_client.GetOutputStream(), 4);
+    connect_latch.CountDown();
   });
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(connect_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
   EXPECT_TRUE(socket_for_server.IsValid());
