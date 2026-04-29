@@ -25,6 +25,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "third_party/gloop/thread/thread.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
@@ -55,7 +56,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
-#include "thread/thread.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/g3/webrtc.h"
 #include "internal/platform/implementation/webrtc.h"

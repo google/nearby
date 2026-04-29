@@ -139,20 +139,19 @@ cc_test(
     ],
     deps = [
         ":comm",
-        ":g3",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//third_party/gloop/thread/fiber",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-        "@com_google_nisaba//nisaba/port:thread_pool/fiber",
     ],
 )
 
@@ -210,11 +209,11 @@ cc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
+        "//third_party/gloop/thread",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_nisaba//nisaba/port:thread_pool",
     ],
 )
 
