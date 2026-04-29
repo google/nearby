@@ -100,10 +100,10 @@ constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 // Enable/Disable single copy read/write for input/output buffers.
 constexpr auto kEnableSingleCopy =
-    flags::Flag<bool>(kConfigPackage, "45775979", true);
+    flags::Flag<bool>(kConfigPackage, "45782646", true);
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
-    flags::Flag<bool>(kConfigPackage, "45775192", true);
+    flags::Flag<bool>(kConfigPackage, "45782647", true);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
