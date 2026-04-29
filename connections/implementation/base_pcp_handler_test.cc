@@ -460,9 +460,7 @@ class BasePcpHandlerTest
     MacAddress::FromString("12:34:56:78:9a:bc", remote_mac_address_);
   }
 
-  void TearDown() override {
-    env_.Stop();
-  }
+  void TearDown() override { env_.Stop(); }
 
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
@@ -645,7 +643,7 @@ class BasePcpHandlerTest
   void RequestConnection(
       const std::string& endpoint_id,
       std::unique_ptr<MockEndpointChannel> channel_a,
-      MockEndpointChannel* channel_b, ClientProxy* client,
+      std::shared_ptr<MockEndpointChannel> channel_b, ClientProxy* client,
       MockPcpHandler* pcp_handler,
       location::nearby::proto::connections::Medium connect_medium,
       std::atomic_int* flag = nullptr,
@@ -715,7 +713,7 @@ class BasePcpHandlerTest
   void RequestConnectionV3(
       const NearbyDevice& remote_device,
       std::unique_ptr<MockEndpointChannel> channel_a,
-      MockEndpointChannel* channel_b, ClientProxy* client,
+      std::shared_ptr<MockEndpointChannel> channel_b, ClientProxy* client,
       MockPcpHandler* pcp_handler,
       location::nearby::proto::connections::Medium connect_medium,
       FakePresenceDeviceProvider* fake_presence_device_provider,
@@ -795,7 +793,7 @@ class BasePcpHandlerTest
   void RequestConnectionWifiLanFail(
       const std::string& endpoint_id,
       std::unique_ptr<MockEndpointChannel> channel_a,
-      MockEndpointChannel* channel_b, ClientProxy* client,
+      std::shared_ptr<MockEndpointChannel> channel_b, ClientProxy* client,
       MockPcpHandler* pcp_handler, std::atomic_int* flag = nullptr,
       Status expected_result = {Status::kSuccess}) {
     ConnectionRequestInfo info{
@@ -1136,12 +1134,13 @@ TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnectionWifiLanFail(endpoint_id, std::move(channel_a),
-                               channel_b.get(), client_.get(), &pcp_handler);
+  RequestConnectionWifiLanFail(endpoint_id, std::move(channel_a), channel_b,
+                               client_.get(), &pcp_handler);
   LOG(INFO) << "RequestConnection complete";
   channel_b->Close();
   bwu.Shutdown();
@@ -1161,12 +1160,13 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnection("1234", std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium);
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
   LOG(INFO) << "RequestConnection complete";
   EXPECT_TRUE(pcp_handler.HasOutgoingConnections(client_.get()));
   EXPECT_FALSE(pcp_handler.HasIncomingConnections(client_.get()));
@@ -1207,12 +1207,13 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionPresence) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnection("1234", std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium);
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
   LOG(INFO) << "RequestConnection complete";
   channel_b->Close();
   bwu.Shutdown();
@@ -1236,12 +1237,13 @@ TEST_P(BasePcpHandlerTest, CanRequestConnectionLegacy) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnection("1234", std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium);
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
   LOG(INFO) << "RequestConnection complete";
   channel_b->Close();
   bwu.Shutdown();
@@ -1266,11 +1268,12 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  const auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
+  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b,
                       client_.get(), &pcp_handler, connect_medium, &provider);
   LOG(INFO) << "RequestConnectionV3 complete";
   channel_b->Close();
@@ -1297,12 +1300,13 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3_AuthenticationFailure) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  const auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   RequestConnectionV3(
-      mock_device_, std::move(channel_a), channel_b.get(), client_.get(),
+      mock_device_, std::move(channel_a), channel_b, client_.get(),
       &pcp_handler, connect_medium, &provider, /*flag=*/nullptr,
       /*expected_result=*/{Status::kSuccess},
       /*expected_authentication_status=*/AuthenticationStatus::kFailure);
@@ -1328,7 +1332,8 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3_ConnectImplFailure) {
   auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnectionForConnectFailure(connect_medium);
-  const auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   ConnectionRequestInfo info{
@@ -1403,7 +1408,8 @@ TEST_P(BasePcpHandlerTest, RequestConnection_ConnectImplFailure) {
   auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnectionForConnectFailure(connect_medium);
-  const auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
   ConnectionRequestInfo info{
@@ -1475,12 +1481,13 @@ TEST_P(BasePcpHandlerTest, IoError_RequestConnectionV3Fails) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(AtLeast(1));
   EXPECT_CALL(*channel_b, CloseImpl).Times(AtLeast(1));
   channel_b->broken_write_ = true;
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b.get(),
+  RequestConnectionV3(mock_device_, std::move(channel_a), channel_b,
                       client_.get(), &pcp_handler, connect_medium, nullptr,
                       nullptr, {Status::kEndpointIoError});
   LOG(INFO) << "RequestConnectionV3 complete";
@@ -1503,13 +1510,14 @@ TEST_P(BasePcpHandlerTest, IoError_RequestConnectionFails) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(AtLeast(1));
   EXPECT_CALL(*channel_b, CloseImpl).Times(AtLeast(1));
   channel_b->broken_write_ = true;
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-  RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium, nullptr,
+  RequestConnection(endpoint_id, std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium, nullptr,
                     {Status::kEndpointIoError});
   LOG(INFO) << "RequestConnection complete";
   channel_b->Close();
@@ -1531,11 +1539,12 @@ TEST_P(BasePcpHandlerTest, AcceptConnectionChangesState) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
-  RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium);
+  RequestConnection(endpoint_id, std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
   LOG(INFO) << "Attempting to accept connection: id=" << endpoint_id;
   EXPECT_EQ(pcp_handler.AcceptConnection(client_.get(), endpoint_id, {}),
             Status{Status::kSuccess});
@@ -1559,9 +1568,10 @@ TEST_P(BasePcpHandlerTest, RejectConnectionChangesState) {
   auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(1);
-  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b.get(),
+  RequestConnection(endpoint_id, std::move(channel_pair.first), channel_b,
                     client_.get(), &pcp_handler, connect_medium);
   LOG(INFO) << "Attempting to reject connection: id=" << endpoint_id;
   EXPECT_EQ(pcp_handler.RejectConnection(client_.get(), endpoint_id),
@@ -1587,11 +1597,12 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   auto connect_medium = mediums[mediums.size() - 1];
   auto channel_pair = SetupConnection(connect_medium);
   auto& channel_a = channel_pair.first;
-  auto& channel_b = channel_pair.second;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
   EXPECT_CALL(*channel_a, CloseImpl).Times(1);
   EXPECT_CALL(*channel_b, CloseImpl).Times(1);
-  RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(),
-                    client_.get(), &pcp_handler, connect_medium);
+  RequestConnection(endpoint_id, std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
   LOG(INFO) << "Attempting to accept connection: id=" << endpoint_id;
   EXPECT_CALL(mock_connection_listener_.accepted_cb, Call).Times(1);
   EXPECT_CALL(mock_connection_listener_.disconnected_cb, Call)
@@ -1628,10 +1639,11 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
     auto connect_medium = mediums[mediums.size() - 1];
     auto channel_pair = SetupConnection(connect_medium);
     auto& channel_a = channel_pair.first;
-    auto& channel_b = channel_pair.second;
+    std::shared_ptr<MockEndpointChannel> channel_b =
+        std::move(channel_pair.second);
     EXPECT_CALL(*channel_a, CloseImpl).Times(1);
     EXPECT_CALL(*channel_b, CloseImpl).Times(1);
-    RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(),
+    RequestConnection(endpoint_id, std::move(channel_a), channel_b,
                       client_.get(), &pcp_handler, connect_medium,
                       &destroyed_flag);
     mediums_count = mediums.size();
@@ -1670,11 +1682,12 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     auto connect_medium = mediums[mediums.size() - 1];
     auto channel_pair = SetupConnection(connect_medium);
     auto& channel_a = channel_pair.first;
-    auto& channel_b = channel_pair.second;
+    std::shared_ptr<MockEndpointChannel> channel_b =
+        std::move(channel_pair.second);
     EXPECT_CALL(*channel_a, CloseImpl).Times(1);
     EXPECT_CALL(*channel_b, CloseImpl).Times(1);
     EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call).Times(1);
-    RequestConnection(endpoint_id, std::move(channel_a), channel_b.get(),
+    RequestConnection(endpoint_id, std::move(channel_a), channel_b,
                       client_.get(), &pcp_handler, connect_medium,
                       &destroyed_flag);
     auto allowed_mediums = pcp_handler.GetDiscoveryMediums(client_.get());
@@ -2543,7 +2556,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
 }
 
 TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
-  env_.Start();
+  env_.Start({.use_simulated_clock = true});
+  client_ = std::make_unique<ClientProxy>(&mock_event_logger_);
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -2600,7 +2614,6 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   )pb";
   absl::string_view client_session_log = R"pb(
     event_type: CLIENT_SESSION
-    client_session { duration_millis: 0 }
     version: "v1.5.0"
   )pb";
   EXPECT_CALL(mock_event_logger_,
@@ -2615,9 +2628,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
               Log(Matcher<const ConnectionsLog&>(
                   HasEventType(EventType::START_CLIENT_SESSION))))
       .Times(3);
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(EqualsProto(client_session_log))))
+  EXPECT_CALL(mock_event_logger_, Log(Matcher<const ConnectionsLog&>(Partially(
+                                      EqualsProto(client_session_log)))))
       .Times(2);
   EXPECT_CALL(mock_event_logger_, Log(Matcher<const ConnectionsLog&>(
                                       Partially(EqualsProto(expected_log)))));

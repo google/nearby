@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
+#include "connections/connection_options.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -34,6 +35,8 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -112,7 +115,7 @@ class EndpointManager {
   void RegisterEndpoint(ClientProxy* client, const std::string& endpoint_id,
                         const ConnectionResponseInfo& info,
                         const ConnectionOptions& connection_options,
-                        std::unique_ptr<EndpointChannel> channel,
+                        std::shared_ptr<EndpointChannel> channel,
                         const ConnectionListener& listener,
                         const std::string& connection_token);
   // Called when a client explicitly asks to disconnect from this endpoint. In

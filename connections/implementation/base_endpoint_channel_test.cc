@@ -108,20 +108,26 @@ std::function<void(const ByteArray&)> MakeDataMonitor(const std::string& label,
 
 std::pair<std::shared_ptr<EncryptionContext>,
           std::shared_ptr<EncryptionContext>>
-DoDhKeyExchange(BaseEndpointChannel* channel_a,
-                BaseEndpointChannel* channel_b) {
+DoDhKeyExchange(std::shared_ptr<TestEndpointChannel> channel_a,
+                std::shared_ptr<TestEndpointChannel> channel_b) {
   std::shared_ptr<EncryptionContext> context_a;
   std::shared_ptr<EncryptionContext> context_b;
   EncryptionRunner crypto_a;
   EncryptionRunner crypto_b;
   ClientProxy proxy_a;
   ClientProxy proxy_b;
-  CountDownLatch latch(2);
+  std::shared_ptr<EndpointChannel> shared_channel_a = channel_a;
+  std::shared_ptr<EndpointChannel> shared_channel_b = channel_b;
+
+  // Create a shared_ptr for the latch to prevent Use-After-Free if the
+  // negotiation times out and this function returns early.
+  auto latch = std::make_shared<CountDownLatch>(2);
+
   crypto_a.StartClient(
-      &proxy_a, "endpoint_id", channel_a,
+      &proxy_a, "endpoint_id", shared_channel_a,
       {
           .on_success_cb =
-              [&latch, &context_a](
+              [latch, &context_a](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -131,20 +137,19 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_a = std::move(context);
-                latch.CountDown();
+                latch->CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-A side key negotiation failed";
-                latch.CountDown();
+                latch->CountDown();
               },
       });
   crypto_b.StartServer(
-      &proxy_b, "endpoint_id", channel_b,
+      &proxy_b, "endpoint_id", shared_channel_b,
       {
           .on_success_cb =
-              [&latch, &context_b](
+              [latch, &context_b](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -154,16 +159,15 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_b = std::move(context);
-                latch.CountDown();
+                latch->CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-B side key negotiation failed";
-                latch.CountDown();
+                latch->CountDown();
               },
       });
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
+  EXPECT_TRUE(latch->Await(absl::Milliseconds(5000)).result());
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
 
@@ -265,20 +269,22 @@ TEST_F(BaseEndpointChannelTest, TryDecrypt) {
   absl::string_view kMessage = "message";
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
-  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
-  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  auto channel_a = std::make_shared<TestEndpointChannel>(pipe_b.first.get(),
+                                                         pipe_a.second.get());
+  auto channel_b = std::make_shared<TestEndpointChannel>(pipe_a.first.get(),
+                                                         pipe_b.second.get());
+  auto [context_a, context_b] = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context_a, nullptr);
   ASSERT_NE(context_b, nullptr);
-  channel_a.EnableEncryption(context_a);
-  channel_b.EnableEncryption(context_b);
+  channel_a->EnableEncryption(context_a);
+  channel_b->EnableEncryption(context_b);
   std::unique_ptr<std::string> encrypted_message =
-      channel_a.EncodeMessageForTests(kMessage);
+      channel_a->EncodeMessageForTests(kMessage);
 
   ExceptionOr<ByteArray> decrypted_message =
-      channel_b.TryDecrypt(ByteArray(*encrypted_message));
+      channel_b->TryDecrypt(ByteArray(*encrypted_message));
 
-  EXPECT_TRUE(channel_b.IsEncrypted());
+  EXPECT_TRUE(channel_b->IsEncrypted());
   EXPECT_TRUE(decrypted_message.ok());
   EXPECT_EQ(decrypted_message.result().AsStringView(), kMessage);
 }
@@ -286,16 +292,18 @@ TEST_F(BaseEndpointChannelTest, TryDecrypt) {
 TEST_F(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
-  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
-  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  auto channel_a = std::make_shared<TestEndpointChannel>(pipe_b.first.get(),
+                                                         pipe_a.second.get());
+  auto channel_b = std::make_shared<TestEndpointChannel>(pipe_a.first.get(),
+                                                         pipe_b.second.get());
+  auto [context_a, context_b] = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context_a, nullptr);
-  channel_a.EnableEncryption(context_a);
+  channel_a->EnableEncryption(context_a);
 
   ExceptionOr<ByteArray> result =
-      channel_a.TryDecrypt(ByteArray("invalid message"));
+      channel_a->TryDecrypt(ByteArray("invalid message"));
 
-  EXPECT_TRUE(channel_a.IsEncrypted());
+  EXPECT_TRUE(channel_a->IsEncrypted());
   EXPECT_FALSE(result.ok());
   EXPECT_EQ(result.exception(), Exception::kExecution);
 }
@@ -366,13 +374,15 @@ TEST_F(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
                                  // to server "b".
   auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
                                  // to server "a".
-  TestEndpointChannel channel_a(server_a.first.get(), client_a.second.get());
-  TestEndpointChannel channel_b(server_b.first.get(), client_b.second.get());
+  auto channel_a = std::make_shared<TestEndpointChannel>(server_a.first.get(),
+                                                         client_a.second.get());
+  auto channel_b = std::make_shared<TestEndpointChannel>(server_b.first.get(),
+                                                         client_b.second.get());
 
-  ON_CALL(channel_a, GetMedium).WillByDefault([]() {
+  ON_CALL(*channel_a, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;
   });
-  ON_CALL(channel_b, GetMedium).WillByDefault([]() {
+  ON_CALL(*channel_b, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;
   });
 
@@ -385,21 +395,21 @@ TEST_F(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
                    MakeDataMonitor("monitor_b", &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
-  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  auto [context_a, context_b] = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context_a, nullptr);
   ASSERT_NE(context_b, nullptr);
-  channel_a.EnableEncryption(context_a);
-  channel_b.EnableEncryption(context_b);
+  channel_a->EnableEncryption(context_a);
+  channel_b->EnableEncryption(context_b);
 
-  EXPECT_EQ(channel_a.GetType(), "ENCRYPTED_BLUETOOTH");
-  EXPECT_EQ(channel_b.GetType(), "ENCRYPTED_BLUETOOTH");
-  EXPECT_TRUE(channel_a.IsEncrypted());
-  EXPECT_TRUE(channel_b.IsEncrypted());
+  EXPECT_EQ(channel_a->GetType(), "ENCRYPTED_BLUETOOTH");
+  EXPECT_EQ(channel_b->GetType(), "ENCRYPTED_BLUETOOTH");
+  EXPECT_TRUE(channel_a->IsEncrypted());
+  EXPECT_TRUE(channel_b->IsEncrypted());
 
   // Start data transfer
   absl::string_view tx_message = "data message";
-  channel_a.Write(tx_message);
-  ByteArray rx_message = std::move(channel_b.Read().result());
+  channel_a->Write(tx_message);
+  ByteArray rx_message = std::move(channel_b->Read().result());
 
   // Verify expectations.
   EXPECT_EQ(rx_message.AsStringView(), tx_message);
@@ -411,8 +421,8 @@ TEST_F(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   }
 
   // Shutdown test environment.
-  channel_a.Close(DisconnectionReason::LOCAL_DISCONNECTION);
-  channel_b.Close(DisconnectionReason::REMOTE_DISCONNECTION);
+  channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
 TEST_F(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
@@ -486,43 +496,45 @@ TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   // Setup test communication environment.
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
-  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
-  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
+  auto channel_a = std::make_shared<TestEndpointChannel>(pipe_b.first.get(),
+                                                         pipe_a.second.get());
+  auto channel_b = std::make_shared<TestEndpointChannel>(pipe_a.first.get(),
+                                                         pipe_b.second.get());
 
-  ON_CALL(channel_a, GetMedium).WillByDefault([]() {
+  ON_CALL(*channel_a, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;
   });
-  ON_CALL(channel_b, GetMedium).WillByDefault([]() {
+  ON_CALL(*channel_b, GetMedium).WillByDefault([]() {
     return Medium::BLUETOOTH;
   });
 
   // Run DH key exchange; setup encryption contexts for channels. But only
   // encrypt |channel_b|.
-  auto [context_a, context_b] = DoDhKeyExchange(&channel_a, &channel_b);
+  auto [context_a, context_b] = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context_a, nullptr);
   ASSERT_NE(context_b, nullptr);
-  channel_b.EnableEncryption(context_b);
+  channel_b->EnableEncryption(context_b);
 
-  EXPECT_EQ(channel_a.GetType(), "BLUETOOTH");
-  EXPECT_EQ(channel_b.GetType(), "ENCRYPTED_BLUETOOTH");
+  EXPECT_EQ(channel_a->GetType(), "BLUETOOTH");
+  EXPECT_EQ(channel_b->GetType(), "ENCRYPTED_BLUETOOTH");
 
   // An unencrypted KeepAlive should succeed.
   std::string keep_alive_message = parser::ForKeepAlive();
-  channel_a.Write(keep_alive_message);
-  ExceptionOr<ByteArray> result = channel_b.Read();
+  channel_a->Write(keep_alive_message);
+  ExceptionOr<ByteArray> result = channel_b->Read();
   EXPECT_TRUE(result.ok());
   EXPECT_EQ(result.result().AsStringView(), keep_alive_message);
 
   // An unencrypted data frame should fail.
   absl::string_view tx_message = "data message";
-  channel_a.Write(tx_message);
-  result = channel_b.Read();
+  channel_a->Write(tx_message);
+  result = channel_b->Read();
   EXPECT_FALSE(result.ok());
   EXPECT_EQ(result.exception(), Exception::kInvalidProtocolBuffer);
 
   // Shutdown test environment.
-  channel_a.Close(DisconnectionReason::LOCAL_DISCONNECTION);
-  channel_b.Close(DisconnectionReason::REMOTE_DISCONNECTION);
+  channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
 }  // namespace

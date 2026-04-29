@@ -110,8 +110,8 @@ std::function<void(const ByteArray&)> MakeDataMonitor(absl::string_view label,
 
 std::pair<std::unique_ptr<EncryptionContext>,
           std::unique_ptr<EncryptionContext>>
-DoDhKeyExchange(BaseEndpointChannel* channel_a,
-                BaseEndpointChannel* channel_b) {
+DoDhKeyExchange(std::shared_ptr<EndpointChannel> channel_a,
+                std::shared_ptr<EndpointChannel> channel_b) {
   std::unique_ptr<EncryptionContext> context_a;
   std::unique_ptr<EncryptionContext> context_b;
   EncryptionRunner crypto_a;
@@ -136,8 +136,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-A side key negotiation failed";
                 latch.CountDown();
               },
@@ -159,8 +158,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-B side key negotiation failed";
                 latch.CountDown();
               },
@@ -185,9 +183,9 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
                                  // to server "b".
   auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
                                  // to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+  auto channel_a = std::make_shared<MockEndpointChannel>(server_a.first.get(),
                                                          client_a.second.get());
-  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+  auto channel_b = std::make_shared<MockEndpointChannel>(server_b.first.get(),
                                                          client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
@@ -208,7 +206,7 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
                    MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
-  auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
+  auto context = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context.first, nullptr);
   ASSERT_NE(context.second, nullptr);
 
@@ -266,9 +264,9 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
                                  // to server "b".
   auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
                                  // to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+  auto channel_a = std::make_shared<MockEndpointChannel>(server_a.first.get(),
                                                          client_a.second.get());
-  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+  auto channel_b = std::make_shared<MockEndpointChannel>(server_b.first.get(),
                                                          client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
@@ -289,7 +287,7 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
                    MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
-  auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
+  auto context = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context.first, nullptr);
   ASSERT_NE(context.second, nullptr);
 
