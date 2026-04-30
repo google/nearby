@@ -26,7 +26,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/internal_payload.h"
@@ -67,8 +66,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void OnIncomingFrame(
       location::nearby::connections::OfflineFrame& offline_frame,
       const std::string& from_endpoint_id, ClientProxy* to_client,
-      location::nearby::proto::connections::Medium current_medium,
-      analytics::PacketMetaData& packet_meta_data) override;
+      location::nearby::proto::connections::Medium current_medium) override;
 
   // @EndpointManagerThread
   void OnEndpointDisconnect(
@@ -412,8 +410,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                          const std::string& from_endpoint_id,
                          location::nearby::connections::PayloadTransferFrame&
                              payload_transfer_frame,
-                         location::nearby::proto::connections::Medium medium,
-                         analytics::PacketMetaData& packet_meta_data);
+                         location::nearby::proto::connections::Medium medium);
   void ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
                             location::nearby::connections::PayloadTransferFrame&

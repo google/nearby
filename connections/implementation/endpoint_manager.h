@@ -26,7 +26,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -80,8 +79,7 @@ class EndpointManager {
     virtual void OnIncomingFrame(
         location::nearby::connections::OfflineFrame& offline_frame,
         const std::string& from_endpoint_id, ClientProxy* to_client,
-        location::nearby::proto::connections::Medium current_medium,
-        analytics::PacketMetaData& packet_meta_data) = 0;
+        location::nearby::proto::connections::Medium current_medium) = 0;
 
     // Implementations must call barrier.CountDown() once
     // they're done. This parallelizes the disconnection event across all frame
@@ -134,8 +132,7 @@ class EndpointManager {
           payload_header,
       const location::nearby::connections::PayloadTransferFrame::PayloadChunk&
           payload_chunk,
-      const std::vector<std::string>& endpoint_ids,
-      analytics::PacketMetaData& packet_meta_data);
+      const std::vector<std::string>& endpoint_ids);
   std::vector<std::string> SendControlMessage(
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
@@ -285,8 +282,7 @@ class EndpointManager {
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,
       const std::string& payload_transfer_frame_bytes, std::int64_t payload_id,
-      std::int64_t offset, const std::string& packet_type,
-      analytics::PacketMetaData& packet_meta_data);
+      std::int64_t offset, const std::string& packet_type);
 
   // Executes all jobs sequentially, on a serial_executor_.
   void RunOnEndpointManagerThread(const std::string& name, Runnable runnable);

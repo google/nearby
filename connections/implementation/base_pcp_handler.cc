@@ -1666,8 +1666,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 
 void BasePcpHandler::OnIncomingFrame(
     OfflineFrame& frame, const std::string& endpoint_id, ClientProxy* client,
-    location::nearby::proto::connections::Medium medium,
-    PacketMetaData& packet_meta_data) {
+    location::nearby::proto::connections::Medium medium) {
   CountDownLatch latch(1);
   RunOnPcpHandlerThread(
       "incoming-frame",

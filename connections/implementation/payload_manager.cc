@@ -29,8 +29,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
-#include "connections/implementation/analytics/throughput_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -65,8 +63,6 @@ using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::PayloadStatus;
-using PacketMetaData = ::nearby::analytics::PacketMetaData;
-using ::nearby::analytics::ThroughputRecorderContainer;
 using PayloadDirection = ::nearby::connections::PayloadDirection;
 
 constexpr absl::Duration kMinTransferUpdateInterval = absl::Milliseconds(50);
@@ -81,7 +77,6 @@ bool PayloadManager::SendPayloadLoop(
   const EndpointIds& available_endpoint_ids =
       EndpointsToEndpointIds(pair.first);
   const Endpoints& unavailable_endpoints = pair.second;
-  PacketMetaData packet_meta_data;
 
   // First, handle any non-available endpoints.
   for (const auto& endpoint : unavailable_endpoints) {
@@ -143,10 +138,8 @@ bool PayloadManager::SendPayloadLoop(
   // This will block if there is no data to transfer.
   // It will resume when new data arrives, or if Close() is called.
   int chunk_size = GetOptimalChunkSize(available_endpoint_ids);
-  packet_meta_data.StartFileIo();
   ByteArray next_chunk =
       pending_payload.GetInternalPayload()->DetachNextChunk(chunk_size);
-  packet_meta_data.StopFileIo();
   if (shutdown_.Get()) return false;
   // Save chunk size. We'll need it after we move next_chunk.
   auto next_chunk_size = next_chunk.size();
@@ -169,7 +162,7 @@ bool PayloadManager::SendPayloadLoop(
   PayloadTransferFrame::PayloadChunk payload_chunk(CreatePayloadChunk(
       next_chunk_offset - resume_offset, std::move(next_chunk), index));
   const EndpointIds& failed_endpoint_ids = endpoint_manager_->SendPayloadChunk(
-      payload_header, payload_chunk, available_endpoint_ids, packet_meta_data);
+      payload_header, payload_chunk, available_endpoint_ids);
   // Check whether at least one endpoint failed.
   if (!failed_endpoint_ids.empty()) {
     VLOG(1) << "Payload xfer: endpoints failed: payload_id="
@@ -209,9 +202,6 @@ bool PayloadManager::SendPayloadLoop(
       VLOG(1) << "Payload xfer done: payload_id="
               << pending_payload.GetInternalPayload()->GetId()
               << "; size=" << next_chunk_offset;
-      ThroughputRecorderContainer::GetInstance().MarkAsSuccess(
-          pending_payload.GetInternalPayload()->GetId(),
-          PayloadDirection::OUTGOING_PAYLOAD);
       return false;
     }
   }
@@ -479,8 +469,6 @@ void PayloadManager::SendPayload(ClientProxy* client,
     std::int64_t next_chunk_offset = 0;
     int index = 0;
 
-    ThroughputRecorderContainer::GetInstance().Start(
-        payload_id, PayloadDirection::OUTGOING_PAYLOAD, payload_type);
     while (should_continue && !shutdown_.Get()) {
       should_continue =
           SendPayloadLoop(client, *pending_payload, payload_header,
@@ -528,8 +516,7 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
 void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
                                      const std::string& from_endpoint_id,
                                      ClientProxy* to_client,
-                                     Medium current_medium,
-                                     PacketMetaData& packet_meta_data) {
+                                     Medium current_medium) {
   PayloadTransferFrame& frame =
       *offline_frame.mutable_v1()->mutable_payload_transfer();
 
@@ -560,8 +547,7 @@ void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
       ProcessControlPacket(to_client, from_endpoint_id, frame);
       break;
     case PayloadTransferFrame::DATA:
-      ProcessDataPacket(to_client, from_endpoint_id, frame, current_medium,
-                        packet_meta_data);
+      ProcessDataPacket(to_client, from_endpoint_id, frame, current_medium);
       break;
     case PayloadTransferFrame::PAYLOAD_ACK:
       VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender "
@@ -812,10 +798,6 @@ PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
 void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
   VLOG(1) << "PayloadManager: destroying " << payload->ToString()
           << " self=" << this;
-  ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-      payload->GetId(), payload->IsIncoming()
-                            ? PayloadDirection::INCOMING_PAYLOAD
-                            : PayloadDirection::OUTGOING_PAYLOAD);
   if (payload->IsIncoming()) return;
   RunOnStatusUpdateThread(
       "~PendingPayload",
@@ -1301,8 +1283,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
 // @EndpointManagerDataPool
 void PayloadManager::ProcessDataPacket(
     ClientProxy* to_client, const std::string& from_endpoint_id,
-    PayloadTransferFrame& payload_transfer_frame, Medium medium,
-    PacketMetaData& packet_meta_data) {
+    PayloadTransferFrame& payload_transfer_frame, Medium medium) {
   PayloadTransferFrame::PayloadHeader& payload_header =
       *payload_transfer_frame.mutable_payload_header();
   PayloadTransferFrame::PayloadChunk& payload_chunk =
@@ -1323,10 +1304,6 @@ void PayloadManager::ProcessDataPacket(
   Payload::Id payload_id = payload_header.id();
   PendingPayloadHandle pending_payload;
   if (payload_chunk.offset() == 0) {
-    ThroughputRecorderContainer::GetInstance().Start(
-        payload_id, PayloadDirection::INCOMING_PAYLOAD,
-        (PayloadType)payload_header.type());
-    packet_meta_data.Reset();
     RunOnStatusUpdateThread(
         "process-data-packet", [to_client, from_endpoint_id, payload_header,
                                 this]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -1413,7 +1390,6 @@ void PayloadManager::ProcessDataPacket(
   // Save size of packet before we move it.
   std::int64_t payload_body_size = payload_chunk.body().size();
 
-  packet_meta_data.StartFileIo();
   if (pending_payload->GetInternalPayload()
           ->AttachNextChunk(payload_chunk.body())
           .Raised()) {
@@ -1425,7 +1401,6 @@ void PayloadManager::ProcessDataPacket(
         PayloadStatus::LOCAL_ERROR, OperationResultCode::IO_FILE_WRITING_ERROR);
     return;
   }
-  packet_meta_data.StopFileIo();
   bool is_last_chunk = (payload_chunk.flags() &
                         PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
   SendPayloadReceivedAck(to_client, *pending_payload, from_endpoint_id,
@@ -1434,14 +1409,6 @@ void PayloadManager::ProcessDataPacket(
   HandleSuccessfulIncomingChunk(to_client, from_endpoint_id, payload_header,
                                 payload_chunk.flags(), payload_chunk.offset(),
                                 payload_body_size);
-
-  ThroughputRecorderContainer::GetInstance().UpdateFrameData(
-      payload_header.id(), PayloadDirection::INCOMING_PAYLOAD, medium,
-      packet_meta_data);
-  if (is_last_chunk) {
-    ThroughputRecorderContainer::GetInstance().MarkAsSuccess(
-        payload_header.id(), PayloadDirection::INCOMING_PAYLOAD);
-  }
 }
 
 // @EndpointManagerDataPool

@@ -52,17 +52,10 @@ class FakeEndpointChannel : public EndpointChannel {
     read_timestamp_ = SystemClock::ElapsedRealtime();
     return in_ ? in_->Read(kChunkSize) : ExceptionOr<ByteArray>{Exception::kIo};
   }
-  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
-    read_timestamp_ = SystemClock::ElapsedRealtime();
-    return in_ ? in_->Read(kChunkSize) : ExceptionOr<ByteArray>{Exception::kIo};
-  }
+
   Exception Write(absl::string_view data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return out_ ? out_->Write(data) : Exception{Exception::kIo};
-  }
-  Exception Write(absl::string_view data,
-                  PacketMetaData& packet_meta_data) override {
-    return Write(data);
   }
   void Close() override {
     if (in_) in_->Close();

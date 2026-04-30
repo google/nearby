@@ -29,11 +29,10 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
-#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mock_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
@@ -63,68 +62,12 @@ using ::testing::MockFunction;
 using ::testing::Return;
 using ::testing::StrictMock;
 
-class MockEndpointChannel : public EndpointChannel {
- public:
-  MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
-  MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData & packet_meta_data),
-              (override));
-  MOCK_METHOD(Exception, Write, (absl::string_view data), (override));
-  MOCK_METHOD(Exception, Write,
-              (absl::string_view data, PacketMetaData& packet_meta_data),
-              (override));
-  MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
-  MOCK_METHOD(void, Close,
-              (DisconnectionReason reason,
-               location::nearby::analytics::proto::ConnectionsLog::
-                   EstablishedConnection::SafeDisconnectionResult result),
-              (override));
-  MOCK_METHOD(location::nearby::proto::connections::ConnectionTechnology,
-              GetTechnology, (), (const, override));
-  MOCK_METHOD(location::nearby::proto::connections::ConnectionBand, GetBand, (),
-              (const, override));
-  MOCK_METHOD(int, GetFrequency, (), (const, override));
-  MOCK_METHOD(int, GetTryCount, (), (const, override));
-  MOCK_METHOD(std::string, GetType, (), (const, override));
-  MOCK_METHOD(std::string, GetServiceId, (), (const, override));
-  MOCK_METHOD(std::string, GetName, (), (const, override));
-  MOCK_METHOD(Medium, GetMedium, (), (const, override));
-  MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const, override));
-  MOCK_METHOD(void, EnableEncryption,
-              (std::shared_ptr<EncryptionContext> context), (override));
-  MOCK_METHOD(void, DisableEncryption, (), (override));
-  MOCK_METHOD(bool, IsPaused, (), (const, override));
-  MOCK_METHOD(bool, IsEncrypted, (), (override));
-  MOCK_METHOD(ExceptionOr<ByteArray>, TryDecrypt, (const ByteArray& data),
-              (override));
-  MOCK_METHOD(void, Pause, (), (override));
-  MOCK_METHOD(void, Resume, (), (override));
-  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const, override));
-  MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const, override));
-  MOCK_METHOD(uint32_t, GetNextKeepAliveSeqNo, (), (const, override));
-  MOCK_METHOD(void, SetAnalyticsRecorder,
-              (analytics::AnalyticsRecorder*, const std::string&), (override));
-
-  bool IsClosed() const override {
-    absl::MutexLock lock(mutex_);
-    return closed_;
-  }
-  void DoClose() {
-    absl::MutexLock lock(mutex_);
-    closed_ = true;
-  }
-
- private:
-  mutable absl::Mutex mutex_;
-  bool closed_ = false;
-};
-
 class MockFrameProcessor : public EndpointManager::FrameProcessor {
  public:
   MOCK_METHOD(void, OnIncomingFrame,
               (OfflineFrame & offline_frame,
                const std::string& from_endpoint_id, ClientProxy* to_client,
-               Medium current_medium, PacketMetaData& packet_meta_data),
+               Medium current_medium),
               (override));
 
   MOCK_METHOD(void, OnEndpointDisconnect,
@@ -281,7 +224,7 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
       parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(read_data))))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, Write(_))
@@ -319,6 +262,8 @@ TEST_F(EndpointManagerTest, UnregisterFrameProcessorWorks) {
 
 TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  absl::Mutex close_mutex;
+  bool closed = false;
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::ControlMessage control;
   header.set_id(12345);
@@ -327,22 +272,24 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   control.set_offset(150);
   control.set_event(PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
 
-  ON_CALL(*endpoint_channel, Read(_))
-      .WillByDefault([channel = endpoint_channel.get()]() {
-        if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
+  ON_CALL(*endpoint_channel, Read())
+      .WillByDefault([&, channel = endpoint_channel.get()]() {
+        absl::MutexLock lock(close_mutex);
+        if (closed) return ExceptionOr<ByteArray>(Exception::kIo);
         LOG(INFO) << "Simulate read delay: wait";
         absl::SleepFor(absl::Milliseconds(100));
         LOG(INFO) << "Simulate read delay: done";
-        if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
+        if (closed) return ExceptionOr<ByteArray>(Exception::kIo);
         return ExceptionOr<ByteArray>(ByteArray{});
       });
   ON_CALL(*endpoint_channel, Close(_))
       .WillByDefault(
-          [channel = endpoint_channel.get()](DisconnectionReason reason) {
-            channel->DoClose();
+          [&, channel = endpoint_channel.get()](DisconnectionReason reason) {
+            absl::MutexLock lock(close_mutex);
+            closed = true;
             LOG(INFO) << "Channel closed";
           });
-  EXPECT_CALL(*endpoint_channel, Write(_, _))
+  EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
 
   RegisterEndpoint(std::move(endpoint_channel), false);
@@ -359,7 +306,7 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
 
 TEST_F(EndpointManagerTest, SingleReadOnReadError) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(
           Return(ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer)));
   EXPECT_CALL(*endpoint_channel, Write(_))
@@ -377,7 +324,7 @@ TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
   CountDownLatch latch(1);
   const ByteArray payload("not a valid frame");
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
@@ -401,7 +348,7 @@ class EndpointManagerFuzzTest
     // too.
     // 4. Invalid frame is ignored. No bad side effects.
     auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-    EXPECT_CALL(*endpoint_channel, Read(_))
+    EXPECT_CALL(*endpoint_channel, Read())
         .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
         .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
     EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
@@ -417,7 +364,7 @@ class EndpointManagerFuzzTest
     // 2. EndpointManager receives an invalid encrypted frame.
     // 3. No calls to TryDecrypt.
     auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-    EXPECT_CALL(*endpoint_channel, Read(_))
+    EXPECT_CALL(*endpoint_channel, Read())
         .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
         .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
     EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
@@ -468,7 +415,7 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))

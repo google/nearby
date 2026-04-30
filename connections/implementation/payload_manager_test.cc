@@ -21,7 +21,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
@@ -43,7 +42,6 @@ namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::Medium;
-using ::nearby::analytics::PacketMetaData;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -116,10 +114,8 @@ class PayloadSimulationUser : public SimulationUser {
     std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
     offline_frame.ParseFromString(bytes);
 
-    PacketMetaData packet_meta_data;
-
     pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
-                        Medium::WIFI_HOTSPOT, packet_meta_data);
+                        Medium::WIFI_HOTSPOT);
   }
 
   Status CancelPayload() {

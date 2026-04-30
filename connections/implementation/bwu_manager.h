@@ -92,8 +92,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // @EndpointManagerReaderThread
   void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
                        const std::string& endpoint_id, ClientProxy* client,
-                       Medium medium,
-                       PacketMetaData& packet_meta_data) override;
+                       Medium medium) override;
 
   // Cleans up in-progress upgrades after endpoint disconnection.
   // @EndpointManagerReaderThread
@@ -144,7 +143,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // upgrade.
   void OnBwuNegotiationFrame(
       ClientProxy* client,
-      const location::nearby::connections::BandwidthUpgradeNegotiationFrame
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame&
           frame,
       const string& endpoint_id);
 

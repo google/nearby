@@ -92,17 +92,10 @@ BaseEndpointChannel::BaseEndpointChannel(
       try_count_(try_count) {}
 
 ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
-  PacketMetaData packet_meta_data;
-  return Read(packet_meta_data);
-}
-
-ExceptionOr<ByteArray> BaseEndpointChannel::Read(
-    PacketMetaData& packet_meta_data) {
   ByteArray result;
   {
     MutexLock lock(&reader_mutex_);
 
-    packet_meta_data.StartSocketIo();
     ExceptionOr<std::int32_t> read_int;
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
@@ -133,8 +126,6 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     if (!read_bytes.ok()) {
       return read_bytes;
     }
-    packet_meta_data.StopSocketIo();
-    packet_meta_data.SetPacketSize(read_int.result() + sizeof(std::int32_t));
     result = std::move(read_bytes.result());
   }
 
@@ -144,7 +135,6 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, decode the message.
       std::string input(std::move(result));
-      packet_meta_data.StartEncryption();
       std::unique_ptr<std::string> decrypted_data =
           crypto_context_->DecodeMessageFromPeer(input);
       if (decrypted_data) {
@@ -175,7 +165,6 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
                        << ": Unable to parse data as unencrypted message.";
         }
       }
-      packet_meta_data.StopEncryption();
       if (result.Empty()) {
         LOG(WARNING) << __func__ << ": Unable to parse read result.";
         return ExceptionOr<ByteArray>(message_exception);
@@ -191,12 +180,6 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
 }
 
 Exception BaseEndpointChannel::Write(absl::string_view data) {
-  PacketMetaData packet_meta_data;
-  return Write(data, packet_meta_data);
-}
-
-Exception BaseEndpointChannel::Write(absl::string_view data,
-                                     PacketMetaData& packet_meta_data) {
   {
     MutexLock pause_lock(&is_paused_mutex_);
     if (is_paused_) {
@@ -217,9 +200,7 @@ Exception BaseEndpointChannel::Write(absl::string_view data,
       MutexLock crypto_lock(&crypto_mutex_);
       if (IsEncryptionEnabledLocked()) {
         // If encryption is enabled, encode the message.
-        packet_meta_data.StartEncryption();
         encrypted = crypto_context_->EncodeMessageToPeer(data);
-        packet_meta_data.StopEncryption();
         if (!encrypted) {
           LOG(WARNING) << __func__ << ": Failed to encrypt data.";
           return {Exception::kIo};
@@ -235,7 +216,6 @@ Exception BaseEndpointChannel::Write(absl::string_view data,
       return {Exception::kIo};
     }
 
-    packet_meta_data.StartSocketIo();
     Exception write_exception;
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
@@ -262,8 +242,6 @@ Exception BaseEndpointChannel::Write(absl::string_view data,
                    << ": Failed to flush writer: " << flush_exception.value;
       return flush_exception;
     }
-    packet_meta_data.StopSocketIo();
-    packet_meta_data.SetPacketSize(data_size + sizeof(std::uint32_t));
   }
 
   {

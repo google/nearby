@@ -188,12 +188,12 @@ class BwuManagerTest : public ::testing::Test {
         parser::FromBytes(parser::ForBwuLastWrite());
     bwu_manager_->OnIncomingFrame(last_write_frame.result(),
                                   std::string(endpoint_id), &client_,
-                                  initial_medium, packet_meta_data_);
+                                  initial_medium);
     ExceptionOr<OfflineFrame> safe_to_close_frame =
         parser::FromBytes(parser::ForBwuSafeToClose());
     bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
                                   std::string(endpoint_id), &client_,
-                                  initial_medium, packet_meta_data_);
+                                  initial_medium);
 
     return upgraded_channel;
   }
@@ -209,7 +209,6 @@ class BwuManagerTest : public ::testing::Test {
   FakeBwuHandler* fake_wifi_direct_bwu_handler_ = nullptr;
   FakeBwuHandler* fake_wifi_hotspot_bwu_handler_ = nullptr;
   std::unique_ptr<BwuManager> bwu_manager_;
-  PacketMetaData packet_meta_data_;
 };
 
 TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
@@ -370,12 +369,12 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
       parser::FromBytes(parser::ForBwuLastWrite());
   bwu_manager_->OnIncomingFrame(last_write_frame.result(),
                                 std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   ExceptionOr<OfflineFrame> safe_to_close_frame =
       parser::FromBytes(parser::ForBwuSafeToClose());
   bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
                                 std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
 
   // Confirm that upgrade channel is resumed after initial channel is shut down.
   // Note: If we didn't grab the shared initial channel pointer above, this
@@ -871,7 +870,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagEnabled) {
       parser::FromBytes(parser::ForBwuFailure(info));
   bwu_manager_->OnIncomingFrame(upgrade_failure.result(),
                                 std::string(kEndpointId3), &client_,
-                                Medium::WEB_RTC, packet_meta_data_);
+                                Medium::WEB_RTC);
 
   // With the flag enabled, we can safely revert WebRTC just for service B
   // because service B has no active WebRTC endpoints.
@@ -908,7 +907,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
       parser::FromBytes(parser::ForBwuFailure(info));
   bwu_manager_->OnIncomingFrame(upgrade_failure.result(),
                                 std::string(kEndpointId3), &client_,
-                                Medium::WEB_RTC, packet_meta_data_);
+                                Medium::WEB_RTC);
 
   // With the flag disabled, we don't revert if there are still connected
   // endpoints for _any_ service. We don't have service-level bookkeeping; we
@@ -938,7 +937,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
       upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_supports_client_introduction_ack(false);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   CountDownLatch latch(1);
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
@@ -973,7 +972,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
   upgrade_path_info->set_supports_client_introduction_ack(false);
   upgrade_path_info->set_supports_disabling_encryption(true);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   CountDownLatch latch(1);
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
@@ -1001,7 +1000,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
   upgrade_path_info->set_supports_client_introduction_ack(false);
 
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   CountDownLatch latch(1);
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
@@ -1040,7 +1039,7 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
   upgrade_path_info2->set_supports_client_introduction_ack(false);
   upgrade_path_info2->set_supports_disabling_encryption(true);
   bwu_manager_->OnIncomingFrame(frame2, std::string(kEndpointId2), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   CountDownLatch latch2(1);
   // The BWU frame should be drop, so the inProgressUpgrades should be empty.
   ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)), false);
@@ -1084,7 +1083,7 @@ TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
   EXPECT_TRUE(client_.IsConnectedToEndpoint(std::string(kEndpointId2)));
 
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId2), &client_,
-                                Medium::BLUETOOTH, packet_meta_data_);
+                                Medium::BLUETOOTH);
   CountDownLatch latch2(1);
   // The BWU frame should be drop, so the IsUpgradeOngoing should be empty.
   ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)), false);

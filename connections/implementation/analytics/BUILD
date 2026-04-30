@@ -20,15 +20,12 @@ cc_library(
     name = "analytics",
     srcs = [
         "analytics_recorder.cc",
-        "throughput_recorder.cc",
     ],
     hdrs = [
         "advertising_metadata_params.h",
         "analytics_recorder.h",
         "connection_attempt_metadata_params.h",
         "discovery_metadata_params.h",
-        "packet_meta_data.h",
-        "throughput_recorder.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = ["//connections:__subpackages__"],
@@ -58,7 +55,6 @@ cc_test(
     size = "small",
     srcs = [
         "analytics_recorder_test.cc",
-        "throughput_recorder_test.cc",
     ],
     shard_count = 16,
     deps = [

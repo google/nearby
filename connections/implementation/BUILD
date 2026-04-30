@@ -214,6 +214,7 @@ cc_library(
         "fake_bwu_handler.h",
         "fake_endpoint_channel.h",
         "mock_device.h",
+        "mock_endpoint_channel.h",
         "mock_service_controller.h",
         "mock_service_controller_router.h",
         "offline_simulation_user.h",
@@ -440,8 +441,8 @@ cc_test(
     ],
     deps = [
         ":internal",
+        ":internal_test",
         "//connections:core_types",
-        "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -491,13 +492,11 @@ cc_test(
     ],
     deps = [
         ":internal",
-        "//connections/implementation/analytics",
+        ":internal_test",
         "//internal/platform:base",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
-        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

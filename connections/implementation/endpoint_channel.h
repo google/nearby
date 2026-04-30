@@ -23,14 +23,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
-
-using analytics::PacketMetaData;
 
 class EndpointChannel {
  public:
@@ -41,15 +38,9 @@ class EndpointChannel {
   virtual ExceptionOr<ByteArray>
   Read() = 0;  // throws Exception::IO, Exception::INTERRUPTED
 
-  virtual ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) = 0;
-
   virtual Exception Write(absl::string_view data) = 0;  // throws Exception::IO
 
-  virtual Exception Write(
-      absl::string_view data,
-      PacketMetaData& packet_meta_data) = 0;  // throws Exception::IO
   // Closes this EndpointChannel, without tracking the closure in analytics.
-
   virtual void Close() = 0;
 
   // Closes this EndpointChannel and records the closure with the given reason.

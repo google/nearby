@@ -31,7 +31,6 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
@@ -158,10 +157,10 @@ class BasePcpHandler : public PcpHandler,
                           const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
-                       const std::string& endpoint_id, ClientProxy* client,
-                       location::nearby::proto::connections::Medium medium,
-                       analytics::PacketMetaData& packet_meta_data) override;
+  void OnIncomingFrame(
+      location::nearby::connections::OfflineFrame& frame,
+      const std::string& endpoint_id, ClientProxy* client,
+      location::nearby::proto::connections::Medium medium) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.

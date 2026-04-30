@@ -32,7 +32,6 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
@@ -1591,7 +1590,6 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
   EndpointManager em(&ecm);
   BwuManager bwu(m, em, ecm, {}, {});
   MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
-  analytics::PacketMetaData packet_meta_data;
   StartDiscovery(client_.get(), &pcp_handler);
   auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
   auto connect_medium = mediums[mediums.size() - 1];
@@ -1615,7 +1613,7 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
       Status::kSuccess, os_info, /*multiplex_socket_bitmask=*/0));
   EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, client_.get(),
-                              connect_medium, packet_meta_data);
+                              connect_medium);
   LOG(INFO) << "Closing connection: id=" << endpoint_id;
   channel_b->Close();
   bwu.Shutdown();

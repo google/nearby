@@ -400,8 +400,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
 
 void BwuManager::OnIncomingFrame(OfflineFrame& frame,
                                  const std::string& endpoint_id,
-                                 ClientProxy* client, Medium medium,
-                                 PacketMetaData& packet_meta_data) {
+                                 ClientProxy* client, Medium medium) {
   V1Frame::FrameType frame_type = parser::GetFrameType(frame);
   if (frame_type != V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION) return;
 
@@ -548,7 +547,7 @@ BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
 }
 
 void BwuManager::OnBwuNegotiationFrame(
-    ClientProxy* client, const BandwidthUpgradeNegotiationFrame frame,
+    ClientProxy* client, const BandwidthUpgradeNegotiationFrame& frame,
     const std::string& endpoint_id) {
   LOG(INFO) << "OnBwuNegotiationFrame: processing incoming "
             << BandwidthUpgradeNegotiationFrame::EventType_Name(
