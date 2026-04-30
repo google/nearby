@@ -22,7 +22,6 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//connections:partners",
         "//internal:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/testing:__subpackages__",
