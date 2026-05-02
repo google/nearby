@@ -74,9 +74,7 @@ cc_library(
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     tags = ["windows"],
-    visibility = [
-        "//sharing/internal/impl/windows:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":device_paths",
         ":string_utils",
