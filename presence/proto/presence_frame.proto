@@ -136,6 +136,7 @@ message UwbControleeCapabilities {
   optional int32 chip_count = 17 [default = 1];
   repeated UwbMultiChipInfo multi_chip_info = 18;
   optional bool is_background_ranging_supported = 19 [default = false];
+  optional bool supports_grapi = 20 [default = false];
 }
 
 /* A frame containing info needed per chip in a multi-chip environment. */
