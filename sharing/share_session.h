@@ -38,6 +38,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
@@ -95,6 +96,11 @@ class ShareSession {
   bool self_share() const { return self_share_; }
 
   const ShareTarget& share_target() const { return share_target_; }
+
+  ShareSessionUsage session_usage() const { return session_usage_; }
+  void set_session_usage(ShareSessionUsage session_usage) {
+    session_usage_ = session_usage;
+  }
 
   // Sets the status to send in the TransferMetadataUpdate on connection
   // disconnect. If |status| is kUnknown, then no TransferMetadataUpdate will be
@@ -221,6 +227,7 @@ class ShareSession {
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
   PayloadTracker::PayloadUpdateQueue* payload_updates_queue_ = nullptr;
   bool is_cancelled_ = false;
+  ShareSessionUsage session_usage_ = ShareSessionUsage::kUnknown;
 };
 
 }  // namespace nearby::sharing

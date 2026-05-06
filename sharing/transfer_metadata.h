@@ -19,6 +19,10 @@
 
 #include <optional>
 #include <string>
+#include <utility>
+
+#include "absl/strings/string_view.h"
+#include "sharing/share_session_usage.h"
 
 namespace nearby {
 namespace sharing {
@@ -50,22 +54,30 @@ class TransferMetadata {
   // LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
 
   static bool IsFinalStatus(Status status);
-  static std::string StatusToString(TransferMetadata::Status status);
+  static std::string StatusToString(Status status);
 
   TransferMetadata(
-      Status status, float progress, std::optional<std::string> token,
-      bool is_original, bool is_final_status, bool is_self_share,
-      uint64_t transferred_bytes, uint64_t transfer_speed,
+      ShareSessionUsage usage, Status status, float progress,
+      std::optional<std::string> token, bool is_original, bool is_final_status,
+      bool is_self_share, uint64_t transferred_bytes, uint64_t transfer_speed,
       uint64_t estimated_time_remaining, int total_attachments_count,
       int transferred_attachments_count,
       std::optional<int64_t> in_progress_attachment_id,
       std::optional<uint64_t> in_progress_attachment_transferred_bytes,
-      std::optional<uint64_t> in_progress_attachment_total_bytes);
+      std::optional<uint64_t> in_progress_attachment_total_bytes,
+      absl::string_view binding_id
+    );
   ~TransferMetadata();
   TransferMetadata(const TransferMetadata&);
   TransferMetadata& operator=(const TransferMetadata&);
 
+  ShareSessionUsage usage() const { return usage_; }
   Status status() const { return status_; }
+
+  std::string binding_id() const { return binding_id_; }
+  void set_binding_id(std::string binding_id) {
+    binding_id_ = std::move(binding_id);
+  }
 
   // Returns transfer progress as percentage.
   float progress() const { return progress_; }
@@ -118,6 +130,7 @@ class TransferMetadata {
   }
 
  private:
+  ShareSessionUsage usage_;
   Status status_;
   float progress_;
   std::optional<std::string> token_;
@@ -132,6 +145,9 @@ class TransferMetadata {
   std::optional<int64_t> in_progress_attachment_id_;
   std::optional<uint64_t> in_progress_attachment_transferred_bytes_;
   std::optional<uint64_t> in_progress_attachment_total_bytes_;
+  // If usage_ is kPairing and status_ is kComplete, this will be set to the
+  // binding id. Otherwise, this will be empty.
+  std::string binding_id_;
 };
 
 }  // namespace sharing

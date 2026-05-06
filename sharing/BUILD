@@ -110,6 +110,16 @@ cc_library(
 )
 
 cc_library(
+    name = "share_session_usage",
+    hdrs = ["share_session_usage.h"],
+    visibility = [
+        "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+)
+
+cc_library(
     name = "transfer_metadata",
     srcs = [
         "transfer_metadata.cc",
@@ -128,6 +138,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":share_session_usage",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
@@ -229,6 +240,7 @@ cc_library(
         ":incoming_frame_reader",
         ":nearby_sharing_util",
         ":paired_key_verification_runner",
+        ":share_session_usage",
         ":thread_timer",
         ":transfer_metadata",
         ":types",
@@ -369,6 +381,7 @@ cc_library(
         ":outgoing_targets_manager",
         ":paired_key_verification_runner",
         ":share_session",
+        ":share_session_usage",
         ":thread_timer",
         ":transfer_metadata",
         ":types",
@@ -378,7 +391,6 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/base",
         "//internal/base:file_path",
-        "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/network:url",
         "//internal/platform:base",
@@ -841,6 +853,7 @@ cc_test(
     name = "transfer_metadata_test",
     srcs = ["transfer_metadata_test.cc"],
     deps = [
+        ":share_session_usage",
         ":transfer_metadata",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
@@ -855,6 +868,7 @@ cc_test(
         ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":share_session",
+        ":share_session_usage",
         ":test_support",
         ":transfer_metadata",
         ":transfer_metadata_matchers",
@@ -906,6 +920,7 @@ cc_test(
         ":connection_types",
         ":nearby_connection_impl",
         ":share_session",
+        ":share_session_usage",
         ":test_support",
         ":transfer_metadata",
         ":transfer_metadata_matchers",
@@ -939,6 +954,7 @@ cc_test(
         ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":share_session",
+        ":share_session_usage",
         ":test_support",
         ":transfer_metadata",
         ":transfer_metadata_matchers",

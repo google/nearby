@@ -32,6 +32,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 
 namespace nearby::sharing {
 namespace {
@@ -69,7 +70,12 @@ class PayloadTrackerTest : public ::testing::Test {
     auto transfer_update = std::make_unique<PayloadTransferUpdate>(
         /*payload_id=*/kFileId, PayloadStatus::kInProgress,
         /*total_bytes=*/kFileSize, /*bytes_transferred=*/bytes_transferred);
-    return payload_tracker_->ProcessPayloadUpdate(std::move(transfer_update));
+    std::optional<TransferMetadataBuilder> metadata_builder =
+        payload_tracker_->ProcessPayloadUpdate(std::move(transfer_update));
+    if (!metadata_builder.has_value()) {
+      return std::nullopt;
+    }
+    return metadata_builder->build();
   }
 
  private:

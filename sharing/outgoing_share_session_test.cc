@@ -49,6 +49,7 @@
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/analytics/nearby_sharing_log.proto.static_reflection.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
@@ -923,6 +924,7 @@ TEST_F(OutgoingShareSessionTest,
 
 TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
   session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
   Frame expected_binding_request_frame =
@@ -948,7 +950,9 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
       });
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
   session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
@@ -988,6 +992,7 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
 
 TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
   session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
   Frame expected_binding_request_frame =
@@ -1013,7 +1018,9 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
       });
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
   session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
@@ -1036,6 +1043,7 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
 
 TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
   session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
   Frame expected_binding_request_frame =
@@ -1061,7 +1069,9 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
       });
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
   session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,

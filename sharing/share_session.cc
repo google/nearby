@@ -176,7 +176,10 @@ void ShareSession::Abort(TransferMetadata::Status status) {
 
   // First invoke the appropriate transfer callback with the final
   // |status|.
-  UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
+  UpdateTransferMetadata(TransferMetadataBuilder()
+                             .set_usage(session_usage())
+                             .set_status(status)
+                             .build());
   Disconnect();
 }
 
@@ -246,7 +249,10 @@ void ShareSession::OnDisconnect() {
   OnConnectionDisconnected();
   if (disconnect_status_ != TransferMetadata::Status::kUnknown) {
     UpdateTransferMetadata(
-        TransferMetadataBuilder().set_status(disconnect_status_).build());
+        TransferMetadataBuilder()
+            .set_usage(session_usage())
+            .set_status(disconnect_status_)
+            .build());
   }
   connection_ = nullptr;
 }

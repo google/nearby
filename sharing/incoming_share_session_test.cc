@@ -43,9 +43,9 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
@@ -59,7 +59,6 @@ namespace {
 using ::absl::Seconds;
 using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
-using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::analytics::HasAction;
 using ::nearby::analytics::HasCategory;
@@ -1085,7 +1084,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
   session_.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
+      Call(_, AllOf(HasStatus(
+                        TransferMetadata::Status::kAwaitingLocalConfirmation),
+                    HasUsage(ShareSessionUsage::kSharing))));
 
   EXPECT_THAT(
       session_.ReadyForTransfer(
@@ -1104,7 +1105,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
   session.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)))
+      Call(_, AllOf(HasStatus(
+                        TransferMetadata::Status::kAwaitingLocalConfirmation),
+                    HasUsage(ShareSessionUsage::kSharing))))
       .Times(0);
 
   EXPECT_THAT(
@@ -1117,7 +1120,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
   session_.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
+      Call(_, AllOf(HasStatus(
+                        TransferMetadata::Status::kAwaitingLocalConfirmation),
+                    HasUsage(ShareSessionUsage::kSharing))));
   bool accept_timeout_called = false;
 
   EXPECT_THAT(session_.ReadyForTransfer(
@@ -1195,7 +1200,9 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
       IsFalse());
   EXPECT_CALL(
       transfer_metadata_callback_,
-      Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kSharing))));
   EXPECT_CALL(
       mock_event_logger_,
       Log(Matcher<const SharingLog&>(AllOf(
@@ -1274,8 +1281,10 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
-  EXPECT_CALL(transfer_metadata_callback_,
-              Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, AllOf(HasStatus(TransferMetadata::Status::kNotEnoughSpace),
+                    HasUsage(ShareSessionUsage::kSharing))));
 
   session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
 }
@@ -1284,8 +1293,10 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_CALL(transfer_metadata_callback_,
-              Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, AllOf(HasStatus(TransferMetadata::Status::kNotEnoughSpace),
+                    HasUsage(ShareSessionUsage::kSharing))));
   std::queue<std::vector<uint8_t>> frames_data;
   connections_manager_.set_send_payload_callback(
       [&](std::unique_ptr<Payload> payload,

@@ -43,6 +43,7 @@
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/thread_timer.h"
@@ -185,6 +186,7 @@ bool OutgoingShareSession::InitiateSendAttachments(
                     "create payloads.";
     UpdateTransferMetadata(
         TransferMetadataBuilder()
+            .set_usage(session_usage())
             .set_status(TransferMetadata::Status::kMediaUnavailable)
             .build());
   }
@@ -334,6 +336,7 @@ bool OutgoingShareSession::AcceptTransfer(
   // Wait for remote accept in response frame.
   UpdateTransferMetadata(
       TransferMetadataBuilder()
+          .set_usage(session_usage())
           .set_token(token())
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .build());
@@ -408,6 +411,7 @@ void OutgoingShareSession::SendAttachmentsCompleted(
 
 bool OutgoingShareSession::SendIntroduction(
     std::function<void()> timeout_callback) {
+  set_session_usage(ShareSessionUsage::kSharing);
   Frame frame;
   frame.set_version(Frame::V1);
   V1Frame* v1_frame = frame.mutable_v1();
@@ -450,6 +454,7 @@ OutgoingShareSession::HandleConnectionResponse(
     case ConnectionResponseFrame::ACCEPT: {
       UpdateTransferMetadata(
           TransferMetadataBuilder()
+              .set_usage(session_usage())
               .set_status(TransferMetadata::Status::kInProgress)
               .build());
       return std::nullopt;
@@ -551,6 +556,7 @@ void OutgoingShareSession::Connect(
   // Send process initialized successfully, from now on status updated
   // will be sent out via TransferUpdates.
   UpdateTransferMetadata(TransferMetadataBuilder()
+                             .set_usage(session_usage())
                              .set_status(TransferMetadata::Status::kConnecting)
                              .build());
   connection_start_time_ = clock().Now();
@@ -627,12 +633,15 @@ OutgoingShareSession::ProcessPayloadTransferUpdates() {
     return std::nullopt;
   }
 
-  std::optional<TransferMetadata> metadata;
+  std::optional<TransferMetadataBuilder> metadata_builder;
   for (; !updates.empty(); updates.pop()) {
-    metadata =
+    metadata_builder =
         get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));
   }
-  return metadata;
+  return metadata_builder.has_value()
+             ? std::make_optional(
+                   metadata_builder->set_usage(session_usage()).build())
+             : std::nullopt;
 }
 
 void OutgoingShareSession::StartPeerBinding(
@@ -650,6 +659,7 @@ void OutgoingShareSession::StartPeerBinding(
   LOG(INFO) << "Waiting for bindings response frame from " << share_target().id;
   UpdateTransferMetadata(
       TransferMetadataBuilder()
+          .set_usage(session_usage())
           .set_token(token())
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .build());

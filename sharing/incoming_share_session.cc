@@ -41,6 +41,7 @@
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/thread_timer.h"
@@ -69,7 +70,9 @@ IncomingShareSession::IncomingShareSession(
         transfer_update_callback)
     : ShareSession(clock, service_thread, connections_manager,
                    analytics_recorder, std::move(endpoint_id), share_target),
-      transfer_update_callback_(std::move(transfer_update_callback)) {}
+      transfer_update_callback_(std::move(transfer_update_callback)) {
+  set_session_usage(ShareSessionUsage::kSharing);
+}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
 
@@ -210,6 +213,7 @@ bool IncomingShareSession::ReadyForTransfer(
 
   if (!self_share()) {
     TransferMetadataBuilder transfer_metadata_builder;
+    transfer_metadata_builder.set_usage(session_usage());
     transfer_metadata_builder.set_status(
         TransferMetadata::Status::kAwaitingLocalConfirmation);
     transfer_metadata_builder.set_token(token());
@@ -249,6 +253,7 @@ bool IncomingShareSession::AcceptTransfer(
 
   UpdateTransferMetadata(
       TransferMetadataBuilder()
+          .set_usage(session_usage())
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .set_token(token())
           .build());
@@ -434,7 +439,10 @@ void IncomingShareSession::SendFailureResponse(
   WriteResponseFrame(response_status);
   DCHECK(TransferMetadata::IsFinalStatus(status))
       << "SendFailureResponse should only be called with a final status";
-  UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
+  UpdateTransferMetadata(TransferMetadataBuilder()
+                             .set_usage(session_usage())
+                             .set_status(status)
+                             .build());
 }
 
 std::optional<TransferMetadata>
@@ -449,19 +457,21 @@ IncomingShareSession::ProcessPayloadTransferUpdates(
   // Cancel acceptance timer when payload transfer update is received.
   // This mean sender has begun sending payload.
   mutual_acceptance_timeout_ = nullptr;
-  std::optional<TransferMetadata> metadata;
+  std::optional<TransferMetadataBuilder> metadata_builder;
   // If there is a batch of updates in the queue, only return the latest
   // TransferMetadata.
   for (; !updates.empty(); updates.pop()) {
-    metadata =
+    metadata_builder =
         get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));
-    if (!metadata.has_value()) {
+    if (!metadata_builder.has_value()) {
       continue;
     }
-
-    if (metadata->status() == TransferMetadata::Status::kComplete) {
+    TransferMetadata metadata =
+        metadata_builder->set_usage(session_usage()).build();
+    if (metadata.status() == TransferMetadata::Status::kComplete) {
       if (!FinalizePayloads()) {
         return TransferMetadataBuilder()
+            .set_usage(session_usage())
             .set_status(TransferMetadata::Status::kIncompletePayloads)
             .build();
       }
@@ -474,13 +484,15 @@ IncomingShareSession::ProcessPayloadTransferUpdates(
     if (update_file_paths_in_progress) {
       UpdateFilePayloadPaths();
     } else {
-      if (metadata->status() == TransferMetadata::Status::kCancelled) {
+      if (metadata.status() == TransferMetadata::Status::kCancelled) {
         VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
         UpdateFilePayloadPaths();
       }
     }
   }
-  return metadata;
+  return metadata_builder.has_value()
+             ? std::make_optional(metadata_builder->build())
+             : std::nullopt;
 }
 
 void IncomingShareSession::OnConnected(NearbyConnection* connection) {

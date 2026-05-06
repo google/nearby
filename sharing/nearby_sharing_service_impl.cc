@@ -97,6 +97,7 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/scheduling/nearby_share_scheduler_utils.h"
 #include "sharing/share_session.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/thread_timer.h"
@@ -858,6 +859,7 @@ void NearbySharingServiceImpl::Reject(
 
         session->UpdateTransferMetadata(
             TransferMetadataBuilder()
+                .set_usage(session->session_usage())
                 .set_status(TransferMetadata::Status::kRejected)
                 .build());
 
@@ -914,6 +916,7 @@ void NearbySharingServiceImpl::DoCancel(
   // UpdateTransferMetadata.
   session->UpdateTransferMetadata(
       TransferMetadataBuilder()
+          .set_usage(session->session_usage())
           .set_status(TransferMetadata::Status::kCancelled)
           .build());
 
@@ -2582,6 +2585,7 @@ void NearbySharingServiceImpl::BeginOutgoingTransfer(
   } else {
     session.UpdateTransferMetadata(
         TransferMetadataBuilder()
+            .set_usage(session.session_usage())
             .set_status(TransferMetadata::Status::kAwaitingLocalConfirmation)
             .set_token(session.token())
             .build());
@@ -2592,6 +2596,7 @@ void NearbySharingServiceImpl::BeginOutgoingPairing(
     OutgoingShareSession& session) {
   VLOG(1) << __func__ << ": Preparing to initiate pairing with "
           << session.share_target().id;
+  session.set_session_usage(ShareSessionUsage::kPairing);
   // Verify that remote really authenticated with self share certificate.
   if (!session.self_share()) {
     LOG(WARNING) << __func__ << ": Not self share, skipping pairing.";
@@ -2663,6 +2668,8 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
   sync_manager_.AddSyncBinding(binding);
   session->UpdateTransferMetadata(
       TransferMetadataBuilder()
+          .set_usage(session->session_usage())
+          .set_binding_id(binding_id)
           .set_status(TransferMetadata::Status::kComplete)
           .build());
 }
@@ -2899,6 +2906,7 @@ void NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated(
     int64_t share_target_id, TransferMetadata metadata, bool success) {
   if (!success) {
     metadata = TransferMetadataBuilder()
+                   .set_usage(metadata.usage())
                    .set_status(TransferMetadata::Status::kIncompletePayloads)
                    .build();
   }
