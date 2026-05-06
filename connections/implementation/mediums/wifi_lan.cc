@@ -15,36 +15,28 @@
 #include "connections/implementation/mediums/wifi_lan.h"
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/medium_selector.h"
-#include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
-#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/service_address.h"
-#include "internal/platform/socket.h"
-#include "internal/platform/types.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
 
 namespace {
-using MultiplexSocket = mediums::multiplex::MultiplexSocket;
 using location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -58,18 +50,6 @@ WifiLan::~WifiLan() {
   }
   while (!advertising_info_.nsd_service_infos.empty()) {
     StopAdvertising(advertising_info_.nsd_service_infos.begin()->first);
-  }
-  {
-    MutexLock lock(&mutex_);
-    if (is_multiplex_enabled_) {
-      LOG(INFO) << "Closing multiplex sockets for " << multiplex_sockets_.size()
-                << " IPs";
-      for (auto& [ip_addr, multiplex_socket] : multiplex_sockets_) {
-        LOG(INFO) << "Closing multiplex sockets for: " << ip_addr;
-        multiplex_socket->~MultiplexSocket();
-      }
-      multiplex_sockets_.clear();
-    }
   }
   // All the AcceptLoopRunnable objects in here should already have gotten an
   // opportunity to shut themselves down cleanly in the calls to
@@ -265,18 +245,6 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
       server_sockets_.insert({service_id, std::move(server_socket)})
           .first->second;
 
-  // Register the callback to listen for incoming multiplex virtual socket.
-  if (is_multiplex_enabled_) {
-    MultiplexSocket::ListenForIncomingConnection(
-        service_id, Medium::WIFI_LAN,
-        [&callback](const std::string& listening_service_id,
-                    std::shared_ptr<MediumSocket> virtual_socket) mutable {
-          if (callback) {
-            callback(listening_service_id,
-                     *(down_cast<WifiLanSocket*>(virtual_socket.get())));
-          }
-        });
-  }
   port = owned_server_socket.GetPort();
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections() is
@@ -284,7 +252,7 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
   accept_loops_runner_.Execute(
       "wifi-lan-accept", [callback = std::move(callback),
                           server_socket = std::move(owned_server_socket),
-                          service_id, this]() mutable {
+                          service_id]() mutable {
         while (true) {
           WifiLanSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
@@ -293,54 +261,6 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
           }
           LOG(INFO) << "Accepted connection for " << service_id;
           bool callback_called = false;
-          {
-            MutexLock lock(&mutex_);
-            if (is_multiplex_enabled_) {
-              // Observed from the log that when the sender tries to connect to
-              // the receiver's server socket, the server side will somehow
-              // receive 3 connection request events(don’t know what’s happening
-              // in Windows’s lower layer code). The 2nd normally is the real
-              // one. The other two will result in a failed data receiving in
-              // Windows platform layer. To avoid creating multiplex
-              // IncomingSocket, we will check if the first read is successful
-              // or not. If not, discard it. If yes, save that packet
-              // content(the first frame length), then create the multiplex
-              // socket, then feed that content to that multiplex socket.
-              ExceptionOr<std::int32_t> read_int =
-                  Base64Utils::ReadInt(&client_socket.GetInputStream());
-              if (!read_int.ok()) {
-                LOG(WARNING)
-                    << __func__
-                    << "Failed to read. Exception:" << read_int.exception()
-                    << "Discard the connection.";
-                continue;
-              }
-              WifiLanSocket client_socket_bak = client_socket;
-              auto physical_socket_ptr =
-                  std::make_shared<WifiLanSocket>(client_socket_bak);
-
-              MultiplexSocket* multiplex_socket =
-                  MultiplexSocket::CreateIncomingSocket(
-                      physical_socket_ptr, service_id, read_int.result());
-              if (multiplex_socket != nullptr) {
-                std::shared_ptr<MediumSocket> virtual_socket =
-                    multiplex_socket->GetVirtualSocket(service_id);
-                if (virtual_socket) {
-                  multiplex_sockets_.emplace(server_socket.GetIPAddress(),
-                                             multiplex_socket);
-                  MultiplexSocket::StopListeningForIncomingConnection(
-                      service_id, Medium::WIFI_LAN);
-                  LOG(INFO) << "Multiplex virtaul socket created for "
-                            << server_socket.GetIPAddress();
-                  if (callback) {
-                    callback(service_id, *(down_cast<WifiLanSocket*>(
-                                             virtual_socket.get())));
-                    callback_called = true;
-                  }
-                }
-              }
-            }
-          }
           if (callback && !callback_called) {
             LOG(INFO) << "Call back triggered for physical socket.";
             callback(service_id, std::move(client_socket));
@@ -402,10 +322,6 @@ bool WifiLan::StopAcceptingConnectionsLocked(const std::string& service_id) {
     LOG(INFO) << "Can't stop accepting WifiLan connections for " << service_id
               << " because it was never started.";
     return false;
-  }
-  if (is_multiplex_enabled_) {
-    MultiplexSocket::StopListeningForIncomingConnection(service_id,
-                                                        Medium::WIFI_LAN);
   }
 
   // Closing the WifiLanServerSocket will kick off the suicide of the thread
@@ -556,60 +472,12 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
 
 ExceptionOr<WifiLanSocket> WifiLan::ConnectWithMultiplexSocketLocked(
     const std::string& service_id, const std::string& ip_address) {
-  if (is_multiplex_enabled_) {
-    LOG(INFO) << "multiplex_sockets_ size:" << multiplex_sockets_.size();
-    auto it = multiplex_sockets_.find(ip_address);
-    if (it != multiplex_sockets_.end()) {
-      MultiplexSocket* multiplex_socket = it->second;
-      if (multiplex_socket->IsShutdown()) {
-        LOG(INFO) << "Erase multiplex_socket(already shutdown) for ip_address: "
-                  << WifiUtils::GetHumanReadableIpAddress(ip_address);
-        multiplex_socket->~MultiplexSocket();
-        multiplex_sockets_.erase(it);
-        return ExceptionOr<WifiLanSocket>(Exception::kFailed);
-      }
-      if (multiplex_socket->IsEnabled()) {
-        std::shared_ptr<MediumSocket> virtual_socket =
-            multiplex_socket->EstablishVirtualSocket(service_id);
-        // Should not happen.
-        auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket.get());
-        if (wlan_socket == nullptr) {
-          LOG(INFO) << "Failed to cast to WifiLanSocket for " << service_id
-                    << " with ip_address: "
-                    << WifiUtils::GetHumanReadableIpAddress(ip_address);
-          return ExceptionOr<WifiLanSocket>(Exception::kFailed);
-        }
-        return ExceptionOr<WifiLanSocket>(*wlan_socket);
-      }
-    }
-  }
   return ExceptionOr<WifiLanSocket>(Exception::kFailed);
 }
 
 ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
     WifiLanSocket& socket, const std::string& service_id,
     const std::string& ip_address) {
-  if (is_multiplex_enabled_) {
-    // Create MultiplexSocket, but set it to be disabled as default. It will be
-    // enabled if both side support multiplex for WIFI_LAN
-    auto physical_socket_ptr = std::make_shared<WifiLanSocket>(socket);
-    MultiplexSocket* multiplex_socket =
-        MultiplexSocket::CreateOutgoingSocket(physical_socket_ptr, service_id);
-
-    std::shared_ptr<MediumSocket> virtual_socket =
-        multiplex_socket->GetVirtualSocket(service_id);
-    auto* wlan_socket = down_cast<WifiLanSocket*>(virtual_socket.get());
-    if (wlan_socket == nullptr) {
-      LOG(INFO) << "Failed to cast to WifiLanSocket for " << service_id
-                << " with ip_address: "
-                << WifiUtils::GetHumanReadableIpAddress(ip_address);
-      return ExceptionOr<WifiLanSocket>(Exception::kFailed);
-    }
-    LOG(INFO) << "Multiplex socket created for ip_address: "
-              << WifiUtils::GetHumanReadableIpAddress(ip_address);
-    multiplex_sockets_.emplace(ip_address, multiplex_socket);
-    return ExceptionOr<WifiLanSocket>(*wlan_socket);
-  }
   return ExceptionOr<WifiLanSocket>(Exception::kFailed);
 }
 

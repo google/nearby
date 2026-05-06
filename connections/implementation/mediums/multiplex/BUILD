@@ -54,6 +54,7 @@ cc_test(
         "multiplex_output_stream_test.cc",
         "multiplex_socket_test.cc",
     ],
+    tags = ["notap"],
     deps = [
         ":multiplex",
         "//connections/implementation:internal",

@@ -58,7 +58,6 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/ble:bloom_filter",
-        "//connections/implementation/mediums/multiplex",
         "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",

@@ -23,7 +23,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
@@ -232,13 +231,6 @@ class BluetoothClassic {
   mutable Mutex discovery_callbacks_mutex_;
   absl::flat_hash_map<std::string, DiscoveredDeviceCallback>
       discovery_callbacks_ ABSL_GUARDED_BY(discovery_callbacks_mutex_);
-
-  // Whether the multiplex feature is enabled.
-  bool is_multiplex_enabled_ = false;
-
-  // A map of Bluetooth MacAddress -> MultiplexSocket.
-  absl::flat_hash_map<MacAddress, mediums::multiplex::MultiplexSocket*>
-      multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections
