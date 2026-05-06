@@ -48,15 +48,3 @@ jobs:
     - uses: actions/checkout@v6
     - name: Build Connections
       run: CC=clang-18 CXX=clang-18++ BAZEL_CXXOPTS="-std=c++20" bazel build --@com_google_protobuf//bazel/toolchains:prefer_prebuilt_protoc=true --copt='-DGITHUB_BUILD' //connections:core
-#    - name: Build Presence
-#      run: CC=clang-18 CXX=clang-18++ BAZEL_CXXOPTS="-std=c++20" bazel build --@com_google_protobuf//bazel/toolchains:prefer_prebuilt_protoc=true --copt='-DGITHUB_BUILD' //presence
-
-  build-rust-linux:
-    name: Build Rust on Linux
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        submodules: recursive
-    - name: Build FPP
-      run:  cargo build --manifest-path presence/fpp/fpp/Cargo.toml

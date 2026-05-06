@@ -164,7 +164,7 @@ cc_library(
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":base",
@@ -191,7 +191,7 @@ cc_library(
         "//connections/implementation:__pkg__",
         "//connections/v3:__pkg__",
         "//internal/interop:__pkg__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":logging",
@@ -293,7 +293,7 @@ cc_library(
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":base",
@@ -349,7 +349,7 @@ cc_library(
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":base",
@@ -404,7 +404,7 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":base",

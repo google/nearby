@@ -35,7 +35,7 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":authentication_status",
@@ -54,8 +54,8 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//presence:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
 )
 
@@ -70,7 +70,7 @@ cc_library(
     ],
     compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
-        "//presence:__subpackages__",
+        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":authentication_status",
