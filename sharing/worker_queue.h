@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_SHARING_WORKER_QUEUE_H_
 
 #include <atomic>
+#include <memory>
 #include <queue>
 #include <utility>
 
@@ -38,7 +39,11 @@ namespace nearby::sharing {
 template <typename T>
 class WorkerQueue {
  public:
-  explicit WorkerQueue(TaskRunner* task_runner) : task_runner_(task_runner) {}
+  explicit WorkerQueue(TaskRunner* task_runner)
+      : task_runner_(task_runner),
+        run_data_(std::make_shared<RunData>()) {
+    run_data_->is_stopped = false;
+  }
 
   ~WorkerQueue() { Stop(); }
 
@@ -52,11 +57,11 @@ class WorkerQueue {
       LOG(ERROR) << "WorkerQueue is already started.";
       return false;
     }
-    if (is_stopped_) {
+    if (run_data_->is_stopped) {
       LOG(ERROR) << "WorkerQueue is already stopped, cannot restart.";
       return false;
     }
-    callback_ = std::move(callback);
+    run_data_->callback = std::move(callback);
     {
       absl::MutexLock lock(mutex_);
       if (!queue_.empty()) {
@@ -67,12 +72,22 @@ class WorkerQueue {
   }
 
   // Stops the queue.  No new callback will be scheduled.
+  // This method will block until the callback finishes if it is currently
+  // running.
   void Stop() {
-    bool already_stopped = is_stopped_.exchange(true);
+    bool already_stopped = run_data_->is_stopped.exchange(true);
     if (already_stopped || !is_started_) {
       return;
     }
+    // Prevent new callbacks from being scheduled.
     is_scheduled_ = true;
+    // Wait for inflight callback to finish.
+    absl::MutexLock lock(run_data_->running_mutex);
+    auto stopped_running =
+        [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(run_data_->running_mutex) {
+          return !run_data_->is_running;
+        };
+    run_data_->running_mutex.Await(absl::Condition(&stopped_running));
   }
 
   // Queues an item to be processed by the callback.
@@ -95,9 +110,16 @@ class WorkerQueue {
   }
 
  private:
+  struct RunData {
+    std::atomic<bool> is_stopped;
+    absl::AnyInvocable<void()> callback;
+    absl::Mutex running_mutex;
+    bool is_running ABSL_GUARDED_BY(running_mutex) = false;
+  };
+
   void ScheduleCallback() {
     // Skip if not started or stopped
-    if (!is_started_ || is_stopped_) {
+    if (!is_started_ || run_data_->is_stopped) {
       return;
     }
     if (is_scheduled_.exchange(true)) {
@@ -106,20 +128,26 @@ class WorkerQueue {
       return;
     }
     VLOG(1) << "Scheduling callback";
-    task_runner_->PostTask([this]() {
-      if (is_stopped_) {
-        return;
+    task_runner_->PostTask([run_data = run_data_]() {
+      {
+        absl::MutexLock lock(run_data->running_mutex);
+        run_data->is_running = true;
       }
-      callback_();
+      if (!run_data->is_stopped) {
+        run_data->callback();
+      }
+      {
+        absl::MutexLock lock(run_data->running_mutex);
+        run_data->is_running = false;
+      }
     });
   }
 
   TaskRunner* const task_runner_ = nullptr;
-  absl::AnyInvocable<void()> callback_;
+  std::shared_ptr<RunData> run_data_;
   // Tracks whether Start() has been called.
   std::atomic<bool> is_started_ = false;
   // Tracks whether Stop() has been called.
-  std::atomic<bool> is_stopped_ = false;
   absl::Mutex mutex_;
   std::queue<T> queue_ ABSL_GUARDED_BY(mutex_);
   // This is used track whether the callback is already scheduled so as to avoid

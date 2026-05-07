@@ -14,10 +14,12 @@
 
 #include "sharing/worker_queue.h"
 
+#include <memory>
 #include <queue>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
 
@@ -91,12 +93,13 @@ TEST(WorkerQueueTest, QueueItemsWhileCallbackRunning) {
 TEST(WorkerQueueTest, StopStopsCallback) {
   FakeClock fake_clock;
   FakeTaskRunner task_runner(&fake_clock, 1);
-  WorkerQueue<int> queue(&task_runner);
-  queue.Queue(1);
-  queue.Queue(2);
+  auto queue = std::make_unique<WorkerQueue<int>>(&task_runner);
+  queue->Queue(1);
+  queue->Queue(2);
   absl::Notification notification;
-  EXPECT_TRUE(queue.Start([&queue, &notification]() {
-    std::queue<int> items = queue.ReadAll();
+  auto queue_ptr = queue.get();
+  EXPECT_TRUE(queue->Start([queue_ptr, &notification]() {
+    std::queue<int> items = queue_ptr->ReadAll();
     EXPECT_EQ(items.size(), 2);
     EXPECT_EQ(items.front(), 1);
     EXPECT_EQ(items.back(), 2);
@@ -104,8 +107,34 @@ TEST(WorkerQueueTest, StopStopsCallback) {
   }));
   // Wait for the callback to start.
   notification.WaitForNotification();
-  queue.Stop();
-  queue.Queue(3);
+  queue->Stop();
+  queue->Queue(3);
+  queue.reset();
+  task_runner.Sync();
+  // No more callbacks.
+}
+
+TEST(WorkerQueueTest, StopWaitsForInFlightCallback) {
+  FakeClock fake_clock;
+  FakeTaskRunner task_runner(&fake_clock, 1);
+  auto queue = std::make_unique<WorkerQueue<int>>(&task_runner);
+  absl::Notification notification1;
+  absl::Notification notification2;
+  auto queue_ptr = queue.get();
+  EXPECT_TRUE(queue->Start([queue_ptr, &notification1, &notification2]() {
+    std::queue<int> items = queue_ptr->ReadAll();
+    notification1.Notify();
+    notification2.WaitForNotificationWithTimeout(absl::Milliseconds(500));
+    EXPECT_EQ(items.size(), 2);
+    EXPECT_EQ(items.front(), 1);
+    EXPECT_EQ(items.back(), 2);
+  }));
+  queue->Queue(1);
+  queue->Queue(2);
+  // Wait for the callback to start.
+  notification1.WaitForNotification();
+  queue->Queue(3);
+  queue.reset();
   task_runner.Sync();
   // No more callbacks.
 }
