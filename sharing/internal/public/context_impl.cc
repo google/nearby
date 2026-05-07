@@ -70,8 +70,4 @@ std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(
   return task_runner;
 }
 
-TaskRunner* ContextImpl::GetTaskRunner() {
-  return &platform_.GetDefaultTaskRunner();
-}
-
 }  // namespace nearby
