@@ -39,6 +39,32 @@ objc_library(
         "//internal/platform:base",
         "//internal/platform:mac_address",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
+        "//internal/platform/implementation/apple:webrtc",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+objc_library(
+    name = "NearbyCoreAdapterNoWebRtc",
+    srcs = glob([
+        "Sources/*.mm",
+        "Sources/*.m",
+        "Sources/*.h",
+    ]),
+    hdrs = glob(["Sources/Public/**/*.h"]),
+    defines = ["NO_WEBRTC"],
+    features = ["-layering_check"],
+    module_name = "NearbyCoreAdapter",
+    deps = [
+        "//connections:core",
+        "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:mac_address",
+        "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
         "@com_google_absl//absl/types:span",
