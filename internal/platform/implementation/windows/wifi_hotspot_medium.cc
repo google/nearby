@@ -349,7 +349,10 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     auto wifi_direct_device = WiFiDirectDevice::FromIdAsync(
                                   connection_request.DeviceInformation().Id())
                                   .get();
-    wifi_direct_devices_.push_back(wifi_direct_device);
+    {
+      absl::MutexLock lock(mutex_);
+      wifi_direct_devices_.push_back(wifi_direct_device);
+    }
     LOG(INFO) << "Registered the device " << winrt::to_string(device_name)
               << " in WLAN-AutoConfig";
   } catch (...) {

@@ -111,7 +111,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   WiFiDirectConnectionListener listener_{nullptr};
 
   // The list of WiFiDirectDevice is used to keep hotspot connection alive.
-  std::list<WiFiDirectDevice> wifi_direct_devices_;
+  std::list<WiFiDirectDevice> wifi_direct_devices_ ABSL_GUARDED_BY(mutex_);
 
   fire_and_forget OnStatusChanged(
       WiFiDirectAdvertisementPublisher sender,
