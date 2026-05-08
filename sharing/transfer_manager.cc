@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/time/time.h"
-#include "sharing/internal/public/context.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/thread_timer.h"
@@ -43,9 +43,9 @@ bool IsHighQualityMedium(Medium medium) {
 
 }  // namespace
 
-TransferManager::TransferManager(Context* context,
+TransferManager::TransferManager(TaskRunner* absl_nonnull runner,
                                  absl::string_view endpoint_id)
-    : context_(context), endpoint_id_(endpoint_id) {}
+    : runner_(*runner), endpoint_id_(endpoint_id) {}
 
 TransferManager::~TransferManager() {
   absl::MutexLock lock(mutex_);
@@ -101,8 +101,8 @@ bool TransferManager::StartTransfer() {
   }
 
   timeout_timer_ = std::make_unique<ThreadTimer>(
-      *context_->GetTaskRunner(), "transfer_manager_timeout_timer",
-      kMediumUpgradeTimeout, [this]() {
+      runner_, "transfer_manager_timeout_timer", kMediumUpgradeTimeout,
+      [this]() {
         absl::MutexLock lock(mutex_);
 
         LOG(INFO) << "Timed out for endpoint " << endpoint_id_ << " after "
@@ -113,8 +113,7 @@ bool TransferManager::StartTransfer() {
   LOG(INFO) << "Attempting to upgrade the bandwidth for endpoint " +
                    endpoint_id_ + ". Large payloads will be delayed" +
                    " until either bandwidth is upgraded or a timeout of "
-            << (kMediumUpgradeTimeout / absl::Milliseconds(1))
-            << " milliseconds is reached";
+            << kMediumUpgradeTimeout << " is reached";
   return true;
 }
 
@@ -132,6 +131,7 @@ bool TransferManager::CancelTransfer() {
 }
 
 void TransferManager::StopWaitingForHighQualityMedium() {
+  timeout_timer_.reset();
   is_waiting_for_high_quality_medium_ = false;
 
   for (const auto& task : pending_tasks_) {
@@ -140,7 +140,6 @@ void TransferManager::StopWaitingForHighQualityMedium() {
   }
 
   pending_tasks_.clear();
-  timeout_timer_.reset();
 }
 
 }  // namespace sharing

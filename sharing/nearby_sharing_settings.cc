@@ -22,17 +22,18 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -70,12 +71,12 @@ ShowNotificationStatus GetNotificationStatus(
 }  // namespace
 
 NearbyShareSettings::NearbyShareSettings(
-    Context* context, nearby::Clock* clock,
+    TaskRunner* absl_nonnull task_runner, nearby::Clock* absl_nonnull clock,
     nearby::api::DeviceInfo& device_info, PreferenceManager& preference_manager,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     analytics::AnalyticsRecorder* analytics_recorder)
-    : context_(context),
-      clock_(clock),
+    : task_runner_(*task_runner),
+      clock_(*clock),
       device_info_(device_info),
       preference_manager_(preference_manager),
       local_device_data_manager_(local_device_data_manager),
@@ -143,7 +144,7 @@ void NearbyShareSettings::StartVisibilityTimer(
   LOG(INFO) << __func__
             << ": start visibility timer. expiration=" << expiration;
   visibility_expiration_timer_ = std::make_unique<ThreadTimer>(
-      *context_->GetTaskRunner(), "nearby_share_settings_visibility_timer",
+      task_runner_, "nearby_share_settings_visibility_timer",
       expiration, [this]() {
         LOG(INFO) << __func__ << ": visibility timer expired.";
         proto::DeviceVisibility visibility;
@@ -164,7 +165,7 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
       static_cast<int>(prefs::kDefaultFallbackVisibility));
   fallback_visibility_ = static_cast<DeviceVisibility>(fallback_visibility);
 
-  int64_t now_seconds = absl::ToUnixSeconds(clock_->Now());
+  int64_t now_seconds = absl::ToUnixSeconds(clock_.Now());
   int64_t remaining_seconds = expiration_seconds - now_seconds;
   int64_t diff = kMaxVisibilityExpirationSeconds - remaining_seconds;
   LOG(INFO) << __func__ << ": diff=" << diff << ", now=" << now_seconds
@@ -276,7 +277,7 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
   visibility_expiration_timer_.reset();
 
   SetFallbackVisibility(last_visibility);
-  absl::Time now = clock_->Now();
+  absl::Time now = clock_.Now();
   if (expiration != absl::ZeroDuration()) {
     VLOG(1) << __func__ << ": temporary visibility timer starts.";
     absl::Time fallback_visibility_timestamp = now + expiration;

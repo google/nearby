@@ -38,8 +38,7 @@ FakeContext::FakeContext()
       fake_connectivity_manager_(std::make_unique<FakeConnectivityManager>()),
       fake_bluetooth_adapter_(std::make_unique<FakeBluetoothAdapter>()),
       fake_fast_initiation_manager_(
-          std::make_unique<FakeFastInitiationManager>()),
-      executor_(std::make_unique<FakeTaskRunner>(fake_clock_.get(), 5)) {}
+          std::make_unique<FakeFastInitiationManager>()) {}
 
 Clock* FakeContext::GetClock() const { return fake_clock_.get(); }
 
@@ -69,7 +68,5 @@ std::unique_ptr<TaskRunner> FakeContext::CreateConcurrentTaskRunner(
     uint32_t concurrent_count) const {
   return std::make_unique<FakeTaskRunner>(fake_clock_.get(), concurrent_count);
 }
-
-TaskRunner* FakeContext::GetTaskRunner() { return executor_.get(); }
 
 }  // namespace nearby

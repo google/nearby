@@ -49,9 +49,6 @@ class Context {
   // count of tasks running at the same time.
   virtual std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const = 0;
-
-  // Provides the API to retrieve TaskRunner to run a task globally.
-  virtual TaskRunner* GetTaskRunner() = 0;
 };
 
 }  // namespace nearby

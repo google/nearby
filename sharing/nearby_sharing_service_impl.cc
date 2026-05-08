@@ -259,8 +259,9 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       nearby_fast_initiation_(
           NearbyFastInitiationImpl::Factory::Create(context_)),
       settings_(std::make_unique<NearbyShareSettings>(
-          context_, context_->GetClock(), device_info_, preference_manager_,
-          local_device_data_manager_.get(), &analytics_recorder_)),
+          service_thread_.get(), context_->GetClock(), device_info_,
+          preference_manager_, local_device_data_manager_.get(),
+          &analytics_recorder_)),
       service_extension_(std::make_unique<NearbySharingServiceExtension>()),
       file_handler_(sharing_platform),
       app_info_(sharing_platform.CreateAppInfo()),

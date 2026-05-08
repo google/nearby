@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
 #include "sharing/internal/api/app_info.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_init_ble_beacon.h"
@@ -71,7 +70,6 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(PreferenceManager&, GetPreferenceManager, (), (override));
 
   MOCK_METHOD(AccountManager&, GetAccountManager, (), (override));
-  MOCK_METHOD(TaskRunner&, GetDefaultTaskRunner, (), (override));
   MOCK_METHOD(nearby::api::DeviceInfo&, GetDeviceInfo, (), (override));
   MOCK_METHOD(std::unique_ptr<PublicCertificateDatabase>,
               CreatePublicCertificateDatabase, (const FilePath& database_path),

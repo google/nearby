@@ -29,12 +29,12 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/base/files.h"
+#include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/public/pref_names.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
@@ -120,11 +120,12 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
 class NearbyShareSettingsTest : public ::testing::Test {
  public:
   NearbyShareSettingsTest()
-      : local_device_data_manager_(kDefaultDeviceName) {
+      : local_device_data_manager_(kDefaultDeviceName),
+        fake_task_runner_(&fake_clock_, /*count=*/1) {
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     nearby_share_settings_ = std::make_unique<NearbyShareSettings>(
-        &context_, context_.GetClock(), fake_device_info_, preference_manager_,
-        &local_device_data_manager_);
+        &fake_task_runner_, &fake_clock_, fake_device_info_,
+        preference_manager_, &local_device_data_manager_);
 
     nearby_share_settings_->AddSettingsObserver(&observer_);
   }
@@ -147,11 +148,11 @@ class NearbyShareSettingsTest : public ::testing::Test {
   // Waits for running tasks to complete.
   void Flush() {
     absl::SleepFor(absl::Seconds(1));
-    context_.fake_task_runner()->SyncWithTimeout(absl::Milliseconds(200));
+    fake_task_runner_.SyncWithTimeout(absl::Milliseconds(200));
   }
 
   void FastForward(absl::Duration duration) {
-    context_.fake_clock()->FastForward(duration);
+    fake_clock_.FastForward(duration);
   }
 
   bool Contains(std::vector<std::string> v, std::string val) {
@@ -164,8 +165,9 @@ class NearbyShareSettingsTest : public ::testing::Test {
  protected:
   nearby::FakeDeviceInfo fake_device_info_;
   nearby::FakePreferenceManager preference_manager_;
-  FakeContext context_;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager_;
+  FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_;
   FakeNearbyShareSettingsObserver observer_;
   std::unique_ptr<NearbyShareSettings> nearby_share_settings_;
 };
@@ -301,7 +303,7 @@ TEST_F(NearbyShareSettingsTest,
   // Set our initial visibility to self share.
   settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   // Set everyone mode temporarily.
-  absl::Time now = context_.GetClock()->Now();
+  absl::Time now = fake_clock_.Now();
   settings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
@@ -357,7 +359,7 @@ TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {
             DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
   EXPECT_EQ(fallback_visibility.fallback_time, absl::UnixEpoch());
   // Transition to temporary everyone mode.
-  absl::Time now = context_.GetClock()->Now();
+  absl::Time now = fake_clock_.Now();
   settings()->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       absl::Seconds(prefs::kDefaultMaxVisibilityExpirationSeconds));
@@ -378,7 +380,7 @@ TEST_F(NearbyShareSettingsTest, SetVisibilityWithExpirationTooLong) {
                             absl::Hours(1));
   // Expiration capped at 10minutes.
   absl::Time expected_fallback_time =
-      context_.GetClock()->Now() + absl::Minutes(10);
+      fake_clock_.Now() + absl::Minutes(10);
   NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
       settings()->GetFallbackVisibility();
   // default visibility was hidden.
@@ -420,7 +422,8 @@ TEST_F(NearbyShareSettingsTest, SetSyncBindingPerfs_Success) {
 
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
   // Create Nearby Share settings dependencies.
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner fake_task_runner(&fake_clock, /*count=*/1);
   FakeDeviceInfo fake_device_info;
   FakePreferenceManager preference_manager;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager(
@@ -432,13 +435,13 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
   // Set expiration to 10 seconds ago.
   preference_manager.SetInteger(
       PrefNames::kVisibilityExpirationSeconds,
-      absl::ToUnixSeconds(context.GetClock()->Now() - absl::Seconds(10)));
+      absl::ToUnixSeconds(fake_clock.Now() - absl::Seconds(10)));
   // Set fallback visibility to self share.
   preference_manager.SetInteger(
       PrefNames::kFallbackVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Create a Nearby Share settings instance.
-  NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,
+  NearbyShareSettings settings(&fake_task_runner, &fake_clock, fake_device_info,
                                preference_manager, &local_device_data_manager);
 
   // Make sure we restore the correct visibility.
@@ -448,7 +451,8 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
 
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_FutureTimer) {
   // Create Nearby Share settings dependencies.
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner fake_task_runner(&fake_clock, /*count=*/1);
   FakeDeviceInfo fake_device_info;
   FakePreferenceManager preference_manager;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager(
@@ -460,13 +464,13 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_FutureTimer) {
   // Set expiration to 10 seconds in the future.
   preference_manager.SetInteger(
       PrefNames::kVisibilityExpirationSeconds,
-      absl::ToUnixSeconds(context.GetClock()->Now() + absl::Seconds(10)));
+      absl::ToUnixSeconds(fake_clock.Now() + absl::Seconds(10)));
   // Set fallback visibility to self share.
   preference_manager.SetInteger(
       PrefNames::kFallbackVisibility,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
   // Create a Nearby Share settings instance.
-  NearbyShareSettings settings(&context, context.GetClock(), fake_device_info,
+  NearbyShareSettings settings(&fake_task_runner, &fake_clock, fake_device_info,
                                preference_manager, &local_device_data_manager);
 
   // Make sure we restore the correct visibility.

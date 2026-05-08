@@ -43,7 +43,6 @@ class ContextImpl : public Context {
   std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
-  TaskRunner* GetTaskRunner() override;
 
  private:
   nearby::sharing::api::SharingPlatform& platform_;

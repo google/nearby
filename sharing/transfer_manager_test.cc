@@ -21,7 +21,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
-#include "sharing/internal/test/fake_context.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/nearby_connections_types.h"
 
 namespace nearby {
@@ -32,11 +32,12 @@ constexpr absl::string_view kEndpointId = "endpoint";
 constexpr absl::Duration kNotificationTimeout = absl::Milliseconds(200);
 
 TEST(TransferManager, MediumUpgradeSuccess) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -53,11 +54,12 @@ TEST(TransferManager, MediumUpgradeSuccess) {
 }
 
 TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -75,11 +77,12 @@ TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
 }
 
 TEST(TransferManager, MediumUpgradeFailed) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -94,11 +97,12 @@ TEST(TransferManager, MediumUpgradeFailed) {
 }
 
 TEST(TransferManager, MediumUpgradeTimeout) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -106,8 +110,7 @@ TEST(TransferManager, MediumUpgradeTimeout) {
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(TransferManager::kMediumUpgradeTimeout);
+  fake_clock.FastForward(TransferManager::kMediumUpgradeTimeout);
 
   ASSERT_TRUE(
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
@@ -115,11 +118,12 @@ TEST(TransferManager, MediumUpgradeTimeout) {
 }
 
 TEST(TransferManager, CancelStartedTransfer) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -127,8 +131,7 @@ TEST(TransferManager, CancelStartedTransfer) {
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(absl::Seconds(5));
+  fake_clock.FastForward(absl::Seconds(5));
   ASSERT_TRUE(transfer_manager.CancelTransfer());
 
   ASSERT_FALSE(
@@ -137,11 +140,12 @@ TEST(TransferManager, CancelStartedTransfer) {
 }
 
 TEST(TransferManager, CancelTimedOutMediumUpgrade) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();
@@ -149,8 +153,7 @@ TEST(TransferManager, CancelTimedOutMediumUpgrade) {
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(TransferManager::kMediumUpgradeTimeout);
+  fake_clock.FastForward(TransferManager::kMediumUpgradeTimeout);
 
   ASSERT_TRUE(
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
@@ -159,11 +162,12 @@ TEST(TransferManager, CancelTimedOutMediumUpgrade) {
 }
 
 TEST(TransferManager, MediumUpgradeBeforeStartTransfer) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
+  TransferManager transfer_manager{&executor, kEndpointId};
   transfer_manager.Send([&]() {
     is_called = true;
     notification.Notify();

@@ -423,8 +423,8 @@ void NearbyConnectionsManagerImpl::Connect(
 
   // Setup transfer manager.
   if (IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality)) {
-    transfer_managers_[endpoint_id] =
-        std::make_unique<TransferManager>(context_, endpoint_id);
+    transfer_managers_[endpoint_id] = std::make_unique<TransferManager>(
+        connections_callback_task_runner_, endpoint_id);
   }
 }
 
