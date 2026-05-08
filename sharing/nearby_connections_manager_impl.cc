@@ -424,7 +424,9 @@ void NearbyConnectionsManagerImpl::Connect(
   // Setup transfer manager.
   if (IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality)) {
     transfer_managers_[endpoint_id] = std::make_unique<TransferManager>(
-        connections_callback_task_runner_, endpoint_id);
+        connections_callback_task_runner_, endpoint_id,
+        absl::bind_front(&NearbyConnectionsManagerImpl::SendWithoutDelay,
+                         this));
   }
 }
 
@@ -499,23 +501,18 @@ void NearbyConnectionsManagerImpl::Send(
     RegisterPayloadStatusListener(payload->id, listener);
   }
 
-  if (transfer_managers_.contains(endpoint_id) && payload->content.is_file()) {
-    VLOG(1) << __func__ << ": Send payload " << payload->id << " to "
-            << endpoint_id << " to transfer manager. payload is file: "
-            << payload->content.is_file() << ", is bytes "
-            << payload->content.is_bytes();
-    transfer_managers_.at(endpoint_id)
-        ->Send([&, endpoint_id = std::string(endpoint_id),
-                payload_copy = *payload]() {
-          VLOG(1) << __func__ << ": Send payload " << payload_copy.id << " to "
-                  << endpoint_id;
-          auto sent_payload = std::make_unique<Payload>(payload_copy);
-          SendWithoutDelay(endpoint_id, std::move(sent_payload));
-        });
-    transfer_managers_.at(endpoint_id)->StartTransfer();
-    return;
+  if (payload->content.is_file()) {
+    const auto& it = transfer_managers_.find(endpoint_id);
+    if (it != transfer_managers_.end()) {
+      VLOG(1) << __func__ << ": Send payload " << payload->id << " to "
+              << endpoint_id << " to transfer manager. payload is file: "
+              << payload->content.is_file() << ", is bytes "
+              << payload->content.is_bytes();
+      it->second->Send(std::move(payload));
+      it->second->StartTransfer();
+      return;
+    }
   }
-
   SendWithoutDelay(endpoint_id, std::move(payload));
 }
 
@@ -740,9 +737,10 @@ void NearbyConnectionsManagerImpl::OnDisconnected(
     absl::string_view endpoint_id) {
   MutexLock lock(&mutex_);
   // Remove transfer manager.
-  if (transfer_managers_.contains(endpoint_id)) {
-    transfer_managers_[endpoint_id]->CancelTransfer();
-    transfer_managers_.erase(endpoint_id);
+  const auto& transfer_manager_it = transfer_managers_.find(endpoint_id);
+  if (transfer_manager_it != transfer_managers_.end()) {
+    transfer_manager_it->second->CancelTransfer();
+    transfer_managers_.erase(transfer_manager_it);
   }
 
   Status connection_layer_status = Status::kUnknown;
@@ -772,8 +770,9 @@ void NearbyConnectionsManagerImpl::OnBandwidthChanged(
           << ": Bandwidth changed to medium=" << static_cast<int>(medium)
           << "; endpoint_id=" << endpoint_id;
 
-  if (transfer_managers_.contains(endpoint_id)) {
-    transfer_managers_[endpoint_id]->OnMediumQualityChanged(medium);
+  const auto& transfer_manager_it = transfer_managers_.find(endpoint_id);
+  if (transfer_manager_it != transfer_managers_.end()) {
+    transfer_manager_it->second->OnMediumQualityChanged(medium);
   }
 
   current_upgraded_mediums_.insert_or_assign(endpoint_id, medium);

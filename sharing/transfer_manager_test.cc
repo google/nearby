@@ -14,6 +14,7 @@
 
 #include "sharing/transfer_manager.h"
 
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -37,11 +38,15 @@ TEST(TransferManager, MediumUpgradeSuccess) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -59,11 +64,15 @@ TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -72,7 +81,7 @@ TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
   ASSERT_TRUE(is_called);
   is_called = false;
-  transfer_manager.Send([&]() { is_called = true; });
+  transfer_manager.Send(std::make_unique<Payload>());
   ASSERT_TRUE(is_called);
 }
 
@@ -82,11 +91,15 @@ TEST(TransferManager, MediumUpgradeFailed) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -102,11 +115,15 @@ TEST(TransferManager, MediumUpgradeTimeout) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -123,11 +140,15 @@ TEST(TransferManager, CancelStartedTransfer) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -145,11 +166,15 @@ TEST(TransferManager, CancelTimedOutMediumUpgrade) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -167,11 +192,15 @@ TEST(TransferManager, MediumUpgradeBeforeStartTransfer) {
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&executor, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   transfer_manager.OnMediumQualityChanged(Medium::kWifiLan);
 

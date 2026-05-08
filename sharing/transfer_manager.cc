@@ -14,12 +14,12 @@
 
 #include "sharing/transfer_manager.h"
 
-#include <functional>
 #include <memory>
 #include <string>
-#include <vector>
+#include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/task_runner.h"
@@ -43,28 +43,32 @@ bool IsHighQualityMedium(Medium medium) {
 
 }  // namespace
 
-TransferManager::TransferManager(TaskRunner* absl_nonnull runner,
-                                 absl::string_view endpoint_id)
-    : runner_(*runner), endpoint_id_(endpoint_id) {}
+TransferManager::TransferManager(
+    TaskRunner* absl_nonnull runner, absl::string_view endpoint_id,
+    absl::AnyInvocable<void(absl::string_view endpoint_id,
+                            std::unique_ptr<Payload> payload)>
+        deferred_send_function)
+    : runner_(*runner),
+      endpoint_id_(endpoint_id),
+      deferred_send_function_(std::move(deferred_send_function)) {}
 
 TransferManager::~TransferManager() {
   absl::MutexLock lock(mutex_);
   timeout_timer_.reset();
-  pending_tasks_.clear();
 }
 
-void TransferManager::Send(std::function<void()> task) {
+void TransferManager::Send(std::unique_ptr<Payload> payload) {
   absl::MutexLock lock(mutex_);
 
   if (is_waiting_for_high_quality_medium_) {
     LOG(INFO)
         << "Connection to endpoint " << endpoint_id_
         << " is waiting for a high quality medium, delaying payload transfer.";
-    pending_tasks_.push_back(task);
+    pending_payloads_.push(std::move(payload));
     return;
   }
 
-  task();
+  deferred_send_function_(endpoint_id_, std::move(payload));
 }
 
 void TransferManager::OnMediumQualityChanged(Medium current_medium) {
@@ -134,12 +138,13 @@ void TransferManager::StopWaitingForHighQualityMedium() {
   timeout_timer_.reset();
   is_waiting_for_high_quality_medium_ = false;
 
-  for (const auto& task : pending_tasks_) {
-    LOG(INFO) << "Sending delayed payload to endpoint " << endpoint_id_;
-    task();
+  LOG(INFO) << "Sending " << pending_payloads_.size()
+            << " delayed payloads to endpoint " << endpoint_id_;
+  while (!pending_payloads_.empty()) {
+    auto payload = std::move(pending_payloads_.front());
+    pending_payloads_.pop();
+    deferred_send_function_(endpoint_id_, std::move(payload));
   }
-
-  pending_tasks_.clear();
 }
 
 }  // namespace sharing
