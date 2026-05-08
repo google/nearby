@@ -53,10 +53,6 @@ constexpr auto kWifiHotspotConnectionIntervalMillis =
 constexpr auto kWifiHotspotConnectionTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
 
-// Enable/Disable use of address candidates for hotspot upgrade in Windows.
-constexpr auto kEnableHotspotAddressCandidates =
-    flags::Flag<bool>(kConfigPackage, "45739567", false);
-
 // Enable/Disable Intel PIe SDK to query/set WIFI feature.
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);

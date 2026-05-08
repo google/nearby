@@ -15,28 +15,16 @@
 #include <windows.h>
 
 #include <cstdint>
-#include <cstring>
-#include <exception>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
-// ABSL headers
-#include "absl/functional/any_invocable.h"
-#include "absl/strings/match.h"
-
 // Nearby connections headers
-#include "absl/synchronization/mutex.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
@@ -44,11 +32,6 @@
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
-namespace {
-using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
-using ::winrt::Windows::Networking::HostNameType;
-using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
-}  // namespace
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   auto client_socket = server_socket_.Accept();
@@ -62,9 +45,6 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 
 void WifiHotspotServerSocket::PopulateHotspotCredentials(
     HotspotCredentials& hotspot_credentials) {
-  bool use_address_candidates = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableHotspotAddressCandidates);
   int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
       platform::config_package_nearby::nearby_platform_feature::
           kWifiHotspotCheckIpMaxRetries);
@@ -72,43 +52,6 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
       NearbyFlags::GetInstance().GetInt64Flag(
           platform::config_package_nearby::nearby_platform_feature::
               kWifiHotspotCheckIpIntervalMillis);
-  if (!use_address_candidates) {
-    // Get current IP addresses of the device.
-    VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
-            << ", IP check interval=" << ip_address_retry_interval_millis
-            << "ms";
-    std::string hotspot_ipaddr;
-    for (int i = 0; i < ip_address_max_retries; i++) {
-      hotspot_ipaddr = GetHotspotIpAddress();
-      if (hotspot_ipaddr.empty()) {
-        LOG(WARNING) << "Failed to find Hotspot's IP addr for the try: "
-                     << i + 1 << ". Wait " << ip_address_retry_interval_millis
-                     << "ms snd try again";
-        Sleep(ip_address_retry_interval_millis);
-      } else {
-        break;
-      }
-    }
-    if (hotspot_ipaddr.empty()) {
-      LOG(WARNING) << "Failed to start accepting connection without IP "
-                      "addresses configured on computer.";
-      return;
-    }
-
-    std::vector<char> hotspot_ipaddr_bytes;
-    uint32_t address_int = inet_addr(hotspot_ipaddr.c_str());
-    if (address_int != INADDR_NONE) {
-      hotspot_ipaddr_bytes.resize(4);
-      std::memcpy(hotspot_ipaddr_bytes.data(),
-                  reinterpret_cast<char*>(&address_int), 4);
-    }
-    ServiceAddress service_address = {
-        .address = hotspot_ipaddr_bytes,
-        .port = static_cast<uint16_t>(GetPort()),
-    };
-    hotspot_credentials.SetAddressCandidates({service_address});
-    return;
-  }
   std::vector<ServiceAddress> service_addresses;
   bool has_ipv4_address = false;
   for (int i = 0; i < ip_address_max_retries; i++) {
@@ -168,45 +111,6 @@ bool WifiHotspotServerSocket::Listen(int port) {
     return false;
   }
   return true;
-}
-
-std::string WifiHotspotServerSocket::GetHotspotIpAddress() const {
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    std::vector<std::string> ip_candidates;
-    for (auto host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        std::string ipv4_s = winrt::to_string(host_name.ToString());
-        if (absl::EndsWith(ipv4_s, ".1")) {
-          ip_candidates.push_back(ipv4_s);
-        }
-      }
-    }
-    if (ip_candidates.empty()) {
-      return "";
-    }
-    // Windows always creates Hotspot at address "192.168.137.1".
-    for (auto &ip_candidate : ip_candidates) {
-      if (ip_candidate == "192.168.137.1") {
-        LOG(INFO) << "Found Hotspot IP: " << ip_candidate;
-        return ip_candidate;
-      }
-    }
-    LOG(INFO) << "Found Hotspot IP: " << ip_candidates.front();
-    return ip_candidates.front();
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {};
-  } catch (const winrt::hresult_error &error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return "";
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-    return "";
-  }
 }
 
 }  // namespace nearby::windows

@@ -79,8 +79,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   bool Listen(int port);
 
  private:
-  // Retrieves hotspot IP address from local machine
-  std::string GetHotspotIpAddress() const;
   NearbyServerSocket server_socket_;
 };
 
