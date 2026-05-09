@@ -1,3 +1,5 @@
+module(name = "nearby", version = "1.0.0")
+
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_apple", version = "4.3.3")
 bazel_dep(name = "rules_cc", version = "0.2.16")
@@ -57,7 +59,6 @@ cc_library(
     name = "libmurmur3",
     srcs = ["src/MurmurHash3.cpp"],
     hdrs = ["src/MurmurHash3.h"],
-    copts = ["-Wno-implicit-fallthrough"],
     licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
 )""",
     strip_prefix = "smhasher-master",
