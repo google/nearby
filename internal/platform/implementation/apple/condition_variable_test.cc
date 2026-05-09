@@ -16,8 +16,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 #include "internal/platform/implementation/apple/mutex.h"
-#include "thread/fiber/fiber.h"
 
 namespace nearby {
 namespace apple {

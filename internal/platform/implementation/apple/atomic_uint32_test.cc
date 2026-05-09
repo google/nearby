@@ -15,7 +15,7 @@
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 
 #include "gtest/gtest.h"
-#include "thread/fiber/fiber.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 
 namespace nearby {
 namespace apple {

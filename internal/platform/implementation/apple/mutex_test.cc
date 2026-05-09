@@ -18,7 +18,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
-#include "thread/fiber/fiber.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 
 namespace nearby {
 namespace apple {

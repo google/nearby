@@ -18,7 +18,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "thread/fiber/fiber.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 
 namespace nearby {
 namespace apple {
