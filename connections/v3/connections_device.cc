@@ -31,7 +31,7 @@ std::string ConnectionsDevice::ToProtoBytes() const {
   // Bytes holding the connection info data elements.
   std::string connection_info_string;
   for (const auto& connection_info : connection_infos_) {
-    if (absl::holds_alternative<absl::monostate>(connection_info)) {
+    if (absl::holds_alternative<std::monostate>(connection_info)) {
       continue;
     }
     if (absl::holds_alternative<BleConnectionInfo>(connection_info)) {
