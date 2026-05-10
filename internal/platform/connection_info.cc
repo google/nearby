@@ -42,6 +42,6 @@ ConnectionInfoVariant ConnectionInfo::FromDataElementBytes(
       return result.value();
     }
   }
-  return absl::monostate();
+  return std::monostate();
 }
 }  // namespace nearby

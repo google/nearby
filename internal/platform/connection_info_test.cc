@@ -104,7 +104,7 @@ TEST(ConnectionInfoTest, TestMonostate) {
     auto serialized = info->ToDataElementBytes();
     auto connection_info =
         ConnectionInfo::FromDataElementBytes(serialized.substr(0, 10));
-    EXPECT_TRUE(absl::holds_alternative<absl::monostate>(connection_info));
+    EXPECT_TRUE(absl::holds_alternative<std::monostate>(connection_info));
   }
 }
 
