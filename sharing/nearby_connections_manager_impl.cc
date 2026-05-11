@@ -334,6 +334,12 @@ void NearbyConnectionsManagerImpl::StopDiscovery() {
       });
 }
 
+void NearbyConnectionsManagerImpl::RemoveTransferManagerOnCallbackThread(
+    std::unique_ptr<TransferManager> transfer_manager) const {
+  connections_callback_task_runner_->PostTask(
+      [transfer_manager = std::move(transfer_manager)]() {});
+}
+
 void NearbyConnectionsManagerImpl::Connect(
     std::vector<uint8_t> endpoint_info, absl::string_view endpoint_id,
     std::optional<std::vector<uint8_t>> bluetooth_mac_address,
@@ -416,7 +422,10 @@ void NearbyConnectionsManagerImpl::Connect(
       [this, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         MutexLock lock(&mutex_);
         if (status != ConnectionsStatus::kSuccess) {
-          transfer_managers_.erase(endpoint_id);
+          auto node = transfer_managers_.extract(endpoint_id);
+          if (!node.empty()) {
+            RemoveTransferManagerOnCallbackThread(std::move(node.mapped()));
+          }
         }
         OnConnectionRequested(endpoint_id, status);
       });
@@ -740,7 +749,10 @@ void NearbyConnectionsManagerImpl::OnDisconnected(
   const auto& transfer_manager_it = transfer_managers_.find(endpoint_id);
   if (transfer_manager_it != transfer_managers_.end()) {
     transfer_manager_it->second->CancelTransfer();
-    transfer_managers_.erase(transfer_manager_it);
+    auto node = transfer_managers_.extract(transfer_manager_it);
+    if (!node.empty()) {
+      RemoveTransferManagerOnCallbackThread(std::move(node.mapped()));
+    }
   }
 
   Status connection_layer_status = Status::kUnknown;
@@ -907,7 +919,11 @@ void NearbyConnectionsManagerImpl::Reset() {
   for (auto& transfer_manager : transfer_managers_) {
     transfer_manager.second->CancelTransfer();
   }
-  transfer_managers_.clear();
+  absl::flat_hash_map<std::string, std::unique_ptr<TransferManager>>
+      transfer_managers;
+  transfer_managers.swap(transfer_managers_);
+  connections_callback_task_runner_->PostTask(
+      [transfer_managers = std::move(transfer_managers)]() {});
 
   for (auto& entry : pending_outgoing_connections_)
     std::move(entry.second)(entry.first, /*connection=*/nullptr,

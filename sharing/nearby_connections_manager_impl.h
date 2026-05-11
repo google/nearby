@@ -143,6 +143,9 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void SendWithoutDelay(absl::string_view endpoint_id,
                         std::unique_ptr<Payload> payload);
 
+  void RemoveTransferManagerOnCallbackThread(
+      std::unique_ptr<TransferManager> transfer_manager) const;
+
   nearby::TaskRunner* const connections_callback_task_runner_;
   Context* const context_;
   nearby::ConnectivityManager& connectivity_manager_;
