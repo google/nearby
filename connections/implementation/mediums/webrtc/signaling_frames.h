@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_
 
-#ifndef NO_WEBRTC
-
 #include <vector>
 
 #include "connections/implementation/mediums/webrtc_peer_id.h"
@@ -54,7 +52,5 @@ std::vector<std::unique_ptr<webrtc::IceCandidate>> DecodeIceCandidates(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SIGNALING_FRAMES_H_

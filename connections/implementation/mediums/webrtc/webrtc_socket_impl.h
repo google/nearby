@@ -16,22 +16,22 @@
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 
 #include <cstdint>
-#include <string>
 #include <memory>
+#include <string>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/listeners.h"
-#include "internal/platform/runnable.h"
-#ifndef NO_WEBRTC
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
+#include "webrtc/api/data_channel_interface.h"
 
 namespace nearby {
 namespace connections {
@@ -123,7 +123,5 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_

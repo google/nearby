@@ -37,18 +37,19 @@ cc_library(
         "//connections/implementation:__subpackages__",
     ],
     deps = [
-        ":data_types",
+        ":webrtc_socket_impl",
         "//connections:core_types",
-        "//connections/implementation/mediums:webrtc_utils",
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
-        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform:webrtc",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
-        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
@@ -57,7 +58,7 @@ cc_library(
 )
 
 cc_library(
-    name = "data_types",
+    name = "webrtc_socket_impl",
     srcs = [
         "webrtc_socket_impl.cc",
     ],
@@ -75,6 +76,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         "@com_google_absl//absl/strings:string_view",
     ],
 )
@@ -82,27 +84,31 @@ cc_library(
 cc_test(
     name = "webrtc_test",
     timeout = "short",
-    srcs = [
-        "connection_flow_test.cc",
-        "signaling_frames_test.cc",
-        "webrtc_socket_impl_test.cc",
-    ],
+    srcs = select({
+        "//:webrtc_enabled": [
+            "connection_flow_test.cc",
+            "signaling_frames_test.cc",
+            "webrtc_socket_impl_test.cc",
+        ],
+        "//conditions:default": [],
+    }),
     tags = [
         "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
         "requires-net:external",
     ],
     deps = [
-        ":data_types",
         ":webrtc",
-        "//connections/implementation/mediums:webrtc_utils",
+        ":webrtc_socket_impl",
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
-        "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform:webrtc",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
-        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
-        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

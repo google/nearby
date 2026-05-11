@@ -15,8 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_
 
-#ifndef NO_WEBRTC
-
 #include <grpcpp/security/credentials.h>
 
 #include <memory>
@@ -99,7 +97,5 @@ class TachyonExpressSignalingMessenger : public api::WebRtcSignalingMessenger {
 };
 
 }  // namespace nearby
-
-#endif  // #ifndef NO_WEBRTC
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_

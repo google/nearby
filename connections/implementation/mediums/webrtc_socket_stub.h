@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_STUB_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_STUB_H_
 
-#ifdef NO_WEBRTC
-
 #include <memory>
 
 #include "internal/platform/input_stream.h"
@@ -65,7 +63,5 @@ class WebRtcSocketWrapper final {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_STUB_H_

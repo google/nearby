@@ -15,8 +15,6 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <optional>
 #include <string>
@@ -24,27 +22,12 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/webrtc_signaling_messenger.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace api {
-
-class WebRtcSignalingMessenger {
- public:
-  using OnSignalingMessageCallback = absl::AnyInvocable<void(const ByteArray&)>;
-  using OnSignalingCompleteCallback = absl::AnyInvocable<void(bool)>;
-
-  virtual ~WebRtcSignalingMessenger() = default;
-
-  virtual bool SendMessage(absl::string_view peer_id,
-                           const ByteArray& message) = 0;
-
-  virtual bool StartReceivingMessages(
-      OnSignalingMessageCallback on_message_callback,
-      OnSignalingCompleteCallback on_complete_callback) = 0;
-  virtual void StopReceivingMessages() = 0;
-};
 
 class WebRtcMedium {
  public:
@@ -77,7 +60,5 @@ class WebRtcMedium {
 
 }  // namespace api
 }  // namespace nearby
-
-#endif
 
 #endif  // PLATFORM_API_WEBRTC_H_

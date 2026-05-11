@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
 #include "connections/implementation/webrtc_bwu_handler.h"
 
 #include <memory>
@@ -178,5 +176,3 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif

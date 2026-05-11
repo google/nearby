@@ -18,11 +18,7 @@
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_socket_stub.h"
-#else
 #include "connections/implementation/mediums/webrtc_socket.h"
-#endif
 
 namespace nearby {
 namespace connections {

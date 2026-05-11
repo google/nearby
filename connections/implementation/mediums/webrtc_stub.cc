@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef NO_WEBRTC
-
 #include "connections/implementation/mediums/webrtc_stub.h"
 
 #include <functional>
@@ -63,5 +61,3 @@ bool WebRtc::IsUsingCellular() { return false; }
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif

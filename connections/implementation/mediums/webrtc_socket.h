@@ -15,12 +15,10 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 
-#include "internal/platform/exception.h"
-#ifndef NO_WEBRTC
-
 #include <memory>
 
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -53,6 +51,4 @@ class WebRtcSocketWrapper final {
 }  // namespace connections
 }  // namespace nearby
 
-#endif
-
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_

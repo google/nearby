@@ -114,9 +114,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:wifi_utils",
         "//internal/proto:credential_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
-        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -127,6 +124,29 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+    ] + select({
+        "//:webrtc_enabled": [":webrtc"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
+    name = "webrtc",
+    testonly = True,
+    srcs = ["webrtc.cc"],
+    hdrs = ["webrtc.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":types",
+        "//internal/platform:base",
+        "//internal/platform:test_util",
+        "//internal/platform/implementation:webrtc",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
     ],
 )
@@ -178,7 +198,10 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
-    defines = ["NO_WEBRTC"],
+    local_defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     visibility = [
         "//connections:__subpackages__",
         "//connections:partners",
@@ -215,7 +238,13 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_nisaba//nisaba/port:thread_pool",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [
+            ":webrtc",
+            "//internal/platform/implementation:webrtc",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(

@@ -522,7 +522,6 @@ let package = Package(
         "connections/implementation/webrtc_bwu_handler.cc",
         "connections/implementation/webrtc_endpoint_channel.cc",
         "connections/implementation/mediums/webrtc.cc",
-        "connections/implementation/mediums/webrtc_peer_id.cc",
         "connections/implementation/mediums/webrtc",
         "internal/platform/tachyon_express_signaling_messenger.cc",
         "internal/platform/tachyon_express_signaling_messenger.h",

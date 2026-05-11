@@ -300,7 +300,7 @@ cc_library(
         ":logging",
         ":types",
         "//internal/account",
-        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:webrtc",
         "//internal/proto:messaging_cc_grpc_proto",
         "//internal/proto:tachyon_cc_proto",
         "//internal/rpc:utils",
@@ -335,7 +335,6 @@ cc_library(
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "credential_storage_impl.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -364,8 +363,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -375,6 +372,27 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+    ] + select({
+        "//:webrtc_enabled": [":webrtc"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
+    name = "webrtc",
+    hdrs = ["webrtc.h"],
+    visibility = [
+        "//connections:__subpackages__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:webrtc",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -401,6 +419,10 @@ cc_library(
     hdrs = [
         "medium_environment.h",
     ],
+    local_defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
@@ -414,6 +436,7 @@ cc_library(
         ":uuid",
         "//internal/base",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:webrtc_signaling_messenger",
         "//internal/platform/implementation:wifi_utils",
         "//internal/test",
         "@com_google_absl//absl/base:core_headers",
@@ -423,7 +446,12 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [
+            "//internal/platform/implementation:webrtc",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(

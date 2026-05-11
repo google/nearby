@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_
 #define CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <string>
 
@@ -84,7 +82,5 @@ class WebrtcBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_WEBRTC_BWU_HANDLER_H_

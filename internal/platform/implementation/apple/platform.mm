@@ -205,11 +205,13 @@ std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium
   return nullptr;
 }
 
-#ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
+#ifndef NO_WEBRTC
   return std::make_unique<apple::WebRtcMedium>();
-}
+#else
+  return nullptr;
 #endif
+}
 
 std::unique_ptr<AppLifecycleMonitor> ImplementationPlatform::CreateAppLifecycleMonitor(
     std::function<void(AppLifecycleMonitor::AppLifecycleState)> state_updated_callback) {

@@ -48,6 +48,10 @@ objc_library(
         "ble_socket_test.mm",
         "network_utils_test.mm",
     ],
+    local_defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     deps = [
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
@@ -79,7 +83,12 @@ objc_library(
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest",
         "@nlohmann_json//:json",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [
+            "//internal/platform/implementation:webrtc",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 objc_library(

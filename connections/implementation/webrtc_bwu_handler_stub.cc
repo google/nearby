@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef NO_WEBRTC
-
 #include "connections/implementation/webrtc_bwu_handler_stub.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
-#include "connections/implementation/offline_frames.h"
-#include "connections/implementation/webrtc_endpoint_channel.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/webrtc_socket_stub.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -80,5 +78,3 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif

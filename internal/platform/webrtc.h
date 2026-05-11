@@ -15,8 +15,6 @@
 #ifndef PLATFORM_PUBLIC_WEBRTC_H_
 #define PLATFORM_PUBLIC_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <optional>
 #include <string>
@@ -113,7 +111,5 @@ class WebRtcMedium {
 };
 
 }  // namespace nearby
-
-#endif
 
 #endif  // PLATFORM_PUBLIC_WEBRTC_H_

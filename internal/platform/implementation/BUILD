@@ -100,7 +100,6 @@ cc_library(
         "http_loader.h",
         "psk_info.h",
         "upgrade_address_info.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -123,8 +122,6 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/proto:credential_cc_proto",
         "//internal/proto:local_credential_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
@@ -134,6 +131,24 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+    ] + select({
+        "//:webrtc_enabled": [":webrtc"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
+    name = "webrtc",
+    hdrs = ["webrtc.h"],
+    visibility = ["//internal/platform:__subpackages__"],
+    deps = [
+        ":webrtc_signaling_messenger",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -142,7 +157,10 @@ cc_library(
     hdrs = [
         "platform.h",
     ],
-    defines = ["NO_WEBRTC"],
+    defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal:__subpackages__",
@@ -160,7 +178,10 @@ cc_library(
         "//internal/platform:base",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [":webrtc"],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -180,6 +201,19 @@ cc_library(
             "//internal/platform/implementation/g3",
         ],
     }),
+)
+
+cc_library(
+    name = "webrtc_signaling_messenger",
+    hdrs = ["webrtc_signaling_messenger.h"],
+    visibility = [
+        "//internal/platform:__pkg__",
+    ],
+    deps = [
+        "//internal/platform:base",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+    ],
 )
 
 cc_test(

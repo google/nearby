@@ -14,6 +14,10 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#ifndef NO_WEBRTC
+#include "internal/platform/implementation/webrtc.h"
+#endif
+
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
@@ -319,10 +323,12 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqual(wifi_direct_medium.get(), nullptr);
 }
 
+#ifndef NO_WEBRTC
 - (void)testCreateWebRtcMedium {
   auto webrtc_medium = nearby::api::ImplementationPlatform::CreateWebRtcMedium();
   XCTAssertNotEqual(webrtc_medium.get(), nullptr);
 }
+#endif
 
 - (void)testCreateInputFileWithPayloadID {
   auto input_file = nearby::api::ImplementationPlatform::CreateInputFile(1234);

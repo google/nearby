@@ -42,6 +42,7 @@
 #endif
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/webrtc_signaling_messenger.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
@@ -80,12 +81,10 @@ class MediumEnvironment {
   using BluetoothDiscoveryCallback =
       api::BluetoothClassicMedium::DiscoveryCallback;
   using BleScanCallback = api::ble::BleMedium::ScanningCallback;
-#ifndef NO_WEBRTC
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
   using OnSignalingCompleteCallback =
       api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
-#endif
   using WifiLanDiscoveredServiceCallback =
       api::WifiLanMedium::DiscoveredServiceCallback;
   using AwdlDiscoveredServiceCallback =
@@ -164,7 +163,7 @@ class MediumEnvironment {
   api::BluetoothDevice* FindBluetoothDevice(MacAddress mac_address);
 
   EnvironmentConfig GetEnvironmentConfig();
-#ifndef NO_WEBRTC
+
   // Registers |message_callback| to receive messages sent to device with id
   // |self_id|, and |complete_callback| to notify when signaling is complete.
   void RegisterWebRtcSignalingMessenger(
@@ -181,7 +180,7 @@ class MediumEnvironment {
 
   // Simulates sending an "signaling complete" signal to the WebRTC medium.
   void SendWebRtcSignalingComplete(absl::string_view peer_id, bool success);
-#endif
+
   // Used to set if WebRtcMedium should use a valid peer connection or nullptr
   // in tests.
   void SetUseValidPeerConnection(bool use_valid_peer_connection);

@@ -56,6 +56,8 @@
 namespace nearby {
 namespace api {
 
+class WebRtcMedium;
+
 // API rework notes:
 // https://docs.google.com/spreadsheets/d/1erZNkX7pX8s5jWTHdxgjntxTMor3BGiY2H_fC_ldtoQ/edit#gid=381357998
 class ImplementationPlatform {
@@ -134,9 +136,7 @@ class ImplementationPlatform {
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
   static std::unique_ptr<WifiDirectMedium> CreateWifiDirectMedium();
   static std::unique_ptr<Timer> CreateTimer();
-#ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
-#endif
 
 #if defined(NEARBY_CHROMIUM)
   static std::unique_ptr<AppLifecycleMonitor> CreateAppLifecycleMonitor(

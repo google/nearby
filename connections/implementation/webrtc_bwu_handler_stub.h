@@ -15,19 +15,17 @@
 #ifndef CORE_INTERNAL_WEBRTC_BWU_HANDLER_STUB_H_
 #define CORE_INTERNAL_WEBRTC_BWU_HANDLER_STUB_H_
 
-#ifdef NO_WEBRTC
-
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
-#ifdef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
-#else
-#include "connections/implementation/mediums/webrtc_socket.h"
-#endif
+#include "connections/implementation/mediums/webrtc_stub.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -84,7 +82,5 @@ class WebrtcBwuHandler : public BaseBwuHandler {
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_WEBRTC_BWU_HANDLER_STUB_H_

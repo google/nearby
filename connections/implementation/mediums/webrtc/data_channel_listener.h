@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_
 
-#ifndef NO_WEBRTC
-
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 
@@ -38,7 +36,5 @@ struct DataChannelListener {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_

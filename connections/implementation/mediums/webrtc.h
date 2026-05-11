@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <map>
 #include <memory>
 #include <string>
@@ -270,7 +268,5 @@ class WebRtc {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_H_

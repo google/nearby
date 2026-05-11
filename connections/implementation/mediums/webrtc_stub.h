@@ -15,14 +15,11 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_STUB_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_STUB_H_
 
-#ifdef NO_WEBRTC
-
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
 
-#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
@@ -32,6 +29,8 @@
 namespace nearby {
 namespace connections {
 namespace mediums {
+
+class WebrtcPeerId;
 
 // Entry point for connecting a data channel between two devices via WebRtc.
 class WebRtc {
@@ -80,7 +79,5 @@ class WebRtc {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_STUB_H_

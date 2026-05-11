@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
+
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -21,12 +23,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/pipe.h"
-#ifndef NO_WEBRTC
-
-#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/pipe.h"
 
 namespace nearby {
 namespace connections {
@@ -198,5 +197,3 @@ void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif

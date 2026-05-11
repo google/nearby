@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
 #include "internal/platform/tachyon_express_signaling_messenger.h"
 
 #include <ctime>
@@ -341,5 +339,3 @@ bool TachyonExpressSignalingMessenger::SendMessage(absl::string_view peer_id,
 }
 
 }  // namespace nearby
-
-#endif  // #ifndef NO_WEBRTC

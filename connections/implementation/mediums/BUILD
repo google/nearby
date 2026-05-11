@@ -25,8 +25,6 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
-        "webrtc.cc",
-        "webrtc_stub.cc",
         "wifi_direct.cc",
         "wifi_hotspot.cc",
         "wifi_lan.cc",
@@ -37,20 +35,21 @@ cc_library(
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
-        "webrtc.h",
-        "webrtc_stub.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     copts = ["-DNO_WEBRTC"],
+    local_defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
     deps = [
         ":utils",
-        ":webrtc_utils",
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
@@ -58,7 +57,6 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/ble:bloom_filter",
-        "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -72,9 +70,6 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
-        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -86,31 +81,91 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
+    ] + select({
+        "//:webrtc_enabled": [
+            ":webrtc",
+            "//connections/implementation/mediums/webrtc",
+        ],
+        "//conditions:default": [":webrtc_stub"],
+    }),
+)
+
+cc_library(
+    name = "webrtc_peer_id",
+    srcs = ["webrtc_peer_id.cc"],
+    hdrs = ["webrtc_peer_id.h"],
+    visibility = ["//connections/implementation:__subpackages__"],
+    deps = [
+        ":utils",
+        "//internal/platform:base",
+        "@com_google_absl//absl/strings",
     ],
 )
 
 cc_library(
-    name = "webrtc_utils",
-    srcs = [
-        "webrtc_peer_id.cc",
-        "webrtc_peer_id_stub.cc",
+    name = "webrtc_socket",
+    hdrs = ["webrtc_socket.h"],
+    visibility = ["//connections/implementation:__subpackages__"],
+    deps = [
+        "//connections/implementation/mediums/webrtc:webrtc_socket_impl",
+        "//internal/platform:base",
     ],
-    hdrs = [
-        "webrtc_peer_id.h",
-        "webrtc_peer_id_stub.h",
-        "webrtc_socket.h",
-        "webrtc_socket_stub.h",
-    ],
+)
+
+cc_library(
+    name = "webrtc",
+    srcs = ["webrtc.cc"],
+    hdrs = ["webrtc.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
-        ":utils",
-        "//connections/implementation/mediums/webrtc:data_types",
+        ":webrtc_peer_id",
+        ":webrtc_socket",
+        "//connections/implementation/mediums/webrtc",
         "//internal/platform:base",
-        "@com_google_absl//absl/strings",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/platform:webrtc",
+        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "webrtc_socket_stub",
+    hdrs = ["webrtc_socket_stub.h"],
+    visibility = ["//connections/implementation:__subpackages__"],
+    deps = [
+        "//internal/platform:base",
+    ],
+)
+
+cc_library(
+    name = "webrtc_stub",
+    srcs = ["webrtc_stub.cc"],
+    hdrs = ["webrtc_stub.h"],
+    visibility = [
+        "//connections/implementation:__pkg__",
+        "//connections/implementation/mediums:__pkg__",
+        "//connections/implementation/mediums/webrtc:__pkg__",
+    ],
+    deps = [
+        ":webrtc_socket_stub",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:types",
     ],
 )
 
@@ -190,25 +245,30 @@ cc_test(
     size = "small",
     srcs = [
         "webrtc_peer_id_test.cc",
-        "webrtc_test.cc",
-    ],
+    ] + select({
+        "//:webrtc_enabled": ["webrtc_test.cc"],
+        "//conditions:default": [],
+    }),
     shard_count = 16,
     tags = [
         "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
         "requires-net:external",
     ],
     deps = [
-        ":mediums",
-        ":webrtc_utils",
+        ":webrtc_peer_id",
+        ":webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform:webrtc",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [":webrtc"],
+        "//conditions:default": [],
+    }),
 )

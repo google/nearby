@@ -15,8 +15,6 @@
 #ifndef PLATFORM_IMPL_APPLE_WEBRTC_H_
 #define PLATFORM_IMPL_APPLE_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <optional>
 #include <string>
@@ -56,7 +54,5 @@ class WebRtcMedium : public api::WebRtcMedium {
 };
 
 }  // namespace nearby::apple
-
-#endif  // #ifndef NO_WEBRTC
 
 #endif  // PLATFORM_IMPL_APPLE_WEBRTC_H_

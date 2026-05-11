@@ -219,15 +219,17 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   return std::make_unique<g3::WifiDirectMedium>();
 }
 
-#ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
+#ifndef NO_WEBRTC
   if (MediumEnvironment::Instance().GetEnvironmentConfig().webrtc_enabled) {
     return std::make_unique<g3::WebRtcMedium>();
   } else {
     return nullptr;
   }
-}
+#else
+  return nullptr;
 #endif
+}
 
 std::unique_ptr<AppLifecycleMonitor>
 ImplementationPlatform::CreateAppLifecycleMonitor(

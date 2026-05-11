@@ -43,7 +43,9 @@ cc_library(
     ],
     deps = [
         ":core_types",
+        "//connections/implementation:client_proxy",
         "//connections/implementation:internal",
+        "//connections/implementation:service_id_constants",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/interop:device",
@@ -94,6 +96,7 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
