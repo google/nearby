@@ -135,7 +135,6 @@ cc_library(
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/advertisements:__pkg__",
         "//connections/implementation/mediums/ble:__subpackages__",
-        "//connections/implementation/mediums/multiplex:__pkg__",
         "//internal/platform/implementation/windows:__pkg__",
     ],
     deps = [

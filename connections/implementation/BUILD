@@ -145,7 +145,6 @@ cc_library(
         "//connections:__pkg__",
         "//connections:partners",
         "//connections/implementation/fuzzers:__pkg__",
-        "//connections/implementation/mediums/multiplex:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [
