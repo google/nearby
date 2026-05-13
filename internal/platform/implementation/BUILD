@@ -195,3 +195,16 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "device_info_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["device_info_test.cc"],
+    deps = [
+        ":types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

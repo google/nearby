@@ -441,6 +441,7 @@ let package = Package(
         "internal/platform/crypto_test.cc",
         "internal/platform/byte_array_test.cc",
         "internal/platform/credential_storage_impl_test.cc",
+        "internal/platform/implementation/device_info_test.cc",
         "internal/platform/implementation/g3/awdl_test.cc",
         "internal/platform/implementation/g3/ble_test.cc",
         "internal/platform/input_stream_test.cc",

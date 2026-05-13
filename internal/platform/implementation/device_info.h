@@ -31,23 +31,6 @@ class DeviceInfo {
  public:
   enum class ScreenStatus { kUndetermined = 0, kLocked, kUnlocked };
   enum class DeviceType { kUnknown = 0, kPhone, kTablet, kLaptop };
-  template <typename Sink>
-  void AbslStringify(Sink& sink, DeviceType device_type) {
-    switch (device_type) {
-      case DeviceType::kUnknown:
-        sink.Append("Unknown");
-        return;
-      case DeviceType::kPhone:
-        sink.Append("Phone");
-        return;
-      case DeviceType::kTablet:
-        sink.Append("Tablet");
-        return;
-      case DeviceType::kLaptop:
-        sink.Append("PC");
-        return;
-    }
-  }
   enum class OsType {
     kUnknown = 0,
     kAndroid,
@@ -87,6 +70,24 @@ class DeviceInfo {
   virtual bool PreventSleep() = 0;
   virtual bool AllowSleep() = 0;
 };
+
+template <typename Sink>
+void AbslStringify(Sink& sink, DeviceInfo::DeviceType device_type) {
+  switch (device_type) {
+    case DeviceInfo::DeviceType::kUnknown:
+      sink.Append("Unknown");
+      return;
+    case DeviceInfo::DeviceType::kPhone:
+      sink.Append("Phone");
+      return;
+    case DeviceInfo::DeviceType::kTablet:
+      sink.Append("Tablet");
+      return;
+    case DeviceInfo::DeviceType::kLaptop:
+      sink.Append("PC");
+      return;
+  }
+}
 
 }  // namespace api
 }  // namespace nearby
