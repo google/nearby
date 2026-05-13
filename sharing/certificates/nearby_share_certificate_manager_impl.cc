@@ -186,11 +186,7 @@ void DumpCertificateId(std::stringstream& sstream, absl::string_view cert_id,
   } else {
     sstream << "  Private certificates:[";
   }
-  for (int i = 0; i < cert_id.size() - 1; ++i) {
-    sstream << static_cast<int>(static_cast<int8_t>(cert_id[i])) << ", ";
-  }
-  sstream << static_cast<int>(static_cast<int8_t>(cert_id[cert_id.size() - 1]))
-          << "]" << std::endl;
+  sstream << absl::BytesToHexString(cert_id) << "]" << std::endl;
 }
 
 }  // namespace
@@ -755,7 +751,7 @@ std::string NearbyShareCertificateManagerImpl::Dump() const {
       certificate_storage_->GetPublicCertificateIds();
   sstream << "  Total count:" << ids.size() << std::endl;
   for (const auto& id : ids) {
-    DumpCertificateId(sstream, id, true);
+    DumpCertificateId(sstream, id, /*is_public_cert=*/true);
   }
   sstream << std::endl;
 
@@ -768,7 +764,7 @@ std::string NearbyShareCertificateManagerImpl::Dump() const {
     sstream << "  Total count:" << private_certs.size() << std::endl;
     for (const auto& cert : private_certs) {
       std::string id(cert.id().begin(), cert.id().end());
-      DumpCertificateId(sstream, id, false);
+      DumpCertificateId(sstream, id, /*is_public_cert=*/false);
     }
   }
 
