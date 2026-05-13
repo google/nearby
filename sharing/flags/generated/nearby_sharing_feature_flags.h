@@ -103,7 +103,7 @@ constexpr auto kEnableNativeNotifications =
     flags::Flag<bool>(kConfigPackage, "45743135", false);
 // When true, enables responsive UI.
 constexpr auto kEnableResponsiveUi =
-    flags::Flag<bool>(kConfigPackage, "45727212", false);
+    flags::Flag<bool>(kConfigPackage, "45727212", true);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
