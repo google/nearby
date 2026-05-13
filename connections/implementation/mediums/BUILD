@@ -93,11 +93,9 @@ cc_library(
     name = "webrtc_utils",
     srcs = [
         "webrtc_peer_id.cc",
-        "webrtc_peer_id_stub.cc",
     ],
     hdrs = [
         "webrtc_peer_id.h",
-        "webrtc_peer_id_stub.h",
         "webrtc_socket.h",
         "webrtc_socket_stub.h",
     ],

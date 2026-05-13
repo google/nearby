@@ -22,7 +22,7 @@
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/webrtc_peer_id_stub.h"
+#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 #include "internal/platform/expected.h"
