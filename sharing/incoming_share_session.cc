@@ -138,8 +138,20 @@ IncomingShareSession::ProcessIntroduction(
                       "64 bit integer.";
       return TransferMetadata::Status::kNotEnoughSpace;
     }
+    if (apk.file_name_size() != apk.file_size_size() ||
+        apk.file_name_size() != apk.payload_id_size()) {
+      LOG(WARNING)
+          << __func__
+          << ": Ignore introduction, AppMetadata array length mismatch";
+      return TransferMetadata::Status::kUnsupportedAttachmentType;
+    }
     // Map each apk file to a file attachment.
     for (int index = 0; index < apk.file_name_size(); ++index) {
+      if (apk.file_size(index) <= 0) {
+        LOG(WARNING) << __func__
+                     << ": Ignore introduction, due to invalid apk file size";
+        return TransferMetadata::Status::kUnsupportedAttachmentType;
+      }
       // Locally generate an attachment id for each apk file, and map it to the
       // payload id.
       FileAttachment apk_file(

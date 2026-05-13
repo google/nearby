@@ -354,6 +354,51 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
               UnorderedElementsAre(file1, file2, file3));
 }
 
+TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkLengthMismatch) {
+  IntroductionFrame introduction_frame;
+  CHECK(
+      proto2::TextFormat::ParseFromString(R"pb(
+                                            app_metadata {
+                                              app_name: "MyApp"
+                                              size: 300
+                                              payload_id: 9876
+                                              id: 1234
+                                              file_name: "MyApp.apk"
+                                              file_name: "MyApp2.apk"
+                                              file_size: 100
+                                              file_size: 100
+                                              file_size: 100
+                                              package_name: "com.example.myapp"
+                                            }
+                                          )pb",
+                                          &introduction_frame));
+  session_.OnConnected(&connection_);
+
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
+}
+
+TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkInvalidSize) {
+  IntroductionFrame introduction_frame;
+  CHECK(
+      proto2::TextFormat::ParseFromString(R"pb(
+                                            app_metadata {
+                                              app_name: "MyApp"
+                                              size: 300
+                                              payload_id: 9876
+                                              id: 1234
+                                              file_name: "MyApp.apk"
+                                              file_size: 0
+                                              package_name: "com.example.myapp"
+                                            }
+                                          )pb",
+                                          &introduction_frame));
+  session_.OnConnected(&connection_);
+
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
+}
+
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithWrongPayloadType) {
   connections_manager_.AcceptConnection(
