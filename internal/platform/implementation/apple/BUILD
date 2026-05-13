@@ -61,7 +61,6 @@ objc_library(
         "preferences_manager.mm",
         "scheduled_executor.mm",
         "timer.mm",
-        "webrtc.mm",
         "wifi_hotspot.mm",
         "wifi_lan.mm",
     ],
@@ -70,7 +69,6 @@ objc_library(
         "device_info.h",
         "preferences_manager.h",
         "timer.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
@@ -107,13 +105,7 @@ objc_library(
         "//internal/crypto_cros",
         "//internal/platform:comm",
         "//internal/platform:logging",
-        "//internal/platform:tachyon_express_signaling_messenger",
         "//internal/platform:types",
-        "//internal/proto:tachyon_cc_proto",
-        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
-        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
@@ -129,6 +121,26 @@ objc_library(
         ],
         "//conditions:default": [],
     }),
+)
+
+objc_library(
+    name = "webrtc",
+    srcs = ["webrtc.mm"],
+    hdrs = ["webrtc.h"],
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "//internal/platform:logging",
+        "//internal/platform:tachyon_express_signaling_messenger",
+        "//internal/platform:types",
+        "//internal/platform/implementation:comm",
+        "//internal/proto:tachyon_cc_proto",
+        # "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
+    ],
 )
 
 objc_library(

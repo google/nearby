@@ -31,6 +31,16 @@ swift_library(
 )
 
 swift_library(
+    name = "NearbyConnectionsNoWebRtc",
+    srcs = glob(["Sources/**/*.swift"]),
+    module_name = "NearbyConnections",
+    deps = [
+        "//connections/swift/NearbyCoreAdapter:NearbyCoreAdapterNoWebRtc",
+        "//third_party/apple_frameworks:Foundation",
+    ],
+)
+
+swift_library(
     name = "TestsLib",
     testonly = 1,
     srcs = glob(["Tests/**/*.swift"]),
