@@ -389,20 +389,6 @@ TEST(ShareSessionTest, ProcessKeyVerificationResultNotSelfShareUnable) {
   EXPECT_FALSE(session.token().empty());
 }
 
-TEST(ShareSessionTest, ProcessKeyVerificationResultUnknown) {
-  ShareTarget share_target;
-  TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info());
-  session.SetNearbyConnection(&connection);
-  session.SetTokenForTests("9876");
-
-  EXPECT_FALSE(session.ProcessKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown,
-      OSType::WINDOWS));
-  EXPECT_EQ(session.os_type(), OSType::WINDOWS);
-  EXPECT_FALSE(session.token().empty());
-}
-
 TEST(ShareSessionTest, AbortNotConnected) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);

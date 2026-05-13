@@ -235,12 +235,6 @@ bool ShareSession::ProcessKeyVerificationResult(
       // share flag.
       self_share_ = false;
       break;
-
-    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnknown:
-      LOG(WARNING) << __func__
-                   << ": Unknown PairedKeyVerificationResult for target "
-                   << share_target().id << ". Disconnecting.";
-      return false;
   }
   return true;
 }

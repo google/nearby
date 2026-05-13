@@ -2216,9 +2216,10 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     session->RunPairedKeyVerification(
         ToProtoOsType(device_info_.GetOsType()),
         {
-            .visibility = settings_->GetVisibility(),
-            .last_visibility = settings_->GetLastVisibility(),
-            .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
+          // Sender always uses ALL_CONTACTS cert to sign and verify signature.
+          .visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+          .last_visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+          .last_visibility_time = absl::UnixEpoch(),
         },
         GetCertificateManager(),
         absl::bind_front(
