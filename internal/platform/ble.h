@@ -295,17 +295,6 @@ class GattClient final {
     return impl_->WriteCharacteristic(characteristic, value, write_type);
   }
 
-  // TODO(qinwangz): We should not need  `on_characteristic_changed_cb` when
-  // unsubscribing.
-  // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  bool SetCharacteristicSubscription(
-      const api::ble::GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb) {
-    return impl_->SetCharacteristicSubscription(
-        characteristic, enable, std::move(on_characteristic_changed_cb));
-  }
-
   void Disconnect() { impl_->Disconnect(); }
 
   // Returns true if a client_gatt_connection is usable. If this method

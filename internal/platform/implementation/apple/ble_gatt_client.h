@@ -66,16 +66,6 @@ class GattClient : public api::ble::GattClient {
   bool WriteCharacteristic(const api::ble::GattCharacteristic &characteristic,
                            absl::string_view value, api::ble::GattClient::WriteType type) override;
 
-  // Enable or disable notifications/indications for a given characteristic.
-  //
-  // Once notifications are enabled for a characteristic, on_characteristic_changed_cb will be
-  // triggered if the remote device indicates that the given characteristic has changed.
-  //
-  // Returns whether or not the subscription was successful.
-  bool SetCharacteristicSubscription(
-      const api::ble::GattCharacteristic &characteristic, bool enable,
-      absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) override;
-
   // Disconnects an established connection, or cancels a connection attempt currently in progress.
   void Disconnect() override;
 

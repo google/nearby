@@ -63,11 +63,6 @@ class BleGattClient : public api::ble::GattClient {
                            api::ble::GattClient::WriteType write_type) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool SetCharacteristicSubscription(
-      const api::ble::GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb) override ABSL_LOCKS_EXCLUDED(mutex_);
-
   void Disconnect() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

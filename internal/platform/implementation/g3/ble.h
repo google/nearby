@@ -282,11 +282,6 @@ class BleMedium : public api::ble::BleMedium {
         absl::string_view value,
         api::ble::GattClient::WriteType write_type) override;
 
-    bool SetCharacteristicSubscription(
-        const api::ble::GattCharacteristic& characteristic, bool enable,
-        absl::AnyInvocable<void(absl::string_view value)>
-            on_characteristic_changed_cb) override;
-
     void Disconnect() override;
 
     void OnServerDisconnected();

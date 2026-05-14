@@ -679,33 +679,6 @@ bool BleMedium::GattClient::WriteCharacteristic(
   return status.ok();
 }
 
-bool BleMedium::GattClient::SetCharacteristicSubscription(
-    const api::ble::GattCharacteristic& characteristic, bool enable,
-    absl::AnyInvocable<void(absl::string_view value)>
-        on_characteristic_changed_cb) {
-  absl::MutexLock lock(mutex_);
-  if (!is_connection_alive_) {
-    return false;
-  }
-  Borrowed<api::ble::GattServer*> borrowed = gatt_server_.Borrow();
-  if (!borrowed) {
-    return false;
-  }
-  BleMedium::GattServer* gatt_server =
-      static_cast<BleMedium::GattServer*>(*borrowed);
-  LOG(INFO) << "G3 Ble SetCharacteristicSubscription, characteristic=("
-            << characteristic.service_uuid.Get16BitAsString() << ","
-            << std::string(characteristic.uuid) << "), enable = " << enable;
-  if (enable) {
-    return gatt_server->AddCharacteristicSubscription(
-        peripheral_id_, characteristic,
-        std::move(on_characteristic_changed_cb));
-  } else {
-    return gatt_server->RemoveCharacteristicSubscription(peripheral_id_,
-                                                         characteristic);
-  }
-}
-
 void BleMedium::GattClient::Disconnect() {
   bool was_alive = is_connection_alive_.exchange(false);
   if (!was_alive) return;

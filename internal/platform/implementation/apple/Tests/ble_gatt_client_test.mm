@@ -210,19 +210,6 @@
   XCTAssertFalse(result);
 }
 
-- (void)testSetCharacteristicSubscriptionReturnsFalse {
-  GNCBLEGATTCharacteristic *characteristic =
-      [[GNCBLEGATTCharacteristic alloc] initWithUUID:[CBUUID UUIDWithString:@"B2B4"]
-                                         serviceUUID:[CBUUID UUIDWithString:@"FEF3"]
-                                         permissions:CBAttributePermissionsReadable
-                                          properties:CBCharacteristicPropertyNotify];
-  nearby::api::ble::GattCharacteristic cppCharacteristic =
-      nearby::apple::CPPGATTCharacteristicFromObjC(characteristic);
-  BOOL result = _gattClient->SetCharacteristicSubscription(cppCharacteristic, true,
-                                                           [](absl::string_view value) {});
-  XCTAssertFalse(result);
-}
-
 - (void)testDisconnectWhenFlagEnabled {
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::

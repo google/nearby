@@ -121,13 +121,6 @@ bool GattClient::WriteCharacteristic(const api::ble::GattCharacteristic &charact
   return false;
 }
 
-// TODO(b/290385712): Implement.
-bool GattClient::SetCharacteristicSubscription(
-    const api::ble::GattCharacteristic &characteristic, bool enable,
-    absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) {
-  return false;
-}
-
 void GattClient::Disconnect() {
   // There seems to be an issue between some iOS<>Android device pairs where the Android device will
   // not connect to the iOS device if the iOS device disconnects and then attempts to reconnect.

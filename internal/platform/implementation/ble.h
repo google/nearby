@@ -248,14 +248,6 @@ class GattClient {
   virtual bool WriteCharacteristic(const GattCharacteristic& characteristic,
                                    absl::string_view value, WriteType type) = 0;
 
-  // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#setCharacteristicNotification(android.bluetooth.BluetoothGattCharacteristic,%20boolean)
-  //
-  // Enable or disable notifications/indications for a given characteristic.
-  virtual bool SetCharacteristicSubscription(
-      const GattCharacteristic& characteristic, bool enable,
-      absl::AnyInvocable<void(absl::string_view value)>
-          on_characteristic_changed_cb) = 0;
-
   // https://developer.android.com/reference/android/bluetooth/BluetoothGatt.html#disconnect()
   virtual void Disconnect() = 0;
 };
