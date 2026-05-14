@@ -140,6 +140,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, DefaultDeviceName) {
                              kFakeGivenName,
                              GetDeviceType()),
             manager()->GetDeviceName());
+  EXPECT_EQ(manager()->GetDeviceName(), "Barack奥巴马's PC");
 
   // Make sure that when we use a given name that is very long we truncate
   // correctly.
