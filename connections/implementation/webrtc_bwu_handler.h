@@ -44,15 +44,15 @@ class WebrtcBwuHandler : public BaseBwuHandler {
  private:
   class WebrtcIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    explicit WebrtcIncomingSocket(const std::string& name,
-                                  mediums::WebRtcSocketWrapper socket);
+    explicit WebrtcIncomingSocket(
+        const std::string& name, std::shared_ptr<mediums::WebRtcSocket> socket);
 
     std::string ToString() override;
     void Close() override;
 
    private:
     std::string name_;
-    mediums::WebRtcSocketWrapper socket_;
+    std::shared_ptr<mediums::WebRtcSocket> socket_;
   };
 
   // BwuHandler implementation:
@@ -74,9 +74,9 @@ class WebrtcBwuHandler : public BaseBwuHandler {
   void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) final;
 
-  void OnIncomingWebrtcConnection(ClientProxy* client,
-                                  const std::string& upgrade_service_id,
-                                  mediums::WebRtcSocketWrapper socket);
+  void OnIncomingWebrtcConnection(
+      ClientProxy* client, const std::string& upgrade_service_id,
+      std::shared_ptr<mediums::WebRtcSocket> socket);
 
   Mediums& mediums_;
   mediums::WebRtc& webrtc_{mediums_.GetWebRtc()};

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,44 +15,57 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_
 
+#include <cstdint>
+
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#ifndef NO_WEBRTC
-
-#include <memory>
-
-#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 
-class WebRtcSocketWrapper final {
+// A base implementation that creates a non-working WebRtcSocket that can be
+// used as a placeholder when WebRTC is disabled.
+class WebRtcSocket : public Socket {
  public:
-  WebRtcSocketWrapper() = default;
-  WebRtcSocketWrapper(const WebRtcSocketWrapper&) = default;
-  WebRtcSocketWrapper& operator=(const WebRtcSocketWrapper&) = default;
-  explicit WebRtcSocketWrapper(std::unique_ptr<WebRtcSocket> socket)
-      : impl_(socket.release()) {}
-  ~WebRtcSocketWrapper() = default;
+  ~WebRtcSocket() override = default;
 
-  InputStream& GetInputStream() { return impl_->GetInputStream(); }
+  InputStream& GetInputStream() override { return fake_input_stream_; }
 
-  OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
+  OutputStream& GetOutputStream() override { return fake_output_stream_; }
 
-  Exception Close() { return impl_->Close(); }
+  Exception Close() override { return {Exception::kSuccess}; }
 
-  bool IsValid() const { return impl_ != nullptr; }
-
-  WebRtcSocket& GetImpl() { return *impl_; }
+  virtual bool IsValid() const { return false; }
 
  private:
-  std::shared_ptr<WebRtcSocket> impl_;
+  class FakeInputStream : public InputStream {
+   public:
+    ExceptionOr<ByteArray> Read(std::int64_t size) override {
+      return {Exception::kSuccess};
+    }
+    Exception Close() override { return {Exception::kSuccess}; }
+  };
+
+  class FakeOutputStream : public OutputStream {
+   public:
+    Exception Write(absl::string_view data) override {
+      return {Exception::kSuccess};
+    }
+    Exception Flush() override { return {Exception::kSuccess}; }
+    Exception Close() override { return {Exception::kSuccess}; }
+  };
+
+  FakeInputStream fake_input_stream_;
+  FakeOutputStream fake_output_stream_;
 };
 
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
 
-#endif
-
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SOCKET_H_

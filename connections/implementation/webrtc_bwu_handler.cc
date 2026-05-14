@@ -60,10 +60,10 @@ LocationHint BuildLocationHint(const std::string& location) {
 }  // namespace
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
-    const std::string& name, mediums::WebRtcSocketWrapper socket)
-    : name_(name), socket_(socket) {}
+    const std::string& name, std::shared_ptr<mediums::WebRtcSocket> socket)
+    : name_(name), socket_(std::move(socket)) {}
 
-void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_.Close(); }
+void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_->Close(); }
 
 std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
 
@@ -93,9 +93,10 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
             << peer_id.GetId() << ", location hint "
             << location_hint.location();
 
-  ErrorOr<mediums::WebRtcSocketWrapper> socket_result = webrtc_.Connect(
-      service_id, peer_id, location_hint,
-      client->GetCancellationFlag(endpoint_id), client->GetWebRtcNonCellular());
+  ErrorOr<std::shared_ptr<mediums::WebRtcSocket>> socket_result =
+      webrtc_.Connect(service_id, peer_id, location_hint,
+                      client->GetCancellationFlag(endpoint_id),
+                      client->GetWebRtcNonCellular());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
                << peer_id.GetId() << ") on endpoint " << endpoint_id
@@ -111,7 +112,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
   auto channel = std::make_unique<WebRtcEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
-    socket_result.value().Close();
+    socket_result.value()->Close();
     LOG(ERROR) << "WebRtcBwuHandler failed to create new EndpointChannel for "
                   "outgoing socket, aborting upgrade.";
     return {Error(
@@ -164,11 +165,11 @@ std::string WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 // for this socket.
 void WebrtcBwuHandler::OnIncomingWebrtcConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    mediums::WebRtcSocketWrapper socket) {
+    std::shared_ptr<mediums::WebRtcSocket> socket) {
   auto channel = std::make_unique<WebRtcEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
-  auto webrtc_socket =
-      std::make_unique<WebrtcIncomingSocket>(upgrade_service_id, socket);
+  auto webrtc_socket = std::make_unique<WebrtcIncomingSocket>(
+      upgrade_service_id, std::move(socket));
   std::unique_ptr<IncomingSocketConnection> connection(
       new IncomingSocketConnection{std::move(webrtc_socket),
                                    std::move(channel)});

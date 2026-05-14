@@ -207,13 +207,13 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
             << service_id;
 }
 
-ErrorOr<WebRtcSocketWrapper> WebRtc::Connect(
+ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::Connect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag,
     bool non_cellular) {
   service_id_to_connect_attempts_count_map_[service_id] = 1;
   medium_->SetNonCellular(non_cellular);
-  ErrorOr<WebRtcSocketWrapper> wrapper_result = {
+  ErrorOr<std::shared_ptr<WebRtcSocket>> wrapper_result = {
       Error(OperationResultCode::DETAIL_UNKNOWN)};
   while (service_id_to_connect_attempts_count_map_[service_id] <=
          kConnectAttemptsLimit) {
@@ -242,12 +242,12 @@ ErrorOr<WebRtcSocketWrapper> WebRtc::Connect(
   return {Error(wrapper_result.error().operation_result_code().value())};
 }
 
-ErrorOr<WebRtcSocketWrapper> WebRtc::AttemptToConnect(
+ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::AttemptToConnect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
   info.self_peer_id = WebrtcPeerId::FromRandom();
-  Future<WebRtcSocketWrapper> socket_future = info.socket_future;
+  Future<std::shared_ptr<WebRtcSocket>> socket_future = info.socket_future;
 
   // `listener` will go out of scope at the end of `AttemptToConnect`, and this
   // is expected. This `listener` is tied to `socket_future` which we block on
@@ -329,7 +329,7 @@ ErrorOr<WebRtcSocketWrapper> WebRtc::AttemptToConnect(
 
   // Wait for the connection to go through. Don't hold the mutex here so that
   // we're not blocking necessary operations.
-  ExceptionOr<WebRtcSocketWrapper> socket_result =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> socket_result =
       socket_future.Get(kDataChannelTimeout);
 
   {
@@ -660,9 +660,9 @@ void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
             << service_id;
 }
 
-void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
-                                    const WebrtcPeerId& remote_peer_id,
-                                    WebRtcSocketWrapper socket_wrapper) {
+void WebRtc::ProcessDataChannelOpen(
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id,
+    std::shared_ptr<WebRtcSocket> socket_wrapper) {
   MutexLock lock(&mutex_);
 
   // Notify the client of the newly formed socket.
@@ -683,7 +683,7 @@ void WebRtc::ProcessDataChannelOpen(const std::string& service_id,
   }
 
   // No one to handle the newly created DataChannel, so we'll just close it.
-  socket_wrapper.Close();
+  socket_wrapper->Close();
   LOG(INFO) << "Ignoring new DataChannel because we are not accepting "
                "connections for service "
             << service_id;
@@ -719,7 +719,8 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
            }}},
       {
           .data_channel_open_cb = {[this, service_id, remote_peer_id](
-                                       WebRtcSocketWrapper socket_wrapper) {
+                                       std::shared_ptr<WebRtcSocket>
+                                           socket_wrapper) {
             OffloadFromThread(
                 "rtc-channel-created",
                 [this, service_id, remote_peer_id, socket_wrapper]() {

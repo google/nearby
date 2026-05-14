@@ -23,7 +23,7 @@
 #include <string>
 
 #include "connections/implementation/mediums/webrtc_peer_id.h"
-#include "connections/implementation/mediums/webrtc_socket_stub.h"
+#include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -38,7 +38,7 @@ class WebRtc {
  public:
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback =
-      absl::AnyInvocable<void(WebRtcSocketWrapper socket)>;
+      absl::AnyInvocable<void(std::shared_ptr<WebRtcSocket> socket)>;
   WebRtc();
   ~WebRtc();
 
@@ -69,7 +69,7 @@ class WebRtc {
   // Initiates a WebRtc connection with peer device identified by |peer_id|
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  ErrorOr<WebRtcSocketWrapper> Connect(
+  ErrorOr<std::shared_ptr<WebRtcSocket>> Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag);

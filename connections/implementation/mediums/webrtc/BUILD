@@ -37,9 +37,10 @@ cc_library(
         "//connections/implementation:__subpackages__",
     ],
     deps = [
-        ":data_types",
+        ":webrtc_socket_impl",
         "//connections:core_types",
-        "//connections/implementation/mediums:webrtc_utils",
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
@@ -57,24 +58,20 @@ cc_library(
 )
 
 cc_library(
-    name = "data_types",
-    srcs = [
-        "webrtc_socket_impl.cc",
-    ],
-    hdrs = [
-        "webrtc_socket_impl.h",
-    ],
-    copts = [
-        "-DCORE_ADAPTER_DLL",
-        "-DNO_WEBRTC",
-    ],
+    name = "webrtc_socket_impl",
+    srcs = ["webrtc_socket_impl.cc"],
+    hdrs = ["webrtc_socket_impl.h"],
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
     deps = [
+        "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
+        # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings:string_view",
     ],
 )
@@ -92,9 +89,10 @@ cc_test(
         "requires-net:external",
     ],
     deps = [
-        ":data_types",
         ":webrtc",
-        "//connections/implementation/mediums:webrtc_utils",
+        ":webrtc_socket_impl",
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",

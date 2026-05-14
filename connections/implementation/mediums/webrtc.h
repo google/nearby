@@ -50,7 +50,7 @@ class WebRtc {
  public:
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, WebRtcSocketWrapper socket)>;
+      const std::string& service_id, std::shared_ptr<WebRtcSocket> socket)>;
 
   WebRtc();
   ~WebRtc();
@@ -85,7 +85,7 @@ class WebRtc {
   // Initiates a WebRtc connection with peer device identified by |peer_id|
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  ErrorOr<WebRtcSocketWrapper> Connect(
+  ErrorOr<std::shared_ptr<WebRtcSocket>> Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag, bool non_cellular)
@@ -145,13 +145,13 @@ class WebRtc {
 
     // The pending DataChannel future. Our client will be blocked on this while
     // they wait for us to set up the channel over Tachyon.
-    Future<WebRtcSocketWrapper> socket_future;
+    Future<std::shared_ptr<WebRtcSocket>> socket_future;
   };
 
   // Attempt to initiates a WebRtc connection with peer device identified by
   // |peer_id|.
   // Runs on @MainThread.
-  ErrorOr<WebRtcSocketWrapper> AttemptToConnect(
+  ErrorOr<std::shared_ptr<WebRtcSocket>> AttemptToConnect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
@@ -214,7 +214,7 @@ class WebRtc {
   // Runs on |single_thread_executor_|.
   void ProcessDataChannelOpen(const std::string& service_id,
                               const WebrtcPeerId& remote_peer_id,
-                              WebRtcSocketWrapper socket_wrapper)
+                              std::shared_ptr<WebRtcSocket> socket_wrapper)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Runs on |single_thread_executor_|.

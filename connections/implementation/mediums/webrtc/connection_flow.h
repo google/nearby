@@ -222,7 +222,7 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
 
   // Used to hold a reference to the WebRtcSocket while the data channel is
   // connecting.
-  WebRtcSocketWrapper socket_wrapper_;
+  std::shared_ptr<WebRtcSocket> socket_;
 
   std::vector<std::unique_ptr<webrtc::IceCandidate>>
       cached_remote_ice_candidates_;

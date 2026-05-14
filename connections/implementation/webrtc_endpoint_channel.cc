@@ -14,16 +14,21 @@
 
 #include "connections/implementation/webrtc_endpoint_channel.h"
 
+#include <memory>
 #include <string>
+#include <utility>
+
+#include "connections/implementation/base_endpoint_channel.h"
+#include "connections/implementation/mediums/webrtc_socket.h"
 
 namespace nearby {
 namespace connections {
 
 WebRtcEndpointChannel::WebRtcEndpointChannel(
     const std::string& service_id, const std::string& channel_name,
-    mediums::WebRtcSocketWrapper socket)
-    : BaseEndpointChannel(service_id, channel_name, &socket.GetInputStream(),
-                          &socket.GetOutputStream()),
+    std::shared_ptr<mediums::WebRtcSocket> socket)
+    : BaseEndpointChannel(service_id, channel_name, &socket->GetInputStream(),
+                          &socket->GetOutputStream()),
       webrtc_socket_(std::move(socket)) {}
 
 location::nearby::proto::connections::Medium WebRtcEndpointChannel::GetMedium()
@@ -31,7 +36,7 @@ location::nearby::proto::connections::Medium WebRtcEndpointChannel::GetMedium()
   return location::nearby::proto::connections::Medium::WEB_RTC;
 }
 
-void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_.Close(); }
+void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_->Close(); }
 
 }  // namespace connections
 }  // namespace nearby

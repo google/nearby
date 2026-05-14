@@ -15,23 +15,27 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 
-#include <cstdint>
-#include <string>
-#include <memory>
-
-#include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/listeners.h"
-#include "internal/platform/runnable.h"
 #ifndef NO_WEBRTC
+
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/socket.h"
+#include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace connections {
@@ -45,20 +49,22 @@ constexpr int kMaxDataSize = 1 * 1024 * 1024;
 //
 // Messages are buffered here to prevent the data channel from overflowing,
 // which could lead to data loss.
-class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
+class WebRtcSocketImpl : public WebRtcSocket,
+                         public webrtc::DataChannelObserver {
  public:
-  WebRtcSocket(
+  WebRtcSocketImpl(
       const std::string& name,
       webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel);
-  ~WebRtcSocket() override;
+  ~WebRtcSocketImpl() override;
 
-  WebRtcSocket(const WebRtcSocket& other) = delete;
-  WebRtcSocket& operator=(const WebRtcSocket& other) = delete;
+  WebRtcSocketImpl(const WebRtcSocketImpl& other) = delete;
+  WebRtcSocketImpl& operator=(const WebRtcSocketImpl& other) = delete;
 
-  // Overrides for nearby::Socket:
+  // Overrides for WebRtcSocket:
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;
   Exception Close() override;
+  bool IsValid() const override { return true; }
 
   // webrtc::DataChannelObserver:
   void OnStateChange() override;
@@ -67,10 +73,10 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 
   // Listener class the gets called when the socket is ready or closed
   struct SocketListener {
-    absl::AnyInvocable<void(WebRtcSocket*)> socket_ready_cb =
-        DefaultCallback<WebRtcSocket*>();
-    absl::AnyInvocable<void(WebRtcSocket*)> socket_closed_cb =
-        DefaultCallback<WebRtcSocket*>();
+    absl::AnyInvocable<void(WebRtcSocketImpl*)> socket_ready_cb =
+        DefaultCallback<WebRtcSocketImpl*>();
+    absl::AnyInvocable<void(WebRtcSocketImpl*)> socket_closed_cb =
+        DefaultCallback<WebRtcSocketImpl*>();
   };
 
   void SetSocketListener(SocketListener&& listener);
@@ -78,7 +84,8 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
  private:
   class OutputStreamImpl : public OutputStream {
    public:
-    explicit OutputStreamImpl(WebRtcSocket* const socket) : socket_(socket) {}
+    explicit OutputStreamImpl(WebRtcSocketImpl* const socket)
+        : socket_(socket) {}
     ~OutputStreamImpl() override = default;
 
     OutputStreamImpl(const OutputStreamImpl& other) = delete;
@@ -91,7 +98,7 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 
    private:
     // |this| OutputStreamImpl is owned by |socket_|.
-    WebRtcSocket* const socket_;
+    WebRtcSocketImpl* const socket_;
   };
 
   void WakeUpWriter();
@@ -124,6 +131,6 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
 }  // namespace connections
 }  // namespace nearby
 
-#endif
+#endif  // NO_WEBRTC
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_

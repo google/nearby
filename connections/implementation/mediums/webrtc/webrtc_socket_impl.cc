@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NO_WEBRTC
+
+#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
+
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -21,19 +25,20 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/pipe.h"
-#ifndef NO_WEBRTC
-
-#include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/pipe.h"
+#include "internal/platform/runnable.h"
+#include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 
 // OutputStreamImpl
-Exception WebRtcSocket::OutputStreamImpl::Write(absl::string_view data) {
+Exception WebRtcSocketImpl::OutputStreamImpl::Write(absl::string_view data) {
   if (data.size() > kMaxDataSize) {
     LOG(WARNING) << "Sending data larger than 1MB";
     return {Exception::kIo};
@@ -53,18 +58,18 @@ Exception WebRtcSocket::OutputStreamImpl::Write(absl::string_view data) {
   return {Exception::kSuccess};
 }
 
-Exception WebRtcSocket::OutputStreamImpl::Flush() {
+Exception WebRtcSocketImpl::OutputStreamImpl::Flush() {
   // Java implementation is empty.
   return {Exception::kSuccess};
 }
 
-Exception WebRtcSocket::OutputStreamImpl::Close() {
+Exception WebRtcSocketImpl::OutputStreamImpl::Close() {
   socket_->Close();
   return {Exception::kSuccess};
 }
 
 // WebRtcSocket
-WebRtcSocket::WebRtcSocket(
+WebRtcSocketImpl::WebRtcSocketImpl(
     const std::string& name,
     webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
     : name_(name), data_channel_(std::move(data_channel)) {
@@ -73,7 +78,7 @@ WebRtcSocket::WebRtcSocket(
   data_channel_->RegisterObserver(this);
 }
 
-WebRtcSocket::~WebRtcSocket() {
+WebRtcSocketImpl::~WebRtcSocketImpl() {
   LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_ << ") this: " << this;
 
   if (!IsClosed()) {
@@ -85,16 +90,16 @@ WebRtcSocket::~WebRtcSocket() {
             << " done";
 }
 
-InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
+InputStream& WebRtcSocketImpl::GetInputStream() { return *pipe_input_; }
 
-OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
+OutputStream& WebRtcSocketImpl::GetOutputStream() { return output_stream_; }
 
-Exception WebRtcSocket::Close() {
+Exception WebRtcSocketImpl::Close() {
   LOG(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
   if (closed_.Set(true)) return {Exception::kSuccess};
 
   ClosePipe();
-  // NOTE: This call blocks and triggers a state change on the siginaling thread
+  // NOTE: This call blocks and triggers a state change on the signaling thread
   // to 'closing' but does not block until 'closed' is sent so the data channel
   // is not fully closed when this call is done.
   data_channel_->Close();
@@ -102,7 +107,7 @@ Exception WebRtcSocket::Close() {
   return {Exception::kSuccess};
 }
 
-void WebRtcSocket::OnStateChange() {
+void WebRtcSocketImpl::OnStateChange() {
   // Running on the signaling thread right now.
   LOG(ERROR) << "WebRtcSocket::OnStateChange() webrtc data channel state: "
              << webrtc::DataChannelInterface::DataStateString(
@@ -131,7 +136,7 @@ void WebRtcSocket::OnStateChange() {
       break;
   }
 }
-void WebRtcSocket::OnMessage(const webrtc::DataBuffer& buffer) {
+void WebRtcSocketImpl::OnMessage(const webrtc::DataBuffer& buffer) {
   // This is a data channel callback on the signaling thread, lets off load so
   // we don't block signaling.
   OffloadFromSignalingThread(
@@ -147,20 +152,20 @@ void WebRtcSocket::OnMessage(const webrtc::DataBuffer& buffer) {
       });
 }
 
-void WebRtcSocket::OnBufferedAmountChange(uint64_t sent_data_size) {
+void WebRtcSocketImpl::OnBufferedAmountChange(uint64_t sent_data_size) {
   // This is a data channel callback on the signaling thread, lets off load so
   // we don't block signaling.
   OffloadFromSignalingThread([this] { WakeUpWriter(); });
 }
 
-bool WebRtcSocket::SendMessage(const ByteArray& data) {
+bool WebRtcSocketImpl::SendMessage(const ByteArray& data) {
   return data_channel_->Send(
       webrtc::DataBuffer(std::string(data.data(), data.size())));
 }
 
-bool WebRtcSocket::IsClosed() { return closed_.Get(); }
+bool WebRtcSocketImpl::IsClosed() { return closed_.Get(); }
 
-void WebRtcSocket::ClosePipe() {
+void WebRtcSocketImpl::ClosePipe() {
   LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this;
   // This is thread-safe to close these sockets even if a read or write is in
   // process on another thread, Close will wait for the exclusive mutex before
@@ -173,16 +178,16 @@ void WebRtcSocket::ClosePipe() {
 }
 
 // Must not be called on signalling thread.
-void WebRtcSocket::WakeUpWriter() {
+void WebRtcSocketImpl::WakeUpWriter() {
   MutexLock lock(&backpressure_mutex_);
   buffer_variable_.Notify();
 }
 
-void WebRtcSocket::SetSocketListener(SocketListener&& listener) {
+void WebRtcSocketImpl::SetSocketListener(SocketListener&& listener) {
   socket_listener_ = std::move(listener);
 }
 
-void WebRtcSocket::BlockUntilSufficientSpaceInBuffer(int length) {
+void WebRtcSocketImpl::BlockUntilSufficientSpaceInBuffer(int length) {
   MutexLock lock(&backpressure_mutex_);
   while (!IsClosed() &&
          (data_channel_->buffered_amount() + length > kMaxDataSize)) {
@@ -191,7 +196,7 @@ void WebRtcSocket::BlockUntilSufficientSpaceInBuffer(int length) {
   }
 }
 
-void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
+void WebRtcSocketImpl::OffloadFromSignalingThread(Runnable runnable) {
   single_thread_executor_.Execute(std::move(runnable));
 }
 
@@ -199,4 +204,4 @@ void WebRtcSocket::OffloadFromSignalingThread(Runnable runnable) {
 }  // namespace connections
 }  // namespace nearby
 
-#endif
+#endif  // NO_WEBRTC

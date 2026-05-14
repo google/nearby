@@ -56,7 +56,6 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
 #ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_socket_stub.h"
 #include "connections/implementation/mediums/webrtc_stub.h"
 #else
 #include "connections/implementation/mediums/webrtc.h"

@@ -61,7 +61,8 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
 
   Future<ByteArray> message_received_future;
 
-  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
+  Future<std::shared_ptr<WebRtcSocket>> offerer_socket_future,
+      answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -77,7 +78,7 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+           [&offerer_socket_future](std::shared_ptr<WebRtcSocket> socket) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
@@ -97,7 +98,7 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&answerer_socket_future](WebRtcSocketWrapper socket) {
+           [&answerer_socket_future](std::shared_ptr<WebRtcSocket> socket) {
              answerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
@@ -122,18 +123,18 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> offerer_socket =
       offerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_socket.ok());
-  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> answerer_socket =
       answerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(answerer_socket.ok());
 
   // Send message on data channel
   absl::string_view message = "Test";
-  offerer_socket.result().GetImpl().GetOutputStream().Write(message);
+  offerer_socket.result()->GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
-      answerer_socket.result().GetImpl().GetInputStream().Read(4);
+      answerer_socket.result()->GetInputStream().Read(4);
   EXPECT_TRUE(received_message.ok());
   EXPECT_EQ(received_message.result(), ByteArray{message.data()});
 }
@@ -259,7 +260,8 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
 
   Future<ByteArray> message_received_future;
 
-  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
+  Future<std::shared_ptr<WebRtcSocket>> offerer_socket_future,
+      answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -275,7 +277,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+           [&offerer_socket_future](std::shared_ptr<WebRtcSocket> socket) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
@@ -295,7 +297,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&answerer_socket_future](WebRtcSocketWrapper wrapper) {
+           [&answerer_socket_future](std::shared_ptr<WebRtcSocket> wrapper) {
              answerer_socket_future.Set(std::move(wrapper));
            }},
       {.adapter_type_changed_cb =
@@ -321,10 +323,10 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> offerer_socket =
       offerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_socket.ok());
-  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> answerer_socket =
       answerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_socket.ok());
 
@@ -338,9 +340,9 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
 
   // Send message on data channel
   absl::string_view message = "Test";
-  offerer_socket.result().GetOutputStream().Write(message);
+  offerer_socket.result()->GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
-      answerer_socket.result().GetInputStream().Read(4);
+      answerer_socket.result()->GetInputStream().Read(4);
   EXPECT_TRUE(received_message.GetResult().Empty());
 }
 
@@ -349,7 +351,8 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 
   Future<ByteArray> message_received_future;
 
-  Future<WebRtcSocketWrapper> offerer_socket_future, answerer_socket_future;
+  Future<std::shared_ptr<WebRtcSocket>> offerer_socket_future,
+      answerer_socket_future;
 
   std::unique_ptr<ConnectionFlow> offerer, answerer;
 
@@ -365,7 +368,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
                answerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&offerer_socket_future](WebRtcSocketWrapper socket) {
+           [&offerer_socket_future](std::shared_ptr<WebRtcSocket> socket) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
@@ -386,7 +389,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
                offerer->OnRemoteIceCandidatesReceived(std::move(vec));
            }},
       {.data_channel_open_cb =
-           [&answerer_socket_future](WebRtcSocketWrapper wrapper) {
+           [&answerer_socket_future](std::shared_ptr<WebRtcSocket> wrapper) {
              answerer_socket_future.Set(std::move(wrapper));
            }},
       {.adapter_type_changed_cb =
@@ -412,10 +415,10 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   EXPECT_TRUE(answerer->SetLocalSessionDescription(std::move(answer)));
 
   // Retrieve Data Channels
-  ExceptionOr<WebRtcSocketWrapper> offerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> offerer_socket =
       offerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_socket.ok());
-  ExceptionOr<WebRtcSocketWrapper> answerer_socket =
+  ExceptionOr<std::shared_ptr<WebRtcSocket>> answerer_socket =
       answerer_socket_future.Get(absl::Seconds(1));
   EXPECT_TRUE(offerer_socket.ok());
 
@@ -429,9 +432,9 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
 
   // Send message on data channel
   absl::string_view message = "Test";
-  offerer_socket.result().GetOutputStream().Write(message);
+  offerer_socket.result()->GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
-      answerer_socket.result().GetInputStream().Read(4);
+      answerer_socket.result()->GetInputStream().Read(4);
   EXPECT_TRUE(received_message.GetResult().Empty());
 }
 

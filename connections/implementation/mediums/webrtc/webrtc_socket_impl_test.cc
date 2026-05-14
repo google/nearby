@@ -64,7 +64,7 @@ TEST(WebRtcSocketTest, ReadFromSocket) {
   const char* message = "message";
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   webrtc_socket.OnMessage(webrtc::DataBuffer{message});
   ExceptionOr<ByteArray> result = webrtc_socket.GetInputStream().Read(7);
@@ -75,7 +75,7 @@ TEST(WebRtcSocketTest, ReadFromSocket) {
 TEST(WebRtcSocketTest, ReadMultipleMessages) {
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   webrtc_socket.OnMessage(webrtc::DataBuffer{"Me"});
   webrtc_socket.OnMessage(webrtc::DataBuffer{"ssa"});
@@ -101,7 +101,7 @@ TEST(WebRtcSocketTest, WriteToSocket) {
   absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_))
       .WillRepeatedly(testing::Return(true));
@@ -112,7 +112,7 @@ TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
   std::string kMessage(kMaxDataSize + 1, '0');
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_)).Times(0);
   EXPECT_EQ(webrtc_socket.GetOutputStream().Write(kMessage),
@@ -123,7 +123,7 @@ TEST(WebRtcSocketTest, WriteToDataChannelFails) {
   absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   ON_CALL(*mock_data_channel, Send(testing::_))
       .WillByDefault(testing::Return(false));
@@ -134,14 +134,14 @@ TEST(WebRtcSocketTest, WriteToDataChannelFails) {
 TEST(WebRtcSocketTest, Close) {
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   EXPECT_CALL(*mock_data_channel, Close());
 
   int socket_closed_cb_called = 0;
 
   webrtc_socket.SetSocketListener(
-      {.socket_closed_cb = [&](WebRtcSocket* socket) {
+      {.socket_closed_cb = [&](WebRtcSocketImpl* socket) {
         socket_closed_cb_called++;
       }});
   webrtc_socket.Close();
@@ -160,7 +160,7 @@ TEST(WebRtcSocketTest, WriteOnClosedChannel) {
   absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
   webrtc_socket.Close();
 
   EXPECT_CALL(*mock_data_channel, Send(testing::_)).Times(0);
@@ -172,7 +172,7 @@ TEST(WebRtcSocketTest, ReadFromClosedChannel) {
   absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
   ON_CALL(*mock_data_channel, Send(testing::_))
       .WillByDefault(testing::Return(true));
 
@@ -185,7 +185,7 @@ TEST(WebRtcSocketTest, ReadFromClosedChannel) {
 TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   ON_CALL(*mock_data_channel, state())
       .WillByDefault(
@@ -203,12 +203,12 @@ TEST(WebRtcSocketTest, DataChannelCloseEventCleansUp) {
 TEST(WebRtcSocketTest, OpenStateTriggersCallback) {
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   int socket_ready_cb_called = 0;
 
   webrtc_socket.SetSocketListener(
-      {.socket_ready_cb = [&](WebRtcSocket* socket) {
+      {.socket_ready_cb = [&](WebRtcSocketImpl* socket) {
         socket_ready_cb_called++;
       }});
 
@@ -224,12 +224,12 @@ TEST(WebRtcSocketTest, OpenStateTriggersCallback) {
 TEST(WebRtcSocketTest, CloseStateTriggersCallback) {
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
-  WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
+  WebRtcSocketImpl webrtc_socket(kSocketName, mock_data_channel);
 
   int socket_closed_cb_called = 0;
 
   webrtc_socket.SetSocketListener(
-      {.socket_closed_cb = [&](WebRtcSocket* socket) {
+      {.socket_closed_cb = [&](WebRtcSocketImpl* socket) {
         socket_closed_cb_called++;
       }});
 

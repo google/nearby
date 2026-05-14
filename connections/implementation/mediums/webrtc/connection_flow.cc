@@ -412,10 +412,11 @@ void ConnectionFlow::OnSignalingStable() {
 void ConnectionFlow::CreateSocketFromDataChannel(
     webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   LOG(INFO) << "Creating data channel socket";
-  auto socket =
-      std::make_unique<WebRtcSocket>("WebRtcSocket", std::move(data_channel));
+  auto socket = std::make_shared<WebRtcSocketImpl>("WebRtcSocket",
+                                                   std::move(data_channel));
+  socket_ = socket;
   socket->SetSocketListener({
-      .socket_ready_cb = {[this](WebRtcSocket* socket) {
+      .socket_ready_cb = {[this](WebRtcSocketImpl* socket) {
         CHECK(IsRunningOnSignalingThread());
         if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
           LOG(ERROR) << "Data channel socket is open but connection "
@@ -424,14 +425,13 @@ void ConnectionFlow::CreateSocketFromDataChannel(
           return;
         }
         // Pass socket wrapper by copy on purpose
-        data_channel_listener_.data_channel_open_cb(socket_wrapper_);
+        data_channel_listener_.data_channel_open_cb(socket_);
       }},
       .socket_closed_cb =
-          [this](WebRtcSocket*) {
+          [this](WebRtcSocketImpl*) {
             data_channel_listener_.data_channel_closed_cb();
           },
   });
-  socket_wrapper_ = WebRtcSocketWrapper(std::move(socket));
 }
 
 void ConnectionFlow::OnIceCandidate(const webrtc::IceCandidate* candidate) {
@@ -512,7 +512,7 @@ bool ConnectionFlow::CloseOnSignalingThread() {
   // Close the socket wrapper before terminating the PeerConnection
   // since the teardown process of the PC may close threads that are
   // otherwise depended upon by objects kept alive by the socket_wrapper.
-  if (socket_wrapper_.IsValid()) socket_wrapper_.Close();
+  if (socket_ && socket_->IsValid()) socket_->Close();
 
   // This prevents other tasks from queuing on the signaling thread for this
   // object.

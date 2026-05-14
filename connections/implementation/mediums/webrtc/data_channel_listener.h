@@ -17,6 +17,8 @@
 
 #ifndef NO_WEBRTC
 
+#include <memory>
+
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 
@@ -28,8 +30,8 @@ namespace mediums {
 struct DataChannelListener {
   // Called when the data channel is open and the socket wrapper is ready to
   // read and write.
-  absl::AnyInvocable<void(WebRtcSocketWrapper)> data_channel_open_cb =
-      [](WebRtcSocketWrapper) {};
+  absl::AnyInvocable<void(std::shared_ptr<WebRtcSocket>)> data_channel_open_cb =
+      [](std::shared_ptr<WebRtcSocket>) {};
 
   // Called when the data channel is closed.
   absl::AnyInvocable<void()> data_channel_closed_cb = []() {};
@@ -39,6 +41,6 @@ struct DataChannelListener {
 }  // namespace connections
 }  // namespace nearby
 
-#endif
+#endif  // NO_WEBRTC
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_DATA_CHANNEL_LISTENER_H_

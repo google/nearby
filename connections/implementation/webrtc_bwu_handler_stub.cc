@@ -36,8 +36,8 @@ using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
-    const std::string& name, mediums::WebRtcSocketWrapper socket)
-    : name_(name), socket_(socket) {}
+    const std::string& name, std::shared_ptr<mediums::WebRtcSocket> socket)
+    : name_(name), socket_(std::move(socket)) {}
 
 void WebrtcBwuHandler::WebrtcIncomingSocket::Close() {}
 
@@ -76,7 +76,7 @@ std::string WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 // for this socket.
 void WebrtcBwuHandler::OnIncomingWebrtcConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    mediums::WebRtcSocketWrapper socket) {}
+    std::shared_ptr<mediums::WebRtcSocket> socket) {}
 
 }  // namespace connections
 }  // namespace nearby

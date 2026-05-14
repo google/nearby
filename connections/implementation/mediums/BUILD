@@ -50,7 +50,8 @@ cc_library(
     ],
     deps = [
         ":utils",
-        ":webrtc_utils",
+        ":webrtc_peer_id",
+        ":webrtc_socket",
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
@@ -71,7 +72,6 @@ cc_library(
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
-        "//internal/platform/implementation:wifi_utils",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
@@ -90,15 +90,9 @@ cc_library(
 )
 
 cc_library(
-    name = "webrtc_utils",
-    srcs = [
-        "webrtc_peer_id.cc",
-    ],
-    hdrs = [
-        "webrtc_peer_id.h",
-        "webrtc_socket.h",
-        "webrtc_socket_stub.h",
-    ],
+    name = "webrtc_peer_id",
+    srcs = ["webrtc_peer_id.cc"],
+    hdrs = ["webrtc_peer_id.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
@@ -106,7 +100,6 @@ cc_library(
     ],
     deps = [
         ":utils",
-        "//connections/implementation/mediums/webrtc:data_types",
         "//internal/platform:base",
         "@com_google_absl//absl/strings",
     ],
@@ -138,6 +131,16 @@ cc_library(
     deps = [
         "//internal/platform:base",
         "//internal/platform:types",
+    ],
+)
+
+cc_library(
+    name = "webrtc_socket",
+    hdrs = ["webrtc_socket.h"],
+    visibility = ["//connections/implementation:__subpackages__"],
+    deps = [
+        "//internal/platform:base",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -197,7 +200,8 @@ cc_test(
     ],
     deps = [
         ":mediums",
-        ":webrtc_utils",
+        ":webrtc_peer_id",
+        ":webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",

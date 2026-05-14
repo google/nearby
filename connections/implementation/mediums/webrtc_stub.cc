@@ -19,7 +19,7 @@
 #include <functional>
 #include <memory>
 
-#include "connections/implementation/mediums/webrtc_socket_stub.h"
+#include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/future.h"
@@ -52,7 +52,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
 
 void WebRtc::StopAcceptingConnections(const std::string& service_id) {}
 
-ErrorOr<WebRtcSocketWrapper> WebRtc::Connect(
+ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::Connect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   return {Error(OperationResultCode::DETAIL_UNKNOWN)};
