@@ -5097,6 +5097,8 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   expected_binding.set_source_name(kDeviceName);
   expected_binding.set_destination_directory(
       FilePath("Downloads").append(FilePath(kDeviceName)).ToString());
+  expected_binding.set_source_device_type(
+      sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
 }
 

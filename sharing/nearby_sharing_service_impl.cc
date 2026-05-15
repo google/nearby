@@ -233,6 +233,25 @@ std::string SendSurfaceStateToString(
   }
 }
 
+sync::SyncBinding::SourceDeviceType ShareTargetTypeToSourceDeviceType(
+    ShareTargetType share_target_type) {
+  switch (share_target_type) {
+    case ShareTargetType::kPhone:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE;
+    case ShareTargetType::kTablet:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_TABLET;
+    case ShareTargetType::kLaptop:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_LAPTOP;
+    case ShareTargetType::kCar:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_CAR;
+    case ShareTargetType::kFoldable:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_FOLDABLE;
+    case ShareTargetType::kXR:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_XR;
+    case ShareTargetType::kUnknown:
+      return sync::SyncBinding::SOURCE_DEVICE_TYPE_UNKNOWN;
+  }
+}
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
@@ -2666,6 +2685,8 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
   FilePath destination_path{settings_->GetCustomSavePath()};
   destination_path.append(FilePath(session->share_target().device_name));
   binding.set_destination_directory(destination_path.ToString());
+  binding.set_source_device_type(
+      ShareTargetTypeToSourceDeviceType(session->share_target().type));
   sync_manager_.AddSyncBinding(binding);
   session->UpdateTransferMetadata(
       TransferMetadataBuilder()
