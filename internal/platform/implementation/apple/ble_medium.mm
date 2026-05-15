@@ -173,11 +173,19 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   }
 #endif
 
-  if (scanning_cb_.advertisement_found_cb) {
-    scanning_cb_.advertisement_found_cb(unique_id, data);
+  std::shared_ptr<api::ble::BleMedium::ScanningCallback> scanning_cb;
+  std::shared_ptr<api::ble::BleMedium::ScanCallback> scan_cb;
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    scanning_cb = scanning_cb_;
+    scan_cb = scan_cb_;
   }
-  if (scan_cb_.advertisement_found_cb) {
-    scan_cb_.advertisement_found_cb(unique_id, data);
+
+  if (scanning_cb && scanning_cb->advertisement_found_cb) {
+    scanning_cb->advertisement_found_cb(unique_id, data);
+  }
+  if (scan_cb && scan_cb->advertisement_found_cb) {
+    scan_cb->advertisement_found_cb(unique_id, data);
   }
 }
 
@@ -185,7 +193,17 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
     api::ble::BleMedium::ScanningCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  scanning_cb_ = std::move(callback);
+
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    scanning_cb_ = std::make_shared<api::ble::BleMedium::ScanningCallback>(std::move(callback));
+
+    if (central_manager_factory_) {
+      socketCentralManager_ = central_manager_factory_(serviceUUID);
+    } else {
+      socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+    }
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
@@ -193,12 +211,10 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  if (central_manager_factory_) {
-    socketCentralManager_ = central_manager_factory_(serviceUUID);
-  } else {
-    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
   }
-  [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -211,8 +227,13 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
       }
       completionHandler:^(NSError *error) {
         blockError = error;
-        if (scanning_cb_.start_scanning_result) {
-          scanning_cb_.start_scanning_result(
+        std::shared_ptr<api::ble::BleMedium::ScanningCallback> scanning_cb;
+        {
+          absl::MutexLock lock(&scanning_mutex_);
+          scanning_cb = scanning_cb_;
+        }
+        if (scanning_cb && scanning_cb->start_scanning_result) {
+          scanning_cb->start_scanning_result(
               error == nil ? absl::OkStatus()
                            : absl::InternalError(error.localizedDescription.UTF8String));
         }
@@ -222,8 +243,13 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
   dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, kApiTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
     GNCLoggerError(@"Start scanning operation timed out.");
-    if (scanning_cb_.start_scanning_result) {
-      scanning_cb_.start_scanning_result(absl::DeadlineExceededError("Start scanning timed out"));
+    std::shared_ptr<api::ble::BleMedium::ScanningCallback> scanning_cb;
+    {
+      absl::MutexLock lock(&scanning_mutex_);
+      scanning_cb = scanning_cb_;
+    }
+    if (scanning_cb && scanning_cb->start_scanning_result) {
+      scanning_cb->start_scanning_result(absl::DeadlineExceededError("Start scanning timed out"));
     }
     return nullptr;
   }
@@ -243,7 +269,17 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
                               api::ble::BleMedium::ScanCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  scan_cb_ = std::move(callback);
+
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    scan_cb_ = std::make_shared<api::ble::BleMedium::ScanCallback>(std::move(callback));
+
+    if (central_manager_factory_) {
+      socketCentralManager_ = central_manager_factory_(serviceUUID);
+    } else {
+      socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+    }
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
@@ -251,12 +287,10 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel t
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  if (central_manager_factory_) {
-    socketCentralManager_ = central_manager_factory_(serviceUUID);
-  } else {
-    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
   }
-  [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -294,7 +328,16 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
     [serviceUUIDs addObject:CBUUID128FromCPP(service_uuid)];
   }
 
-  scan_cb_ = std::move(callback);
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    scan_cb_ = std::make_shared<api::ble::BleMedium::ScanCallback>(std::move(callback));
+
+    if (central_manager_factory_) {
+      socketCentralManager_ = central_manager_factory_(serviceUUIDs[0]);
+    } else {
+      socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
+    }
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
@@ -302,12 +345,10 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   peripherals_.Clear();
   ClearAdvertisementPacketsMap();
 
-  if (central_manager_factory_) {
-    socketCentralManager_ = central_manager_factory_(serviceUUIDs[0]);
-  } else {
-    socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
   }
-  [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -333,7 +374,12 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
 }
 
 bool BleMedium::StopScanning() {
-  [socketCentralManager_ stopNoScanMode];
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    [socketCentralManager_ stopNoScanMode];
+    scan_cb_ = nullptr;
+    scanning_cb_ = nullptr;
+  }
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -694,8 +740,12 @@ std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
     return nullptr;
   }
 
-  GNSCentralPeerManager *updatedCentralPeerManager =
-      [socketCentralManager_ retrieveCentralPeerWithIdentifier:peripheral.identifier];
+  GNSCentralPeerManager *updatedCentralPeerManager;
+  {
+    absl::MutexLock lock(&scanning_mutex_);
+    updatedCentralPeerManager =
+        [socketCentralManager_ retrieveCentralPeerWithIdentifier:peripheral.identifier];
+  }
   if (!updatedCentralPeerManager) {
     return nullptr;
   }

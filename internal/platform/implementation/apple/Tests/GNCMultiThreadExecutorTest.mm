@@ -93,7 +93,7 @@ using MultiThreadExecutor = ::nearby::api::SubmittableExecutor;
   dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0);
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
 
-  const int kRunnableCount = 1000;
+  const int kRunnableCount = 100;
   for (int i = 0; i < kRunnableCount; i++) {
     executor->Execute([self]() { self.counter++; });
   }

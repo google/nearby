@@ -76,20 +76,14 @@ using SingleThreadExecutor = ::nearby::api::SubmittableExecutor;
 // Tests that shutting down an existing task allows to complete.
 - (void)testShutdownToAllowExistingTaskComplete {
   std::unique_ptr<SingleThreadExecutor> executor([self executor]);
-
-  dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0);
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
-
-  executor->Execute([self]() { self.counter++; });
-
-  executor->Shutdown();
-
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), queue, ^{
-    XCTAssertEqual(self.counter, 1);
+  executor->Execute([self, expectation]() {
+    self.counter++;
     [expectation fulfill];
   });
-
-  [self waitForExpectationsWithTimeout:0.5 handler:nil];
+  executor->Shutdown();
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+  XCTAssertEqual(self.counter, 1);
 }
 
 @end

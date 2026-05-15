@@ -776,18 +776,20 @@ static const char *const kTestServiceID = "TestServiceID";
   NSDictionary<CBUUID *, NSData *> *serviceData =
       @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
 
-  __block XCTestExpectation *expectation1 = [self expectationWithDescription:@"Callback 1"];
+  XCTestExpectation *expectation1 = [self expectationWithDescription:@"Callback 1"];
   XCTestExpectation *expectation2 = [self expectationWithDescription:@"Callback 2"];
   expectation2.inverted = YES;  // Should NOT be called.
+
+  auto callback1_fulfilled = std::make_shared<std::atomic<bool>>(false);
 
   nearby::api::ble::BleMedium::ScanCallback callback = {
       .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
                                                    nearby::api::ble::BleAdvertisementData)>(
-          ^(nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
-            const nearby::api::ble::BleAdvertisementData &advertisement) {
-            if ([expectation1.description isEqualToString:@"Callback 1"]) {
+          [callback1_fulfilled, expectation1, expectation2](
+              nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+              const nearby::api::ble::BleAdvertisementData &advertisement) {
+            if (!callback1_fulfilled->exchange(true)) {
               [expectation1 fulfill];
-              expectation1 = nil;  // Prevent double fulfillment
             } else {
               [expectation2 fulfill];
             }

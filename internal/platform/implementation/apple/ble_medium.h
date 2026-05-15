@@ -245,13 +245,16 @@ class BleMedium : public api::ble::BleMedium {
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;
-  GNSCentralManager *socketCentralManager_;
+
+  absl::Mutex scanning_mutex_;
+  GNSCentralManager *socketCentralManager_ ABSL_GUARDED_BY(scanning_mutex_);
 
   // Used for the blocking version of StartAdvertising and only has an advertisement found callback.
-  api::ble::BleMedium::ScanCallback scan_cb_;
+  std::shared_ptr<api::ble::BleMedium::ScanCallback> scan_cb_ ABSL_GUARDED_BY(scanning_mutex_);
   // Used for the async version of StartAdvertising and has both an advertisement found and result
   // callback.
-  api::ble::BleMedium::ScanningCallback scanning_cb_;
+  std::shared_ptr<api::ble::BleMedium::ScanningCallback> scanning_cb_
+      ABSL_GUARDED_BY(scanning_mutex_);
 
   // Used for the BleServerSocket.
   absl::Mutex server_socket_mutex_;

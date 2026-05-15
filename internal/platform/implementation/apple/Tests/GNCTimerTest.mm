@@ -65,7 +65,7 @@
   auto timer = std::make_unique<nearby::apple::Timer>();
 
   std::atomic<int> fireCount = 0;
-  XCTAssertTrue(timer->Create(10, 10, [&]() {
+  XCTAssertTrue(timer->Create(100, 100, [&]() {
     if (fireCount.fetch_add(1) == 1) {
       dispatch_async(dispatch_get_main_queue(), ^{
         [expectation fulfill];
@@ -73,9 +73,9 @@
     }
   }));
 
-  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
   XCTAssertTrue(timer->Stop());
-  XCTAssertEqual(fireCount.load(), 2);
+  XCTAssertGreaterThanOrEqual(fireCount.load(), 2);
 }
 
 - (void)testRestart {

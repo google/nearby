@@ -27,11 +27,15 @@ bool CppBoolFromObjCBool(BOOL b) { return b ? true : false; }
 char CharFromNSNumber(NSNumber* n) { return n.charValue; }
 
 NSString* ObjCStringFromCppString(absl::string_view s) {
-  return [NSString stringWithUTF8String:s.data()];
+  return [[NSString alloc] initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding];
 }
 
 std::string CppStringFromObjCString(NSString* s) {
-  return std::string([s UTF8String], [s lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+  if (!s) return std::string();
+  const char* cstr = [s UTF8String];
+  if (!cstr) return std::string();
+  NSUInteger len = [s lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+  return std::string(cstr, len);
 }
 
 NSData* NSDataFromByteArray(ByteArray byteArray) {

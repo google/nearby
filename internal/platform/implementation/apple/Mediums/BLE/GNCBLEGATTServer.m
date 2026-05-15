@@ -64,6 +64,11 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
   self = [super init];
   if (self) {
     _queue = queue ?: dispatch_queue_create(kGNCBLEGATTServerQueueLabel, DISPATCH_QUEUE_SERIAL);
+    _services = [[NSMutableDictionary alloc] init];
+    _pendingCharacteristics = [[NSMutableDictionary alloc] init];
+    _characteristicValues = [[NSMutableDictionary alloc] init];
+    _advertisementData = nil;
+
     if (GNCFeatureFlags.sharedPeripheralManagerEnabled) {
       if (!peripheralManager) {
         // In shared mode, the peripheral manager must be injected.
@@ -76,7 +81,7 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
       // Legacy mode: Create a new manager if one isn't provided.
       if (!peripheralManager) {
         peripheralManager = [[CBPeripheralManager alloc]
-            initWithDelegate:self
+            initWithDelegate:nil
                        queue:_queue
                      options:@{CBPeripheralManagerOptionShowPowerAlertKey : @NO}];
       }
@@ -85,11 +90,6 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
       // delegate.
       _peripheralManager.peripheralDelegate = self;
     }
-
-    _services = [[NSMutableDictionary alloc] init];
-    _pendingCharacteristics = [[NSMutableDictionary alloc] init];
-    _characteristicValues = [[NSMutableDictionary alloc] init];
-    _advertisementData = nil;
   }
   return self;
 }

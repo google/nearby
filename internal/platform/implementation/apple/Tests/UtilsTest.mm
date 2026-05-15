@@ -56,8 +56,9 @@ using ::nearby::ObjCStringFromCppString;
 - (void)testUUIDStringFromNSUUID {
   NSString *uuidString = @"E621E1F8-C36C-495A-93FC-0C247A3E6E5F";
   NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidString];
-  std::string expectedCppString = [uuidString UTF8String];
-  XCTAssertEqual(nearby::UUIDStringFromNSUUID(uuid), expectedCppString);
+  XCTAssert(nearby::UUIDStringFromNSUUID(uuid) ==
+            std::string([uuidString UTF8String],
+                        [uuidString lengthOfBytesUsingEncoding:NSUTF8StringEncoding]));
 }
 
 - (void)testBluetoothUUIDConversions {

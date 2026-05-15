@@ -42,8 +42,9 @@
 
 - (void)testBleServerSocketAccept {
   XCTestExpectation *expectation = [self expectationWithDescription:@"accept"];
+  nearby::apple::BleServerSocket *serverSocket = _serverSocket.get();
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = _serverSocket->Accept();
+    std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = serverSocket->Accept();
     XCTAssertNotEqual(clientSocket.get(), nullptr);
     [expectation fulfill];
   });
@@ -57,8 +58,9 @@
 
 - (void)testBleServerSocketClose {
   XCTestExpectation *expectation = [self expectationWithDescription:@"close"];
+  nearby::apple::BleServerSocket *serverSocket = _serverSocket.get();
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = _serverSocket->Accept();
+    std::unique_ptr<nearby::api::ble::BleSocket> clientSocket = serverSocket->Accept();
     XCTAssertEqual(clientSocket.get(), nullptr);
     [expectation fulfill];
   });
