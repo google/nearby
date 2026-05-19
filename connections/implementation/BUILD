@@ -155,6 +155,7 @@ cc_library(
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums:webrtc",
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums:webrtc_socket",
         "//connections/implementation/mediums/advertisements:dct_advertisement",

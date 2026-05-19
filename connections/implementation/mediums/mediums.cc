@@ -14,10 +14,15 @@
 
 #include "connections/implementation/mediums/mediums.h"
 
+#include <memory>
+
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#ifndef NO_WEBRTC
+#include "connections/implementation/mediums/webrtc/webrtc_impl.h"
+#endif
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_direct.h"
@@ -26,6 +31,14 @@
 
 namespace nearby {
 namespace connections {
+
+Mediums::Mediums() {
+#ifndef NO_WEBRTC
+  webrtc_ = std::make_unique<mediums::WebRtcImpl>();
+#else
+  webrtc_ = std::make_unique<mediums::WebRtc>();
+#endif
+}
 
 BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
 
@@ -41,7 +54,7 @@ WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 
 WifiDirect& Mediums::GetWifiDirect() { return wifi_direct_; }
 
-mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
+mediums::WebRtc& Mediums::GetWebRtc() { return *webrtc_; }
 
 Awdl& Mediums::GetAwdl() { return awdl_; }
 

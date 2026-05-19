@@ -55,11 +55,7 @@
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_lan.h"
-#ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_stub.h"
-#else
 #include "connections/implementation/mediums/webrtc.h"
-#endif
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "internal/platform/byte_array.h"

@@ -25,8 +25,6 @@ cc_library(
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
-        "webrtc.cc",
-        "webrtc_stub.cc",
         "wifi_direct.cc",
         "wifi_hotspot.cc",
         "wifi_lan.cc",
@@ -37,21 +35,22 @@ cc_library(
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
-        "webrtc.h",
-        "webrtc_stub.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
     copts = ["-DNO_WEBRTC"],
+    local_defines = select({
+        "//:webrtc_enabled": [],
+        "//conditions:default": ["NO_WEBRTC"],
+    }),
     visibility = [
         "//connections/implementation:__subpackages__",
     ],
     deps = [
         ":utils",
-        ":webrtc_peer_id",
-        ":webrtc_socket",
+        ":webrtc",
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
@@ -59,8 +58,6 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/ble:bloom_filter",
-        "//connections/implementation/mediums/webrtc",
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -72,21 +69,22 @@ cc_library(
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
-        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-    ],
+    ] + select({
+        "//:webrtc_enabled": [
+            "//connections/implementation/mediums/webrtc:webrtc_impl",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -144,6 +142,20 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "webrtc",
+    hdrs = ["webrtc.h"],
+    visibility = ["//connections/implementation:__subpackages__"],
+    deps = [
+        ":webrtc_peer_id",
+        ":webrtc_socket",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
 cc_test(
     name = "core_internal_mediums_test",
     size = "small",
@@ -191,7 +203,6 @@ cc_test(
     size = "small",
     srcs = [
         "webrtc_peer_id_test.cc",
-        "webrtc_test.cc",
     ],
     shard_count = 16,
     tags = [
@@ -199,7 +210,6 @@ cc_test(
         "requires-net:external",
     ],
     deps = [
-        ":mediums",
         ":webrtc_peer_id",
         ":webrtc_socket",
         "//internal/platform:base",

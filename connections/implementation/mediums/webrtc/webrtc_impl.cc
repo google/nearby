@@ -14,7 +14,7 @@
 
 #ifndef NO_WEBRTC
 
-#include "connections/implementation/mediums/webrtc.h"
+#include "connections/implementation/mediums/webrtc/webrtc_impl.h"
 
 #include <functional>
 #include <memory>
@@ -43,6 +43,7 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/jsep.h"
+#include "webrtc/rtc_base/network_constants.h"
 
 namespace nearby {
 namespace connections {
@@ -60,12 +61,12 @@ constexpr absl::Duration kRestartReceiveMessagesDuration = absl::Seconds(60);
 
 }  // namespace
 
-WebRtc::WebRtc() : WebRtc(std::make_unique<WebRtcMedium>()) {}
+WebRtcImpl::WebRtcImpl() : WebRtcImpl(std::make_unique<WebRtcMedium>()) {}
 
-WebRtc::WebRtc(std::unique_ptr<WebRtcMedium> medium)
+WebRtcImpl::WebRtcImpl(std::unique_ptr<WebRtcMedium> medium)
     : medium_(std::move(medium)) {}
 
-WebRtc::~WebRtc() {
+WebRtcImpl::~WebRtcImpl() {
   // This ensures that all pending callbacks are run before we reset the medium
   // and we are not accepting new runnables.
   single_thread_executor_.Shutdown();
@@ -80,26 +81,26 @@ WebRtc::~WebRtc() {
   }
 }
 
-std::string WebRtc::GetDefaultCountryCode() {
+std::string WebRtcImpl::GetDefaultCountryCode() {
   return medium_->GetDefaultCountryCode();
 }
 
-bool WebRtc::IsAvailable() { return medium_->IsValid(); }
+bool WebRtcImpl::IsAvailable() { return medium_->IsValid(); }
 
-bool WebRtc::IsAcceptingConnections(const std::string& service_id) {
+bool WebRtcImpl::IsAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
-bool WebRtc::IsAcceptingConnectionsLocked(const std::string& service_id) {
+bool WebRtcImpl::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return accepting_connections_info_.contains(service_id);
 }
 
-bool WebRtc::StartAcceptingConnections(const std::string& service_id,
-                                       const WebrtcPeerId& self_peer_id,
-                                       const LocationHint& location_hint,
-                                       AcceptedConnectionCallback callback,
-                                       bool non_cellular) {
+bool WebRtcImpl::StartAcceptingConnections(const std::string& service_id,
+                                           const WebrtcPeerId& self_peer_id,
+                                           const LocationHint& location_hint,
+                                           AcceptedConnectionCallback callback,
+                                           bool non_cellular) {
   MutexLock lock(&mutex_);
   if (!IsAvailable()) {
     LOG(WARNING) << "Cannot start accepting WebRTC connections because "
@@ -131,8 +132,9 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   // This registers ourselves w/ Tachyon, creating a room from the PeerId.
   // This allows a remote device to message us over Tachyon.
   if (!info.signaling_messenger->StartReceivingMessages(
-          absl::bind_front(&WebRtc::OnSignalingMessage, this, service_id),
-          absl::bind_front(&WebRtc::OnSignalingComplete, this, service_id))) {
+          absl::bind_front(&WebRtcImpl::OnSignalingMessage, this, service_id),
+          absl::bind_front(&WebRtcImpl::OnSignalingComplete, this,
+                           service_id))) {
     info.signaling_messenger.reset();
     return false;
   }
@@ -142,7 +144,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   info.restart_tachyon_receive_messages_alarm =
       std::make_unique<CancelableAlarm>(
           "restart_receiving_messages_webrtc",
-          std::bind(&WebRtc::ProcessRestartTachyonReceiveMessages, this,
+          std::bind(&WebRtcImpl::ProcessRestartTachyonReceiveMessages, this,
                     service_id),
           kRestartReceiveMessagesDuration, &single_thread_executor_);
 
@@ -154,7 +156,7 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   return true;
 }
 
-void WebRtc::StopAcceptingConnections(const std::string& service_id) {
+void WebRtcImpl::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
   if (!IsAcceptingConnectionsLocked(service_id)) {
     LOG(WARNING) << "Cannot stop accepting WebRTC connections because service  "
@@ -207,7 +209,7 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
             << service_id;
 }
 
-ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::Connect(
+ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtcImpl::Connect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag,
     bool non_cellular) {
@@ -242,7 +244,7 @@ ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::Connect(
   return {Error(wrapper_result.error().operation_result_code().value())};
 }
 
-ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::AttemptToConnect(
+ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtcImpl::AttemptToConnect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
@@ -298,7 +300,7 @@ ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::AttemptToConnect(
       }
     };
     if (!info.signaling_messenger->StartReceivingMessages(
-            absl::bind_front(&WebRtc::OnSignalingMessage, this, service_id),
+            absl::bind_front(&WebRtcImpl::OnSignalingMessage, this, service_id),
             signaling_complete_callback)) {
       LOG(INFO)
           << "Cannot connect to WebRTC peer " << remote_peer_id.GetId()
@@ -360,7 +362,7 @@ ErrorOr<std::shared_ptr<WebRtcSocket>> WebRtc::AttemptToConnect(
   }
 }
 
-void WebRtc::ProcessLocalIceCandidate(
+void WebRtcImpl::ProcessLocalIceCandidate(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const location::nearby::mediums::IceCandidate ice_candidate) {
   MutexLock lock(&mutex_);
@@ -407,14 +409,15 @@ void WebRtc::ProcessLocalIceCandidate(
             << service_id;
 }
 
-void WebRtc::OnSignalingMessage(const std::string& service_id,
-                                const ByteArray& message) {
+void WebRtcImpl::OnSignalingMessage(const std::string& service_id,
+                                    const ByteArray& message) {
   OffloadFromThread("rtc-on-signaling-message", [this, service_id, message]() {
     ProcessTachyonInboxMessage(service_id, message);
   });
 }
 
-void WebRtc::OnSignalingComplete(const std::string& service_id, bool success) {
+void WebRtcImpl::OnSignalingComplete(const std::string& service_id,
+                                     bool success) {
   LOG(INFO) << "Signaling completed with status: " << success;
   if (success) {
     return;
@@ -438,8 +441,8 @@ void WebRtc::OnSignalingComplete(const std::string& service_id, bool success) {
   });
 }
 
-void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
-                                        const ByteArray& message) {
+void WebRtcImpl::ProcessTachyonInboxMessage(const std::string& service_id,
+                                            const ByteArray& message) {
   MutexLock lock(&mutex_);
 
   // Attempt to parse the incoming message as a WebRtcSignalingFrame.
@@ -492,8 +495,8 @@ void WebRtc::ProcessTachyonInboxMessage(const std::string& service_id,
   }
 }
 
-void WebRtc::SendOffer(const std::string& service_id,
-                       const WebrtcPeerId& remote_peer_id) {
+void WebRtcImpl::SendOffer(const std::string& service_id,
+                           const WebrtcPeerId& remote_peer_id) {
   std::unique_ptr<ConnectionFlow> connection_flow =
       CreateConnectionFlow(service_id, remote_peer_id);
   if (!connection_flow) {
@@ -534,8 +537,8 @@ void WebRtc::SendOffer(const std::string& service_id,
   LOG(INFO) << "Sent offer to " << remote_peer_id.GetId();
 }
 
-void WebRtc::ReceiveOffer(const WebrtcPeerId& remote_peer_id,
-                          SessionDescriptionWrapper offer) {
+void WebRtcImpl::ReceiveOffer(const WebrtcPeerId& remote_peer_id,
+                              SessionDescriptionWrapper offer) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
     LOG(INFO) << "Unable to receive offer. Failed to create a ConnectionFlow.";
@@ -548,7 +551,7 @@ void WebRtc::ReceiveOffer(const WebrtcPeerId& remote_peer_id,
   }
 }
 
-void WebRtc::SendAnswer(const WebrtcPeerId& remote_peer_id) {
+void WebRtcImpl::SendAnswer(const WebrtcPeerId& remote_peer_id) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
     LOG(INFO) << "Unable to send answer. Failed to create a ConnectionFlow.";
@@ -596,8 +599,8 @@ void WebRtc::SendAnswer(const WebrtcPeerId& remote_peer_id) {
   LOG(INFO) << "Sent answer to " << remote_peer_id.GetId();
 }
 
-void WebRtc::ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
-                           SessionDescriptionWrapper answer) {
+void WebRtcImpl::ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
+                               SessionDescriptionWrapper answer) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
     LOG(INFO) << "Unable to receive answer. Failed to create a ConnectionFlow.";
@@ -610,7 +613,7 @@ void WebRtc::ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
   }
 }
 
-void WebRtc::ReceiveIceCandidates(
+void WebRtcImpl::ReceiveIceCandidates(
     const WebrtcPeerId& remote_peer_id,
     std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
@@ -623,13 +626,13 @@ void WebRtc::ReceiveIceCandidates(
   entry->second->OnRemoteIceCandidatesReceived(std::move(ice_candidates));
 }
 
-void WebRtc::ProcessRestartTachyonReceiveMessages(
+void WebRtcImpl::ProcessRestartTachyonReceiveMessages(
     const std::string& service_id) {
   MutexLock lock(&mutex_);
   RestartTachyonReceiveMessages(service_id);
 }
 
-void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
+void WebRtcImpl::RestartTachyonReceiveMessages(const std::string& service_id) {
   if (!IsAcceptingConnectionsLocked(service_id)) {
     LOG(INFO)
         << "Skipping restart listening for tachyon inbox messages since we are "
@@ -646,8 +649,9 @@ void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
 
   // Attempt to re-register.
   if (!info.signaling_messenger->StartReceivingMessages(
-          absl::bind_front(&WebRtc::OnSignalingMessage, this, service_id),
-          absl::bind_front(&WebRtc::OnSignalingComplete, this, service_id))) {
+          absl::bind_front(&WebRtcImpl::OnSignalingMessage, this, service_id),
+          absl::bind_front(&WebRtcImpl::OnSignalingComplete, this,
+                           service_id))) {
     LOG(WARNING)
         << "Failed to restart listening for tachyon inbox messages for "
            "service "
@@ -660,7 +664,7 @@ void WebRtc::RestartTachyonReceiveMessages(const std::string& service_id) {
             << service_id;
 }
 
-void WebRtc::ProcessDataChannelOpen(
+void WebRtcImpl::ProcessDataChannelOpen(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     std::shared_ptr<WebRtcSocket> socket_wrapper) {
   MutexLock lock(&mutex_);
@@ -689,7 +693,7 @@ void WebRtc::ProcessDataChannelOpen(
             << service_id;
 }
 
-void WebRtc::ProcessDataChannelClosed(const WebrtcPeerId& remote_peer_id) {
+void WebRtcImpl::ProcessDataChannelClosed(const WebrtcPeerId& remote_peer_id) {
   MutexLock lock(&mutex_);
   LOG(INFO) << "Data channel has closed, removing connection flow for peer "
             << remote_peer_id.GetId();
@@ -697,7 +701,7 @@ void WebRtc::ProcessDataChannelClosed(const WebrtcPeerId& remote_peer_id) {
   RemoveConnectionFlow(remote_peer_id);
 }
 
-std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
+std::unique_ptr<ConnectionFlow> WebRtcImpl::CreateConnectionFlow(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id) {
   RemoveConnectionFlow(remote_peer_id);
 
@@ -749,7 +753,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
       *medium_);
 }
 
-void WebRtc::AdapterTypeChangedHandler(webrtc::AdapterType adapter_type) {
+void WebRtcImpl::AdapterTypeChangedHandler(webrtc::AdapterType adapter_type) {
   MutexLock lock(&mutex_);
   is_using_cellular_ = adapter_type == webrtc::ADAPTER_TYPE_CELLULAR ||
                        adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_2G ||
@@ -758,7 +762,7 @@ void WebRtc::AdapterTypeChangedHandler(webrtc::AdapterType adapter_type) {
                        adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_5G;
 }
 
-void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {
+void WebRtcImpl::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {
   if (!connection_flows_.erase(remote_peer_id.GetId())) {
     return;
   }
@@ -773,11 +777,11 @@ void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {
   }
 }
 
-void WebRtc::OffloadFromThread(const std::string& name, Runnable runnable) {
+void WebRtcImpl::OffloadFromThread(const std::string& name, Runnable runnable) {
   single_thread_executor_.Execute(name, std::move(runnable));
 }
 
-bool WebRtc::IsUsingCellular() {
+bool WebRtcImpl::IsUsingCellular() {
   MutexLock lock(&mutex_);
   return is_using_cellular_;
 }
@@ -786,4 +790,4 @@ bool WebRtc::IsUsingCellular() {
 }  // namespace connections
 }  // namespace nearby
 
-#endif
+#endif  // NO_WEBRTC

@@ -18,42 +18,53 @@ licenses(["notice"])
 
 cc_library(
     name = "webrtc",
-    srcs = [
-        "connection_flow.cc",
-        "signaling_frames.cc",
-    ],
     hdrs = [
-        "connection_flow.h",
         "data_channel_listener.h",
         "local_ice_candidate_listener.h",
         "session_description_wrapper.h",
-        "signaling_frames.h",
     ],
-    copts = [
-        "-DCORE_ADAPTER_DLL",
-        "-DNO_WEBRTC",
-    ],
-    visibility = [
-        "//connections/implementation:__subpackages__",
-    ],
+    copts = ["-DNO_WEBRTC"],
     deps = [
-        ":webrtc_socket_impl",
         "//connections:core_types",
-        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
+        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
+cc_library(
+    name = "connection_flow",
+    srcs = ["connection_flow.cc"],
+    hdrs = ["connection_flow.h"],
+    deps = [
+        ":webrtc",
+        ":webrtc_socket_impl",
         "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
         # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "signaling_frames",
+    srcs = ["signaling_frames.cc"],
+    hdrs = ["signaling_frames.h"],
+    deps = [
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//internal/platform:base",
+        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
     ],
 )
 
@@ -76,28 +87,65 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "webrtc_impl",
+    srcs = ["webrtc_impl.cc"],
+    hdrs = ["webrtc_impl.h"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+    ],
+    deps = [
+        ":connection_flow",
+        ":signaling_frames",
+        ":webrtc",
+        "//connections/implementation/mediums:webrtc",
+        "//connections/implementation/mediums:webrtc_peer_id",
+        "//connections/implementation/mediums:webrtc_socket",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "//proto/mediums:web_rtc_signaling_frames_cc_proto",
+        # "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/time",
+    ],
+)
+
 cc_test(
     name = "webrtc_test",
     timeout = "short",
     srcs = [
         "connection_flow_test.cc",
         "signaling_frames_test.cc",
+        "webrtc_impl_test.cc",
         "webrtc_socket_impl_test.cc",
     ],
+    shard_count = 16,
     tags = [
         "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
         "requires-net:external",
     ],
     deps = [
+        ":connection_flow",
+        ":signaling_frames",
         ":webrtc",
+        ":webrtc_impl",
         ":webrtc_socket_impl",
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
+        "//internal/test",
         # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",

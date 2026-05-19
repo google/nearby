@@ -15,15 +15,13 @@
 #ifndef CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 #define CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 
+#include <memory>
+
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_stub.h"
-#else
 #include "connections/implementation/mediums/webrtc.h"
-#endif
 #include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
@@ -35,7 +33,7 @@ namespace connections {
 // Facilitates convenient and reliable usage of various wireless mediums.
 class Mediums {
  public:
-  Mediums() = default;
+  Mediums();
   ~Mediums() = default;
 
   // Returns a handle to the Bluetooth radio.
@@ -81,7 +79,7 @@ class Mediums {
   WifiLan wifi_lan_;
   WifiHotspot wifi_hotspot_;
   WifiDirect wifi_direct_;
-  mediums::WebRtc webrtc_;
+  std::unique_ptr<mediums::WebRtc> webrtc_;
   Awdl awdl_;
 };
 
