@@ -31,7 +31,6 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -114,7 +113,7 @@ BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
   DCHECK(adapter_ != nullptr);
 }
 
-absl::optional<api::ble::GattCharacteristic>
+std::optional<api::ble::GattCharacteristic>
 BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble::GattCharacteristic::Permission permission,
@@ -126,7 +125,7 @@ BleGattServer::CreateCharacteristic(
 
   if (!service_uuid_.IsEmpty() && service_uuid_ != service_uuid) {
     LOG(ERROR) << __func__ << ": Only support one GATT service for now.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   service_uuid_ = service_uuid;

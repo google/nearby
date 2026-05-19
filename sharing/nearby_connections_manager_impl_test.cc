@@ -33,7 +33,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
@@ -1037,7 +1036,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectClosedByRemote) {
       [&]() { close_notification.Notify(); });
   Sync();
   absl::Notification read_notification;
-  nearby_connection->Read([&](absl::optional<std::vector<uint8_t>> bytes) {
+  nearby_connection->Read([&](std::optional<std::vector<uint8_t>> bytes) {
     EXPECT_FALSE(bytes);
     read_notification.Notify();
   });
@@ -1071,7 +1070,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectClosedByClient) {
       [&]() { close_notification.Notify(); });
   Sync();
   absl::Notification read_notification;
-  nearby_connection->Read([&](absl::optional<std::vector<uint8_t>> bytes) {
+  nearby_connection->Read([&](std::optional<std::vector<uint8_t>> bytes) {
     EXPECT_FALSE(bytes);
     read_notification.Notify();
   });

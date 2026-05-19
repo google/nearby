@@ -17,12 +17,12 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -121,7 +121,7 @@ class WifiDirectMedium {
   virtual bool DisconnectWifiDirect() = 0;
 
   // Returns the port range as a pair of min and max port.
-  virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
+  virtual std::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
 
   // Returns the supported WifiDirect auth types.

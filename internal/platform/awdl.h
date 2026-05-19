@@ -16,6 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_AWDL_H_
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -23,7 +24,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -261,7 +261,7 @@ class AwdlMedium {
   }
 
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
     return impl_->GetDynamicPortRange();
   }
 

@@ -18,6 +18,7 @@
 #include <windows.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
@@ -27,7 +28,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -47,7 +47,7 @@ class BleGattServer : public api::ble::GattServer {
   BleGattServer(api::BluetoothAdapter* adapter,
                 api::ble::ServerGattConnectionCallback callback);
   ~BleGattServer() override = default;
-  absl::optional<api::ble::GattCharacteristic> CreateCharacteristic(
+  std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       api::ble::GattCharacteristic::Permission permission,
       api::ble::GattCharacteristic::Property property) override

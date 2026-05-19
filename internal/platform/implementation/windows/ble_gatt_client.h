@@ -17,8 +17,6 @@
 
 #include <windows.h>
 
-#include <cstddef>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,8 +26,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/types/optional.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
@@ -50,11 +46,11 @@ class BleGattClient : public api::ble::GattClient {
       const std::vector<Uuid>& characteristic_uuids) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  absl::optional<api::ble::GattCharacteristic> GetCharacteristic(
+  std::optional<api::ble::GattCharacteristic> GetCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  absl::optional<std::string> ReadCharacteristic(
+  std::optional<std::string> ReadCharacteristic(
       const api::ble::GattCharacteristic& characteristic) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 

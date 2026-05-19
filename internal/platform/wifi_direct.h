@@ -17,13 +17,12 @@
 
 #include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
@@ -178,7 +177,7 @@ class WifiDirectMedium {
   }
 
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
     return impl_->GetDynamicPortRange();
   }
 

@@ -15,18 +15,19 @@
 #include "internal/base/bluetooth_address.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
+#include "absl/types/span.h"
 
 namespace nearby {
 namespace device {
 namespace {
 
 template <int BASE, typename CHAR>
-// Note that some of the methods return absl::optional instead
-// of std::optional, because iOS platform is still in C++14.
-absl::optional<uint8_t> CharToDigit(CHAR c) {
+std::optional<uint8_t> CharToDigit(CHAR c) {
   static_assert(1 <= BASE && BASE <= 36, "BASE needs to be in [1, 36]");
   if (c >= '0' && c < '0' + std::min(BASE, 10)) return c - '0';
 
@@ -34,7 +35,7 @@ absl::optional<uint8_t> CharToDigit(CHAR c) {
 
   if (c >= 'A' && c < 'A' + BASE - 10) return c - 'A' + 10;
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 template <typename OutIter>
@@ -43,9 +44,9 @@ static bool HexStringToByteContainer(absl::string_view input, OutIter output) {
   if (count == 0 || (count % 2) != 0) return false;
   for (uintptr_t i = 0; i < count / 2; ++i) {
     // most significant 4 bits
-    absl::optional<uint8_t> msb = CharToDigit<16>(input[i * 2]);
+    std::optional<uint8_t> msb = CharToDigit<16>(input[i * 2]);
     // least significant 4 bits
-    absl::optional<uint8_t> lsb = CharToDigit<16>(input[i * 2 + 1]);
+    std::optional<uint8_t> lsb = CharToDigit<16>(input[i * 2 + 1]);
     if (!msb.has_value() || !lsb.has_value()) {
       return false;
     }
