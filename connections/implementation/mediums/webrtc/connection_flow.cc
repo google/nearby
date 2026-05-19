@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 
 #include <iterator>
@@ -27,7 +25,6 @@
 #include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
-#include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
@@ -36,6 +33,13 @@
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/rtc_error.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/api/set_local_description_observer_interface.h"
+#include "webrtc/api/set_remote_description_observer_interface.h"
+#include "webrtc/rtc_base/ref_counted_object.h"
+#include "webrtc/rtc_base/thread.h"
 
 namespace nearby {
 namespace connections {
@@ -579,5 +583,3 @@ ConnectionFlow::GetAndResetPeerConnection() {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif

@@ -15,9 +15,9 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_
 
-#ifndef NO_WEBRTC
-
-#include "webrtc/api/peer_connection_interface.h"
+#include <memory>
+#include <string>
+#include "webrtc/api/jsep.h"
 
 // Wrapper object around SessionDescriptionInterface*.
 // This object owns the SessionDescriptionInterface* unless Release() has been
@@ -62,7 +62,5 @@ class SessionDescriptionWrapper {
  private:
   std::unique_ptr<webrtc::SessionDescriptionInterface> impl_;
 };
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_SESSION_DESCRIPTION_WRAPPER_H_

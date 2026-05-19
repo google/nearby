@@ -25,11 +25,9 @@ cc_library(
     ],
     copts = ["-DNO_WEBRTC"],
     deps = [
-        "//connections:core_types",
         "//connections/implementation/mediums:webrtc_socket",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
+        "//internal/platform:base",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )
@@ -49,6 +47,11 @@ cc_library(
         # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        # "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:refcount",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
@@ -72,9 +75,6 @@ cc_library(
     name = "webrtc_socket_impl",
     srcs = ["webrtc_socket_impl.cc"],
     hdrs = ["webrtc_socket_impl.h"],
-    visibility = [
-        "//connections/implementation:__subpackages__",
-    ],
     deps = [
         "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
@@ -92,7 +92,7 @@ cc_library(
     srcs = ["webrtc_impl.cc"],
     hdrs = ["webrtc_impl.h"],
     visibility = [
-        "//connections/implementation:__subpackages__",
+        "//connections/implementation/mediums:__pkg__",
     ],
     deps = [
         ":connection_flow",
@@ -128,7 +128,6 @@ cc_test(
     ],
     shard_count = 16,
     tags = [
-        "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
         "requires-net:external",
     ],
     deps = [
@@ -144,11 +143,12 @@ cc_test(
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # buildcleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:refcount",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

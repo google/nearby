@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
+#include "connections/implementation/mediums/webrtc_peer_id.h"
+#include "internal/platform/byte_array.h"
+#include "webrtc/api/jsep.h"
 
 namespace nearby {
 namespace connections {
@@ -131,5 +137,3 @@ location::nearby::mediums::IceCandidate EncodeIceCandidate(
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif

@@ -24,6 +24,8 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/rtc_base/ref_counted_object.h"
 
 namespace nearby {
 namespace connections {

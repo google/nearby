@@ -15,8 +15,6 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <vector>
 
@@ -34,7 +32,10 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/jsep.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/rtc_base/network_constants.h"
 
 namespace nearby {
 namespace connections {
@@ -245,7 +246,5 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
-
-#endif
 
 #endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_CONNECTION_FLOW_H_
