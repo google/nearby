@@ -220,7 +220,6 @@ message IntroductionFrame {
     NEARBY_SHARE = 1;
     REMOTE_COPY = 2;
     TAP_TO_SHARE = 9;
-    TAP_TO_SHARE_FROM_TTX_FLOW = 10;
   }
 
   repeated FileMetadata file_metadata = 1;
