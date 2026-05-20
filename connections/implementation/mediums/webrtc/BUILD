@@ -38,6 +38,7 @@ cc_library(
     hdrs = ["connection_flow.h"],
     deps = [
         ":webrtc",
+        ":webrtc_medium",
         ":webrtc_socket_impl",
         "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
@@ -88,6 +89,19 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc_medium",
+    hdrs = ["webrtc.h"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "webrtc_impl",
     srcs = ["webrtc_impl.cc"],
     hdrs = ["webrtc_impl.h"],
@@ -98,6 +112,7 @@ cc_library(
         ":connection_flow",
         ":signaling_frames",
         ":webrtc",
+        ":webrtc_medium",
         "//connections/implementation/mediums:webrtc",
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums:webrtc_socket",
@@ -117,6 +132,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "fake_webrtc",
+    testonly = True,
+    srcs = ["fake_webrtc.cc"],
+    hdrs = ["fake_webrtc.h"],
+    deps = [
+        ":webrtc_medium",
+        "//internal/platform:cancellation_flag",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
 cc_test(
     name = "webrtc_test",
     timeout = "short",
@@ -132,22 +159,24 @@ cc_test(
     ],
     deps = [
         ":connection_flow",
+        ":fake_webrtc",
         ":signaling_frames",
         ":webrtc",
         ":webrtc_impl",
+        ":webrtc_medium",
         ":webrtc_socket_impl",
+        "//connections/implementation/mediums:webrtc",
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums:webrtc_socket",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:platform_impl",
-        "//internal/test",
         # "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
         # "//third_party/webrtc/files/stable/webrtc/api:jsep",
         # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:refcount",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",

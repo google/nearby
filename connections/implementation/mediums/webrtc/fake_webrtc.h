@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_WEBRTC_H_
-#define THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_WEBRTC_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_FAKE_WEBRTC_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_FAKE_WEBRTC_H_
 
 #include <memory>
 
-#include "internal/platform/webrtc.h"
+#include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc/webrtc.h"
+#include "internal/platform/cancellation_flag.h"
 
-namespace nearby {
+namespace nearby::connections::mediums {
 
 class FakeWebRtcMedium : public WebRtcMedium {
  public:
@@ -48,6 +50,6 @@ class FakeWebRtcMedium : public WebRtcMedium {
   bool cancel_during_get_signaling_messenger_ = false;
 };
 
-}  // namespace nearby
+}  // namespace nearby::connections::mediums
 
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_TEST_FAKE_WEBRTC_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_FAKE_WEBRTC_H_

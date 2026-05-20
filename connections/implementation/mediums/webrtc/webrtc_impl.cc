@@ -26,6 +26,7 @@
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
+#include "connections/implementation/mediums/webrtc/webrtc.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
@@ -39,7 +40,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/webrtc.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/rtc_base/network_constants.h"
 

@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_PUBLIC_WEBRTC_H_
-#define PLATFORM_PUBLIC_WEBRTC_H_
-
-#ifndef NO_WEBRTC
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_H_
 
 #include <memory>
 #include <optional>
@@ -28,8 +26,9 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/rtc_base/network_constants.h"
 
-namespace nearby {
+namespace nearby::connections::mediums {
 
 class WebRtcSignalingMessenger {
  public:
@@ -67,11 +66,9 @@ class WebRtcSignalingMessenger {
 
 class WebRtcMedium {
  public:
-  using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
-
   WebRtcMedium() : impl_(api::ImplementationPlatform::CreateWebRtcMedium()) {}
   virtual ~WebRtcMedium() = default;
-  WebRtcMedium(WebRtcMedium&&) = delete;
+  WebRtcMedium(WebRtcMedium&&) = default;
   WebRtcMedium& operator=(WebRtcMedium&&) = delete;
 
   // Gets the default two-letter country code associated with current locale.
@@ -84,8 +81,9 @@ class WebRtcMedium {
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
-  void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
-                            PeerConnectionCallback callback) {
+  void CreatePeerConnection(
+      webrtc::PeerConnectionObserver* observer,
+      api::WebRtcMedium::PeerConnectionCallback callback) {
     if (FeatureFlags::GetInstance()
             .GetFlags()
             .support_web_rtc_non_cellular_medium && non_cellular_) {
@@ -112,8 +110,6 @@ class WebRtcMedium {
   bool non_cellular_ = false;
 };
 
-}  // namespace nearby
+}  // namespace nearby::connections::mediums
 
-#endif
-
-#endif  // PLATFORM_PUBLIC_WEBRTC_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_H_

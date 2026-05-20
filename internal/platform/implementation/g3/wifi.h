@@ -17,6 +17,9 @@
 
 #include <string>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/medium_environment.h"

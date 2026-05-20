@@ -24,15 +24,16 @@
 #include "connections/implementation/mediums/webrtc/data_channel_listener.h"
 #include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
+#include "connections/implementation/mediums/webrtc/webrtc.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/webrtc.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/scoped_refptr.h"
+#include "webrtc/rtc_base/network_constants.h"
 
 namespace nearby {
 namespace connections {

@@ -22,6 +22,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc.h"
+#include "connections/implementation/mediums/webrtc/fake_webrtc.h"
+#include "connections/implementation/mediums/webrtc/webrtc.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
@@ -31,8 +34,6 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/webrtc.h"
-#include "internal/test/fake_webrtc.h"
 
 namespace nearby {
 namespace connections {

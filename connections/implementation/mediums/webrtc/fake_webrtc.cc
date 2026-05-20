@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/test/fake_webrtc.h"
+#include "connections/implementation/mediums/webrtc/fake_webrtc.h"
 
 #include <memory>
 
-namespace nearby {
+#include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc/webrtc.h"
+#include "internal/platform/cancellation_flag.h"
+
+namespace nearby::connections::mediums {
 
 FakeWebRtcMedium::FakeWebRtcMedium(CancellationFlag* flag)
     : WebRtcMedium(), flag_(flag) {}
@@ -34,4 +38,4 @@ FakeWebRtcMedium::GetSignalingMessenger(
   return WebRtcMedium::GetSignalingMessenger(self_id, location_hint);
 }
 
-}  // namespace nearby
+}  // namespace nearby::connections::mediums

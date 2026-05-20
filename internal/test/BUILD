@@ -42,7 +42,6 @@ cc_library(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/network:types",
-        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
