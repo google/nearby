@@ -584,6 +584,7 @@ cc_test(
         "//connections:core_types",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

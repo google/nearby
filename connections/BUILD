@@ -94,9 +94,9 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
-        "//internal/platform:types",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
@@ -123,6 +123,7 @@ cc_test(
         "//connections/implementation:internal_test",
         "//connections/v3:v3_types",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

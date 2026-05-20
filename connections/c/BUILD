@@ -56,6 +56,7 @@ cc_library(
         "//internal/flags:flag_reader",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",

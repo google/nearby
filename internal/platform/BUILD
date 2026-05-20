@@ -231,7 +231,6 @@ cc_library(
         "count_down_latch.h",
         "crypto.h",
         "direct_executor.h",
-        "file.h",
         "future.h",
         "lockable.h",
         "monitored_runnable.h",
@@ -335,6 +334,7 @@ cc_library(
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "credential_storage_impl.h",
+        "file.h",
         "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
@@ -349,7 +349,7 @@ cc_library(
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":base",
@@ -363,6 +363,7 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation:wifi_utils",
         # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
         # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
@@ -608,6 +609,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":base",
+        ":comm",
         ":connection_info",
         ":logging",
         ":mac_address",
@@ -619,7 +621,6 @@ cc_test(
         "//internal/crypto_cros",
         "//internal/platform/implementation:platform_impl",
         "//internal/platform/implementation:types",
-        "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
