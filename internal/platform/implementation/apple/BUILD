@@ -52,6 +52,17 @@ objc_library(
 )
 
 objc_library(
+    name = "apple_webrtc",
+    srcs = [
+        "webrtc_platform.mm",
+    ],
+    deps = [
+        ":apple",
+        "//internal/platform/implementation:webrtc_platform",
+    ],
+)
+
+objc_library(
     name = "apple",
     srcs = [
         "awdl.mm",
@@ -102,6 +113,7 @@ objc_library(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/base:masker",
+        "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Mediums/Hotspot",
         "//internal/account",
         "//internal/crypto_cros",

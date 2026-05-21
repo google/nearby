@@ -45,10 +45,6 @@
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/payload_id.h"
 
-#ifndef NO_WEBRTC
-#import "internal/platform/implementation/apple/webrtc.h"
-#endif
-
 namespace nearby {
 namespace api {
 
@@ -204,12 +200,6 @@ std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedi
 std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium() {
   return nullptr;
 }
-
-#ifndef NO_WEBRTC
-std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
-  return std::make_unique<apple::WebRtcMedium>();
-}
-#endif
 
 std::unique_ptr<AppLifecycleMonitor> ImplementationPlatform::CreateAppLifecycleMonitor(
     std::function<void(AppLifecycleMonitor::AppLifecycleState)> state_updated_callback) {

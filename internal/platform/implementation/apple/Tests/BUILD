@@ -56,8 +56,10 @@ objc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
+        "//internal/platform/implementation:webrtc_platform",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:Shared",
+        "//internal/platform/implementation/apple:apple_webrtc",  # buildcleaner: keep
         "//internal/platform/implementation/apple:ble_v2",
         "//internal/platform/implementation/apple:network_utils",
         "//internal/platform/implementation/apple/Flags",

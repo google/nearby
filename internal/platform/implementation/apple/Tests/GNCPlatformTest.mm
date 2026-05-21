@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/webrtc_platform.h"
 
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
@@ -320,7 +321,7 @@ void GNCEnsureFileAtPath(std::string path) {
 }
 
 - (void)testCreateWebRtcMedium {
-  auto webrtc_medium = nearby::api::ImplementationPlatform::CreateWebRtcMedium();
+  auto webrtc_medium = nearby::api::WebRtcImplementationPlatform::CreateWebRtcMedium();
   XCTAssertNotEqual(webrtc_medium.get(), nullptr);
 }
 
