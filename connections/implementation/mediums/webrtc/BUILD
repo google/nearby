@@ -104,10 +104,12 @@ cc_library(
     name = "webrtc_impl",
     srcs = [
         "webrtc_bwu_handler.cc",
+        "webrtc_endpoint_channel.cc",
         "webrtc_impl.cc",
     ],
     hdrs = [
         "webrtc_bwu_handler.h",
+        "webrtc_endpoint_channel.h",
         "webrtc_impl.h",
     ],
     visibility = [
@@ -123,7 +125,6 @@ cc_library(
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
         "//connections/implementation:offline_frames",
-        "//connections/implementation/mediums",
         "//connections/implementation/mediums:webrtc",
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums:webrtc_socket",

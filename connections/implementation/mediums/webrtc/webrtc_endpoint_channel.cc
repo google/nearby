@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_ENDPOINT_CHANNEL_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_ENDPOINT_CHANNEL_H_
+#include "connections/implementation/mediums/webrtc/webrtc_endpoint_channel.h"
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
@@ -24,21 +24,19 @@
 namespace nearby {
 namespace connections {
 
-class WebRtcEndpointChannel final : public BaseEndpointChannel {
- public:
-  WebRtcEndpointChannel(const std::string& service_id,
-                        const std::string& channel_name,
-                        std::shared_ptr<mediums::WebRtcSocket> socket);
+WebRtcEndpointChannel::WebRtcEndpointChannel(
+    const std::string& service_id, const std::string& channel_name,
+    std::shared_ptr<mediums::WebRtcSocket> socket)
+    : BaseEndpointChannel(service_id, channel_name, &socket->GetInputStream(),
+                          &socket->GetOutputStream()),
+      webrtc_socket_(std::move(socket)) {}
 
-  location::nearby::proto::connections::Medium GetMedium() const override;
+location::nearby::proto::connections::Medium WebRtcEndpointChannel::GetMedium()
+    const {
+  return location::nearby::proto::connections::Medium::WEB_RTC;
+}
 
- private:
-  void CloseImpl() override;
-
-  std::shared_ptr<mediums::WebRtcSocket> webrtc_socket_;
-};
+void WebRtcEndpointChannel::CloseImpl() { webrtc_socket_->Close(); }
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_ENDPOINT_CHANNEL_H_

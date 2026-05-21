@@ -18,13 +18,13 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "absl/base/nullability.h"
 #include "connections/implementation/mediums/webrtc.h"
-#include "connections/implementation/mediums/webrtc_endpoint_channel.h"
+#include "connections/implementation/mediums/webrtc/webrtc_endpoint_channel.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/offline_frames.h"
