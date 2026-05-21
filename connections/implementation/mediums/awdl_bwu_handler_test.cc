@@ -127,7 +127,8 @@ constexpr absl::string_view kChannelName{"channel_name"};
 class AwdlBwuHandlerTest : public ::testing::Test {
  protected:
   AwdlBwuHandlerTest()
-      : handler_(mediums_, incoming_connection_callback_.AsStdFunction()) {}
+      : handler_(&mediums_.GetAwdl(),
+                 incoming_connection_callback_.AsStdFunction()) {}
 
   void SetUp() override {
     // By default, network is connected.

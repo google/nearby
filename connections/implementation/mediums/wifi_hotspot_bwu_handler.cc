@@ -27,11 +27,12 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_hotspot_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -66,9 +67,10 @@ std::vector<char> GatewayToAddressBytes(const std::string& gateway) {
 }  // namespace
 
 WifiHotspotBwuHandler::WifiHotspotBwuHandler(
-    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    WifiHotspot* absl_nonnull wifi_hotspot_medium,
+    IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
-      mediums_(mediums) {}
+      wifi_hotspot_medium_(*wifi_hotspot_medium) {}
 
 // Called by BWU initiator. Set up WifiHotspot upgraded medium for this
 // endpoint, and returns a upgrade path info (SSID, Password, Gateway used as

@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/functional/any_invocable.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -79,6 +80,11 @@ class WebRtc {
   }
 
   virtual bool IsUsingCellular() { return false; }
+
+  virtual std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+    return nullptr;
+  }
 };
 
 }  // namespace mediums

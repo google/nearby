@@ -22,6 +22,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -125,6 +126,9 @@ class BluetoothClassic {
 
   bool IsDiscovering(const std::string& serviceId) const
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  protected:
   // Use for unit tests only to inject a BluetoothClassicMedium.

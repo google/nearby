@@ -32,20 +32,10 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "connections/implementation/mediums/awdl_bwu_handler.h"
-#include "connections/implementation/mediums/bluetooth_bwu_handler.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/wifi_lan_bwu_handler.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #include "internal/flags/nearby_flags.h"
-#ifdef NO_WEBRTC
-#include "connections/implementation/mediums/webrtc_bwu_handler_stub.h"
-#else
-#include "connections/implementation/mediums/webrtc_bwu_handler.h"
-#endif
-#include "connections/implementation/mediums/wifi_direct_bwu_handler.h"
-#include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
@@ -134,43 +124,37 @@ void BwuManager::InitBwuHandlers() {
   if (config_.allow_upgrade_to.awdl) {
     handlers_.emplace(
         Medium::AWDL,
-        std::make_unique<AwdlBwuHandler>(
-            *mediums_,
+        mediums_->GetAwdl().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_hotspot) {
     handlers_.emplace(
         Medium::WIFI_HOTSPOT,
-        std::make_unique<WifiHotspotBwuHandler>(
-            *mediums_,
+        mediums_->GetWifiHotspot().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_direct) {
     handlers_.emplace(
         Medium::WIFI_DIRECT,
-        std::make_unique<WifiDirectBwuHandler>(
-            *mediums_,
+        mediums_->GetWifiDirect().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_lan) {
     handlers_.emplace(
         Medium::WIFI_LAN,
-        std::make_unique<WifiLanBwuHandler>(
-            *mediums_,
+        mediums_->GetWifiLan().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.web_rtc) {
     handlers_.emplace(
         Medium::WEB_RTC,
-        std::make_unique<WebrtcBwuHandler>(
-            *mediums_,
+        mediums_->GetWebRtc().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.bluetooth) {
     handlers_.emplace(
         Medium::BLUETOOTH,
-        std::make_unique<BluetoothBwuHandler>(
-            *mediums_,
+        mediums_->GetBluetoothClassic().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
 }
@@ -196,8 +180,9 @@ void BwuManager::Shutdown() {
   medium_ = Medium::UNKNOWN_MEDIUM;
   endpoint_id_to_bwu_medium_.clear();
   for (auto& medium_handler_pair : handlers_) {
-    assert(medium_handler_pair.second);
-    medium_handler_pair.second->RevertInitiatorState();
+    if (medium_handler_pair.second != nullptr) {
+      medium_handler_pair.second->RevertInitiatorState();
+    }
   }
   handlers_.clear();
 

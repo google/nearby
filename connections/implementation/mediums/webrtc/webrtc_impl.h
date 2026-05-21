@@ -22,6 +22,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
@@ -68,6 +69,9 @@ class WebRtcImpl : public WebRtc {
       CancellationFlag* cancellation_flag, bool non_cellular) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsUsingCellular() override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback)
+      override;
 
  protected:
   // Use for unit tests only to inject a WebRtcMedium.

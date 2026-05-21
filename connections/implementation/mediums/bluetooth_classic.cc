@@ -18,7 +18,9 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/implementation/mediums/bluetooth_bwu_handler.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
@@ -563,6 +565,13 @@ MacAddress BluetoothClassic::GetAddress() const {
 
 std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {
   return std::string(Uuid(data));
+}
+
+std::unique_ptr<BwuHandler> BluetoothClassic::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  MutexLock lock(&mutex_);
+  return std::make_unique<BluetoothBwuHandler>(
+      &radio_, this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

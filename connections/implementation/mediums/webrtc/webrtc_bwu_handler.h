@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_BWU_HANDLER_H_
-#define CORE_INTERNAL_MEDIUMS_WEBRTC_BWU_HANDLER_H_
-
-#ifndef NO_WEBRTC
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_BWU_HANDLER_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_BWU_HANDLER_H_
 
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/medium_selector.h"
@@ -37,8 +35,8 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WebrtcBwuHandler : public BaseBwuHandler {
  public:
-  explicit WebrtcBwuHandler(
-      Mediums& mediums,
+  WebrtcBwuHandler(
+      mediums::WebRtc* absl_nonnull webrtc_medium,
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
@@ -78,13 +76,10 @@ class WebrtcBwuHandler : public BaseBwuHandler {
       ClientProxy* client, const std::string& upgrade_service_id,
       std::shared_ptr<mediums::WebRtcSocket> socket);
 
-  Mediums& mediums_;
-  mediums::WebRtc& webrtc_{mediums_.GetWebRtc()};
+  mediums::WebRtc& webrtc_;
 };
 
 }  // namespace connections
 }  // namespace nearby
 
-#endif
-
-#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_BWU_HANDLER_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_BWU_HANDLER_H_

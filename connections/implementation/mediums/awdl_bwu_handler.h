@@ -18,12 +18,12 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl.h"
-#include "connections/implementation/mediums/mediums.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
@@ -35,8 +35,8 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class AwdlBwuHandler : public BaseBwuHandler {
  public:
-  explicit AwdlBwuHandler(
-      Mediums& mediums,
+  AwdlBwuHandler(
+      Awdl* absl_nonnull awdl_medium,
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
@@ -80,8 +80,7 @@ class AwdlBwuHandler : public BaseBwuHandler {
   std::string GenerateServiceName();
   std::string GeneratePassword();
 
-  Mediums& mediums_;
-  Awdl& awdl_medium_{mediums_.GetAwdl()};
+  Awdl& awdl_medium_;
   NsdServiceInfo nsd_service_info_;
 };
 

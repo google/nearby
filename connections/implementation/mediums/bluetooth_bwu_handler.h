@@ -18,12 +18,13 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
-#include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/expected.h"
@@ -35,8 +36,9 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BluetoothBwuHandler : public BaseBwuHandler {
  public:
-  explicit BluetoothBwuHandler(
-      Mediums& mediums,
+  BluetoothBwuHandler(
+      BluetoothRadio* absl_nonnull bluetooth_radio,
+      BluetoothClassic* absl_nonnull bluetooth_medium,
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
@@ -75,9 +77,8 @@ class BluetoothBwuHandler : public BaseBwuHandler {
                                      const std::string& upgrade_service_id,
                                      BluetoothSocket socket);
 
-  Mediums& mediums_;
-  BluetoothRadio& bluetooth_radio_{mediums_.GetBluetoothRadio()};
-  BluetoothClassic& bluetooth_medium_{mediums_.GetBluetoothClassic()};
+  BluetoothRadio& bluetooth_radio_;
+  BluetoothClassic& bluetooth_medium_;
 };
 
 }  // namespace connections

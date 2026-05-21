@@ -24,7 +24,8 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
+#include "absl/base/nullability.h"
+#include "connections/implementation/mediums/wifi_lan.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/expected.h"
@@ -42,9 +43,10 @@ using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
 WifiLanBwuHandler::WifiLanBwuHandler(
-    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    WifiLan* absl_nonnull wifi_lan_medium,
+    IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
-      mediums_(mediums) {}
+      wifi_lan_medium_(*wifi_lan_medium) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WifiLan using this info.

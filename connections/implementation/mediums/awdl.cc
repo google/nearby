@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/awdl.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,6 +23,8 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/mediums/awdl_bwu_handler.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/byte_array.h"
@@ -469,6 +472,12 @@ ErrorOr<AwdlSocket> Awdl::InternalConnect(
   LOG(INFO) << "Successfully connected via Awdl [service_id=" << service_id
             << "]";
   return socket;
+}
+
+std::unique_ptr<BwuHandler> Awdl::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  return std::make_unique<AwdlBwuHandler>(
+      this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

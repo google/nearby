@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/wifi_hotspot.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,12 +23,15 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
@@ -323,6 +327,13 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
   }
 
   return socket;
+}
+
+std::unique_ptr<BwuHandler> WifiHotspot::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  MutexLock lock(&mutex_);
+  return std::make_unique<WifiHotspotBwuHandler>(
+      this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

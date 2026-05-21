@@ -18,11 +18,11 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/wifi_direct.h"
@@ -34,8 +34,8 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class WifiDirectBwuHandler : public BaseBwuHandler {
  public:
-  explicit WifiDirectBwuHandler(
-      Mediums& mediums,
+  WifiDirectBwuHandler(
+      WifiDirect* absl_nonnull wifi_direct_medium,
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
@@ -85,8 +85,7 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
                                       const std::string& upgrade_service_id,
                                       WifiDirectSocket socket);
 
-  Mediums& mediums_;
-  WifiDirect& wifi_direct_medium_ = mediums_.GetWifiDirect();
+  WifiDirect& wifi_direct_medium_;
 };
 
 }  // namespace connections

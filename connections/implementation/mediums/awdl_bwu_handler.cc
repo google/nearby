@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -28,7 +29,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/awdl_endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
@@ -56,9 +56,10 @@ constexpr absl::string_view kAwdlServiceIdSuffixForServiceType = "_AWDL";
 }  // namespace
 
 AwdlBwuHandler::AwdlBwuHandler(
-    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    Awdl* absl_nonnull awdl_medium,
+    IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
-      mediums_(mediums) {}
+      awdl_medium_(*awdl_medium) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over AWDL using this info.

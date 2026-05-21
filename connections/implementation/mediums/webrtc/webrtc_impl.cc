@@ -23,10 +23,12 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/bind_front.h"
 #include "absl/time/time.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
 #include "connections/implementation/mediums/webrtc/webrtc.h"
+#include "connections/implementation/mediums/webrtc/webrtc_bwu_handler.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
@@ -782,6 +784,12 @@ void WebRtcImpl::OffloadFromThread(const std::string& name, Runnable runnable) {
 bool WebRtcImpl::IsUsingCellular() {
   MutexLock lock(&mutex_);
   return is_using_cellular_;
+}
+
+std::unique_ptr<BwuHandler> WebRtcImpl::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  return std::make_unique<WebrtcBwuHandler>(
+      this, std::move(incoming_connection_callback));
 }
 
 }  // namespace mediums

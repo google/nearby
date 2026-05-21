@@ -72,7 +72,8 @@ constexpr absl::string_view kEndpointId{"endpoint_id"};
 class WifiLanBwuHandlerTest : public ::testing::Test {
  protected:
   WifiLanBwuHandlerTest()
-      : handler_(mediums_, incoming_connection_callback_.AsStdFunction()) {}
+      : handler_(&mediums_.GetWifiLan(),
+                 incoming_connection_callback_.AsStdFunction()) {}
 
   Mediums mediums_;
   MockFunction<void(ClientProxy*,

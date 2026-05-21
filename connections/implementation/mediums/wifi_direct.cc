@@ -14,12 +14,15 @@
 
 #include "connections/implementation/mediums/wifi_direct.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 #include <algorithm>
 
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/mediums/wifi_direct_bwu_handler.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -305,6 +308,13 @@ bool WifiDirect::SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) {
   }
   preferred_wifi_direct_auth_type_ = auth_type;
   return true;
+}
+
+std::unique_ptr<BwuHandler> WifiDirect::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  MutexLock lock(&mutex_);
+  return std::make_unique<WifiDirectBwuHandler>(
+      this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

@@ -15,13 +15,16 @@
 #include "connections/implementation/mediums/wifi_lan.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/mediums/wifi_lan_bwu_handler.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -515,6 +518,13 @@ int WifiLan::GeneratePort(const std::string& service_id,
 
   return port_range.first +
          (uint_of_service_id_hash % (port_range.second - port_range.first));
+}
+
+std::unique_ptr<BwuHandler> WifiLan::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  MutexLock lock(&mutex_);
+  return std::make_unique<WifiLanBwuHandler>(
+      this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

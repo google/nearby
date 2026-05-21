@@ -69,7 +69,8 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
   ClientProxy client;
   Mediums mediums;
 
-  auto handler = std::make_unique<WifiHotspotBwuHandler>(mediums, nullptr);
+  auto handler = std::make_unique<WifiHotspotBwuHandler>(
+      &mediums.GetWifiHotspot(), nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, std::string(kServiceID),
                                                std::string(kEndpointID));
@@ -88,7 +89,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto handler_1 = std::make_unique<WifiHotspotBwuHandler>(
-      mediums_HS_ap, [&](ClientProxy* client,
+      &mediums_HS_ap.GetWifiHotspot(), [&](ClientProxy* client,
                          std::unique_ptr<BwuHandler::IncomingSocketConnection>
                              mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back, Socket name: "
@@ -117,7 +118,8 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   // Wait till client_hotspot_ap started as hotspot and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<WifiHotspotBwuHandler>(mediums_HS_sta, nullptr);
+      std::make_unique<WifiHotspotBwuHandler>(&mediums_HS_sta.GetWifiHotspot(),
+                                              nullptr);
 
   client_executor.Execute([&]() {
     UpgradePathInfo upgrade_path_info;

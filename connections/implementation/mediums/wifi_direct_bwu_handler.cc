@@ -23,7 +23,8 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
+#include "absl/base/nullability.h"
+#include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/strategy.h"
@@ -41,9 +42,10 @@ using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 WifiDirectBwuHandler::WifiDirectBwuHandler(
-    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    WifiDirect* absl_nonnull wifi_direct_medium,
+    IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
-      mediums_(mediums) {}
+      wifi_direct_medium_(*wifi_direct_medium) {}
 
 // Called by BWU initiator. Set up WifiDirect upgraded medium for this
 // endpoint, and returns an upgrade path info (ServiceName, Pin for Wifi WPS,

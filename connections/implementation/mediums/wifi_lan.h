@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -23,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "connections/implementation/bwu_handler.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -113,6 +115,9 @@ class WifiLan {
   // on.
   api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  private:
   struct AdvertisingInfo {

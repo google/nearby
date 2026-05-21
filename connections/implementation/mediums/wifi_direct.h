@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "connections/implementation/bwu_handler.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
@@ -109,6 +110,9 @@ class WifiDirect {
 
   // Sets the preferred WifiDirect auth type.
   bool SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type);
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  private:
   mutable Mutex mutex_;

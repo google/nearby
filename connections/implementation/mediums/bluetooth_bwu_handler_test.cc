@@ -54,7 +54,8 @@ TEST_F(BluetoothBwuTest, CanCreateBwuHandler) {
   ClientProxy client;
   Mediums mediums;
 
-  auto handler = std::make_unique<BluetoothBwuHandler>(mediums, nullptr);
+  auto handler = std::make_unique<BluetoothBwuHandler>(
+      &mediums.GetBluetoothRadio(), &mediums.GetBluetoothClassic(), nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
@@ -73,9 +74,10 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto handler_1 = std::make_unique<BluetoothBwuHandler>(
-      mediums_1, [&](ClientProxy* client,
-                     std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                         mutable_connection) {
+      &mediums_1.GetBluetoothRadio(), &mediums_1.GetBluetoothClassic(),
+      [&](ClientProxy* client,
+          std::unique_ptr<BwuHandler::IncomingSocketConnection>
+              mutable_connection) {
         LOG(WARNING) << "Server socket connection accept call back";
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
@@ -99,7 +101,9 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
   // Wait till client_1 started as Bluetooth and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<BluetoothBwuHandler>(mediums_2, nullptr);
+      std::make_unique<BluetoothBwuHandler>(
+          &mediums_2.GetBluetoothRadio(), &mediums_2.GetBluetoothClassic(),
+          nullptr);
 
   client_executor.Execute([&]() {
     auto bwu_frame =

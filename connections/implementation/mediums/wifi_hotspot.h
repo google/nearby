@@ -21,6 +21,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
@@ -85,6 +86,9 @@ class WifiHotspot {
   // Credential is for the currently-hosted WiFi SoftAP ServerSocket (if any).
   HotspotCredentials* GetCredentials(absl::string_view service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  private:
   mutable Mutex mutex_;

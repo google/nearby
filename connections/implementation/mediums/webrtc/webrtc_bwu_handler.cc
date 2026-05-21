@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
-#include "connections/implementation/mediums/webrtc_bwu_handler.h"
+#include "connections/implementation/mediums/webrtc/webrtc_bwu_handler.h"
 
 #include <memory>
 #include <string>
@@ -24,7 +22,8 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/mediums.h"
+#include "absl/base/nullability.h"
+#include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc_endpoint_channel.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
@@ -68,9 +67,10 @@ void WebrtcBwuHandler::WebrtcIncomingSocket::Close() { socket_->Close(); }
 std::string WebrtcBwuHandler::WebrtcIncomingSocket::ToString() { return name_; }
 
 WebrtcBwuHandler::WebrtcBwuHandler(
-    Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
+    mediums::WebRtc* absl_nonnull webrtc_medium,
+    IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
-      mediums_(mediums) {}
+      webrtc_(*webrtc_medium) {}
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
@@ -179,5 +179,3 @@ void WebrtcBwuHandler::OnIncomingWebrtcConnection(
 
 }  // namespace connections
 }  // namespace nearby
-
-#endif
