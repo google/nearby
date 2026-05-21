@@ -88,6 +88,26 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc_platform",
+    hdrs = [
+        "webrtc_platform.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        ":comm",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "//internal/platform:base",
+        # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "comm",
     hdrs = [
         "app_lifecycle_monitor.h",
