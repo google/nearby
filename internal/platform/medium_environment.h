@@ -37,9 +37,7 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/uuid.h"
 #include "internal/test/fake_clock.h"
-#ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
-#endif
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
@@ -80,12 +78,10 @@ class MediumEnvironment {
   using BluetoothDiscoveryCallback =
       api::BluetoothClassicMedium::DiscoveryCallback;
   using BleScanCallback = api::ble::BleMedium::ScanningCallback;
-#ifndef NO_WEBRTC
   using OnSignalingMessageCallback =
       api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
   using OnSignalingCompleteCallback =
       api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
-#endif
   using WifiLanDiscoveredServiceCallback =
       api::WifiLanMedium::DiscoveredServiceCallback;
   using AwdlDiscoveredServiceCallback =
@@ -164,7 +160,6 @@ class MediumEnvironment {
   api::BluetoothDevice* FindBluetoothDevice(MacAddress mac_address);
 
   EnvironmentConfig GetEnvironmentConfig();
-#ifndef NO_WEBRTC
   // Registers |message_callback| to receive messages sent to device with id
   // |self_id|, and |complete_callback| to notify when signaling is complete.
   void RegisterWebRtcSignalingMessenger(
@@ -181,7 +176,6 @@ class MediumEnvironment {
 
   // Simulates sending an "signaling complete" signal to the WebRTC medium.
   void SendWebRtcSignalingComplete(absl::string_view peer_id, bool success);
-#endif
   // Used to set if WebRtcMedium should use a valid peer connection or nullptr
   // in tests.
   void SetUseValidPeerConnection(bool use_valid_peer_connection);
@@ -497,7 +491,6 @@ class MediumEnvironment {
   absl::flat_hash_map<api::ble::BleMedium*, BleMediumContext> ble_mediums_;
   absl::flat_hash_map<api::BluetoothDevice*, BluetoothPairingContext>
       devices_pairing_contexts_;
-#ifndef NO_WEBRTC
   // Maps peer id to callback for receiving signaling messages.
   absl::flat_hash_map<std::string, OnSignalingMessageCallback>
       webrtc_signaling_message_callback_;
@@ -505,7 +498,6 @@ class MediumEnvironment {
   // Maps peer id to callback for signaling complete events.
   absl::flat_hash_map<std::string, OnSignalingCompleteCallback>
       webrtc_signaling_complete_callback_;
-#endif
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;

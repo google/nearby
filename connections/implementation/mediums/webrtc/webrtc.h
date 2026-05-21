@@ -23,8 +23,8 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
+#include "internal/platform/implementation/webrtc_platform.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/rtc_base/network_constants.h"
 
@@ -66,7 +66,8 @@ class WebRtcSignalingMessenger {
 
 class WebRtcMedium {
  public:
-  WebRtcMedium() : impl_(api::ImplementationPlatform::CreateWebRtcMedium()) {}
+  WebRtcMedium()
+      : impl_(api::WebRtcImplementationPlatform::CreateWebRtcMedium()) {}
   virtual ~WebRtcMedium() = default;
   WebRtcMedium(WebRtcMedium&&) = default;
   WebRtcMedium& operator=(WebRtcMedium&&) = delete;
@@ -75,9 +76,7 @@ class WebRtcMedium {
   // For example, en_US locale resolves to "US".
   std::string GetDefaultCountryCode() { return impl_->GetDefaultCountryCode(); }
 
-  void SetNonCellular(bool non_cellular) {
-    non_cellular_ = non_cellular;
-  }
+  void SetNonCellular(bool non_cellular) { non_cellular_ = non_cellular; }
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
@@ -86,7 +85,8 @@ class WebRtcMedium {
       api::WebRtcMedium::PeerConnectionCallback callback) {
     if (FeatureFlags::GetInstance()
             .GetFlags()
-            .support_web_rtc_non_cellular_medium && non_cellular_) {
+            .support_web_rtc_non_cellular_medium &&
+        non_cellular_) {
       std::optional<webrtc::PeerConnectionFactoryInterface::Options> options;
       options->network_ignore_mask |= webrtc::ADAPTER_TYPE_CELLULAR;
       impl_->CreatePeerConnection(options, observer, std::move(callback));

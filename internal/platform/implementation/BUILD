@@ -90,6 +90,7 @@ cc_library(
 cc_library(
     name = "webrtc_platform",
     hdrs = [
+        "webrtc.h",
         "webrtc_platform.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
@@ -97,7 +98,6 @@ cc_library(
         "//:__subpackages__",
     ],
     deps = [
-        ":comm",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
@@ -120,7 +120,6 @@ cc_library(
         "http_loader.h",
         "psk_info.h",
         "upgrade_address_info.h",
-        "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
@@ -136,15 +135,12 @@ cc_library(
         "//third_party/nearby/presence/implementation:__subpackages__",
     ],
     deps = [
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:mac_address",
         "//internal/platform:uuid",
         "//internal/proto:credential_cc_proto",
         "//internal/proto:local_credential_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_peerconnection_factory",  # buildcleaner: keep
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",

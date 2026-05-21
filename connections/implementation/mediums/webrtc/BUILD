@@ -93,8 +93,7 @@ cc_library(
     hdrs = ["webrtc.h"],
     deps = [
         "//internal/platform:base",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:webrtc_platform",
         # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
         "@com_google_absl//absl/strings:string_view",

@@ -112,6 +112,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:webrtc_platform",
         "//internal/platform/implementation:wifi_utils",
         "//internal/proto:credential_cc_proto",
         # "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
@@ -177,6 +178,7 @@ cc_library(
     testonly = True,
     srcs = [
         "platform.cc",
+        "webrtc_platform.cc",
     ],
     defines = ["NO_WEBRTC"],
     visibility = [
@@ -208,14 +210,16 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
+        "//internal/platform/implementation:webrtc_platform",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
+        "//third_party/gloop/thread",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_nisaba//nisaba/port:thread_pool",
     ],
+    alwayslink = 1,
 )
 
 cc_library(

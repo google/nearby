@@ -15,8 +15,6 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <optional>
 #include <string>
@@ -26,6 +24,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace api {
@@ -77,7 +76,5 @@ class WebRtcMedium {
 
 }  // namespace api
 }  // namespace nearby
-
-#endif
 
 #endif  // PLATFORM_API_WEBRTC_H_

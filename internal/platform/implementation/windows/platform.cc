@@ -259,10 +259,6 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   return std::make_unique<windows::WifiDirectMedium>();
 }
 
-std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
-  return nullptr;
-}
-
 std::unique_ptr<AppLifecycleMonitor>
 ImplementationPlatform::CreateAppLifecycleMonitor(
     std::function<void(AppLifecycleMonitor::AppLifecycleState)>

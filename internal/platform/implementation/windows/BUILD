@@ -321,6 +321,9 @@ cc_library(
         "-DNO_INTEL_PIE",
         "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
     ],
+    linkopts = [
+        "iphlpapi.lib",
+    ],
     tags = ["windows"],
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
