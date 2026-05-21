@@ -24,7 +24,7 @@ cc_test(
     ],
     tags = ["componentid:148515"],
     deps = [
-        "//connections/implementation:internal",
+        "//connections/implementation:offline_frames",
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",

@@ -92,7 +92,7 @@ let package = Package(
     .target(
       name: "protobuf-utf8",
       dependencies: [
-        .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
+        .product(name: "abseil", package: "abseil-cpp-SwiftPM")
       ],
       path: "third_party/protobuf/third_party/utf8_range",
       sources: [
@@ -102,13 +102,13 @@ let package = Package(
       ],
       publicHeadersPath: ".",
       cSettings: [
-        .headerSearchPath("./"),
+        .headerSearchPath("./")
       ],
     ),
     .target(
       name: "protobuf",
       dependencies: [
-        "protobuf-utf8",
+        "protobuf-utf8"
       ],
       path: "third_party/protobuf/src",
       exclude: [
@@ -282,11 +282,11 @@ let package = Package(
         "google/protobuf/io/zero_copy_sink_test.cc",
       ],
       sources: [
-        "google/protobuf",
+        "google/protobuf"
       ],
       publicHeadersPath: ".",
       cSettings: [
-        .headerSearchPath("./"),
+        .headerSearchPath("./")
       ]
     ),
     .target(
@@ -368,17 +368,13 @@ let package = Package(
         "connections/implementation/payload_manager_test.cc",
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",
-        "connections/implementation/awdl_bwu_handler_test.cc",
-        "connections/implementation/bluetooth_bwu_test.cc",
-        "connections/implementation/wifi_direct_bwu_test.cc",
-        "connections/implementation/wifi_hotspot_bwu_test.cc",
-        "connections/implementation/wifi_lan_bwu_handler_test.cc",
         "connections/implementation/analytics/analytics_recorder_test.cc",
         "connections/implementation/analytics/throughput_recorder_test.cc",
         "connections/implementation/mediums/advertisements/data_element_test.cc",
         "connections/implementation/mediums/advertisements/dct_advertisement_test.cc",
         "connections/implementation/mediums/advertisements/advertisement_util_test.cc",
         "connections/implementation/mediums/awdl_test.cc",
+        "connections/implementation/mediums/awdl_bwu_handler_test.cc",
         "connections/implementation/mediums/ble_test.cc",
         "connections/implementation/mediums/ble/bloom_filter_test.cc",
         "connections/implementation/mediums/ble/ble_l2cap_packet_test.cc",
@@ -391,15 +387,19 @@ let package = Package(
         "connections/implementation/mediums/ble/discovered_peripheral_tracker_test.cc",
         "connections/implementation/mediums/ble/instant_on_lost_advertisement_test.cc",
         "connections/implementation/mediums/ble/instant_on_lost_manager_test.cc",
-        "connections/implementation/mediums/webrtc_peer_id_test.cc",
-        "connections/implementation/mediums/wifi_lan_test.cc",
-        "connections/implementation/mediums/bluetooth_classic_test.cc",
         "connections/implementation/mediums/ble_test.cc",
-        "connections/implementation/mediums/webrtc_test.cc",
-        "connections/implementation/mediums/lost_entity_tracker_test.cc",
+        "connections/implementation/mediums/bluetooth_bwu_handler_test.cc",
+        "connections/implementation/mediums/bluetooth_classic_test.cc",
         "connections/implementation/mediums/bluetooth_radio_test.cc",
+        "connections/implementation/mediums/lost_entity_tracker_test.cc",
+        "connections/implementation/mediums/webrtc_peer_id_test.cc",
+        "connections/implementation/mediums/webrtc_test.cc",
+        "connections/implementation/mediums/wifi_direct_bwu_handler_test.cc",
         "connections/implementation/mediums/wifi_direct_test.cc",
+        "connections/implementation/mediums/wifi_hotspot_bwu_handler_test.cc",
         "connections/implementation/mediums/wifi_hotspot_test.cc",
+        "connections/implementation/mediums/wifi_lan_bwu_handler_test.cc",
+        "connections/implementation/mediums/wifi_lan_test.cc",
         "connections/implementation/mediums/wifi_test.cc",
         "connections/implementation/endpoint_channel_manager_test.cc",
         "connections/implementation/bwu_manager_test.cc",

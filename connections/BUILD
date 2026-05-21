@@ -43,7 +43,9 @@ cc_library(
     ],
     deps = [
         ":core_types",
+        "//connections/implementation:client_proxy",
         "//connections/implementation:internal",
+        "//connections/implementation:service_id_constants",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/interop:device",
