@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_WEBRTC_H_
-#define PLATFORM_IMPL_WINDOWS_WEBRTC_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_MEDIUM_IMPL_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_MEDIUM_IMPL_H_
 
 #include <memory>
 #include <optional>
@@ -22,11 +22,11 @@
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace nearby::windows {
+namespace nearby::connections::mediums {
 
-class WebRtcMedium : public api::WebRtcMedium {
+class WebRtcMediumImpl : public api::WebRtcMedium {
  public:
-  ~WebRtcMedium() override = default;
+  ~WebRtcMediumImpl() override = default;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
@@ -47,6 +47,6 @@ class WebRtcMedium : public api::WebRtcMedium {
       override;
 };
 
-}  // namespace nearby::windows
+}  // namespace nearby::connections::mediums
 
-#endif  // PLATFORM_IMPL_WINDOWS_WEBRTC_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_MEDIUM_IMPL_H_

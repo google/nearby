@@ -233,21 +233,15 @@ cc_library(
 )
 
 cc_library(
-    name = "webrtc",
-    srcs = ["webrtc.cc"],
-    hdrs = ["webrtc.h"],
+    name = "webrtc_platform",
+    srcs = ["webrtc_platform.cc"],
     tags = ["windows"],
     deps = [
-        "//connections/implementation/mediums/webrtc:tachyon_express_signaling_messenger",
+        "//connections/implementation/mediums/webrtc:webrtc_medium_impl",
         "//internal/platform:logging",
         "//internal/platform/implementation:webrtc_platform",
-        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
-        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
-        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
-        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
-        "@com_google_absl//absl/strings",
     ],
+    alwayslink = True,
 )
 
 cc_library(
@@ -434,23 +428,6 @@ cc_proto_library(
     testonly = True,
     compatible_with = ["//buildenv/target:non_prod"],
     deps = [":preferences_manager_test_proto"],
-)
-
-cc_test(
-    name = "webrtc_test",
-    size = "small",
-    srcs = ["webrtc_test.cc"],
-    deps = [
-        ":webrtc",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform_impl",
-        "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
-        "//third_party/webrtc/files/stable/webrtc/api:jsep",
-        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
-        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_googletest//:gtest_main",
-    ],
 )
 
 cc_test(

@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,35 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
-#include "internal/platform/implementation/apple/webrtc.h"
-
-#import <Foundation/Foundation.h>
+#include "connections/implementation/mediums/webrtc/webrtc_medium_impl.h"
 
 #include <memory>
 #include <optional>
 #include <utility>
 
-#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/crypto.h"
-#include "internal/platform/logging.h"
-#include "internal/proto/tachyon.pb.h"
-#include "internal/proto/tachyon_enums.proto.h"
+#include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/create_modular_peer_connection_factory.h"
-#include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/rtc_error.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/rtc_base/thread.h"
 
-namespace nearby::apple {
+namespace nearby::connections::mediums {
 
-void WebRtcMedium::CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
-                                        PeerConnectionCallback callback) {
+void WebRtcMediumImpl::CreatePeerConnection(
+    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   CreatePeerConnection(std::nullopt, observer, std::move(callback));
 }
 
-void WebRtcMedium::CreatePeerConnection(
+void WebRtcMediumImpl::CreatePeerConnection(
     std::optional<webrtc::PeerConnectionFactoryInterface::Options> options,
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
@@ -65,14 +59,16 @@ void WebRtcMedium::CreatePeerConnection(
   webrtc::PeerConnectionFactoryDependencies factory_dependencies;
   factory_dependencies.signaling_thread = signaling_thread.release();
 
-  webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> peer_connection_factory =
-      webrtc::CreateModularPeerConnectionFactory(std::move(factory_dependencies));
+  webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
+      peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(
+          std::move(factory_dependencies));
   if (options.has_value()) {
     peer_connection_factory->SetOptions(options.value());
   }
   webrtc::RTCErrorOr<webrtc::scoped_refptr<webrtc::PeerConnectionInterface>>
       peer_connection_or_error =
-          peer_connection_factory->CreatePeerConnectionOrError(rtc_config, std::move(dependencies));
+          peer_connection_factory->CreatePeerConnectionOrError(
+              rtc_config, std::move(dependencies));
   if (peer_connection_or_error.ok()) {
     callback(peer_connection_or_error.MoveValue());
   } else {
@@ -80,12 +76,12 @@ void WebRtcMedium::CreatePeerConnection(
   }
 }
 
-std::unique_ptr<api::WebRtcSignalingMessenger> WebRtcMedium::GetSignalingMessenger(
-    absl::string_view self_id, const location::nearby::connections::LocationHint& location_hint) {
-  return std::make_unique<
-      nearby::connections::mediums::TachyonExpressSignalingMessenger>(self_id, location_hint);
+std::unique_ptr<api::WebRtcSignalingMessenger>
+WebRtcMediumImpl::GetSignalingMessenger(
+    absl::string_view self_id,
+    const location::nearby::connections::LocationHint& location_hint) {
+  return std::make_unique<TachyonExpressSignalingMessenger>(self_id,
+                                                            location_hint);
 }
 
-}  // namespace nearby::apple
-
-#endif  // #ifndef NO_WEBRTC
+}  // namespace nearby::connections::mediums

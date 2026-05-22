@@ -14,26 +14,34 @@
 
 #include "internal/platform/implementation/webrtc_platform.h"
 
-#import <Foundation/Foundation.h>
+#include <winnls.h>
 
 #include <memory>
+#include <string>
 
+#include "internal/platform/logging.h"
+#include "internal/platform/implementation/webrtc.h"
 #include "connections/implementation/mediums/webrtc/webrtc_medium_impl.h"
 
-namespace nearby {
-namespace api {
+namespace nearby::api {
 
-std::unique_ptr<WebRtcMedium> WebRtcImplementationPlatform::CreateWebRtcMedium() {
+std::unique_ptr<WebRtcMedium>
+WebRtcImplementationPlatform::CreateWebRtcMedium() {
   return std::make_unique<nearby::connections::mediums::WebRtcMediumImpl>();
 }
 
 std::string WebRtcImplementationPlatform::GetDefaultCountryCode() {
-  NSString* countryCode = [NSLocale.currentLocale objectForKey:NSLocaleCountryCode];
-  if (countryCode) {
-    return std::string([countryCode UTF8String]);
+  wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];
+
+  if (!GetUserDefaultGeoName(systemGeoName, LOCALE_NAME_MAX_LENGTH)) {
+    LOG(ERROR) << __func__
+               << ": Failed to GetUserDefaultGeoName: " << ". Fall back to US.";
+    return "US";
   }
-  return "US";
+  std::wstring wideGeo(systemGeoName);
+  std::string systemGeoNameString(wideGeo.begin(), wideGeo.end());
+  VLOG(1) << "GetUserDefaultGeoName() returns: " << systemGeoNameString;
+  return systemGeoNameString;
 }
 
-}  // namespace api
-}  // namespace nearby
+}  // namespace nearby::api

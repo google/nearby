@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/windows/webrtc.h"
+#include "connections/implementation/mediums/webrtc/webrtc_medium_impl.h"
 
 #include <memory>
 #include <optional>
@@ -25,8 +25,7 @@
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/scoped_refptr.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::connections::mediums {
 
 class MockPeerConnectionObserver : public webrtc::PeerConnectionObserver {
  public:
@@ -51,9 +50,9 @@ location::nearby::connections::LocationHint GetCountryCodeLocationHint(
   return location_hint;
 }
 
-TEST(WebrtcTest, CreatePeerConnectionSucceeds) {
+TEST(WebrtcMediumImplTest, CreatePeerConnectionSucceeds) {
   auto observer = std::make_unique<MockPeerConnectionObserver>();
-  WebRtcMedium medium;
+  WebRtcMediumImpl medium;
   medium.CreatePeerConnection(
       std::nullopt, observer.get(),
       [](webrtc::scoped_refptr<webrtc::PeerConnectionInterface>
@@ -65,12 +64,11 @@ TEST(WebrtcTest, CreatePeerConnectionSucceeds) {
       });
 }
 
-TEST(WebrtcTest, GetSignalingMessengerSucceeds) {
-  WebRtcMedium medium;
+TEST(WebrtcMediumImplTest, GetSignalingMessengerSucceeds) {
+  WebRtcMediumImpl medium;
   std::unique_ptr<api::WebRtcSignalingMessenger> messenger =
       medium.GetSignalingMessenger("US", GetCountryCodeLocationHint("US"));
   EXPECT_TRUE(messenger);
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::connections::mediums

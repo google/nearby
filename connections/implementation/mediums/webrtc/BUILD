@@ -100,6 +100,25 @@ cc_library(
 )
 
 cc_library(
+    name = "webrtc_medium_impl",
+    srcs = ["webrtc_medium_impl.cc"],
+    hdrs = ["webrtc_medium_impl.h"],
+    visibility = [
+        "//internal/platform/implementation:__subpackages__",
+    ],
+    deps = [
+        ":tachyon_express_signaling_messenger",
+        "//internal/platform/implementation:webrtc_platform",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "webrtc_impl",
     srcs = [
         "webrtc_bwu_handler.cc",
@@ -149,11 +168,6 @@ cc_library(
     name = "tachyon_express_signaling_messenger",
     srcs = ["tachyon_express_signaling_messenger.cc"],
     hdrs = ["tachyon_express_signaling_messenger.h"],
-    visibility = [
-        "//connections:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-        "//internal/test:__subpackages__",
-    ],
     deps = [
         "//internal/account",
         "//internal/platform:base",
@@ -227,5 +241,22 @@ cc_test(
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "webrtc_medium_impl_test",
+    size = "small",
+    srcs = ["webrtc_medium_impl_test.cc"],
+    deps = [
+        ":webrtc_medium_impl",
+        "//internal/platform/implementation:platform_impl",
+        "//internal/platform/implementation:webrtc_platform",
+        "//third_party/webrtc/files/stable/webrtc/api:data_channel_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:jsep",
+        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

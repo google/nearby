@@ -54,24 +54,12 @@ objc_library(
 objc_library(
     name = "apple_webrtc",
     srcs = [
-        "webrtc.mm",
         "webrtc_platform.mm",
     ],
-    hdrs = [
-        "webrtc.h",
-    ],
     deps = [
-        "//connections/implementation/mediums/webrtc:tachyon_express_signaling_messenger",
-        "//internal/platform:logging",
-        "//internal/platform:types",
+        "//connections/implementation/mediums/webrtc:webrtc_medium_impl",
         "//internal/platform/implementation:webrtc_platform",
-        "//internal/proto:tachyon_cc_proto",
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
-        "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
     ],
 )
 
