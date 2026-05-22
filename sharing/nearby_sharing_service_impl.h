@@ -79,7 +79,6 @@
 #include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby::sharing {
-class NearbyShareContactManager;
 
 namespace NearbySharingServiceUnitTests {
 class NearbySharingServiceImplTest_CreateShareTarget_Test;
@@ -108,7 +107,6 @@ class NearbySharingServiceImpl
       nearby::sharing::api::IdentityRpcClient* absl_nonnull
           nearby_identity_client,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
-      std::unique_ptr<NearbyShareContactManager> contact_manager,
       analytics::AnalyticsRecorder* analytics_recorder,
       bool supports_file_sync);
   ~NearbySharingServiceImpl() override;
@@ -164,7 +162,6 @@ class NearbySharingServiceImpl
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
   NearbyShareSettings* GetSettings() override;
-  NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;
   AccountManager* GetAccountManager() override;
   Clock& GetClock() override { return *context_->GetClock(); }
@@ -437,7 +434,6 @@ class NearbySharingServiceImpl
   nearby::sharing::api::IdentityRpcClient* absl_nonnull const
       nearby_identity_client_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> local_device_data_manager_;
-  std::unique_ptr<NearbyShareContactManager> contact_manager_;
   std::unique_ptr<NearbyShareCertificateManager> certificate_manager_;
   std::unique_ptr<NearbyFastInitiation> nearby_fast_initiation_;
 

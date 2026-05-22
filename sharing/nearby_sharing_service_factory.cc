@@ -21,7 +21,6 @@
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
-#include "sharing/contacts/nearby_share_contact_manager_impl.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
 #include "sharing/nearby_connections_manager_factory.h"
@@ -59,20 +58,13 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
       std::make_unique<platform::common::GrpcAsyncClientFactory>(
           &sharing_platform.GetAccountManager(), context_->GetClock(),
           analytics_recorder);
-  nearby_share_client_ = nearby_share_client_factory_->CreateInstance();
   nearby_identity_client_ =
       nearby_share_client_factory_->CreateIdentityInstance();
-  auto nearby_share_contact_manager =
-      std::make_unique<NearbyShareContactManagerImpl>(
-          context_.get(), sharing_platform.GetAccountManager(),
-          nearby_share_client_.get());
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       std::move(service_thread), context_.get(), sharing_platform,
-      nearby_identity_client_.get(),
-      std::move(nearby_connections_manager),
-      std::move(nearby_share_contact_manager), analytics_recorder,
-      supports_file_sync);
+      nearby_identity_client_.get(), std::move(nearby_connections_manager),
+      analytics_recorder, supports_file_sync);
 
   return nearby_sharing_service_.get();
 }

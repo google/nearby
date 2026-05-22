@@ -36,7 +36,6 @@ namespace nearby::sharing {
 
 class AccountManager;
 class NearbyNotificationDelegate;
-class NearbyShareContactManager;
 
 // This service implements Nearby Sharing on top of the Nearby Connections mojo.
 // Currently, only single profile will be allowed to be bound at a time and only
@@ -222,7 +221,6 @@ class NearbySharingService {
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
-  virtual NearbyShareContactManager* GetContactManager() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;
   virtual AccountManager* GetAccountManager() = 0;
   virtual Clock& GetClock() = 0;

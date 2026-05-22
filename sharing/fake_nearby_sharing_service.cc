@@ -178,10 +178,6 @@ std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }
 
-NearbyShareContactManager* FakeNearbySharingService::GetContactManager() {
-  return nullptr;
-}
-
 NearbyShareCertificateManager*
 FakeNearbySharingService::GetCertificateManager() {
   return nullptr;

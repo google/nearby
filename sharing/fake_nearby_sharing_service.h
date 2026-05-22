@@ -135,7 +135,6 @@ class FakeNearbySharingService : public NearbySharingService {
   void UpdateFilePathsInProgress(bool update_file_paths) override {}
 
   NearbyShareSettings* GetSettings() override;
-  NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;
   AccountManager* GetAccountManager() override;
   Clock& GetClock() override;

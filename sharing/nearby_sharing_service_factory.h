@@ -45,7 +45,6 @@ class NearbySharingServiceFactory {
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
   std::unique_ptr<nearby::sharing::platform::common::GrpcAsyncClientFactory>
       nearby_share_client_factory_;
-  std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
       nearby_identity_client_;
 };

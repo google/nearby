@@ -65,7 +65,6 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/constants.h"
-#include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
@@ -260,7 +259,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
     nearby::sharing::api::IdentityRpcClient* absl_nonnull
         nearby_identity_client,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
-    std::unique_ptr<NearbyShareContactManager> contact_manager,
     analytics::AnalyticsRecorder* analytics_recorder, bool supports_file_sync)
     : service_thread_(std::move(service_thread)),
       context_(context),
@@ -274,7 +272,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               preference_manager_, account_manager_, device_info_)),
-      contact_manager_(std::move(contact_manager)),
       nearby_fast_initiation_(
           NearbyFastInitiationImpl::Factory::Create(context_)),
       settings_(std::make_unique<NearbyShareSettings>(
@@ -668,8 +665,6 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                 << background_receive_callbacks_map_.size();
 
         if (IsVisibleInBackground(settings_->GetVisibility())) {
-          // The Identity API does not support contact manager which triggers
-          // Certificate refresh in DownloadContacts. Force upload explicitly.
           VLOG(1) << "[Call Identity API] ForceUploadPrivateCertificates.";
           certificate_manager_->ForceUploadPrivateCertificates();
         }
@@ -1026,10 +1021,6 @@ void NearbySharingServiceImpl::SetVisibility(
 
 NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
-}
-
-NearbyShareContactManager* NearbySharingServiceImpl::GetContactManager() {
-  return contact_manager_.get();
 }
 
 NearbyShareCertificateManager*
