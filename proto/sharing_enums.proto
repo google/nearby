@@ -845,6 +845,7 @@ enum SharingUseCase {
   USE_CASE_NEARBY_SHARE_WITH_QR_CODE = 7 [deprecated = true];
   // The user was redirected from Bluetooth sharing UI to Nearby Share
   USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE = 8;
+  USE_CASE_TAP_TO_SHARE = 9;
 }
 
 // Used only for Windows App now.
