@@ -22,9 +22,9 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/tachyon_express_signaling_messenger.h"
 #include "webrtc/api/create_modular_peer_connection_factory.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/rtc_error.h"
@@ -32,6 +32,8 @@
 #include "webrtc/rtc_base/thread.h"
 
 namespace nearby::windows {
+
+using ::nearby::connections::mediums::TachyonExpressSignalingMessenger;
 
 std::string WebRtcMedium::GetDefaultCountryCode() {
   wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];

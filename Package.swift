@@ -525,8 +525,8 @@ let package = Package(
         "connections/implementation/webrtc_endpoint_channel.cc",
         "connections/implementation/mediums/webrtc.cc",
         "connections/implementation/mediums/webrtc",
-        "internal/platform/tachyon_express_signaling_messenger.cc",
-        "internal/platform/tachyon_express_signaling_messenger.h",
+        "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.cc",
+        "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h",
         "internal/platform/implementation/apple/webrtc.h",
         "internal/platform/implementation/apple/webrtc.mm",
         // This breaks the build, but seems to work fine without it?

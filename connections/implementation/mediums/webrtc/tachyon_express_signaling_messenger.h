@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_
-#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_
-
-#ifndef NO_WEBRTC
-
-#include <grpcpp/security/credentials.h>
+#ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_TACHYON_MESSAGING_CLIENT_H_
+#define CORE_INTERNAL_MEDIUMS_WEBRTC_TACHYON_MESSAGING_CLIENT_H_
 
 #include <memory>
 #include <string>
@@ -34,7 +30,7 @@
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/proto/messaging.grpc.pb.h"
 
-namespace nearby {
+namespace nearby::connections::mediums {
 
 // Interface for the messaging Tachyon service. See
 // third_party/nearby/internal/proto/messaging.proto
@@ -98,8 +94,6 @@ class TachyonExpressSignalingMessenger : public api::WebRtcSignalingMessenger {
   std::shared_ptr<ReceiveMessagesReader> reader_ = nullptr;
 };
 
-}  // namespace nearby
+}  // namespace nearby::connections::mediums
 
-#endif  // #ifndef NO_WEBRTC
-
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_TACHYON_MESSAGING_CLIENT_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WEBRTC_TACHYON_MESSAGING_CLIENT_H_

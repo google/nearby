@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NO_WEBRTC
-
-#include "internal/platform/tachyon_express_signaling_messenger.h"
+#include "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h"
 
 #include <ctime>
 #include <memory>
@@ -36,7 +34,6 @@
 #include "internal/account/account_manager_impl.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
 #include "internal/proto/messaging.grpc.pb.h"
 #include "internal/proto/tachyon.proto.h"
@@ -45,7 +42,7 @@
 #include "internal/rpc/utils.h"
 #include "util/random/util.h"
 
-namespace nearby {
+namespace nearby::connections::mediums {
 
 namespace {
 using ::google::internal::communications::instantmessaging::v1::ClientInfo;
@@ -340,6 +337,4 @@ bool TachyonExpressSignalingMessenger::SendMessage(absl::string_view peer_id,
   return success;
 }
 
-}  // namespace nearby
-
-#endif  // #ifndef NO_WEBRTC
+}  // namespace nearby::connections::mediums

@@ -238,9 +238,9 @@ cc_library(
     hdrs = ["webrtc.h"],
     tags = ["windows"],
     deps = [
+        "//connections/implementation/mediums/webrtc:tachyon_express_signaling_messenger",
         "//internal/platform:logging",
-        "//internal/platform:tachyon_express_signaling_messenger",
-        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:webrtc_platform",
         "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
         "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "//third_party/webrtc/files/stable/webrtc/api:rtc_error",

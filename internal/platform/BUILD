@@ -285,38 +285,6 @@ cc_library(
 )
 
 cc_library(
-    name = "tachyon_express_signaling_messenger",
-    srcs = ["tachyon_express_signaling_messenger.cc"],
-    hdrs = ["tachyon_express_signaling_messenger.h"],
-    visibility = [
-        "//connections:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-        "//internal/test:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
-    ],
-    deps = [
-        ":base",
-        ":logging",
-        ":types",
-        "//internal/account",
-        "//internal/platform/implementation:webrtc_platform",
-        "//internal/proto:messaging_cc_grpc_proto",
-        "//internal/proto:tachyon_cc_proto",
-        "//internal/rpc:utils",
-        "//location/nearby/sharing/lib/account:account_manager",
-        "//third_party/gloop/util/random:mt_random",
-        "//third_party/grpc:gpr",
-        "//third_party/grpc:grpc++",
-        "//util/random:util",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/time",
-    ],
-)
-
-cc_library(
     name = "comm",
     srcs = [
         "awdl.cc",

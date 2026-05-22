@@ -25,10 +25,10 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/tachyon_express_signaling_messenger.h"
 #include "internal/proto/tachyon.pb.h"
 #include "internal/proto/tachyon_enums.proto.h"
 #include "webrtc/api/create_modular_peer_connection_factory.h"
@@ -91,7 +91,8 @@ void WebRtcMedium::CreatePeerConnection(
 
 std::unique_ptr<api::WebRtcSignalingMessenger> WebRtcMedium::GetSignalingMessenger(
     absl::string_view self_id, const location::nearby::connections::LocationHint& location_hint) {
-  return std::make_unique<TachyonExpressSignalingMessenger>(self_id, location_hint);
+  return std::make_unique<
+      nearby::connections::mediums::TachyonExpressSignalingMessenger>(self_id, location_hint);
 }
 
 }  // namespace nearby::apple

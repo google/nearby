@@ -61,8 +61,8 @@ objc_library(
         "webrtc.h",
     ],
     deps = [
+        "//connections/implementation/mediums/webrtc:tachyon_express_signaling_messenger",
         "//internal/platform:logging",
-        "//internal/platform:tachyon_express_signaling_messenger",
         "//internal/platform:types",
         "//internal/platform/implementation:webrtc_platform",
         "//internal/proto:tachyon_cc_proto",
@@ -130,7 +130,6 @@ objc_library(
         "//internal/crypto_cros",
         "//internal/platform:comm",
         "//internal/platform:logging",
-        "//internal/platform:tachyon_express_signaling_messenger",
         "//internal/platform:types",
         "//internal/proto:tachyon_cc_proto",
         "//internal/platform:base",
