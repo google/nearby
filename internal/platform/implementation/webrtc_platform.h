@@ -16,6 +16,7 @@
 #define PLATFORM_API_WEBRTC_PLATFORM_H_
 
 #include <memory>
+#include <string>
 
 #include "internal/platform/implementation/webrtc.h"
 
@@ -24,6 +25,11 @@ namespace nearby::api {
 class WebRtcImplementationPlatform {
  public:
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
+
+  // Gets the default two-letter country code associated with current locale.
+  // For example, en_US locale resolves to "US".
+  // This follows the ISO 3166-1 Alpha-2 standard.
+  static std::string GetDefaultCountryCode();
 };
 
 }  // namespace nearby::api

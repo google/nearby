@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/webrtc_platform.h"
 
 #include <memory>
+#include <string>
 
 #include "internal/platform/implementation/g3/webrtc.h"
 #include "internal/platform/implementation/webrtc.h"
@@ -29,6 +30,10 @@ WebRtcImplementationPlatform::CreateWebRtcMedium() {
   } else {
     return nullptr;
   }
+}
+
+std::string WebRtcImplementationPlatform::GetDefaultCountryCode() {
+  return "US";
 }
 
 }  // namespace nearby::api

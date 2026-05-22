@@ -40,10 +40,6 @@ class WebRtc {
 
   virtual ~WebRtc() = default;
 
-  // Gets the default two-letter country code associated with current locale.
-  // For example, en_US locale resolves to "US".
-  virtual std::string GetDefaultCountryCode() { return ""; }
-
   // Returns if WebRtc is available as a medium for nearby to transport data.
   // Runs on @MainThread.
   virtual bool IsAvailable() { return false; }

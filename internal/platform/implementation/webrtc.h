@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
@@ -51,10 +50,6 @@ class WebRtcMedium {
       webrtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
 
   virtual ~WebRtcMedium() = default;
-
-  // Gets the default two-letter country code associated with current locale.
-  // For example, en_US locale resolves to "US".
-  virtual std::string GetDefaultCountryCode() = 0;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.

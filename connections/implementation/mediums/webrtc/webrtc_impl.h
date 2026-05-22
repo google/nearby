@@ -52,7 +52,6 @@ class WebRtcImpl : public WebRtc {
   ~WebRtcImpl() override;
 
   // Overrides for WebRtc:
-  std::string GetDefaultCountryCode() override;
   bool IsAvailable() override;
   bool IsAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);

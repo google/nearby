@@ -28,6 +28,7 @@
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/scoped_refptr.h"
 #include "webrtc/rtc_base/checks.h"
+#include "webrtc/rtc_base/thread.h"
 
 namespace nearby {
 namespace g3 {
@@ -59,8 +60,6 @@ void WebRtcSignalingMessenger::StopReceivingMessages() {
 }
 
 WebRtcMedium::~WebRtcMedium() { single_thread_executor_.Shutdown(); }
-
-std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {

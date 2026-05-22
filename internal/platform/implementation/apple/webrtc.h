@@ -19,7 +19,6 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/webrtc.h"
@@ -30,11 +29,6 @@ namespace nearby::apple {
 class WebRtcMedium : public api::WebRtcMedium {
  public:
   ~WebRtcMedium() override = default;
-
-  // Gets the default two-letter country code associated with current locale.
-  // For example, en_US locale resolves to "US".
-  // This follows the ISO 3166-1 Alpha-2 standard.
-  std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.

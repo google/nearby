@@ -30,6 +30,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/webrtc_platform.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -135,8 +136,8 @@ void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
 std::string WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
-  LocationHint location_hint =
-      BuildLocationHint(webrtc_.GetDefaultCountryCode());
+  LocationHint location_hint = BuildLocationHint(
+      api::WebRtcImplementationPlatform::GetDefaultCountryCode());
 
   mediums::WebrtcPeerId self_id{mediums::WebrtcPeerId::FromRandom()};
   if (!webrtc_.IsAcceptingConnections(upgrade_service_id)) {

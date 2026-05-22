@@ -20,7 +20,6 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -35,14 +34,6 @@
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 
 namespace nearby::apple {
-
-std::string WebRtcMedium::GetDefaultCountryCode() {
-  NSString* countryCode = [NSLocale.currentLocale objectForKey:NSLocaleCountryCode];
-  if (countryCode) {
-    return std::string([countryCode UTF8String]);
-  }
-  return "US";
-}
 
 void WebRtcMedium::CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
                                         PeerConnectionCallback callback) {

@@ -51,12 +51,6 @@ location::nearby::connections::LocationHint GetCountryCodeLocationHint(
   return location_hint;
 }
 
-TEST(WebrtcTest, CountryCodeDefault) {
-  WebRtcMedium medium;
-  std::string result = medium.GetDefaultCountryCode();
-  EXPECT_EQ(result, "US");
-}
-
 TEST(WebrtcTest, CreatePeerConnectionSucceeds) {
   auto observer = std::make_unique<MockPeerConnectionObserver>();
   WebRtcMedium medium;

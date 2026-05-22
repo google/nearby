@@ -27,5 +27,13 @@ std::unique_ptr<WebRtcMedium> WebRtcImplementationPlatform::CreateWebRtcMedium()
   return std::make_unique<apple::WebRtcMedium>();
 }
 
+std::string WebRtcImplementationPlatform::GetDefaultCountryCode() {
+  NSString* countryCode = [NSLocale.currentLocale objectForKey:NSLocaleCountryCode];
+  if (countryCode) {
+    return std::string([countryCode UTF8String]);
+  }
+  return "US";
+}
+
 }  // namespace api
 }  // namespace nearby

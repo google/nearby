@@ -81,10 +81,6 @@ WebRtcImpl::~WebRtcImpl() {
   }
 }
 
-std::string WebRtcImpl::GetDefaultCountryCode() {
-  return medium_->GetDefaultCountryCode();
-}
-
 bool WebRtcImpl::IsAvailable() { return medium_->IsValid(); }
 
 bool WebRtcImpl::IsAcceptingConnections(const std::string& service_id) {

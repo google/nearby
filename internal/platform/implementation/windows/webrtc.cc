@@ -14,17 +14,13 @@
 
 #include "internal/platform/implementation/windows/webrtc.h"
 
-#include <winnls.h>
-
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/logging.h"
 #include "webrtc/api/create_modular_peer_connection_factory.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/rtc_error.h"
@@ -34,20 +30,6 @@
 namespace nearby::windows {
 
 using ::nearby::connections::mediums::TachyonExpressSignalingMessenger;
-
-std::string WebRtcMedium::GetDefaultCountryCode() {
-  wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];
-
-  if (!GetUserDefaultGeoName(systemGeoName, LOCALE_NAME_MAX_LENGTH)) {
-    LOG(ERROR) << __func__
-               << ": Failed to GetUserDefaultGeoName: " << ". Fall back to US.";
-    return "US";
-  }
-  std::wstring wideGeo(systemGeoName);
-  std::string systemGeoNameString(wideGeo.begin(), wideGeo.end());
-  VLOG(1) << "GetUserDefaultGeoName() returns: " << systemGeoNameString;
-  return systemGeoNameString;
-}
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {

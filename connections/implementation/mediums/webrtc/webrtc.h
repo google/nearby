@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
@@ -71,10 +70,6 @@ class WebRtcMedium {
   virtual ~WebRtcMedium() = default;
   WebRtcMedium(WebRtcMedium&&) = default;
   WebRtcMedium& operator=(WebRtcMedium&&) = delete;
-
-  // Gets the default two-letter country code associated with current locale.
-  // For example, en_US locale resolves to "US".
-  std::string GetDefaultCountryCode() { return impl_->GetDefaultCountryCode(); }
 
   void SetNonCellular(bool non_cellular) { non_cellular_ = non_cellular; }
 

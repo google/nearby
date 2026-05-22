@@ -132,6 +132,7 @@ cc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/implementation:webrtc_platform",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         "//third_party/webrtc/files/stable/webrtc/api:jsep",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",

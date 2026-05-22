@@ -121,6 +121,7 @@ cc_library(
         "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:checks",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
