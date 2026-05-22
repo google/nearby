@@ -64,7 +64,6 @@ cc_library(
         "wifi_lan_bwu_handler.h",
         "wifi_lan_endpoint_channel.h",
     ],
-    copts = ["-DNO_WEBRTC"],
     local_defines = select({
         "//:webrtc_enabled": [],
         "//conditions:default": ["NO_WEBRTC"],
@@ -155,7 +154,6 @@ cc_library(
     name = "utils",
     srcs = ["utils.cc"],
     hdrs = ["utils.h"],
-    copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/advertisements:__pkg__",

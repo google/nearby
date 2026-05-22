@@ -100,8 +100,8 @@ cc_library(
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform:base",
-        # "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        # "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings:string_view",
     ],
@@ -125,7 +125,6 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
-    copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/network:__subpackages__",
@@ -157,7 +156,6 @@ cc_library(
     hdrs = [
         "platform.h",
     ],
-    defines = ["NO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal:__subpackages__",

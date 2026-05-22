@@ -340,10 +340,7 @@ cc_library(
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
-    copts = [
-        "-DCORE_ADAPTER_DLL",
-        "-DNO_WEBRTC",
-    ],
+    copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/platform/implementation:__subpackages__",

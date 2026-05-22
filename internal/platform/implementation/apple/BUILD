@@ -61,17 +61,17 @@ objc_library(
         "webrtc.h",
     ],
     deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "//third_party/apple_frameworks:Foundation",
         "//internal/platform:logging",
         "//internal/platform:tachyon_express_signaling_messenger",
         "//internal/platform:types",
         "//internal/platform/implementation:webrtc_platform",
         "//internal/proto:tachyon_cc_proto",
-        # "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
-        # "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:peer_connection_interface",
         "//third_party/webrtc/files/stable/webrtc/api/task_queue:default_task_queue_factory",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
     ],
 )
 
