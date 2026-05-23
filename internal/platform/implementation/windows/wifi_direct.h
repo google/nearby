@@ -185,8 +185,14 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   WifiDirectMedium(const WifiDirectMedium&) = delete;
   WifiDirectMedium& operator=(const WifiDirectMedium&) = delete;
 
-  // If the WiFi Adaptor supports to start WifiDirect Service GO.
+  // If the WiFi Adaptor supports to start WifiDirect Service.
   bool IsInterfaceValid() const override;
+
+  // If the WiFi Adaptor supports to start WifiDirect Service GO.
+  // This is used to check if the Windows Firewall rule "WFD ASP Coordination
+  // Protocol (UDP-In)" is enabled. GO interface is not valid if the rule is
+  // disabled.
+  bool IsGOInterfaceValid() const override;
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiDirectSocket> ConnectToService(
@@ -227,7 +233,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
 
-  bool IsWifiDirectServiceSupported();
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
   bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
@@ -241,7 +246,11 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   }
   // Discoverer is connected with the WifiDirect
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
-
+  // Returns true if the WiFi Direct service is supported.
+  static bool IsWifiDirectServiceSupported();
+  // Returns true if the Windows Firewall rule "WFD ASP Coordination Protocol
+  // (UDP-In)" is enabled.
+  static bool IsFirewallWfdAspProtoEnabled();
   // Converts WiFiDirectServiceConfigurationMethod enum to a string.
   static std::string ConfigMethodToString(
       WiFiDirectServiceConfigurationMethod config_method);
@@ -285,7 +294,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   fire_and_forget Watcher_DeviceStopped(DeviceWatcher sender,
                                         IInspectable inspectable);
 
-  bool is_interface_valid_ = false;
   WifiDirectCredentials* credentials_go_ = nullptr;
   WifiDirectCredentials credentials_gc_;
   std::string ip_address_local_;
