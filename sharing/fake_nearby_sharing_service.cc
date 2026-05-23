@@ -22,6 +22,9 @@
 
 #include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
@@ -295,6 +298,16 @@ void FakeNearbySharingService::FireInitiatePairingResult(
   auto callback = std::move(it->second);
   initiate_pairing_callbacks_.erase(it);
   std::move(callback)(status);
+}
+
+void FakeNearbySharingService::UpdateBackupSavePath(
+    absl::string_view binding_id, absl::string_view save_path,
+    absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+        status_codes_callback) {
+  absl::StatusOr<FilePath> status =
+      sync_manager_->UpdateSyncBindingDestinationDirectory(binding_id,
+                                                           FilePath(save_path));
+  status_codes_callback(status.ok() ? StatusCodes::kOk : StatusCodes::kError);
 }
 
 }  // namespace sharing

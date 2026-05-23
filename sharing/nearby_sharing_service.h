@@ -22,6 +22,7 @@
 
 #include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
@@ -228,6 +229,10 @@ class NearbySharingService {
       uint16_t alternate_service_uuid) = 0;
   virtual SyncManager& sync_manager() = 0;
   virtual OutgoingTargetsManager& outgoing_targets_manager() = 0;
+  virtual void UpdateBackupSavePath(
+      absl::string_view binding_id, absl::string_view save_path,
+      absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+          status_codes_callback) = 0;
 };
 
 }  // namespace nearby::sharing

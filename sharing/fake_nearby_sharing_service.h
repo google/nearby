@@ -142,6 +142,10 @@ class FakeNearbySharingService : public NearbySharingService {
       uint16_t alternate_service_uuid) override {}
   SyncManager& sync_manager() override;
   OutgoingTargetsManager& outgoing_targets_manager() override;
+  void UpdateBackupSavePath(
+      absl::string_view binding_id, absl::string_view save_path,
+      absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+          status_codes_callback) override;
 
   nearby::sharing::api::IdentityRpcClient& fake_identity_rpc_client() {
     return identity_rpc_client_;

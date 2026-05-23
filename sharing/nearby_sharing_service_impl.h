@@ -173,6 +173,9 @@ class NearbySharingServiceImpl
   OutgoingTargetsManager& outgoing_targets_manager() override {
     return outgoing_targets_manager_;
   }
+  void UpdateBackupSavePath(
+      absl::string_view binding_id, absl::string_view save_path,
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) override;
 
   // NearbyConnectionsManager::IncomingConnectionListener:
   void OnIncomingConnection(absl::string_view endpoint_id,

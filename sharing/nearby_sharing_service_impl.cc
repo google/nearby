@@ -3299,4 +3299,17 @@ void NearbySharingServiceImpl::UpdateFilePathsInProgress(
           << ": Update file paths in progress: " << update_file_paths;
 }
 
+void NearbySharingServiceImpl::UpdateBackupSavePath(
+    absl::string_view binding_id, absl::string_view save_path,
+    absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+        status_codes_callback) {
+  absl::StatusOr<FilePath> original_path =
+      sync_manager_.UpdateSyncBindingDestinationDirectory(binding_id,
+                                                          FilePath(save_path));
+  // TODO: b/485307320 - If original destination directory exists, move
+  // contents to the new destination directory.
+  status_codes_callback(
+      original_path.ok() ? StatusCodes::kOk : StatusCodes::kError);
+}
+
 }  // namespace nearby::sharing
