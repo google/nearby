@@ -127,7 +127,7 @@ bool Encryptor::CryptString(bool do_encrypt, absl::string_view input,
   uint8_t* out_ptr =
       reinterpret_cast<uint8_t*>(nearbybase::WriteInto(&result, out_size + 1));
 
-  absl::optional<size_t> len =
+  std::optional<size_t> len =
       (mode_ == CTR)
           ? CryptCTR(do_encrypt, nearbybase::as_bytes(absl::MakeSpan(input)),
                      absl::MakeSpan(out_ptr, out_size))
@@ -143,7 +143,7 @@ bool Encryptor::CryptString(bool do_encrypt, absl::string_view input,
 bool Encryptor::CryptBytes(bool do_encrypt, absl::Span<const uint8_t> input,
                            std::vector<uint8_t>* output) {
   std::vector<uint8_t> result(MaxOutput(do_encrypt, input.size()));
-  absl::optional<size_t> len =
+  std::optional<size_t> len =
       (mode_ == CTR) ? CryptCTR(do_encrypt, input, absl::MakeSpan(result))
                      : Crypt(do_encrypt, input, absl::MakeSpan(result));
   if (!len) return false;
@@ -159,9 +159,9 @@ size_t Encryptor::MaxOutput(bool do_encrypt, size_t length) {
   return result;
 }
 
-absl::optional<size_t> Encryptor::Crypt(bool do_encrypt,
-                                        absl::Span<const uint8_t> input,
-                                        absl::Span<uint8_t> output) {
+std::optional<size_t> Encryptor::Crypt(bool do_encrypt,
+                                       absl::Span<const uint8_t> input,
+                                       absl::Span<uint8_t> output) {
   DCHECK(key_);  // Must call Init() before En/De-crypt.
 
   const EVP_CIPHER* cipher = GetCipherForKey(key_);
@@ -197,9 +197,9 @@ absl::optional<size_t> Encryptor::Crypt(bool do_encrypt,
   return out_len;
 }
 
-absl::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
-                                           absl::Span<const uint8_t> input,
-                                           absl::Span<uint8_t> output) {
+std::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
+                                          absl::Span<const uint8_t> input,
+                                          absl::Span<uint8_t> output) {
   if (iv_.size() != AES_BLOCK_SIZE) {
     LOG(ERROR) << "Counter value not set in CTR mode.";
     return absl::nullopt;
