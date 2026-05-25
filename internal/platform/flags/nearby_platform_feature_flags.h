@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mendel flags, auto-generated. DO NOT EDIT.
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_FLAGS_NEARBY_PLATFORM_FEATURE_FLAGS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_FLAGS_NEARBY_PLATFORM_FEATURE_FLAGS_H_
 
@@ -28,46 +29,45 @@ constexpr absl::string_view kConfigPackage = "nearby";
 
 // The Nearby Platform features.
 namespace nearby_platform_feature {
-
-// The maximum scanning times for available hotspots.
-constexpr auto kWifiHotspotScanMaxRetries =
-    flags::Flag<int64_t>(kConfigPackage, "45415883", 3);
-
-// The maximum IP check times during Wi-Fi hotspot connection.
-constexpr auto kWifiHotspotCheckIpMaxRetries =
-    flags::Flag<int64_t>(kConfigPackage, "45415884", 20);
-
-// The interval between 2 IP check attempts.
-constexpr auto kWifiHotspotCheckIpIntervalMillis =
-    flags::Flag<int64_t>(kConfigPackage, "45415885", 500);
-
-// The maximum connection times to remote Wi-Fi hotspot.
-constexpr auto kWifiHotspotConnectionMaxRetries =
-    flags::Flag<int64_t>(kConfigPackage, "45415886", 3);
-
-// The interval between 2 connectin attempts.
-constexpr auto kWifiHotspotConnectionIntervalMillis =
-    flags::Flag<int64_t>(kConfigPackage, "45415887", 2000);
-
-// The connection timeout to remote Wi-Fi hotspot.
-constexpr auto kWifiHotspotConnectionTimeoutMillis =
-    flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
-
+// Disable/Enable GATT feature in BLE v2.
+constexpr auto kEnableBleV2Gatt =
+    flags::Flag<bool>(kConfigPackage, "45415180", true);
+// Disable/Enable GATT feature on devices without BLE extended feature.
+constexpr auto kEnableBleV2GattOnNonExtendedDevice =
+    flags::Flag<bool>(kConfigPackage, "45415267", true);
 // Enable/Disable Intel PIe SDK to query/set WIFI feature.
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);
-
-// Enable/Disable new Bluetooth refactor
-constexpr auto kEnableNewBluetoothRefactor =
-    flags::Flag<bool>(kConfigPackage, "45615156", false);
-
-// The send buffer size of blocking socket
+// Replace std::async with platform thread
+constexpr auto kEnablePlatformThreadToNetwork =
+    flags::Flag<bool>(kConfigPackage, "45412711", true);
+// Enable/Disable task scheduler for ScheduledExecutor and timer.
+constexpr auto kEnableTaskScheduler =
+    flags::Flag<bool>(kConfigPackage, "45643835", true);
+// Enable/Disable Wi-Fi hotspot native.
+constexpr auto kEnableWifiHotspotNative =
+    flags::Flag<bool>(kConfigPackage, "45667396", true);
+// The send buffer size of blocking socket.
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
-
-// Run scheduled executor callback on executor thread.
-constexpr auto kRunScheduledExecutorCallbackOnExecutorThread =
-    flags::Flag<bool>(kConfigPackage, "45686494", false);
+// The interval between 2 IP check attempts.
+constexpr auto kWifiHotspotCheckIpIntervalMillis =
+    flags::Flag<int64_t>(kConfigPackage, "45415885", 500);
+// The maximum IP check times during Wi-Fi hotspot connection.
+constexpr auto kWifiHotspotCheckIpMaxRetries =
+    flags::Flag<int64_t>(kConfigPackage, "45415884", 10);
+// The interval between 2 connectin attempts.
+constexpr auto kWifiHotspotConnectionIntervalMillis =
+    flags::Flag<int64_t>(kConfigPackage, "45415887", 2000);
+// The maximum connection times to remote WiFi hotspot.
+constexpr auto kWifiHotspotConnectionMaxRetries =
+    flags::Flag<int64_t>(kConfigPackage, "45415886", 3);
+// The connection timeout to remote Wi-Fi hotspot.
+constexpr auto kWifiHotspotConnectionTimeoutMillis =
+    flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
+// The max retry times to scan WiFi hotspots.
+constexpr auto kWifiHotspotScanMaxRetries =
+    flags::Flag<int64_t>(kConfigPackage, "45415883", 3);
 
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby

@@ -47,9 +47,6 @@ constexpr auto kEnableMediumWifiLan =
 // Enable/disable retry/resume transfer for partial files.
 constexpr auto kEnableRetryResumeTransfer =
     flags::Flag<bool>(kConfigPackage, "45411589", false);
-// Enable/disable self share UI in Nearby Share
-constexpr auto kEnableSelfShareUi =
-    flags::Flag<bool>(kConfigPackage, "45418908", false);
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
@@ -112,7 +109,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418905, kEnableMediumWebRtc},
       {45418906, kEnableMediumWifiLan},
       {45411589, kEnableRetryResumeTransfer},
-      {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
       {45409033, kShowAutoUpdateSetting},
       {45762616, kEnableFileSync},
