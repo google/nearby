@@ -848,6 +848,14 @@ enum SharingUseCase {
   USE_CASE_TAP_TO_SHARE = 9;
 }
 
+enum SharingSurface {
+  SURFACE_UNKNOWN = 0;
+
+  SURFACE_QUICK_SHARE = 1;
+  SURFACE_APP = 2;
+  SURFACE_SYSTEM_SHARE_SHEET = 3;
+}
+
 // Used only for Windows App now.
 enum AppCrashReason {
   APP_CRASH_REASON_UNKNOWN = 0;
