@@ -24,6 +24,7 @@ cc_library(
         "//connections:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/experiments:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [

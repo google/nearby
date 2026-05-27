@@ -13,15 +13,11 @@
 # limitations under the License.
 
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
 cc_library(
     name = "analytics",
-    srcs = [
-        "analytics_recorder.cc",
-    ],
     hdrs = [
         "analytics_device_settings.h",
         "analytics_information.h",
@@ -29,38 +25,12 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/analytics:event_logger",
         "//proto:sharing_enums_cc_proto",
         "//sharing:attachments",
         "//sharing:types",
         "//sharing/common:enum",
         "//sharing/proto:enums_cc_proto",
-        "//sharing/proto/analytics:sharing_log_cc_proto",
-        "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
-        "@com_google_protobuf//:protobuf",
-    ],
-)
-
-cc_test(
-    name = "analytics_test",
-    srcs = ["analytics_recorder_test.cc"],
-    deps = [
-        ":analytics",
-        "//internal/analytics:mock_event_logger",
-        "//internal/platform/implementation:platform_impl",
-        "//proto:sharing_enums_cc_proto",
-        "//sharing:attachments",
-        "//sharing:types",
-        "//sharing/common:enum",
-        "//sharing/proto:enums_cc_proto",
-        "//sharing/proto:wire_format_cc_proto",
-        "//sharing/proto/analytics:sharing_log_cc_proto",
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf",
     ],
 )

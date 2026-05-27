@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "net/proto2/contrib/parse_proto/parse_text_proto.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -36,7 +37,6 @@
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -162,8 +162,8 @@ class OutgoingShareSessionTest : public ::testing::Test {
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
   nearby::analytics::MockEventLogger mock_event_logger_;
-  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
-                                                   &mock_event_logger_};
+  analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
+                                                       &mock_event_logger_};
   ShareTarget share_target_;
   MockFunction<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;

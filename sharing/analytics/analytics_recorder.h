@@ -16,205 +16,195 @@
 #define THIRD_PARTY_NEARBY_SHARING_ANALYTICS_ANALYTICS_RECORDER_H_
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/analytics/event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
 #include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_target.h"
 
-namespace nearby {
-namespace sharing {
-namespace analytics {
+namespace nearby::sharing::analytics {
 
 class AnalyticsRecorder {
  public:
-  explicit AnalyticsRecorder(int32_t vendor_id,
-                             nearby::analytics::EventLogger* event_logger)
-      : vendor_id_(vendor_id), event_logger_(event_logger) {}
-  ~AnalyticsRecorder() = default;
+  enum class RpcDirection {
+    kUnknown = 0,
+    kIncoming = 1,
+    kOutgoing = 2,
+  };
 
-  void NewEstablishConnection(
+  AnalyticsRecorder() = default;
+  virtual ~AnalyticsRecorder() = default;
+
+  virtual void NewEstablishConnection(
       int64_t session_id,
       location::nearby::proto::sharing::EstablishConnectionStatus
           connection_status,
       const ShareTarget& share_target, int transfer_position,
       int concurrent_connections, int64_t duration_millis,
-      std::optional<std::string> referrer_package);
+      std::optional<std::string> referrer_package) = 0;
 
-  void NewAcceptAgreements();
+  virtual void NewAcceptAgreements() = 0;
 
-  void NewDeclineAgreements();
+  virtual void NewDeclineAgreements() = 0;
 
-  void NewAddContact();
+  virtual void NewAddContact() = 0;
 
-  void NewRemoveContact();
+  virtual void NewRemoveContact() = 0;
 
-  void NewTapFeedback();
+  virtual void NewTapFeedback() = 0;
 
-  void NewTapHelp();
+  virtual void NewTapHelp() = 0;
 
-  void NewLaunchDeviceContactConsent(
-      location::nearby::proto::sharing::ConsentAcceptanceStatus status);
+  virtual void NewLaunchDeviceContactConsent(
+      location::nearby::proto::sharing::ConsentAcceptanceStatus status) = 0;
 
-  void NewAdvertiseDevicePresenceEnd(int64_t session_id);
+  virtual void NewAdvertiseDevicePresenceEnd(int64_t session_id) = 0;
 
-  void NewAdvertiseDevicePresenceStart(
+  virtual void NewAdvertiseDevicePresenceStart(
       int64_t session_id, nearby::sharing::proto::DeviceVisibility visibility,
       location::nearby::proto::sharing::SessionStatus status,
       nearby::sharing::proto::DataUsage data_usage,
-      std::optional<std::string> referrer_package);
+      std::optional<std::string> referrer_package) = 0;
 
-  void NewDescribeAttachments(const AttachmentContainer& attachments);
+  virtual void NewDescribeAttachments(
+      const AttachmentContainer& attachments) = 0;
 
-  void NewDiscoverShareTarget(
+  virtual void NewDiscoverShareTarget(
       const ShareTarget& share_target, int64_t session_id,
       int64_t latency_since_scanning_start_millis, int64_t flow_id,
       std::optional<std::string> referrer_package,
-      int64_t latency_since_send_surface_registered_millis);
+      int64_t latency_since_send_surface_registered_millis) = 0;
 
-  void NewEnableNearbySharing(
-      location::nearby::proto::sharing::NearbySharingStatus status);
+  virtual void NewEnableNearbySharing(
+      location::nearby::proto::sharing::NearbySharingStatus status) = 0;
 
-  void NewOpenReceivedAttachments(const AttachmentContainer& attachments,
-                                  int64_t session_id);
+  virtual void NewOpenReceivedAttachments(
+      const AttachmentContainer& attachments, int64_t session_id) = 0;
 
-  void NewProcessReceivedAttachmentsEnd(
+  virtual void NewProcessReceivedAttachmentsEnd(
       int64_t session_id,
       location::nearby::proto::sharing::ProcessReceivedAttachmentsStatus
-          status);
+          status) = 0;
 
-  void NewReceiveAttachmentsEnd(
+  virtual void NewReceiveAttachmentsEnd(
       int64_t session_id, int64_t received_bytes,
       location::nearby::proto::sharing::AttachmentTransmissionStatus status,
-      std::optional<std::string> referrer_package);
+      std::optional<std::string> referrer_package) = 0;
 
-  void NewReceiveAttachmentsStart(int64_t session_id,
-                                  const AttachmentContainer& attachments);
+  virtual void NewReceiveAttachmentsStart(
+      int64_t session_id, const AttachmentContainer& attachments) = 0;
 
-  void NewReceiveFastInitialization(int64_t timeElapseSinceScreenUnlockMillis);
+  virtual void NewReceiveFastInitialization(
+      int64_t timeElapseSinceScreenUnlockMillis) = 0;
 
-  void NewAcceptFastInitialization();
+  virtual void NewAcceptFastInitialization() = 0;
 
-  void NewDismissFastInitialization();
+  virtual void NewDismissFastInitialization() = 0;
 
-  void NewReceiveIntroduction(
+  virtual void NewReceiveIntroduction(
       int64_t session_id, const ShareTarget& share_target,
       std::optional<std::string> referrer_package,
-      location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
-  void NewRespondToIntroduction(
+  virtual void NewRespondToIntroduction(
       location::nearby::proto::sharing::ResponseToIntroduction action,
-      int64_t session_id);
+      int64_t session_id) = 0;
 
-  void NewTapPrivacyNotification();
+  virtual void NewTapPrivacyNotification() = 0;
 
-  void NewDismissPrivacyNotification();
+  virtual void NewDismissPrivacyNotification() = 0;
 
-  void NewScanForShareTargetsEnd(int64_t session_id);
+  virtual void NewScanForShareTargetsEnd(int64_t session_id) = 0;
 
-  void NewScanForShareTargetsStart(
+  virtual void NewScanForShareTargetsStart(
       int64_t session_id,
       location::nearby::proto::sharing::SessionStatus status,
       AnalyticsInformation analytics_information, int64_t flow_id,
-      std::optional<std::string> referrer_package);
+      std::optional<std::string> referrer_package) = 0;
 
-  void NewSendAttachmentsEnd(
+  virtual void NewSendAttachmentsEnd(
       int64_t session_id, int64_t sent_bytes, const ShareTarget& share_target,
       location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       int transfer_position, int concurrent_connections,
       int64_t duration_millis, std::optional<std::string> referrer_package,
       location::nearby::proto::sharing::ConnectionLayerStatus
           connection_layer_status,
-      location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
-  void NewSendAttachmentsStart(int64_t session_id,
-                               const AttachmentContainer& attachments,
-                               int transfer_position,
-                               int concurrent_connections,
-                               bool advanced_protection_enabled,
-                               bool advanced_protection_mismatch);
+  virtual void NewSendAttachmentsStart(int64_t session_id,
+                                       const AttachmentContainer& attachments,
+                                       int transfer_position,
+                                       int concurrent_connections,
+                                       bool advanced_protection_enabled,
+                                       bool advanced_protection_mismatch) = 0;
 
-  void NewSendFastInitialization();
+  virtual void NewSendFastInitialization() = 0;
 
-  void NewSendStart(int64_t session_id, int transfer_position,
-                    int concurrent_connections,
-                    const ShareTarget& share_target);
+  virtual void NewSendStart(int64_t session_id, int transfer_position,
+                            int concurrent_connections,
+                            const ShareTarget& share_target) = 0;
 
-  void NewSendIntroduction(
+  virtual void NewSendIntroduction(
       ShareTargetType target_type, int64_t session_id,
       location::nearby::proto::sharing::DeviceRelationship relationship,
-      location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
-  void NewSendIntroduction(
+  virtual void NewSendIntroduction(
       int64_t session_id, const ShareTarget& share_target,
       int transfer_position, int concurrent_connections,
-      location::nearby::proto::sharing::OSType share_target_os_type);
+      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
-  void NewSetVisibility(nearby::sharing::proto::DeviceVisibility src_visibility,
-                        nearby::sharing::proto::DeviceVisibility dst_visibility,
-                        int64_t duration_millis);
+  virtual void NewSetVisibility(
+      nearby::sharing::proto::DeviceVisibility src_visibility,
+      nearby::sharing::proto::DeviceVisibility dst_visibility,
+      int64_t duration_millis) = 0;
 
-  void NewDeviceSettings(AnalyticsDeviceSettings settings);
+  virtual void NewDeviceSettings(AnalyticsDeviceSettings settings) = 0;
 
-  void NewSetDataUsage(nearby::sharing::proto::DataUsage original_preference,
-                       nearby::sharing::proto::DataUsage preference);
+  virtual void NewSetDataUsage(
+      nearby::sharing::proto::DataUsage original_preference,
+      nearby::sharing::proto::DataUsage preference) = 0;
 
-  void NewAddQuickSettingsTile();
+  virtual void NewAddQuickSettingsTile() = 0;
 
-  void NewRemoveQuickSettingsTile();
+  virtual void NewRemoveQuickSettingsTile() = 0;
 
-  void NewTapQuickSettingsTile();
+  virtual void NewTapQuickSettingsTile() = 0;
 
-  void NewToggleShowNotification(
+  virtual void NewToggleShowNotification(
       location::nearby::proto::sharing::ShowNotificationStatus prev_status,
-      location::nearby::proto::sharing::ShowNotificationStatus current_status);
+      location::nearby::proto::sharing::ShowNotificationStatus
+          current_status) = 0;
 
-  void NewSetDeviceName(int device_name_size);
+  virtual void NewSetDeviceName(int device_name_size) = 0;
 
-  void NewRequestSettingPermissions(
+  virtual void NewRequestSettingPermissions(
       location::nearby::proto::sharing::PermissionRequestType type,
-      location::nearby::proto::sharing::PermissionRequestResult result);
+      location::nearby::proto::sharing::PermissionRequestResult result) = 0;
 
-  void NewInstallAPKStatus(
+  virtual void NewInstallAPKStatus(
       location::nearby::proto::sharing::InstallAPKStatus status,
-      location::nearby::proto::sharing::ApkSource source);
+      location::nearby::proto::sharing::ApkSource source) = 0;
 
-  void NewVerifyAPKStatus(
+  virtual void NewVerifyAPKStatus(
       location::nearby::proto::sharing::VerifyAPKStatus status,
-      location::nearby::proto::sharing::ApkSource source);
+      location::nearby::proto::sharing::ApkSource source) = 0;
 
-  void NewRpcCallStatus(
-      absl::string_view rpc_name,
-      nearby::sharing::analytics::proto::SharingLog::RpcCallStatus::RpcDirection
-          direction,
-      int error_code, absl::Duration latency);
+  virtual void NewRpcCallStatus(absl::string_view rpc_name,
+                                RpcDirection direction, int error_code,
+                                absl::Duration latency) = 0;
 
   // Generates a random number for session ID or flow ID.
-  int64_t GenerateNextId();
-
- private:
-  std::unique_ptr<nearby::sharing::analytics::proto::SharingLog>
-  CreateSharingLog(
-      location::nearby::proto::sharing::EventCategory event_category,
-      location::nearby::proto::sharing::EventType event_type);
-  void LogEvent(const nearby::sharing::analytics::proto::SharingLog& message);
-
-  const int32_t vendor_id_;
-  nearby::analytics::EventLogger* event_logger_ = nullptr;
+  virtual int64_t GenerateNextId() = 0;
 };
 
-}  // namespace analytics
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing::analytics
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_ANALYTICS_ANALYTICS_RECORDER_H_

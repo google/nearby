@@ -30,9 +30,10 @@
 #include <utility>
 #include <vector>
 
-#include "location/nearby/sharing/lib/account/signin_attempt.h"
 #include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "location/nearby/sharing/lib/account/mock_account_observer.h"
+#include "location/nearby/sharing/lib/account/signin_attempt.h"
+#include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -55,7 +56,6 @@
 #include "internal/test/fake_task_runner.h"
 #include "sharing/advertisement.h"
 #include "sharing/advertisement_capabilities.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
@@ -452,7 +452,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetBluetoothIsPowered(true);
     SetScreenLocked(false);
     SetLanConnected(true);
-    analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorder>(
+    analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorderImpl>(
         /*vendor_id=*/0, /*event_logger=*/nullptr);
 
     service_ = CreateService(std::move(fake_task_runner));
@@ -1269,7 +1269,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<NearbyConnectionImpl> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
-  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
+  std::unique_ptr<analytics::AnalyticsRecorderImpl> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;
@@ -4852,8 +4852,8 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
       unknown_file_paths_to_delete,
       UnorderedElementsAre(FilePath("test1.txt"), FilePath("test2.txt")));
   nearby::analytics::MockEventLogger mock_event_logger;
-  analytics::AnalyticsRecorder analytics_recorder{/*vendor_id=*/0,
-                                                  &mock_event_logger};
+  analytics::AnalyticsRecorderImpl analytics_recorder{/*vendor_id=*/0,
+                                                      &mock_event_logger};
   ShareTarget share_target;
   share_target.is_incoming = true;
   IncomingShareSession session(

@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -25,7 +26,6 @@
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
@@ -61,7 +61,7 @@ class OutgoingTargetsManagerTest : public ::testing::Test {
   FakeClock clock_;
   FakeTaskRunner service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
-  analytics::AnalyticsRecorder analytics_recorder_;
+  analytics::AnalyticsRecorderImpl analytics_recorder_;
   testing::MockFunction<void(const ShareTarget&)>
       share_target_discovered_callback_;
   testing::MockFunction<void(const ShareTarget&)>

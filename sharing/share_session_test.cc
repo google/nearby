@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -32,7 +33,6 @@
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/nearby_connection.h"
@@ -97,8 +97,8 @@ class TestShareSession : public ShareSession {
   FakeNearbyConnectionsManager connections_manager_;
   FakeDeviceInfo device_info_;
   nearby::analytics::MockEventLogger mock_event_logger_;
-  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
-                                                   &mock_event_logger_};
+  analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
+                                                       &mock_event_logger_};
   const bool is_incoming_;
 };
 
