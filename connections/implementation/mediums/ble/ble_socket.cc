@@ -95,8 +95,8 @@ Exception BleOutputStream::WritePayloadLength(int payload_length) {
 }
 
 BleSocket::BleSocket(const ByteArray& service_id_hash,
-                     std::unique_ptr<BleInputStream> ble_input_stream,
-                     std::unique_ptr<BleOutputStream> ble_output_stream,
+                     std::shared_ptr<BleInputStream> ble_input_stream,
+                     std::shared_ptr<BleOutputStream> ble_output_stream,
                      nearby::BleSocket ble_socket)
     : service_id_hash_(service_id_hash),
       ble_input_stream_(std::move(ble_input_stream)),
@@ -104,8 +104,8 @@ BleSocket::BleSocket(const ByteArray& service_id_hash,
       ble_socket_(std::move(ble_socket)) {}
 
 BleSocket::BleSocket(const ByteArray& service_id_hash,
-                     std::unique_ptr<BleInputStream> ble_input_stream,
-                     std::unique_ptr<BleOutputStream> ble_output_stream,
+                     std::shared_ptr<BleInputStream> ble_input_stream,
+                     std::shared_ptr<BleOutputStream> ble_output_stream,
                      nearby::BleL2capSocket l2cap_socket)
     : service_id_hash_(service_id_hash),
       ble_input_stream_(std::move(ble_input_stream)),
@@ -133,14 +133,27 @@ OutputStream& BleSocket::GetOutputStream() {
 }
 
 Exception BleSocket::Close() {
-  MutexLock lock(&mutex_);
-  return CloseLocked();
-}
+  Exception close_status = {Exception::kSuccess};
 
-Exception BleSocket::CloseLocked() {
-  if (!ble_input_stream_ && !ble_output_stream_) {
-    return {Exception::kSuccess};
+  // 1. Interrupt the pending read by closing the native platform socket first,
+  // WITHOUT holding the C++ serialization lock! This allows the read thread
+  // (which is currently blocked in Read() holding this socket's mutex_)
+  // to immediately receive EOF/Exception, release the lock, and terminate.
+  if (ble_socket_.IsValid()) {
+    close_status = ble_socket_.Close();
+  } else if (l2cap_socket_.IsValid()) {
+    close_status = l2cap_socket_.Close();
   }
+
+  // 2. Now that the underlying native socket has been closed and the read
+  // thread is guaranteed to have released mutex_, we can safely take the C++
+  // serialization lock to cleanly reset our stream decorators.
+  MutexLock lock(&mutex_);
+
+  if (!ble_input_stream_ && !ble_output_stream_) {
+    return close_status;
+  }
+
   if (ble_input_stream_) {
     ble_input_stream_->Close();
     ble_input_stream_.reset();
@@ -149,18 +162,10 @@ Exception BleSocket::CloseLocked() {
     ble_output_stream_->Close();
     ble_output_stream_.reset();
   }
-  Medium medium = GetMediumLocked();
-  switch (medium) {
-    case Medium::BLE:
-      return ble_socket_.Close();
-    case Medium::BLE_L2CAP:
-      return l2cap_socket_.Close();
-    default:
-      LOG(FATAL) << "Socket close on unknown medium.";
-      break;
-  }
+
   serial_executor_.Shutdown();
-  return {Exception::kIo};
+
+  return close_status;
 }
 
 nearby::BlePeripheral& BleSocket::GetRemotePeripheral() {
@@ -207,21 +212,26 @@ Medium BleSocket::GetMediumLocked() const {
 }
 
 ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
-  MutexLock lock(&mutex_);
-  if (!ble_input_stream_) {
+  std::shared_ptr<mediums::BleInputStream> input_stream;
+  {
+    MutexLock lock(&mutex_);
+    input_stream = ble_input_stream_;
+  }
+  if (!input_stream) {
     return Exception::kFailed;
   }
 
   ExceptionOr<ByteArray> read_bytes =
-      ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+      input_stream->Read(BlePacket::kServiceIdHashLength);
   while (read_bytes.ok()) {
     ByteArray read_bytes_result = read_bytes.result();
     if (BlePacket::IsControlPacketBytes(read_bytes_result)) {
-      ExceptionOr<ByteArray> handle_result = ProcessBleControlPacketLocked();
+      ExceptionOr<ByteArray> handle_result =
+          ProcessBleControlPacket(*input_stream);
       if (!handle_result.ok()) {
         return handle_result;
       }
-      read_bytes = ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+      read_bytes = input_stream->Read(BlePacket::kServiceIdHashLength);
     } else {
       if (read_bytes_result != service_id_hash_) {
         LOG(WARNING)
@@ -238,21 +248,22 @@ ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
 }
 
 ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
-  int payload_length = 0;
+  std::shared_ptr<mediums::BleInputStream> input_stream;
   {
     MutexLock lock(&mutex_);
-    if (!ble_input_stream_) {
-      return {Exception::kIo};
-    }
-
-    ExceptionOr<ByteArray> read_bytes =
-        ble_input_stream_->Read(sizeof(std::int32_t));
-    if (!read_bytes.ok()) {
-      return read_bytes.exception();
-    }
-
-    payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+    input_stream = ble_input_stream_;
   }
+  if (!input_stream) {
+    return {Exception::kIo};
+  }
+
+  ExceptionOr<ByteArray> read_bytes = input_stream->Read(sizeof(std::int32_t));
+  if (!read_bytes.ok()) {
+    return read_bytes.exception();
+  }
+
+  int payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+
   Exception send_ack_result = SendPacketAcknowledgement(payload_length);
   if (!send_ack_result.Ok()) {
     LOG(WARNING) << "Failed to send packet acknowledgement.";
@@ -268,9 +279,10 @@ Exception BleSocket::WritePayloadLength(int payload_length) {
   return ble_output_stream_->WritePayloadLength(payload_length);
 }
 
-ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
+ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacket(
+    InputStream& input_stream) {
   // Read the first 4 bytes (packet block 1).
-  ExceptionOr<ByteArray> read_bytes = ble_input_stream_->Read(4);
+  ExceptionOr<ByteArray> read_bytes = input_stream.Read(4);
   if (!read_bytes.ok()) {
     return read_bytes;
   }
@@ -282,7 +294,7 @@ ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
   // Read the length from the 3rd byte of the packet block (0-indexed).
   int packet_block_2_size = packet_block_1.data()[3];
   // Read the left bytes for the packet block 2).
-  read_bytes = ble_input_stream_->Read(packet_block_2_size);
+  read_bytes = input_stream.Read(packet_block_2_size);
   if (!read_bytes.ok()) {
     return read_bytes;
   }
@@ -318,6 +330,12 @@ ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
 }
 
 Exception BleSocket::SendIntroduction() {
+  {
+    MutexLock lock(&mutex_);
+    if (!ble_output_stream_) {
+      return {Exception::kFailed};
+    }
+  }
   Exception result = {Exception::kFailed};
   CountDownLatch latch(1);
   RunOnSocketThread([this, &latch, &result]() {
@@ -348,6 +366,12 @@ Exception BleSocket::SendIntroduction() {
 }
 
 Exception BleSocket::SendDisconnection() {
+  {
+    MutexLock lock(&mutex_);
+    if (!ble_output_stream_) {
+      return {Exception::kFailed};
+    }
+  }
   Exception result = {Exception::kFailed};
   CountDownLatch latch(1);
   RunOnSocketThread([this, &latch, &result]() {
@@ -378,6 +402,12 @@ Exception BleSocket::SendDisconnection() {
 }
 
 Exception BleSocket::SendPacketAcknowledgement(int received_size) {
+  {
+    MutexLock lock(&mutex_);
+    if (!ble_output_stream_) {
+      return {Exception::kFailed};
+    }
+  }
   Exception result = {Exception::kFailed};
   CountDownLatch latch(1);
   RunOnSocketThread([this, &latch, &result, &received_size]() {

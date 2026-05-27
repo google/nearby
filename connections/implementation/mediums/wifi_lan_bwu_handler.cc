@@ -20,14 +20,15 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "absl/base/nullability.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
@@ -93,9 +94,10 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     VLOG(1) << "WifiLanBwuHandler is attempting to connect to available "
                "WifiLan service (" << address_candidate << ") for endpoint "
             << endpoint_id;
-    ErrorOr<WifiLanSocket> socket_result =
-        wifi_lan_medium_.Connect(service_id, address_candidate,
-                                 client->GetCancellationFlag(endpoint_id));
+    std::shared_ptr<CancellationFlag> cancellation_flag =
+        client->GetCancellationFlag(endpoint_id);
+    ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
+        service_id, address_candidate, cancellation_flag.get());
     if (socket_result.has_error()) {
       LOG(ERROR)
           << "WifiLanBwuHandler failed to connect to the WifiLan service ("

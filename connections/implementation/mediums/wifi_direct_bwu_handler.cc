@@ -19,16 +19,17 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "absl/base/nullability.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
@@ -173,8 +174,10 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
   }
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
   ErrorOr<WifiDirectSocket> socket_result = wifi_direct_medium_.Connect(
-      service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
+      service_id, gateway, port, cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR)
         << "WifiDirectBwuHandler failed to connect to the WifiDirect service("

@@ -31,6 +31,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -80,6 +81,86 @@ api::ble::BlePeripheral::UniqueId BleSocket::GetRemotePeripheralId() {
     return 0LL;
   }
   return medium->GetAdapter().GetUniqueId();
+}
+
+api::ble::BlePeripheral::UniqueId BleL2capSocket::GetRemotePeripheralId() {
+  BleL2capSocket* remote_socket =
+      dynamic_cast<BleL2capSocket*>(GetRemoteSocket());
+  if (remote_socket == nullptr || remote_socket->adapter_ == nullptr ||
+      remote_socket->adapter_->GetBleMedium() == nullptr) {
+    return 0LL;
+  }
+  BleMedium* medium =
+      dynamic_cast<BleMedium*>(remote_socket->adapter_->GetBleMedium());
+  if (medium == nullptr) {
+    return 0LL;
+  }
+  return medium->GetAdapter().GetUniqueId();
+}
+
+BleL2capServerSocket::~BleL2capServerSocket() {
+  absl::MutexLock lock(mutex_);
+  DoClose();
+}
+
+std::unique_ptr<api::ble::BleL2capSocket> BleL2capServerSocket::Accept() {
+  absl::MutexLock lock(mutex_);
+  while (!closed_ && pending_sockets_.empty()) {
+    cond_.Wait(&mutex_);
+  }
+  if (closed_) return {};
+  auto* remote_socket =
+      pending_sockets_.extract(pending_sockets_.begin()).value();
+  CHECK(remote_socket);
+
+  auto local_socket = std::make_unique<BleL2capSocket>(adapter_);
+  local_socket->Connect(*remote_socket);
+  remote_socket->Connect(*local_socket);
+  cond_.SignalAll();
+  return local_socket;
+}
+
+bool BleL2capServerSocket::Connect(BleL2capSocket& socket) {
+  absl::MutexLock lock(mutex_);
+  if (closed_) return false;
+  if (socket.IsConnected()) {
+    LOG(WARNING)
+        << "Failed to connect to Ble L2CAP server socket: already connected";
+    return true;
+  }
+  pending_sockets_.insert(&socket);
+  cond_.SignalAll();
+  while (!socket.IsConnected()) {
+    cond_.Wait(&mutex_);
+    if (closed_) return false;
+  }
+  return true;
+}
+
+void BleL2capServerSocket::SetCloseNotifier(
+    absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock(mutex_);
+  close_notifier_ = std::move(notifier);
+}
+
+Exception BleL2capServerSocket::Close() {
+  absl::MutexLock lock(mutex_);
+  return DoClose();
+}
+
+Exception BleL2capServerSocket::DoClose() {
+  bool should_notify = !closed_;
+  closed_ = true;
+  if (should_notify) {
+    cond_.SignalAll();
+    if (close_notifier_) {
+      auto notifier = std::move(close_notifier_);
+      mutex_.unlock();
+      notifier();
+      mutex_.lock();
+    }
+  }
+  return {Exception::kSuccess};
 }
 
 std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
@@ -716,8 +797,79 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocket(
 
 std::unique_ptr<api::ble::BleL2capServerSocket>
 BleMedium::OpenL2capServerSocket(const std::string& service_id) {
-  // TODO(mingshiouwu): add more codes for g3 testing.
-  return nullptr;
+  auto server_socket = std::make_unique<BleL2capServerSocket>(&GetAdapter());
+  server_socket->SetCloseNotifier([this, service_id]() {
+    absl::MutexLock lock(mutex_);
+    l2cap_server_sockets_.erase(service_id);
+  });
+  LOG(INFO) << "G3 Ble Adding L2CAP server socket: medium=" << this
+            << ", service_id=" << service_id;
+  absl::MutexLock lock(mutex_);
+  l2cap_server_sockets_.insert({service_id, server_socket.get()});
+  return server_socket;
+}
+
+std::unique_ptr<api::ble::BleL2capSocket> BleMedium::ConnectOverL2cap(
+    int psm, const std::string& service_id, TxPowerLevel tx_power_level,
+    api::ble::BlePeripheral::UniqueId remote_peripheral_id,
+    CancellationFlag* cancellation_flag) {
+  LOG(INFO) << "G3 Ble ConnectOverL2cap [self]: medium=" << this
+            << ", adapter=" << &GetAdapter()
+            << ", peripheral id=" << adapter_.GetUniqueId()
+            << ", service_id=" << service_id << ", psm=" << psm;
+
+  // First, find an instance of remote medium, that exposed this peripheral.
+  BleMedium* remote_medium = dynamic_cast<BleMedium*>(
+      MediumEnvironment::Instance().FindBleMedium(remote_peripheral_id));
+  if (remote_medium == nullptr) {
+    LOG(INFO) << "Peripheral not found, id= " << remote_peripheral_id;
+    return nullptr;
+  }
+
+  BleL2capServerSocket* remote_server_socket = nullptr;
+  LOG(INFO) << "G3 Ble ConnectOverL2cap [peer]: medium=" << remote_medium
+            << ", peripheral=" << &remote_peripheral_id
+            << ", service_id=" << service_id;
+
+  // Then, find our server socket context in this medium.
+  {
+    absl::MutexLock medium_lock(remote_medium->mutex_);
+    auto item = remote_medium->l2cap_server_sockets_.find(service_id);
+    remote_server_socket = item != remote_medium->l2cap_server_sockets_.end()
+                               ? item->second
+                               : nullptr;
+    if (remote_server_socket == nullptr) {
+      LOG(ERROR) << "G3 Ble Failed to find Ble L2CAP Server socket: service_id="
+                 << service_id;
+      return nullptr;
+    }
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    LOG(ERROR) << "G3 BLE ConnectOverL2cap: Has been cancelled: "
+                  "service_id="
+               << service_id;
+    return nullptr;
+  }
+
+  CancellationFlagListener listener(
+      cancellation_flag, [&remote_server_socket]() {
+        LOG(INFO) << "G3 Ble Cancel ConnectOverL2cap.";
+        if (remote_server_socket != nullptr) {
+          remote_server_socket->Close();
+        }
+      });
+
+  auto socket = std::make_unique<BleL2capSocket>(&GetAdapter());
+  // Finally, Request to connect to this socket.
+  if (!remote_server_socket->Connect(*socket)) {
+    LOG(ERROR) << "G3 Ble Failed to connect to existing Ble L2CAP "
+                  "Server socket: service_id="
+               << service_id;
+    return nullptr;
+  }
+  LOG(INFO) << "G3 Ble ConnectOverL2cap to socket=" << socket.get();
+  return socket;
 }
 
 std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
