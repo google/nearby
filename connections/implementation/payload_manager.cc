@@ -1102,9 +1102,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
+  {
     MutexLock lock(&chunk_update_mutex_);
     ++outgoing_chunk_update_count_;
   }
@@ -1119,9 +1117,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
+        {
           MutexLock lock(&chunk_update_mutex_);
           --outgoing_chunk_update_count_;
           if (payload_header.has_type() &&
@@ -1201,9 +1197,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
+  {
     MutexLock lock(&chunk_update_mutex_);
     ++incoming_chunk_update_count_;
   }
@@ -1217,9 +1211,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
+        {
           MutexLock lock(&chunk_update_mutex_);
           --incoming_chunk_update_count_;
           if (payload_header.has_type() &&
