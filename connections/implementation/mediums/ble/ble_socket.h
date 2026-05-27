@@ -178,8 +178,8 @@ class BleSocket final {
       nearby::BleSocket ble_socket, const ByteArray& service_id_hash) {
     return std::unique_ptr<BleSocket>(new BleSocket(
         service_id_hash,
-        std::make_unique<BleInputStream>(ble_socket.GetInputStream()),
-        std::make_unique<BleOutputStream>(ble_socket.GetOutputStream(),
+        std::make_shared<BleInputStream>(ble_socket.GetInputStream()),
+        std::make_shared<BleOutputStream>(ble_socket.GetOutputStream(),
                                           service_id_hash),
         std::move(ble_socket)));
   }
@@ -188,8 +188,8 @@ class BleSocket final {
       nearby::BleL2capSocket l2cap_socket, const ByteArray& service_id_hash) {
     return std::unique_ptr<BleSocket>(new BleSocket(
         service_id_hash,
-        std::make_unique<BleInputStream>(l2cap_socket.GetInputStream()),
-        std::make_unique<BleOutputStream>(l2cap_socket.GetOutputStream(),
+        std::make_shared<BleInputStream>(l2cap_socket.GetInputStream()),
+        std::make_shared<BleOutputStream>(l2cap_socket.GetOutputStream(),
                                           service_id_hash),
         std::move(l2cap_socket)));
   }
@@ -354,13 +354,13 @@ class BleSocket final {
 
  private:
   BleSocket(const ByteArray& service_id_hash,
-            std::unique_ptr<BleInputStream> ble_input_stream,
-            std::unique_ptr<BleOutputStream> ble_output_stream,
+            std::shared_ptr<BleInputStream> ble_input_stream,
+            std::shared_ptr<BleOutputStream> ble_output_stream,
             nearby::BleSocket ble_socket);
 
   BleSocket(const ByteArray& service_id_hash,
-            std::unique_ptr<BleInputStream> ble_input_stream,
-            std::unique_ptr<BleOutputStream> ble_output_stream,
+            std::shared_ptr<BleInputStream> ble_input_stream,
+            std::shared_ptr<BleOutputStream> ble_output_stream,
             nearby::BleL2capSocket l2cap_socket);
 
   /**
@@ -375,8 +375,7 @@ class BleSocket final {
    * payload, the `ByteArray` may be empty. Returns an `Exception` if a
    * protocol error occurs or the read operation fails.
    */
-  ExceptionOr<ByteArray> ProcessBleControlPacketLocked()
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  ExceptionOr<ByteArray> ProcessBleControlPacket(InputStream& input_stream);
 
   /**
    * Sends a raw L2CAP packet over the socket.
@@ -401,19 +400,17 @@ class BleSocket final {
   void RunOnSocketThread(Runnable runnable);
   ::location::nearby::proto::connections::Medium GetMediumLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  Exception CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;
   SingleThreadExecutor serial_executor_;
 
   const ByteArray service_id_hash_;
-  std::unique_ptr<mediums::BleInputStream> ble_input_stream_
+  std::shared_ptr<mediums::BleInputStream> ble_input_stream_
       ABSL_GUARDED_BY(mutex_) = nullptr;
-  std::unique_ptr<mediums::BleOutputStream> ble_output_stream_
+  std::shared_ptr<mediums::BleOutputStream> ble_output_stream_
       ABSL_GUARDED_BY(mutex_) = nullptr;
-  nearby::BleSocket ble_socket_ ABSL_GUARDED_BY(mutex_) = nearby::BleSocket();
-  nearby::BleL2capSocket l2cap_socket_ ABSL_GUARDED_BY(mutex_) =
-      nearby::BleL2capSocket();
+  nearby::BleSocket ble_socket_ = nearby::BleSocket();
+  nearby::BleL2capSocket l2cap_socket_ = nearby::BleL2capSocket();
 };
 
 }  // namespace mediums

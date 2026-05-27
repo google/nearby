@@ -188,6 +188,7 @@ const NearbyDevice* ClientProxy::GetLocalDevice() {
 }
 
 std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.connection_token;
@@ -218,6 +219,7 @@ std::string ClientProxy::GetSavePath(
 
 std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
     const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
   auto item = bluetooth_mac_addresses_.find(endpoint_id);
   if (item != bluetooth_mac_addresses_.end()) return item->second;
   return std::nullopt;
@@ -225,6 +227,7 @@ std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
 
 void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
                                          MacAddress bluetooth_mac_address) {
+  MutexLock lock(&mutex_);
   bluetooth_mac_addresses_[endpoint_id] = bluetooth_mac_address;
 }
 
@@ -877,16 +880,19 @@ bool ClientProxy::IsConnectionRejected(const std::string& endpoint_id) const {
 }
 
 bool ClientProxy::LocalConnectionIsAccepted(std::string endpoint_id) const {
+  MutexLock lock(&mutex_);
   return ConnectionStatusesContains(
       endpoint_id, ClientProxy::Connection::kLocalEndpointAccepted);
 }
 
 bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
+  MutexLock lock(&mutex_);
   return ConnectionStatusesContains(
       endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
 }
 
 bool ClientProxy::AutoUpgradeBandwidth() const {
+  MutexLock lock(&mutex_);
   bool result = false;
   if (IsAdvertising() && (GetAdvertisingOptions().strategy.IsNone() ||
                           GetAdvertisingOptions().auto_upgrade_bandwidth)) {
@@ -901,6 +907,7 @@ bool ClientProxy::AutoUpgradeBandwidth() const {
 }
 
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
+  MutexLock lock(&mutex_);
   bool result = false;
   if (IsAdvertising() &&
       (GetAdvertisingOptions().strategy.IsNone() ||
@@ -921,6 +928,7 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
     return;
   }
 
+  MutexLock lock(&mutex_);
   auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
     // A new flag may be added to the map with the same endpoint, even if a
@@ -935,19 +943,21 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
     return;
   }
   cancellation_flags_.emplace(endpoint_id,
-                              std::make_unique<CancellationFlag>());
+                              std::make_shared<CancellationFlag>());
 }
 
-CancellationFlag* ClientProxy::GetCancellationFlag(
+std::shared_ptr<CancellationFlag> ClientProxy::GetCancellationFlag(
     const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
   const auto item = cancellation_flags_.find(endpoint_id);
   if (item == cancellation_flags_.end()) {
-    return default_cancellation_flag_.get();
+    return default_cancellation_flag_;
   }
-  return item->second.get();
+  return item->second;
 }
 
 void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
+  MutexLock lock(&mutex_);
   const auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
     item->second->Cancel();
@@ -958,6 +968,7 @@ const OsInfo& ClientProxy::GetLocalOsInfo() const { return local_os_info_; }
 
 std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
     absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.os_info;
@@ -967,11 +978,13 @@ std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
 
 void ClientProxy::SetLocalOsType(
     const location::nearby::connections::OsInfo::OsType& os_type) {
+  MutexLock lock(&mutex_);
   local_os_info_.set_type(os_type);
 }
 
 void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
                                   const OsInfo& remote_os_info) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.os_info.emplace(remote_os_info);
@@ -1018,6 +1031,7 @@ bool ClientProxy::IsPayloadReceivedAckEnabled(absl::string_view endpoint_id) {
 }
 
 void ClientProxy::CancelAllEndpoints() {
+  MutexLock lock(&mutex_);
   for (const auto& item : cancellation_flags_) {
     CancellationFlag* cancellation_flag = item.second.get();
     if (cancellation_flag->Cancelled()) {
@@ -1122,14 +1136,17 @@ void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
 }
 
 AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
+  MutexLock lock(&mutex_);
   return advertising_options_;
 }
 
 DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
+  MutexLock lock(&mutex_);
   return discovery_options_;
 }
 
 v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
+  MutexLock lock(&mutex_);
   return listening_options_;
 }
 
@@ -1207,11 +1224,13 @@ OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
 }
 
 std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
+  MutexLock lock(&mutex_);
   return 0;
 }
 
 void ClientProxy::SetRemoteMultiplexSocketBitmask(
     absl::string_view endpoint_id, int remote_multiplex_socket_bitmask) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.remote_multiplex_socket_bitmask =
@@ -1222,6 +1241,7 @@ void ClientProxy::SetRemoteMultiplexSocketBitmask(
 }
 
 bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
+  MutexLock lock(&mutex_);
   int bitmask = GetLocalMultiplexSocketBitmask();
   switch (medium) {
     case Medium::BLUETOOTH:
@@ -1237,6 +1257,7 @@ bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
 
 std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
     absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.remote_multiplex_socket_bitmask;
@@ -1246,6 +1267,7 @@ std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
 
 bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
                                              Medium medium) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item == nullptr) {
     return false;
@@ -1263,20 +1285,31 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
   }
 }
 
-bool ClientProxy::GetWebRtcNonCellular() { return webrtc_non_cellular_; }
+bool ClientProxy::GetWebRtcNonCellular() {
+  MutexLock lock(&mutex_);
+  return webrtc_non_cellular_;
+}
 
 void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
+  MutexLock lock(&mutex_);
   VLOG(1) << "ClientProxy: client=" << GetClientId()
           << (webrtc_non_cellular ? " disallow" : " allow")
           << " to use mobile data.";
   webrtc_non_cellular_ = webrtc_non_cellular;
 }
 
-bool ClientProxy::IsDctEnabled() const { return is_dct_enabled_; }
+bool ClientProxy::IsDctEnabled() const {
+  MutexLock lock(&mutex_);
+  return is_dct_enabled_;
+}
 
-uint8_t ClientProxy::GetDctDedup() const { return dct_dedup_; }
+uint8_t ClientProxy::GetDctDedup() const {
+  MutexLock lock(&mutex_);
+  return dct_dedup_;
+}
 
 void ClientProxy::UpdateDctDeviceName(absl::string_view device_name) {
+  MutexLock lock(&mutex_);
   if (!dct_device_name_.empty() && dct_device_name_ != device_name) {
     // Need to update dedup value if device name is changed.
     absl::BitGen bitgen;
@@ -1298,6 +1331,7 @@ void ClientProxy::UpdateDctDeviceName(absl::string_view device_name) {
 
 std::optional<MediumRole> ClientProxy::GetMediumRole(
     absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return item->first.connection_options.connection_info.medium_role;
@@ -1306,6 +1340,7 @@ std::optional<MediumRole> ClientProxy::GetMediumRole(
 }
 
 std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {
+  MutexLock lock(&mutex_);
   if (dct_endpoint_id_.empty()) {
     return std::nullopt;
   }

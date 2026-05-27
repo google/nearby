@@ -29,6 +29,7 @@
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/webrtc_platform.h"
 #include "internal/platform/logging.h"
@@ -94,10 +95,11 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
             << peer_id.GetId() << ", location hint "
             << location_hint.location();
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
   ErrorOr<std::shared_ptr<mediums::WebRtcSocket>> socket_result =
       webrtc_.Connect(service_id, peer_id, location_hint,
-                      client->GetCancellationFlag(endpoint_id),
-                      client->GetWebRtcNonCellular());
+                      cancellation_flag.get(), client->GetWebRtcNonCellular());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
                << peer_id.GetId() << ") on endpoint " << endpoint_id

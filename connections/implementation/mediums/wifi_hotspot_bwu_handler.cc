@@ -14,6 +14,8 @@
 
 #include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
 
+#include "internal/platform/cancellation_flag.h"
+
 #if !defined(_WIN32)
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -220,9 +222,11 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
                       CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE)};
   }
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
       service_id, hotspot_credentials.GetAddressCandidates(),
-      client->GetCancellationFlag(endpoint_id));
+      cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WifiHotspotBwuHandler failed to connect to the WifiHotspot "
                   "service for endpoint "
