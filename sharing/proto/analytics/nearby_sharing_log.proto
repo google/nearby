@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 90
+// Next Tag: 92
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -241,6 +241,8 @@ message SharingLog {
 
   // Cloud sharing RPC call event.
   optional CloudSharingRpcResult cloud_sharing_rpc_result = 89;
+
+  reserved 90, 91;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
