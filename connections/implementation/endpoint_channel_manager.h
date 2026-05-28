@@ -21,18 +21,16 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/mutex.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
-using SafeDisconnectionResult = ::location::nearby::analytics::proto::
-    ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
+using SafeDisconnectionResult = nearby::analytics::SafeDisconnectionResult;
 
 // NOTE(std::string):
 // All the strings in internal class public interfaces should be exchanged as
@@ -215,7 +213,6 @@ class EndpointChannelManager final {
   ChannelState channel_state_;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_MANAGER_H_

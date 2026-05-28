@@ -25,6 +25,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -61,6 +62,8 @@ using ::location::nearby::proto::connections::ConnectionAttemptResult;
 using ::location::nearby::proto::connections::ConnectionAttemptType;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::nearby::analytics::AnalyticsRecorder;
+
 }  // namespace
 
 BwuManager::BwuManager(
@@ -663,7 +666,7 @@ void BwuManager::OnIncomingConnection(
         connections_attempt_metadata_params;
     if (channel != nullptr) {
       connections_attempt_metadata_params =
-          client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
+          AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
               channel->GetTechnology(), channel->GetBand(),
               channel->GetFrequency(), channel->GetTryCount());
       connections_attempt_metadata_params->operation_result_code =
@@ -874,7 +877,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   if (channel != nullptr) {
     std::unique_ptr<ConnectionAttemptMetadataParams>
         connections_attempt_metadata_params =
-            client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
+            AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
                 channel->GetTechnology(), channel->GetBand(),
                 channel->GetFrequency(), channel->GetTryCount());
     connections_attempt_metadata_params->operation_result_code =

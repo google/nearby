@@ -24,6 +24,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -42,19 +43,17 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::KeepAliveFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::DisconnectionReason;
+using ::nearby::analytics::SafeDisconnectionResult;
 
 // We set this to 11s to provide sufficient time for an in-progress WebRTC
 // bandwidth upgrade to resolve. This is chosen to be slightly longer than the
@@ -743,7 +742,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
             << ", reason: " << reason;
 
   SafeDisconnectionResult safe_disconnect_result =
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION;
+      SafeDisconnectionResult::kSafeDisconnection;
 
   // Grab the service ID before we destroy the channel.
   EndpointChannel* channel =
@@ -756,11 +755,13 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
       bool is_safe_disconnection =
           ApplySafeToDisconnect(endpoint_id, channel, reason);
       safe_disconnect_result =
-          is_safe_disconnection
-              ? ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION
-              : ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION;
+          is_safe_disconnection ? SafeDisconnectionResult::kSafeDisconnection
+                                : SafeDisconnectionResult::kUnsafeDisconnection;
       LOG(INFO) << "[safe-to-disconnect] safe_disconnect_result:"
-                << (safe_disconnect_result ? "true" : "false");
+                << (safe_disconnect_result ==
+                            SafeDisconnectionResult::kSafeDisconnection
+                        ? "true"
+                        : "false");
     }
   }
 
@@ -953,7 +954,7 @@ EndpointManager::EndpointState::~EndpointState() {
     VLOG(1) << "EndpointState destructor " << endpoint_id_;
     channel_manager_->UnregisterChannelForEndpoint(
         endpoint_id_, DisconnectionReason::SHUTDOWN,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+        SafeDisconnectionResult::kSafeDisconnection);
   }
 
   // Make sure the KeepAlive thread isn't blocking shutdown.
@@ -982,5 +983,4 @@ void EndpointManager::RunOnEndpointManagerThread(const std::string& name,
   serial_executor_->Execute(name, std::move(runnable));
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

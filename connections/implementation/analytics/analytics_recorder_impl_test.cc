@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/analytics_recorder_impl.h"
 
 #include <stddef.h>
 
@@ -26,7 +26,9 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/payload_type.h"
 #include "connections/strategy.h"
 #include "internal/analytics/mock_event_logger.h"
@@ -36,14 +38,13 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/proto/analytics/connections_log.proto.h"
-#include "internal/test/fake_clock.h"
 #include "proto/connections_enums.proto.h"
 
-namespace nearby {
-namespace analytics {
+namespace nearby::analytics {
 namespace {
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
+using SafeDisconnectionResult = nearby::analytics::SafeDisconnectionResult;
 using ::location::nearby::errorcode::proto::DISCONNECT;
 using ::location::nearby::errorcode::proto::DISCONNECT_NETWORK_FAILED;
 using ::location::nearby::errorcode::proto::INVALID_PARAMETER;
@@ -158,7 +159,7 @@ class AnalyticsRecorderTest : public ::testing::Test {
 TEST_F(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
@@ -175,9 +176,9 @@ TEST_F(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -251,14 +252,14 @@ TEST_F(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
-  ConnectionsLog::OperationResultWithMedium operation_result2;
+  OperationResultWithMedium operation_result2;
   operation_result2.set_medium(BLE);
   operation_result2.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result2.set_result_category(
@@ -350,7 +351,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -482,9 +483,9 @@ TEST_F(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLE);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -586,9 +587,9 @@ TEST_F(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -691,9 +692,9 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -781,9 +782,9 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -866,9 +867,9 @@ TEST_F(AnalyticsRecorderTest,
 TEST_F(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
-  ConnectionsLog::OperationResultWithMedium operation_result;
+  OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
@@ -957,7 +958,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto connections_attempt_metadata_params =
       analytics_recorder.BuildConnectionAttemptMetadataParams(
@@ -1049,7 +1050,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -1061,9 +1062,8 @@ TEST_F(AnalyticsRecorderTest,
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(300));
-  analytics_recorder.OnConnectionClosed(
-      endpoint_id, BLUETOOTH, UPGRADED,
-      ConnectionsLog::EstablishedConnection::UNKNOWN_SAFE_DISCONNECTION_RESULT);
+  analytics_recorder.OnConnectionClosed(endpoint_id, BLUETOOTH, UPGRADED,
+                                        SafeDisconnectionResult::kUnknown);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
@@ -1125,7 +1125,7 @@ TEST_F(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -1146,7 +1146,7 @@ TEST_F(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, BLUETOOTH, UPGRADED,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
@@ -1162,7 +1162,7 @@ TEST_F(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(1200));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, WIFI_LAN, LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(1300));
 
   analytics_recorder.LogSession();
@@ -1246,7 +1246,7 @@ TEST_F(AnalyticsRecorderTest, UpgradeAttemptWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -1350,7 +1350,7 @@ TEST_F(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartedIncomingConnectionListening(
@@ -1418,7 +1418,7 @@ TEST_F(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 TEST_F(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
@@ -1452,7 +1452,7 @@ TEST_F(AnalyticsRecorderTest,
        SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
@@ -1488,7 +1488,7 @@ TEST_F(AnalyticsRecorderTest,
 TEST_F(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
@@ -1521,7 +1521,7 @@ TEST_F(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
 TEST_F(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(100));
   // LogSession to count down client_session_done_latch.
@@ -1538,7 +1538,7 @@ TEST_F(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
@@ -1555,7 +1555,7 @@ TEST_F(
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1584,7 +1584,7 @@ TEST_F(AnalyticsRecorderTest,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1621,7 +1621,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -1753,7 +1753,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
@@ -1887,7 +1887,7 @@ TEST_F(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -2010,7 +2010,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -2202,7 +2202,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -2256,7 +2256,7 @@ TEST_F(AnalyticsRecorderTest,
        NotLogSameStrategySessionProtoAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   // Via OnStartAdvertising, current_strategy_session_is set in
   // UpdateStrategySessionLocked.
@@ -2323,7 +2323,7 @@ TEST_F(AnalyticsRecorderTest,
        NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
@@ -2418,7 +2418,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams(
@@ -2517,7 +2517,7 @@ TEST_F(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorderImpl analytics_recorder(&event_logger);
 
   // via OnStartAdvertising, current_strategy_session_ is set in
   // UpdateStrategySessionLocked.
@@ -2566,7 +2566,7 @@ TEST_F(AnalyticsRecorderTest,
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, BLUETOOTH, UPGRADED,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(600));
   analytics_recorder.LogSession();
 
@@ -2576,5 +2576,4 @@ TEST_F(AnalyticsRecorderTest,
 }
 
 }  // namespace
-}  // namespace analytics
-}  // namespace nearby
+}  // namespace nearby::analytics

@@ -29,10 +29,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
-namespace nearby {
-namespace connections {
-using ::location::nearby::analytics::proto::ConnectionsLog;
-
+namespace nearby::connections {
 namespace {
 const absl::Duration kDataTransferDelay = absl::Milliseconds(500);
 }
@@ -183,7 +180,7 @@ void EndpointChannelManager::ChannelState::DestroyAll() {
   for (auto& item : endpoints_) {
     RemoveEndpoint(item.first, DisconnectionReason::SHUTDOWN,
                    /* safe_to_disconnect_enabled */ false,
-                   ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+                   SafeDisconnectionResult::kSafeDisconnection);
   }
   endpoints_.clear();
 }
@@ -365,5 +362,4 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
   return true;
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

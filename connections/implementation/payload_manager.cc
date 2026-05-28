@@ -29,6 +29,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -63,7 +64,7 @@ using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::PayloadStatus;
-using PayloadDirection = ::nearby::connections::PayloadDirection;
+using ::nearby::analytics::AnalyticsRecorder;
 
 constexpr absl::Duration kMinTransferUpdateInterval = absl::Milliseconds(50);
 }  // namespace
@@ -620,9 +621,8 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
             default:
               payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
               operation_result_code =
-                  client->GetAnalyticsRecorder()
-                      .GetChannelIoErrorResultCodeFromMedium(
-                          client->GetConnectedMedium(endpoint_id));
+                  AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+                      client->GetConnectedMedium(endpoint_id));
               break;
           }
 
@@ -839,9 +839,8 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
               endpoint_id, payload_header.id(), status,
               (operation_result_code == OperationResultCode::DETAIL_UNKNOWN &&
                status == PayloadStatus::ENDPOINT_IO_ERROR)
-                  ? client->GetAnalyticsRecorder()
-                        .GetChannelIoErrorResultCodeFromMedium(
-                            client->GetConnectedMedium(endpoint_id))
+                  ? AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+                        client->GetConnectedMedium(endpoint_id))
                   : operation_result_code);
         }
 

@@ -26,10 +26,30 @@ cc_library(
         "analytics_recorder.h",
         "connection_attempt_metadata_params.h",
         "discovery_metadata_params.h",
+        "operation_result_with_medium.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = ["//connections:__subpackages__"],
     deps = [
+        "//connections:core_types",
+        "//internal/platform:error_code_recorder",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "analytics_recorder_impl",
+    srcs = [
+        "analytics_recorder_impl.cc",
+    ],
+    hdrs = [
+        "analytics_recorder_impl.h",
+    ],
+    copts = ["-DCORE_ADAPTER_DLL"],
+    visibility = ["//connections/implementation:__pkg__"],
+    deps = [
+        ":analytics",
         "//connections:core_types",
         "//internal/analytics:event_logger",
         "//internal/platform:error_code_recorder",
@@ -40,11 +60,8 @@ cc_library(
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:btree",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
     ],
@@ -54,11 +71,12 @@ cc_test(
     name = "analytics_test",
     size = "small",
     srcs = [
-        "analytics_recorder_test.cc",
+        "analytics_recorder_impl_test.cc",
     ],
     shard_count = 16,
     deps = [
         ":analytics",
+        ":analytics_recorder_impl",
         "//connections:core_types",
         "//internal/analytics:mock_event_logger",
         "//internal/platform:base",

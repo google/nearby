@@ -38,7 +38,9 @@
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/advertising_metadata_params.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/analytics_recorder_impl.h"
 #include "connections/implementation/analytics/discovery_metadata_params.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/listeners.h"
@@ -79,9 +81,9 @@
 namespace nearby::connections {
 
 namespace {
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OsInfo;
+using ::nearby::analytics::AnalyticsRecorder;
 
 constexpr char kEndpointIdChars[] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -111,7 +113,7 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
   is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableDct);
   analytics_recorder_ =
-      std::make_unique<analytics::AnalyticsRecorder>(event_logger);
+      std::make_unique<analytics::AnalyticsRecorderImpl>(event_logger);
   error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
       [this](const ErrorCodeParams& params) {
         analytics_recorder_->OnErrorCode(params);
@@ -262,7 +264,7 @@ void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
     absl::Span<location::nearby::proto::connections::Medium> mediums,
-    const std::vector<ConnectionsLog::OperationResultWithMedium>&
+    const std::vector<analytics::OperationResultWithMedium>&
         operation_result_with_mediums,
     const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
@@ -283,9 +285,9 @@ void ClientProxy::StartedAdvertising(
       mediums.begin(), mediums.end());
   std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
   advertising_metadata_params =
-      GetAnalyticsRecorder().BuildAdvertisingMetadataParams();
+      AnalyticsRecorder::BuildAdvertisingMetadataParams();
   advertising_metadata_params->operation_result_with_mediums =
-      std::move(operation_result_with_mediums);
+      operation_result_with_mediums;
   analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
                                           advertising_metadata_params.get());
 }
@@ -401,7 +403,7 @@ void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     DiscoveryListener listener,
     absl::Span<location::nearby::proto::connections::Medium> mediums,
-    const std::vector<ConnectionsLog::OperationResultWithMedium>&
+    const std::vector<analytics::OperationResultWithMedium>&
         operation_result_with_mediums,
     const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
@@ -411,10 +413,9 @@ void ClientProxy::StartedDiscovery(
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
   std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
-  discovery_metadata_params =
-      GetAnalyticsRecorder().BuildDiscoveryMetadataParams();
+  discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams();
   discovery_metadata_params->operation_result_with_mediums =
-      std::move(operation_result_with_mediums);
+      operation_result_with_mediums;
   analytics_recorder_->OnStartDiscovery(strategy, medium_vector,
                                         discovery_metadata_params.get());
 }

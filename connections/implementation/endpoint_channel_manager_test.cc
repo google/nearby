@@ -27,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
@@ -39,16 +40,14 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
+using ::nearby::analytics::SafeDisconnectionResult;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 constexpr size_t kChunkSize = 64 * 1024;
@@ -243,10 +242,10 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
       std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
   ecm_b.UnregisterChannelForEndpoint(
       std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
 }
 
 TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
@@ -311,12 +310,11 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
       std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
   ecm_b.UnregisterChannelForEndpoint(
       std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      SafeDisconnectionResult::kSafeDisconnection);
 }
 
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

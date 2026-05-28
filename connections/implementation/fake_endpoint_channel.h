@@ -27,8 +27,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/system_clock.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // An endpoint channel implementation used for testing. The read and write
 // output can be set.
@@ -56,10 +55,8 @@ class FakeEndpointChannel : public EndpointChannel {
     is_closed_ = true;
     disconnection_reason_ = reason;
   }
-  void Close(
-      location::nearby::proto::connections::DisconnectionReason reason,
-      location::nearby::analytics::proto::ConnectionsLog::
-          EstablishedConnection::SafeDisconnectionResult result) override {
+  void Close(location::nearby::proto::connections::DisconnectionReason reason,
+             nearby::analytics::SafeDisconnectionResult result) override {
     Close(reason);
   }
   bool IsClosed() const override { return is_closed_; }
@@ -119,7 +116,6 @@ class FakeEndpointChannel : public EndpointChannel {
   mutable uint32_t next_keep_alive_seq_no_ = 0;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_ENDPOINT_CHANNEL_H_

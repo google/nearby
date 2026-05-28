@@ -32,6 +32,7 @@
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -54,7 +55,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/scheduled_executor.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 
 namespace nearby::connections {
 
@@ -109,8 +109,7 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       const ConnectionListener& connection_lifecycle_listener,
       absl::Span<location::nearby::proto::connections::Medium> mediums,
-      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                            OperationResultWithMedium>&
+      const std::vector<analytics::OperationResultWithMedium>&
           operation_result_with_medium,
       const AdvertisingOptions& advertising_options = AdvertisingOptions{});
   // Marks this client as not advertising.
@@ -134,8 +133,7 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       DiscoveryListener discovery_listener,
       absl::Span<location::nearby::proto::connections::Medium> mediums,
-      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                            OperationResultWithMedium>&
+      const std::vector<analytics::OperationResultWithMedium>&
           operation_result_with_medium,
       const DiscoveryOptions& discovery_options = DiscoveryOptions{});
   // Marks this client as not discovering at all.

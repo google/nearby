@@ -368,7 +368,7 @@ let package = Package(
         "connections/implementation/payload_manager_test.cc",
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",
-        "connections/implementation/analytics/analytics_recorder_test.cc",
+        "connections/implementation/analytics/analytics_recorder_impl_test.cc",
         "connections/implementation/analytics/throughput_recorder_test.cc",
         "connections/implementation/mediums/advertisements/data_element_test.cc",
         "connections/implementation/mediums/advertisements/dct_advertisement_test.cc",

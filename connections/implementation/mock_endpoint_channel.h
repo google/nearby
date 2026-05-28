@@ -40,8 +40,7 @@ class MockEndpointChannel : public EndpointChannel {
       (override));
   MOCK_METHOD(void, Close,
               (location::nearby::proto::connections::DisconnectionReason reason,
-               location::nearby::analytics::proto::ConnectionsLog::
-                   EstablishedConnection::SafeDisconnectionResult result),
+               nearby::analytics::SafeDisconnectionResult result),
               (override));
   MOCK_METHOD(bool, IsClosed, (), (const, override));
   MOCK_METHOD(std::string, GetType, (), (const, override));

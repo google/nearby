@@ -22,6 +22,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -41,19 +42,17 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/service_address.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::DisconnectionReason;
+using ::nearby::analytics::SafeDisconnectionResult;
 
 constexpr absl::string_view kServiceIdA = "ServiceA";
 constexpr absl::string_view kServiceIdB = "ServiceB";
@@ -148,7 +147,7 @@ class BwuManagerTest : public ::testing::Test {
   void UnRegisterChannelForEndpoint(absl::string_view endpoint_id) {
     ecm_.UnregisterChannelForEndpoint(
         std::string(endpoint_id), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+        SafeDisconnectionResult::kSafeDisconnection);
   }
 
   // Upgrade from |initial_medium| to |upgrade_medium|, close down the BLUETOOTH
@@ -232,9 +231,9 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
                                       Medium::WIFI_LAN);
   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel2 = std::make_unique<FakeEndpointChannel>(
       Medium::BLUETOOTH, std::string(kServiceIdA));
@@ -243,9 +242,9 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId2),
                                       Medium::WIFI_HOTSPOT);
   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId2)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId2),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel3 = std::make_unique<FakeEndpointChannel>(
       Medium::BLUETOOTH, std::string(kServiceIdA));
@@ -254,9 +253,9 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId3),
                                       Medium::WIFI_DIRECT);
   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId3)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId3), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId3),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel4 = std::make_unique<FakeEndpointChannel>(
       Medium::WEB_RTC, std::string(kServiceIdA));
@@ -265,9 +264,9 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId4),
                                       Medium::BLUETOOTH);
   EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId4)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId4), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId4),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
 
   bwu_manager->Shutdown();
 }
@@ -307,9 +306,9 @@ TEST(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_Success) {
                                       Medium::WIFI_HOTSPOT);
   EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
 
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
   bwu_manager->Shutdown();
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
@@ -500,7 +499,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId1), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -514,7 +513,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId2), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -548,7 +547,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId1), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -568,7 +567,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId2), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -605,7 +604,7 @@ TEST_F(BwuManagerTest,
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(1u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId1), latch,
@@ -625,7 +624,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(0u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId2), latch,
@@ -659,7 +658,7 @@ TEST_F(BwuManagerTest,
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(1u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId1), latch,
@@ -679,7 +678,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(0u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId2), latch,
@@ -735,7 +734,7 @@ TEST_F(
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId1), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -760,7 +759,7 @@ TEST_F(
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId2), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -781,7 +780,7 @@ TEST_F(
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId3), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId3), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -802,7 +801,7 @@ TEST_F(
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId4), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId4), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -825,7 +824,7 @@ TEST_F(
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
         std::string(kEndpointId5), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION);
+        SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId5), latch,
         DisconnectionReason::LOCAL_DISCONNECTION);
@@ -1094,5 +1093,4 @@ INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,
                          testing::Bool());
 
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
