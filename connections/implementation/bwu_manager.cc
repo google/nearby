@@ -572,9 +572,19 @@ void BwuManager::OnBwuNegotiationFrame(
           OperationResultCode::NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE);
       break;
     case BandwidthUpgradeNegotiationFrame::LAST_WRITE_TO_PRIOR_CHANNEL:
+      if (!in_progress_upgrades_.contains(endpoint_id)) {
+        LOG(ERROR) << "Received LAST_WRITE_TO_PRIOR_CHANNEL for endpoint "
+                   << endpoint_id << " but no upgrade is in progress.";
+        return;
+      }
       ProcessLastWriteToPriorChannelEvent(client, endpoint_id);
       break;
     case BandwidthUpgradeNegotiationFrame::SAFE_TO_CLOSE_PRIOR_CHANNEL:
+      if (!in_progress_upgrades_.contains(endpoint_id)) {
+        LOG(ERROR) << "Received SAFE_TO_CLOSE_PRIOR_CHANNEL for endpoint "
+                   << endpoint_id << " but no upgrade is in progress.";
+        return;
+      }
       ProcessSafeToClosePriorChannelEvent(client, endpoint_id);
       break;
     default:
@@ -1205,14 +1215,19 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
   // loss). But now that we've received this definitive final write over that
   // prior EndpointChannel, we can let the remote device that they can safely
   // close their end of this now-dormant EndpointChannel.
-  EndpointChannel* previous_endpoint_channel =
-      previous_endpoint_channels_[endpoint_id].get();
-  if (!previous_endpoint_channel) {
+  auto it = previous_endpoint_channels_.find(endpoint_id);
+  if (it == previous_endpoint_channels_.end()) {
     LOG(ERROR)
         << "BwuManager received a BWU_NEGOTIATION.LAST_WRITE_TO_PRIOR_CHANNEL "
            "OfflineFrame for unknown endpoint "
         << endpoint_id << ", can't complete the upgrade protocol.";
     successfully_upgraded_endpoints_.emplace(endpoint_id);
+    return;
+  }
+  EndpointChannel* previous_endpoint_channel = it->second.get();
+  if (!previous_endpoint_channel) {
+    LOG(ERROR) << "previous_endpoint_channel is null for endpoint "
+               << endpoint_id;
     return;
   }
 
@@ -1267,6 +1282,13 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   // or not (as is the case with Android's Bluetooth sockets, where closing
   // instantly throws an IOException on the remote device).
   auto item = previous_endpoint_channels_.extract(endpoint_id);
+  if (item.empty()) {
+    LOG(ERROR)
+        << "BwuManager received a BWU_NEGOTIATION.SAFE_TO_CLOSE_PRIOR_CHANNEL "
+           "OfflineFrame for unknown endpoint "
+        << endpoint_id << ", can't complete the upgrade protocol.";
+    return;
+  }
   auto& previous_endpoint_channel = item.mapped();
   if (previous_endpoint_channel == nullptr) {
     LOG(ERROR)

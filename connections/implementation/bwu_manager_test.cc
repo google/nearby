@@ -1089,6 +1089,91 @@ TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
   UnRegisterChannelForEndpoint(kEndpointId2);
 }
 
+TEST_F(BwuManagerTest, ReceiveUnexpectedSafeToClose_NoCrash) {
+  ExceptionOr<OfflineFrame> safe_to_close_frame =
+      parser::FromBytes(parser::ForBwuSafeToClose());
+  bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+}
+
+TEST_F(BwuManagerTest, ReceiveUnexpectedLastWrite_NoCrashOrWedge) {
+  ExceptionOr<OfflineFrame> last_write_frame =
+      parser::FromBytes(parser::ForBwuLastWrite());
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+}
+
+TEST_F(BwuManagerTest, ReceiveEarlyLastWrite_Success) {
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+  std::shared_ptr<EndpointChannel> shared_initial_channel =
+      ecm_.GetChannelForEndpoint(std::string(kEndpointId1));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WEB_RTC);
+  ASSERT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  ExceptionOr<OfflineFrame> last_write_frame =
+      parser::FromBytes(parser::ForBwuLastWrite());
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  FakeEndpointChannel* upgraded_channel =
+      fake_web_rtc_bwu_handler_->NotifyBwuManagerOfIncomingConnection(
+          /*initialize_call_index=*/0u, bwu_manager_.get());
+
+  ExceptionOr<OfflineFrame> safe_to_close_frame =
+      parser::FromBytes(parser::ForBwuSafeToClose());
+  bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  auto old_channel =
+      dynamic_cast<FakeEndpointChannel*>(shared_initial_channel.get());
+  EXPECT_FALSE(upgraded_channel->IsPaused());
+  EXPECT_TRUE(old_channel->is_closed());
+  EXPECT_EQ(location::nearby::proto::connections::DisconnectionReason::UPGRADED,
+            old_channel->disconnection_reason());
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(BwuManagerTest, ReceiveUnexpectedLastWriteBeforeUpgrade_NoWedge) {
+  ExceptionOr<OfflineFrame> last_write_frame =
+      parser::FromBytes(parser::ForBwuLastWrite());
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+  std::shared_ptr<EndpointChannel> shared_initial_channel =
+      ecm_.GetChannelForEndpoint(std::string(kEndpointId1));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WEB_RTC);
+
+  FakeEndpointChannel* upgraded_channel =
+      fake_web_rtc_bwu_handler_->NotifyBwuManagerOfIncomingConnection(
+          /*initialize_call_index=*/0u, bwu_manager_.get());
+
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  ExceptionOr<OfflineFrame> safe_to_close_frame =
+      parser::FromBytes(parser::ForBwuSafeToClose());
+  bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  auto old_channel =
+      dynamic_cast<FakeEndpointChannel*>(shared_initial_channel.get());
+  EXPECT_FALSE(upgraded_channel->IsPaused());
+  EXPECT_TRUE(old_channel->is_closed());
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,
                          testing::Bool());
 
