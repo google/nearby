@@ -67,6 +67,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
@@ -2015,9 +2016,11 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
           << endpoint->endpoint_id << ") over Bluetooth Classic.";
   BluetoothDevice& device = endpoint->bluetooth_device;
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint->endpoint_id);
+
   ErrorOr<BluetoothSocket> bluetooth_socket_result = bluetooth_medium_.Connect(
-      device, endpoint->service_id,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+      device, endpoint->service_id, cancellation_flag.get());
   if (bluetooth_socket_result.has_error()) {
     LOG(ERROR)
         << "In BluetoothConnectImpl(), failed to connect to Bluetooth device "
@@ -2386,15 +2389,17 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
           << " is attempting to connect to (" << peripheral.ToReadableString()
           << ") over BLE.";
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint->endpoint_id);
+
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
       peripheral.GetPsm() !=
           mediums::BleAdvertisementHeader::kDefaultPsmValue) {
     if (refactor_ble_l2cap) {
       ErrorOr<std::unique_ptr<mediums::BleSocket>> ble_l2cap_socket_result =
-          ble_medium_.ConnectOverL2cap2(
-              endpoint->service_id, peripheral,
-              client->GetCancellationFlag(endpoint->endpoint_id));
+          ble_medium_.ConnectOverL2cap2(endpoint->service_id, peripheral,
+                                        cancellation_flag.get());
       if (!ble_l2cap_socket_result.has_error()) {
         LOG(INFO) << "In BleV2ConnectImpl(), connected to Ble L2CAP device "
                   << absl::BytesToHexString(peripheral.GetId().data())
@@ -2416,9 +2421,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
       }
     } else {
       ErrorOr<BleL2capSocket> ble_l2cap_socket_result =
-          ble_medium_.ConnectOverL2cap(
-              endpoint->service_id, peripheral,
-              client->GetCancellationFlag(endpoint->endpoint_id));
+          ble_medium_.ConnectOverL2cap(endpoint->service_id, peripheral,
+                                       cancellation_flag.get());
       if (!ble_l2cap_socket_result.has_error()) {
         LOG(INFO) << "In BleConnectImpl(), connected to Ble L2CAP device "
                   << absl::BytesToHexString(peripheral.GetId().data())
@@ -2444,9 +2448,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
   std::unique_ptr<BleEndpointChannel> channel = nullptr;
   if (refactor_ble_l2cap) {
     ErrorOr<std::unique_ptr<mediums::BleSocket>> ble_socket_result =
-        ble_medium_.Connect2(
-            endpoint->service_id, peripheral,
-            client->GetCancellationFlag(endpoint->endpoint_id));
+        ble_medium_.Connect2(endpoint->service_id, peripheral,
+                             cancellation_flag.get());
     if (ble_socket_result.has_error()) {
       LOG(ERROR) << "In BleConnectImpl(), failed to connect to BLE device "
                  << absl::BytesToHexString(peripheral.GetId().data())
@@ -2461,9 +2464,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
         endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
         std::move(ble_socket_result.value()));
   } else {
-    ErrorOr<BleSocket> ble_socket_result =
-        ble_medium_.Connect(endpoint->service_id, peripheral,
-                            client->GetCancellationFlag(endpoint->endpoint_id));
+    ErrorOr<BleSocket> ble_socket_result = ble_medium_.Connect(
+        endpoint->service_id, peripheral, cancellation_flag.get());
     if (ble_socket_result.has_error()) {
       LOG(ERROR) << "In BleConnectImpl(), failed to connect to BLE device "
                  << absl::BytesToHexString(peripheral.GetId().data())
@@ -2737,9 +2739,12 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::AwdlConnectImpl(
   LOG(INFO) << "Client " << client->GetClientId()
             << " is attempting to connect to endpoint(id="
             << endpoint->endpoint_id << ") over Awdl.";
-  ErrorOr<AwdlSocket> socket_result =
-      awdl_medium_.Connect(endpoint->service_id, endpoint->service_info,
-                           client->GetCancellationFlag(endpoint->endpoint_id));
+
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint->endpoint_id);
+
+  ErrorOr<AwdlSocket> socket_result = awdl_medium_.Connect(
+      endpoint->service_id, endpoint->service_info, cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "In AwdlConnectImpl(), failed to connect to service "
                << endpoint->service_info.GetServiceName()
@@ -2773,9 +2778,12 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
   LOG(INFO) << "Client " << client->GetClientId()
             << " is attempting to connect to endpoint(id="
             << endpoint->endpoint_id << ") over WifiLan.";
+
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint->endpoint_id);
+
   ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
-      endpoint->service_id, endpoint->service_info,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+      endpoint->service_id, endpoint->service_info, cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "In WifiLanConnectImpl(), failed to connect to service "
                << endpoint->service_info.GetServiceName()

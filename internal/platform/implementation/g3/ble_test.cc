@@ -22,6 +22,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
@@ -154,7 +155,19 @@ TEST(BleMediumTest, OpenL2capServerSocket) {
   BleMedium ble_medium(mock_bluetooth_adapter);
   auto server_socket =
       ble_medium.OpenL2capServerSocket(std::string(kTestServiceId));
-  EXPECT_TRUE(server_socket == nullptr);
+  EXPECT_TRUE(server_socket != nullptr);
+}
+
+TEST(BleMediumTest, ConnectOverL2cap) {
+  MockBluetoothAdapter mock_bluetooth_adapter;
+  EXPECT_CALL(mock_bluetooth_adapter, IsEnabled()).WillRepeatedly(Return(true));
+
+  BleMedium ble_medium(mock_bluetooth_adapter);
+  CancellationFlag cancellation_flag;
+  auto socket = ble_medium.ConnectOverL2cap(
+      /*psm=*/1234, std::string(kTestServiceId), api::ble::TxPowerLevel::kLow,
+      /*remote_peripheral_id=*/1234, &cancellation_flag);
+  EXPECT_TRUE(socket == nullptr);
 }
 
 TEST(BleMediumTest, IsExtendedAdvertisementsAvailable) {

@@ -128,6 +128,63 @@ class BleServerSocket : public api::ble::BleServerSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
+class BleL2capSocket : public api::ble::BleL2capSocket, public SocketBase {
+ public:
+  explicit BleL2capSocket(BluetoothAdapter* adapter) : adapter_(adapter) {}
+  BleL2capSocket(const BleL2capSocket&) = default;
+  BleL2capSocket& operator=(const BleL2capSocket&) = default;
+  BleL2capSocket(BleL2capSocket&&) = default;
+  BleL2capSocket& operator=(BleL2capSocket&&) = default;
+  ~BleL2capSocket() override = default;
+
+  InputStream& GetInputStream() override {
+    return SocketBase::GetInputStream();
+  }
+  OutputStream& GetOutputStream() override {
+    return SocketBase::GetOutputStream();
+  }
+  Exception Close() override { return SocketBase::Close(); }
+
+  api::ble::BlePeripheral::UniqueId GetRemotePeripheralId() override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+ private:
+  BluetoothAdapter* adapter_ = nullptr;
+};
+
+class BleL2capServerSocket : public api::ble::BleL2capServerSocket {
+ public:
+  explicit BleL2capServerSocket(BluetoothAdapter* adapter)
+      : adapter_(adapter) {}
+  BleL2capServerSocket(const BleL2capServerSocket&) = default;
+  BleL2capServerSocket& operator=(const BleL2capServerSocket&) = default;
+  BleL2capServerSocket(BleL2capServerSocket&&) = default;
+  BleL2capServerSocket& operator=(BleL2capServerSocket&&) = default;
+  ~BleL2capServerSocket() override;
+
+  int GetPSM() const override { return 1234; }
+
+  std::unique_ptr<api::ble::BleL2capSocket> Accept() override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool Connect(BleL2capSocket& socket) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+ private:
+  Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  mutable absl::Mutex mutex_;
+  absl::CondVar cond_;
+  BluetoothAdapter* adapter_ = nullptr;
+  absl::flat_hash_set<BleL2capSocket*> pending_sockets_ ABSL_GUARDED_BY(mutex_);
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+};
+
 // Container of operations that can be performed over the BLE medium.
 class BleMedium : public api::ble::BleMedium {
  public:
@@ -182,6 +239,12 @@ class BleMedium : public api::ble::BleMedium {
   // On error, returns nullptr.
   std::unique_ptr<api::ble::BleSocket> Connect(
       const std::string& service_id, api::ble::TxPowerLevel tx_power_level,
+      api::ble::BlePeripheral::UniqueId remote_peripheral_id,
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<api::ble::BleL2capSocket> ConnectOverL2cap(
+      int psm, const std::string& service_id,
+      api::ble::TxPowerLevel tx_power_level,
       api::ble::BlePeripheral::UniqueId remote_peripheral_id,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -302,6 +365,8 @@ class BleMedium : public api::ble::BleMedium {
   absl::Mutex mutex_;
   BluetoothAdapter& adapter_;  // Our device adapter; read-only.
   absl::flat_hash_map<std::string, BleServerSocket*> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, BleL2capServerSocket*> l2cap_server_sockets_
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>
       scanning_internal_session_ids_ ABSL_GUARDED_BY(mutex_);

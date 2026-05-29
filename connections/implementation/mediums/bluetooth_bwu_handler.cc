@@ -18,17 +18,18 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_endpoint_channel.h"
-#include "absl/base/nullability.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
@@ -89,8 +90,10 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE)};
   }
 
-  ErrorOr<BluetoothSocket> socket_result = bluetooth_medium_.Connect(
-      device, service_id, client->GetCancellationFlag(endpoint_id));
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
+  ErrorOr<BluetoothSocket> socket_result =
+      bluetooth_medium_.Connect(device, service_name, cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR)
         << "BluetoothBwuHandler failed to connect to the Bluetooth device ("

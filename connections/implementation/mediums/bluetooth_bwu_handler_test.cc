@@ -44,10 +44,19 @@ constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 
 class BluetoothBwuTest : public testing::Test {
  protected:
-  BluetoothBwuTest() { env_.Start(); }
-  ~BluetoothBwuTest() override { env_.Stop(); }
+  BluetoothBwuTest() {
+    original_flags_ = FeatureFlags::GetInstance().GetFlags();
+    env_.Start();
+  }
+  ~BluetoothBwuTest() override {
+    FeatureFlags::GetMutableInstanceForTesting().SetFlags(original_flags_);
+    env_.Stop();
+  }
+
+  void RunSTACreateEndpointChannelTest(bool enable_cancellation);
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
+  FeatureFlags::Flags original_flags_;
 };
 
 TEST_F(BluetoothBwuTest, CanCreateBwuHandler) {
@@ -64,7 +73,12 @@ TEST_F(BluetoothBwuTest, CanCreateBwuHandler) {
   handler.reset();
 }
 
-TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
+void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
+    bool enable_cancellation) {
+  FeatureFlags::Flags flags = original_flags_;
+  flags.enable_cancellation_flag = enable_cancellation;
+  FeatureFlags::GetMutableInstanceForTesting().SetFlags(flags);
+
   CountDownLatch start_latch(1);
   CountDownLatch accept_latch(1);
   CountDownLatch end_latch(1);
@@ -72,6 +86,9 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
   ClientProxy client_1, client_2;
   Mediums mediums_1, mediums_2;
   ExceptionOr<OfflineFrame> upgrade_frame;
+
+  EXPECT_TRUE(mediums_1.GetBluetoothRadio().Enable());
+  EXPECT_TRUE(mediums_2.GetBluetoothRadio().Enable());
 
   auto handler_1 = std::make_unique<BluetoothBwuHandler>(
       &mediums_1.GetBluetoothRadio(), &mediums_1.GetBluetoothClassic(),
@@ -113,7 +130,7 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
         handler_2->CreateUpgradedEndpointChannel(&client_2, /*service_id=*/"A",
                                                  /*endpoint_id=*/"1",
                                                  bwu_frame.upgrade_path_info());
-    if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+    if (!enable_cancellation) {
       ASSERT_TRUE(result.has_value());
       std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
@@ -122,9 +139,9 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
     } else {
       EXPECT_FALSE(result.has_value());
       EXPECT_TRUE(result.has_error());
-      EXPECT_EQ(
-          result.error().operation_result_code(),
-          OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE);
+      EXPECT_EQ(result.error().operation_result_code(),
+                OperationResultCode::
+                    CLIENT_CANCELLATION_CANCEL_BT_OUTGOING_CONNECTION);
       accept_latch.CountDown();
     }
     EXPECT_TRUE(mediums_2.GetBluetoothClassic().GetAddress().IsSet());
@@ -134,6 +151,16 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
 
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+}
+
+TEST_F(BluetoothBwuTest,
+       SoftAPBWUInit_STACreateEndpointChannel_WithCancellation) {
+  RunSTACreateEndpointChannelTest(true);
+}
+
+TEST_F(BluetoothBwuTest,
+       SoftAPBWUInit_STACreateEndpointChannel_NoCancellation) {
+  RunSTACreateEndpointChannelTest(false);
 }
 
 }  // namespace connections

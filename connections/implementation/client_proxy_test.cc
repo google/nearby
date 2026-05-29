@@ -50,6 +50,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
@@ -434,7 +435,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -470,7 +471,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -534,6 +535,85 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
         client1()->GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
     EXPECT_TRUE(
         client1()->GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+  }
+}
+
+TEST_P(ClientProxyTest, Coverage_AllLockedMethods) {
+  MediumEnvironment::Instance().SetFeatureFlags(GetParam());
+  std::string endpoint_id = "test_endpoint";
+  // Setup a placeholder connection to exercise state-lookup methods
+  client1()->OnConnectionInitiated(endpoint_id, {}, {}, {}, "token");
+
+  // 1. Exercise public methods guarded by MutexLock in your CL
+  EXPECT_EQ(client1()->GetConnectionToken(endpoint_id), "token");
+
+  // Correctly initialize MacAddress using FromString
+  MacAddress mac;
+  ASSERT_TRUE(MacAddress::FromString("01:02:03:04:05:06", mac));
+  client1()->SetBluetoothMacAddress(endpoint_id, mac);
+  EXPECT_EQ(client1()->GetBluetoothMacAddress(endpoint_id).value(), mac);
+
+  client1()->LocalEndpointAcceptedConnection(endpoint_id, {});
+  EXPECT_TRUE(client1()->LocalConnectionIsAccepted(endpoint_id));
+
+  client1()->RemoteEndpointAcceptedConnection(endpoint_id);
+  EXPECT_TRUE(client1()->RemoteConnectionIsAccepted(endpoint_id));
+
+  // 2. Exercise Options & Constraints
+  (void)client1()->AutoUpgradeBandwidth();
+  (void)client1()->ShouldEnforceTopologyConstraints();
+  (void)client1()->GetAdvertisingOptions();
+  (void)client1()->GetDiscoveryOptions();
+  (void)client1()->GetListeningOptions();
+
+  // 3. Exercise Multiplexing & OS methods
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+  (void)client1()->GetLocalMultiplexSocketBitmask();
+  client1()->SetRemoteMultiplexSocketBitmask(endpoint_id, 0);
+  (void)client1()->IsLocalMultiplexSocketSupported(Medium::BLUETOOTH);
+
+  // 4. Exercise DCT logic (Fixed: calls public methods to reach private ones)
+  client1()->UpdateDctDeviceName("test_device");
+  (void)client1()->GetDctDedup();
+  // Triggers GetEndpointIdForDct() internally
+  (void)client1()->GetLocalEndpointId();
+
+  // 5. Exercise WebRTC & Cancellation logic
+  client1()->SetWebRtcNonCellular(true);
+  EXPECT_TRUE(client1()->GetWebRtcNonCellular());
+
+  client1()->AddCancellationFlag(endpoint_id);
+  std::shared_ptr<CancellationFlag> flag =
+      client1()->GetCancellationFlag(endpoint_id);
+  client1()->CancelEndpoint(endpoint_id);
+  if (GetParam().enable_cancellation_flag) {
+    EXPECT_TRUE(flag->Cancelled());
+  } else {
+    EXPECT_FALSE(flag->Cancelled());
+  }
+}
+
+TEST_P(ClientProxyTest, CancellationFlag_SharedLifetimePreventsUAF) {
+  MediumEnvironment::Instance().SetFeatureFlags(GetParam());
+  std::string endpoint_id = "test_endpoint";
+  client1()->AddCancellationFlag(endpoint_id);
+
+  // Verify that holding a shared_ptr prevents UAF when ClientProxy state is
+  // cleared
+  std::shared_ptr<CancellationFlag> flag =
+      client1()->GetCancellationFlag(endpoint_id);
+  EXPECT_FALSE(flag->Cancelled());
+
+  // Simulate connection teardown/reset
+  client1()->Reset();
+
+  // The flag object must remain valid because we hold a shared_ptr reference
+  EXPECT_FALSE(flag->Cancelled());
+  flag->Cancel();
+  if (GetParam().enable_cancellation_flag) {
+    EXPECT_TRUE(flag->Cancelled());
+  } else {
+    EXPECT_FALSE(flag->Cancelled());
   }
 }
 

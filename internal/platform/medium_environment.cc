@@ -94,6 +94,7 @@ void MediumEnvironment::Stop() {
       simulated_clock_.reset();
     }
     config_ = {};
+    ble_extended_advertisements_available_ = false;
   }
 }
 

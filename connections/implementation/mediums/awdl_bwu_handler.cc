@@ -35,6 +35,7 @@
 #include "internal/base/masker.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/psk_info.h"
@@ -149,9 +150,10 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
             << service_name << ", service_type:" << service_type
             << ") for endpoint " << endpoint_id;
 
-  ErrorOr<AwdlSocket> socket_result =
-      awdl_medium_.Connect(upgrade_service_id, nsd_service_info, psk_info,
-                           client->GetCancellationFlag(endpoint_id));
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
+  ErrorOr<AwdlSocket> socket_result = awdl_medium_.Connect(
+      upgrade_service_id, nsd_service_info, psk_info, cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "Failed to connect to the AWDL service (service_name:"
                << service_name << ", service_type:" << service_type
