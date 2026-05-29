@@ -567,6 +567,33 @@ TEST_P(OfflineServiceControllerTest, ShutdownBwuManagerExecutors) {
   env_.Stop();
 }
 
+TEST_P(OfflineServiceControllerTest, TestNoStartListeningAfterStop) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  v3::ConnectionListener listener;
+  v3::ConnectionListeningOptions options;
+
+  user_a.Stop();
+
+  auto result = user_a.StartListeningForIncomingConnections(
+      std::string(kServiceId), listener, options);
+  EXPECT_EQ(result.first.value, Status::kOutOfOrderApiCall);
+
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, TestNoStopListeningAfterStop) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+
+  user_a.Stop();
+
+  // Verify that calling StopListening after Stop does not crash.
+  user_a.StopListeningForIncomingConnections();
+
+  env_.Stop();
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedOfflineServiceControllerTest,
                          OfflineServiceControllerTest,
                          ::testing::ValuesIn(kTestCases));

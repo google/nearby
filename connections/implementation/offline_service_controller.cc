@@ -90,6 +90,7 @@ OfflineServiceController::StartListeningForIncomingConnections(
     ClientProxy* client, absl::string_view service_id,
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options) {
+  if (stop_) return {{Status::kOutOfOrderApiCall}, {}};
   LOG(INFO) << "Client " << client->GetClientId()
             << " requested to start listening for service_id " << service_id;
   return pcp_manager_.StartListeningForIncomingConnections(
@@ -98,6 +99,7 @@ OfflineServiceController::StartListeningForIncomingConnections(
 
 void OfflineServiceController::StopListeningForIncomingConnections(
     ClientProxy* client) {
+  if (stop_) return;
   LOG(INFO) << "Client " << client->GetClientId()
             << " requested to stop listening for service_id "
             << client->GetListeningForIncomingConnectionsServiceId();
