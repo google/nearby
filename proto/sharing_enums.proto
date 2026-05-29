@@ -321,6 +321,7 @@ enum EventType {
       /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
   CLOUD_REGISTER_RECEIVER = 75
       /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
+  // Cloud upload events (routing updated in nearby_event_codes.proto).
   CLOUD_UPLOAD_START = 76
       /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
   CLOUD_UPLOAD_END = 77 /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
