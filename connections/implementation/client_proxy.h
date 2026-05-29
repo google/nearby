@@ -262,7 +262,8 @@ class ClientProxy final {
   // Adds a CancellationFlag for endpoint id.
   void AddCancellationFlag(const std::string& endpoint_id);
   // Returns the CancellationFlag for endpoint id,
-  CancellationFlag* GetCancellationFlag(const std::string& endpoint_id);
+  std::shared_ptr<CancellationFlag> GetCancellationFlag(
+      const std::string& endpoint_id);
   // Sets the CancellationFlag to true for endpoint id.
   void CancelEndpoint(const std::string& endpoint_id);
   // Cancels all CancellationFlags.
@@ -517,11 +518,11 @@ class ClientProxy final {
   // Maps endpoint_id to CancellationFlag. CancellationFlags are passed around
   // as raw pointers to other classes in Nearby Connections, so it is important
   // that objects in this map are not cleared, even if they are cancelled.
-  absl::flat_hash_map<std::string, std::unique_ptr<CancellationFlag>>
+  absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>
       cancellation_flags_;
   // A default cancellation flag with isCancelled set be true.
-  std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
-      std::make_unique<CancellationFlag>(true);
+  std::shared_ptr<CancellationFlag> default_cancellation_flag_ =
+      std::make_shared<CancellationFlag>(true);
 
   // An app lifecycle monitor for monitoring the app lifecycle state.
   std::unique_ptr<api::AppLifecycleMonitor> app_lifecycle_monitor_;

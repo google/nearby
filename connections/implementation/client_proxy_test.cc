@@ -14,6 +14,7 @@
 
 #include "connections/implementation/client_proxy.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -24,6 +25,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
@@ -38,6 +40,7 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device_provider.h"
@@ -53,6 +56,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -114,7 +118,7 @@ class FakeEventLogger : public ::nearby::analytics::MockEventLogger {
   }
 
   Mutex mutex_;
-  std::vector<ConnectionsLog> logs_;
+  std::vector<ConnectionsLog> logs_ ABSL_GUARDED_BY(mutex_);
 };
 
 class MockDeviceProvider : public nearby::NearbyDeviceProvider {
@@ -434,7 +438,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -470,7 +474,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -535,6 +539,26 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
     EXPECT_TRUE(
         client1()->GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
   }
+}
+
+TEST_P(ClientProxyTest, GetCancellationFlagRace) {
+  std::string endpoint_id = "test_endpoint";
+  client1()->AddCancellationFlag(endpoint_id);
+
+  std::atomic<bool> run{true};
+  SingleThreadExecutor executor;
+  executor.Execute([&]() {
+    while (run) {
+      client1()->GetCancellationFlag(endpoint_id);
+    }
+  });
+
+  for (int i = 0; i < 10000; ++i) {
+    client1()->Reset();
+    client1()->AddCancellationFlag(endpoint_id);
+  }
+
+  run = false;
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedClientProxyTest, ClientProxyTest,

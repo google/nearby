@@ -251,6 +251,7 @@ cc_library(
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:connection_info",
         "//internal/platform:logging",
@@ -478,6 +479,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",

@@ -375,8 +375,8 @@ class BleSocket final {
    * payload, the `ByteArray` may be empty. Returns an `Exception` if a
    * protocol error occurs or the read operation fails.
    */
-  ExceptionOr<ByteArray> ProcessBleControlPacketLocked()
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  ExceptionOr<ByteArray> ProcessBleControlPacket(
+      std::shared_ptr<BleInputStream> input_stream);
 
   /**
    * Sends a raw L2CAP packet over the socket.
@@ -407,9 +407,9 @@ class BleSocket final {
   SingleThreadExecutor serial_executor_;
 
   const ByteArray service_id_hash_;
-  std::unique_ptr<mediums::BleInputStream> ble_input_stream_
+  std::shared_ptr<mediums::BleInputStream> ble_input_stream_
       ABSL_GUARDED_BY(mutex_) = nullptr;
-  std::unique_ptr<mediums::BleOutputStream> ble_output_stream_
+  std::shared_ptr<mediums::BleOutputStream> ble_output_stream_
       ABSL_GUARDED_BY(mutex_) = nullptr;
   nearby::BleSocket ble_socket_ ABSL_GUARDED_BY(mutex_) = nearby::BleSocket();
   nearby::BleL2capSocket l2cap_socket_ ABSL_GUARDED_BY(mutex_) =

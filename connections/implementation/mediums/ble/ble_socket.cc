@@ -207,22 +207,28 @@ Medium BleSocket::GetMediumLocked() const {
 }
 
 ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
-  MutexLock lock(&mutex_);
-  if (!ble_input_stream_) {
-    return Exception::kFailed;
+  std::shared_ptr<BleInputStream> input_stream;
+  {
+    MutexLock lock(&mutex_);
+    if (!ble_input_stream_) {
+      return Exception::kFailed;
+    }
+    input_stream = ble_input_stream_;
   }
 
   ExceptionOr<ByteArray> read_bytes =
-      ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+      input_stream->Read(BlePacket::kServiceIdHashLength);
   while (read_bytes.ok()) {
     ByteArray read_bytes_result = read_bytes.result();
     if (BlePacket::IsControlPacketBytes(read_bytes_result)) {
-      ExceptionOr<ByteArray> handle_result = ProcessBleControlPacketLocked();
+      ExceptionOr<ByteArray> handle_result =
+          ProcessBleControlPacket(input_stream);
       if (!handle_result.ok()) {
         return handle_result;
       }
-      read_bytes = ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+      read_bytes = input_stream->Read(BlePacket::kServiceIdHashLength);
     } else {
+      MutexLock lock(&mutex_);
       if (read_bytes_result != service_id_hash_) {
         LOG(WARNING)
             << "Received data packet with incorrect service ID hash. Expected: "
@@ -239,20 +245,22 @@ ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
 
 ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
   int payload_length = 0;
+  std::shared_ptr<BleInputStream> input_stream;
   {
     MutexLock lock(&mutex_);
     if (!ble_input_stream_) {
       return {Exception::kIo};
     }
-
-    ExceptionOr<ByteArray> read_bytes =
-        ble_input_stream_->Read(sizeof(std::int32_t));
-    if (!read_bytes.ok()) {
-      return read_bytes.exception();
-    }
-
-    payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+    input_stream = ble_input_stream_;
   }
+
+  ExceptionOr<ByteArray> read_bytes = input_stream->Read(sizeof(std::int32_t));
+  if (!read_bytes.ok()) {
+    return read_bytes.exception();
+  }
+
+  payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+
   Exception send_ack_result = SendPacketAcknowledgement(payload_length);
   if (!send_ack_result.Ok()) {
     LOG(WARNING) << "Failed to send packet acknowledgement.";
@@ -268,9 +276,10 @@ Exception BleSocket::WritePayloadLength(int payload_length) {
   return ble_output_stream_->WritePayloadLength(payload_length);
 }
 
-ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
+ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacket(
+    std::shared_ptr<BleInputStream> input_stream) {
   // Read the first 4 bytes (packet block 1).
-  ExceptionOr<ByteArray> read_bytes = ble_input_stream_->Read(4);
+  ExceptionOr<ByteArray> read_bytes = input_stream->Read(4);
   if (!read_bytes.ok()) {
     return read_bytes;
   }
@@ -282,7 +291,7 @@ ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
   // Read the length from the 3rd byte of the packet block (0-indexed).
   int packet_block_2_size = packet_block_1.data()[3];
   // Read the left bytes for the packet block 2).
-  read_bytes = ble_input_stream_->Read(packet_block_2_size);
+  read_bytes = input_stream->Read(packet_block_2_size);
   if (!read_bytes.ok()) {
     return read_bytes;
   }

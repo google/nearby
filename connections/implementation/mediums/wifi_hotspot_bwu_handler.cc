@@ -38,6 +38,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
@@ -220,9 +221,11 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
                       CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE)};
   }
 
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
       service_id, hotspot_credentials.GetAddressCandidates(),
-      client->GetCancellationFlag(endpoint_id));
+      cancellation_flag.get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WifiHotspotBwuHandler failed to connect to the WifiHotspot "
                   "service for endpoint "
