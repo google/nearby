@@ -124,6 +124,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 std::string WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
+  bool started_accepting = false;
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
             upgrade_service_id,
@@ -140,6 +141,7 @@ std::string WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
         << "WifiLanBwuHandler successfully started listening for incoming "
            "WifiLan connections while upgrading endpoint "
         << endpoint_id;
+    started_accepting = true;
   }
 
   // Address candidates are not populated until StartAcceptingConnections() is
@@ -151,6 +153,9 @@ std::string WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
               << endpoint_id << " because there are no available ip addresses.";
+    if (started_accepting) {
+      wifi_lan_medium_.StopAcceptingConnections(upgrade_service_id);
+    }
     return {};
   }
   client->GetAnalyticsRecorder().UpdateBwUpgradeNetworkInfo(

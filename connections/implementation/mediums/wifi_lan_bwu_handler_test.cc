@@ -39,6 +39,7 @@
 #include "internal/platform/mock_wifi_lan_server_socket.h"
 #include "internal/platform/mock_wifi_lan_socket.h"
 #include "internal/platform/service_address.h"
+#include "internal/platform/wifi_lan.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 
 namespace nearby {
@@ -342,6 +343,71 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
       Log(Matcher<const ConnectionsLog&>(EqualsProto(kExpectedUpgradeLog))));
   // Flush pending logs.
   client.GetAnalyticsRecorder().LogSession();
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       InitializeUpgradedMediumForEndpoint_EmptyCandidates_StopsAccepting) {
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  ClientProxy client(&mock_event_logger_);
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  auto mock_server_socket = std::make_unique<MockWifiLanServerSocket>();
+  MockWifiLanServerSocket* raw_server_socket = mock_server_socket.get();
+
+  EXPECT_CALL(*raw_server_socket, GetPort()).WillRepeatedly(Return(8080));
+  EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*wifi_lan_medium, ListenForService(_))
+      .WillOnce(Return(ByMove(std::move(mock_server_socket))));
+
+  EXPECT_CALL(*wifi_lan_medium, GetUpgradeAddressCandidates(_))
+      .WillOnce(Return(api::UpgradeAddressInfo{.num_interfaces = 0,
+                                               .num_ipv6_only_interfaces = 0,
+                                               .address_candidates = {}}));
+
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
+      &client, std::string(kServiceId), std::string(kEndpointId));
+
+  EXPECT_TRUE(result.empty());
+  EXPECT_FALSE(
+      mediums_.GetWifiLan().IsAcceptingConnections("service_id_UPGRADE"));
+}
+
+TEST_F(
+    WifiLanBwuHandlerTest,
+    InitializeUpgradedMediumForEndpoint_AlreadyAccepting_KeepAccepting) {
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  ClientProxy client(&mock_event_logger_);
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  auto mock_server_socket = std::make_unique<MockWifiLanServerSocket>();
+  MockWifiLanServerSocket* raw_server_socket = mock_server_socket.get();
+
+  EXPECT_CALL(*raw_server_socket, GetPort()).WillRepeatedly(Return(8080));
+  EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*wifi_lan_medium, ListenForService(_))
+      .WillOnce(Return(ByMove(std::move(mock_server_socket))));
+
+  EXPECT_TRUE(
+      mediums_.GetWifiLan()
+          .StartAcceptingConnections("service_id_UPGRADE",
+                                     [](const std::string&, WifiLanSocket) {})
+          .has_value());
+  EXPECT_TRUE(
+      mediums_.GetWifiLan().IsAcceptingConnections("service_id_UPGRADE"));
+
+  EXPECT_CALL(*wifi_lan_medium, GetUpgradeAddressCandidates(_))
+      .WillOnce(Return(api::UpgradeAddressInfo{.num_interfaces = 0,
+                                               .num_ipv6_only_interfaces = 0,
+                                               .address_candidates = {}}));
+
+  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
+      &client, std::string(kServiceId), std::string(kEndpointId));
+
+  EXPECT_TRUE(result.empty());
+  EXPECT_TRUE(
+      mediums_.GetWifiLan().IsAcceptingConnections("service_id_UPGRADE"));
 }
 
 }  // namespace
