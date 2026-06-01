@@ -38,7 +38,7 @@
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/advertising_metadata_params.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
-#include "connections/implementation/analytics/analytics_recorder_impl.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/analytics/discovery_metadata_params.h"
 #include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -46,6 +46,7 @@
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
+#include "connections/payload_type.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/bandwidth_info.h"
@@ -54,7 +55,6 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
@@ -99,11 +99,154 @@ constexpr absl::string_view kAdvertisingTimestamp = "nc.advertising.timestamp";
 
 constexpr absl::Duration kAdvertisingKeepAliveDuration = absl::Seconds(30);
 
+class NoOpAnalyticsRecorder : public AnalyticsRecorder {
+ public:
+  NoOpAnalyticsRecorder() = default;
+  ~NoOpAnalyticsRecorder() override = default;
+
+  // Advertising phase
+  void OnStartAdvertising(
+      connections::Strategy strategy,
+      const std::vector<location::nearby::proto::connections::Medium>& mediums,
+      AdvertisingMetadataParams* advertising_metadata_params) override {}
+  void OnStopAdvertising() override {}
+
+  int GetNextAdvertisingUpdateIndex() override { return 0; }
+
+  // Connection listening
+  void OnStartedIncomingConnectionListening(
+      connections::Strategy strategy) override {}
+  void OnStoppedIncomingConnectionListening() override {}
+
+  // Discovery phase
+  void OnStartDiscovery(
+      connections::Strategy strategy,
+      const std::vector<location::nearby::proto::connections::Medium>& mediums,
+      DiscoveryMetadataParams* discovery_metadata_params) override {}
+  void OnStopDiscovery() override {}
+
+  int GetNextDiscoveryUpdateIndex() override { return 0; }
+  void OnEndpointFound(
+      location::nearby::proto::connections::Medium medium) override {}
+
+  // Connection request
+  void OnRequestConnection(const connections::Strategy& strategy,
+                           const std::string& endpoint_id) override {}
+
+  void OnConnectionRequestReceived(
+      const std::string& remote_endpoint_id) override {}
+  void OnConnectionRequestSent(
+      const std::string& remote_endpoint_id) override {}
+  void OnRemoteEndpointAccepted(
+      const std::string& remote_endpoint_id) override {}
+  void OnLocalEndpointAccepted(
+      const std::string& remote_endpoint_id) override {}
+  void OnRemoteEndpointRejected(
+      const std::string& remote_endpoint_id) override {}
+  void OnLocalEndpointRejected(
+      const std::string& remote_endpoint_id) override {}
+
+  // Connection attempt
+  void OnIncomingConnectionAttempt(
+      location::nearby::proto::connections::ConnectionAttemptType type,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string& connection_token,
+      ConnectionAttemptMetadataParams* connection_attempt_metadata_params)
+      override {}
+  void OnOutgoingConnectionAttempt(
+      const std::string& remote_endpoint_id,
+      location::nearby::proto::connections::ConnectionAttemptType type,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string& connection_token,
+      ConnectionAttemptMetadataParams* connection_attempt_metadata_params)
+      override {}
+
+  // Connection established
+  void OnConnectionEstablished(
+      const std::string& endpoint_id,
+      location::nearby::proto::connections::Medium medium,
+      const std::string& connection_token) override {}
+  void OnConnectionClosed(
+      const std::string& endpoint_id,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::DisconnectionReason reason,
+      nearby::analytics::SafeDisconnectionResult result) override {}
+
+  // Payload
+  void OnIncomingPayloadStarted(const std::string& endpoint_id,
+                                std::int64_t payload_id,
+                                connections::PayloadType type,
+                                std::int64_t total_size_bytes) override {}
+  void OnPayloadChunkReceived(const std::string& endpoint_id,
+                              std::int64_t payload_id,
+                              std::int64_t chunk_size_bytes) override {}
+  void OnIncomingPayloadDone(
+      const std::string& endpoint_id, std::int64_t payload_id,
+      location::nearby::proto::connections::PayloadStatus status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) override {}
+  void OnOutgoingPayloadStarted(
+      const std::vector<std::string>& endpoint_ids, std::int64_t payload_id,
+      connections::PayloadType type, std::int64_t total_size_bytes) override {}
+  void OnPayloadChunkSent(const std::string& endpoint_id,
+                          std::int64_t payload_id,
+                          std::int64_t chunk_size_bytes) override {}
+  void OnOutgoingPayloadDone(
+      const std::string& endpoint_id, std::int64_t payload_id,
+      location::nearby::proto::connections::PayloadStatus status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) override {}
+
+  // BandwidthUpgrade
+  void OnBandwidthUpgradeStarted(
+      const std::string& endpoint_id,
+      location::nearby::proto::connections::Medium from_medium,
+      location::nearby::proto::connections::Medium to_medium,
+      location::nearby::proto::connections::ConnectionAttemptDirection
+          direction,
+      const std::string& connection_token) override {}
+  void UpdateBwUpgradeNetworkInfo(const std::string& endpoint_id,
+                                  int num_interfaces,
+                                  int num_ipv6_only_interfaces) override {}
+  void OnBandwidthUpgradeError(
+      const std::string& endpoint_id,
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      location::nearby::proto::connections::BandwidthUpgradeErrorStage
+          error_stage,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) override {}
+  void OnBandwidthUpgradeSuccess(const std::string& endpoint_id) override {}
+
+  // Error Code
+  void OnErrorCode(const ErrorCodeParams& params) override {}
+
+  void LogStartSession() override {}
+  void LogSession() override {}
+
+  bool IsSessionLogged() override { return false; }
+
+  location::nearby::proto::connections::OperationResultCategory
+  GetOperationResultCategory(
+      location::nearby::proto::connections::OperationResultCode result_code)
+      override {
+    return location::nearby::proto::connections::OperationResultCategory::
+        CATEGORY_UNKNOWN;
+  }
+
+  void Sync() override {}
+};
+
 }  // namespace
 
-ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
-    : client_id_(Prng().NextInt64()) {
-  VLOG(1) << "ClientProxy ctor event_logger=" << event_logger;
+ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
+    : client_id_(Prng().NextInt64()),
+      analytics_recorder_(std::move(analytics_recorder)) {
+  if (analytics_recorder_ == nullptr) {
+    analytics_recorder_ = std::make_unique<NoOpAnalyticsRecorder>();
+  }
+
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableNearbyConnectionsPreferences)) {
@@ -112,8 +255,6 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
 
   is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableDct);
-  analytics_recorder_ =
-      std::make_unique<analytics::AnalyticsRecorderImpl>(event_logger);
   error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
       [this](const ErrorCodeParams& params) {
         analytics_recorder_->OnErrorCode(params);

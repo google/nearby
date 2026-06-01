@@ -31,6 +31,7 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
@@ -189,8 +190,7 @@ class BasePcpHandler : public PcpHandler,
     // If success, the mediums on which we are now advertising/discovering, for
     // analytics.
     std::vector<location::nearby::proto::connections::Medium> mediums;
-    std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                    OperationResultWithMedium>
+    std::vector<nearby::analytics::OperationResultWithMedium>
         operation_result_with_mediums;
   };
 
@@ -412,8 +412,7 @@ class BasePcpHandler : public PcpHandler,
 
   void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
 
-  std::unique_ptr<location::nearby::analytics::proto::ConnectionsLog::
-                      OperationResultWithMedium>
+  nearby::analytics::OperationResultWithMedium
   GetOperationResultWithMediumByResultCode(
       ClientProxy* client, location::nearby::proto::connections::Medium medium,
       int update_index,

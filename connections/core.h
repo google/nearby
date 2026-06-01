@@ -25,6 +25,7 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
@@ -37,7 +38,6 @@
 #include "connections/v3/discovery_options.h"
 #include "connections/v3/listeners.h"
 #include "connections/v3/listening_result.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 
@@ -49,9 +49,9 @@ class Core {
  public:
   explicit Core(ServiceControllerRouter* router);
   // Client needs to call this constructor if analytics logger is needed.
-  Core(::nearby::analytics::EventLogger* event_logger,
+  Core(std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder,
        ServiceControllerRouter* router)
-      : client_(event_logger), router_(router) {}
+      : client_(std::move(analytics_recorder)), router_(router) {}
   ~Core();
   Core(Core&&);
   Core& operator=(Core&&);

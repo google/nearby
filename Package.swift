@@ -562,6 +562,7 @@ let package = Package(
         .headerSearchPath("./"),
         .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
+        .define("NC_OSS_BUILD"),
       ]
     ),
     .target(

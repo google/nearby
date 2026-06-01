@@ -42,7 +42,6 @@
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
@@ -66,8 +65,8 @@ class ClientProxy final {
   static constexpr absl::Duration
       kHighPowerAdvertisementEndpointIdCacheTimeout = absl::Seconds(30);
 
-  explicit ClientProxy(
-      ::nearby::analytics::EventLogger* event_logger = nullptr);
+  explicit ClientProxy(std::unique_ptr<nearby::analytics::AnalyticsRecorder>
+                           analytics_recorder = nullptr);
   ~ClientProxy();
   ClientProxy(ClientProxy&&) = default;
   ClientProxy& operator=(ClientProxy&&) = default;

@@ -32,6 +32,8 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
@@ -54,8 +56,6 @@
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
-#include "internal/analytics/mock_event_logger.h"
-#include "internal/analytics/sharing_log_matchers.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/authentication_status.h"
 #include "internal/interop/authentication_transport.h"
@@ -71,28 +71,21 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 #include "proto/connections_enums.proto.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OsInfo;
-using ::location::nearby::proto::connections::EventType;
 using ::location::nearby::proto::connections::Medium;
-using ::nearby::analytics::HasEventType;
 using ::testing::_;
 using ::testing::AtLeast;
-using ::protobuf_matchers::EqualsProto;
 using ::testing::Matcher;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::StrictMock;
-using ::testing::proto::Partially;
 
 constexpr absl::string_view kTestEndpointId = "REMOTETEST";
 
@@ -452,7 +445,7 @@ class BasePcpHandlerTest
   };
 
   BasePcpHandlerTest() {
-    client_ = std::make_unique<ClientProxy>(&mock_event_logger_);
+    client_ = std::make_unique<ClientProxy>(CreateAnalyticsRecorder());
   }
 
   void SetUp() override {
@@ -460,6 +453,13 @@ class BasePcpHandlerTest
   }
 
   void TearDown() override { env_.Stop(); }
+
+  std::unique_ptr<analytics::AnalyticsRecorder> CreateAnalyticsRecorder() {
+    auto recorder =
+        std::make_unique<analytics::MockAnalyticsRecorder>();
+    mock_analytics_recorder_ptr_ = recorder.get();
+    return recorder;
+  }
 
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
                         BooleanMediumSelector allowed = GetParam()) {
@@ -896,7 +896,7 @@ class BasePcpHandlerTest
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
   MacAddress remote_mac_address_;
-  nearby::analytics::MockEventLogger mock_event_logger_;
+  nearby::analytics::MockAnalyticsRecorder* mock_analytics_recorder_ptr_;
   std::unique_ptr<ClientProxy> client_;
 };
 
@@ -2555,7 +2555,7 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
 
 TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   env_.Start({.use_simulated_clock = true});
-  client_ = std::make_unique<ClientProxy>(&mock_event_logger_);
+  client_ = std::make_unique<ClientProxy>(CreateAnalyticsRecorder());
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -2572,6 +2572,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
           MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
   EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
       .WillRepeatedly(Return(true));
+  EXPECT_CALL(*mock_analytics_recorder_ptr_,
+              OnStartedIncomingConnectionListening(_));
   EXPECT_TRUE(pcp_handler
                   .StartListeningForIncomingConnections(client_.get(),
                                                         "service", options, {})
@@ -2593,45 +2595,13 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   // do a dummy write to get to the actual write.
   channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
-  absl::string_view expected_log = R"pb(
-    event_type: CLIENT_SESSION
-    client_session {
-      strategy_session {
-        connection_attempt {
-          type: INITIAL
-          direction: INCOMING
-          medium: BLUETOOTH
-          attempt_result: RESULT_ERROR
-          operation_result {
-            result_category: CATEGORY_CONNECTIVITY_ERROR
-            result_code: CONNECTIVITY_CHANNEL_IO_ERROR_ON_BT
-          }
-        }
-      }
-    }
-  )pb";
-  absl::string_view client_session_log = R"pb(
-    event_type: CLIENT_SESSION
-    version: "v1.5.0"
-  )pb";
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_STRATEGY_SESSION))))
-      .Times(1);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::START_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(mock_event_logger_, Log(Matcher<const ConnectionsLog&>(Partially(
-                                      EqualsProto(client_session_log)))))
-      .Times(2);
-  EXPECT_CALL(mock_event_logger_, Log(Matcher<const ConnectionsLog&>(
-                                      Partially(EqualsProto(expected_log)))));
-
+  EXPECT_CALL(*mock_analytics_recorder_ptr_, LogSession()).Times(3);
+  EXPECT_CALL(*mock_analytics_recorder_ptr_, LogStartSession()).Times(3);
+  EXPECT_CALL(
+      *mock_analytics_recorder_ptr_,
+      OnIncomingConnectionAttempt(
+          location::nearby::proto::connections::INITIAL, Medium::BLUETOOTH,
+          location::nearby::proto::connections::RESULT_ERROR, _, _, _));
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
                     client_.get(), ByteArray("remote endpoint"),
@@ -2645,7 +2615,7 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
 TEST_F(BasePcpHandlerTest, IncomingConnectionWithNoDataFailsWithoutLogging) {
   env_.Start({.use_simulated_clock = true});
   // Recreate ClientProxy so that AnalyticRecorder uses simulated clock.
-  client_ = std::make_unique<ClientProxy>(&mock_event_logger_);
+  client_ = std::make_unique<ClientProxy>(CreateAnalyticsRecorder());
   Mediums m;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -2662,6 +2632,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionWithNoDataFailsWithoutLogging) {
           MockPcpHandler::StartOperationResult{.status = {Status::kSuccess}}));
   EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
       .WillRepeatedly(Return(true));
+  EXPECT_CALL(*mock_analytics_recorder_ptr_,
+              OnStartedIncomingConnectionListening(_));
   EXPECT_TRUE(pcp_handler
                   .StartListeningForIncomingConnections(client_.get(),
                                                         "service", options, {})
@@ -2673,59 +2645,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionWithNoDataFailsWithoutLogging) {
       std::move(input_a), std::move(output_a));
   EXPECT_CALL(*input_channel, Read())
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kNoData)));
-  absl::string_view expected_log = R"pb(
-    event_type: CLIENT_SESSION
-    client_session {
-      strategy_session {
-        connection_attempt {
-          type: INITIAL
-          direction: INCOMING
-          attempt_result: RESULT_ERROR
-        }
-      }
-    }
-  )pb";
-  absl::string_view client_session_log = R"pb(
-    event_type: CLIENT_SESSION
-    client_session { duration_millis: 0 }
-    version: "v1.5.0"
-  )pb";
-  absl::string_view client_session_log2 = R"pb(
-    event_type: CLIENT_SESSION
-    client_session {
-      duration_millis: 0
-      strategy_session {
-        duration_millis: 0
-        strategy: UNKNOWN_STRATEGY
-        role: ADVERTISER
-      }
-    }
-    version: "v1.5.0"
-  )pb";
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_STRATEGY_SESSION))))
-      .Times(1);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::STOP_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const ConnectionsLog&>(
-                  HasEventType(EventType::START_CLIENT_SESSION))))
-      .Times(3);
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(EqualsProto(client_session_log))))
-      .Times(2);
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(EqualsProto(client_session_log2))));
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const ConnectionsLog&>(Partially(EqualsProto(expected_log)))))
-      .Times(0);
-
+  EXPECT_CALL(*mock_analytics_recorder_ptr_, LogSession()).Times(3);
+  EXPECT_CALL(*mock_analytics_recorder_ptr_, LogStartSession()).Times(3);
   EXPECT_EQ(
       pcp_handler
           .OnIncomingConnection(client_.get(), ByteArray("remote endpoint"),
@@ -3029,5 +2950,4 @@ TEST_F(BasePcpHandlerTest, TestForceUpdateEndpointIdAdvertisingOption) {
 }
 
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

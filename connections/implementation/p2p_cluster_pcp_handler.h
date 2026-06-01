@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/bluetooth_device_name.h"
@@ -207,8 +208,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, const std::string& service_id,
       const DiscoveryOptions& discovery_options,
       std::vector<Medium>& mediums_started_successfully,
-      std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                      OperationResultWithMedium>& operation_result_with_mediums,
+      std::vector<nearby::analytics::OperationResultWithMedium>&
+          operation_result_with_mediums,
       int update_index);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
       ClientProxy* client, BluetoothEndpoint* endpoint);

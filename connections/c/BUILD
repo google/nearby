@@ -51,6 +51,7 @@ cc_library(
         ":nc_types",
         "//connections:core",
         "//connections:core_types",
+        "//connections/implementation/analytics:analytics_recorder_impl",
         "//connections/implementation/flags:connections_flags",
         "//internal/analytics:event_logger",
         "//internal/flags:flag_reader",
@@ -74,6 +75,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 # iOS only.

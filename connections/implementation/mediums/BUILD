@@ -244,13 +244,11 @@ cc_test(
     ],
     deps = [
         ":mediums",
-        "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
         "//connections/implementation:offline_frames",
         "//connections/implementation/flags:connections_flags",
-        "//internal/analytics:mock_event_logger",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -263,7 +261,6 @@ cc_test(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/proto/analytics:connections_log_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

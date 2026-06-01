@@ -53,7 +53,6 @@
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/webrtc_state.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -86,12 +85,10 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
 #include "internal/platform/wifi_lan_connection_info.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
 
 namespace {
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
 using ::location::nearby::connections::ConnectionsDevice;
@@ -103,6 +100,7 @@ using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::WifiDirectAuthType;
 using ::nearby::analytics::AnalyticsRecorder;
+using ::nearby::analytics::OperationResultWithMedium;
 using ::securegcm::UKey2Handshake;
 
 constexpr int kEndpointCancelAlarmTimeout = 10;
@@ -116,28 +114,6 @@ std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
     case AuthenticationStatus::kFailure:
       return "failure";
   }
-}
-
-std::vector<analytics::OperationResultWithMedium>
-ConvertToCppOperationResultWithMediums(
-    const std::vector<ConnectionsLog::OperationResultWithMedium>&
-        proto_results) {
-  std::vector<analytics::OperationResultWithMedium> cpp_results;
-  cpp_results.reserve(proto_results.size());
-  for (const auto& proto_result : proto_results) {
-    analytics::OperationResultWithMedium cpp_result;
-    cpp_result.medium = proto_result.medium();
-    if (proto_result.has_update_index()) {
-      cpp_result.update_index = proto_result.update_index();
-    }
-    cpp_result.result_category = proto_result.result_category();
-    cpp_result.result_code = proto_result.result_code();
-    if (proto_result.has_connection_mode()) {
-      cpp_result.connection_mode = proto_result.connection_mode();
-    }
-    cpp_results.push_back(cpp_result);
-  }
-  return cpp_results;
 }
 
 }  // namespace
@@ -306,8 +282,7 @@ Status BasePcpHandler::StartAdvertising(
         advertising_listener_ = info.listener;
         client->StartedAdvertising(service_id, GetStrategy(), info.listener,
                                    absl::MakeSpan(result.mediums),
-                                   ConvertToCppOperationResultWithMediums(
-                                       result.operation_result_with_mediums),
+                                   result.operation_result_with_mediums,
                                    compatible_advertising_options);
         client->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
         response.Set({Status::kSuccess});
@@ -538,8 +513,7 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
             client->StartedDiscovery(service_id, GetStrategy(),
                                      std::move(listener),
                                      absl::MakeSpan(result.mediums),
-                                     ConvertToCppOperationResultWithMediums(
-                                         result.operation_result_with_mediums),
+                                     result.operation_result_with_mediums,
                                      stripped_discovery_options);
             response.Set({Status::kSuccess});
           });
@@ -1324,22 +1298,21 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
 }
 
-std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+OperationResultWithMedium
 BasePcpHandler::GetOperationResultWithMediumByResultCode(
     ClientProxy* client, location::nearby::proto::connections::Medium medium,
     int update_index,
     location::nearby::proto::connections::OperationResultCode
         operation_result_code,
     location::nearby::proto::connections::ConnectionMode connection_mode) {
-  auto operation_result_with_medium =
-      std::make_unique<ConnectionsLog::OperationResultWithMedium>();
-  operation_result_with_medium->set_medium(medium);
-  operation_result_with_medium->set_result_code(operation_result_code);
-  operation_result_with_medium->set_result_category(
+  OperationResultWithMedium operation_result_with_medium;
+  operation_result_with_medium.set_medium(medium);
+  operation_result_with_medium.set_result_code(operation_result_code);
+  operation_result_with_medium.set_result_category(
       client->GetAnalyticsRecorder().GetOperationResultCategory(
           operation_result_code));
-  operation_result_with_medium->set_connection_mode(connection_mode);
-  operation_result_with_medium->set_update_index(update_index);
+  operation_result_with_medium.set_connection_mode(connection_mode);
+  operation_result_with_medium.set_update_index(update_index);
 
   return operation_result_with_medium;
 }

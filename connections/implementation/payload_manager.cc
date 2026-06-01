@@ -36,7 +36,6 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/internal_payload_factory.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
@@ -52,7 +51,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {

@@ -31,6 +31,7 @@
 #include "connections/connection_options.h"
 #include "connections/core.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/analytics_recorder_impl.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -51,6 +52,7 @@ namespace nearby {
 namespace sharing {
 namespace {
 
+using ::nearby::analytics::AnalyticsRecorderImpl;
 using ::nearby::connections::ConnectionRequestInfo;
 using ::nearby::connections::ConnectionResponseInfo;
 using ::nearby::connections::Core;
@@ -85,7 +87,8 @@ NearbyConnectionsServiceImpl::NearbyConnectionsServiceImpl(
         // at an invalid instance.
         return connectivity_manager_.IsHPRealtekDevice();
       });
-  static Core* core = new Core(event_logger, router);
+  static Core* core =
+      new Core(std::make_unique<AnalyticsRecorderImpl>(event_logger), router);
   service_handle_ = core;
 }
 

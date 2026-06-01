@@ -389,6 +389,7 @@ cc_library(
         "//connections:core",
         "//connections:core_types",
         "//connections/implementation:internal",
+        "//connections/implementation/analytics:analytics_recorder_impl",
         "//internal/analytics:event_logger",
         "//internal/base",
         "//internal/base:file_path",

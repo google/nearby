@@ -47,7 +47,10 @@ cc_library(
         "analytics_recorder_impl.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    visibility = ["//connections/implementation:__pkg__"],
+    visibility = [
+        "//connections/c:__pkg__",
+        "//sharing:__pkg__",
+    ],
     deps = [
         ":analytics",
         "//connections:core_types",
@@ -64,6 +67,24 @@ cc_library(
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
+    ],
+)
+
+cc_library(
+    name = "mock_analytics_recorder",
+    testonly = True,
+    hdrs = [
+        "mock_analytics_recorder.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//connections:__subpackages__"],
+    deps = [
+        ":analytics",
+        "//connections:core_types",
+        "//internal/platform:error_code_recorder",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_for_library_testonly",
     ],
 )
 

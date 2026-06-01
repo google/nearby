@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,6 +35,9 @@
 #include "connections/connection_options.h"
 #include "connections/core.h"
 #include "connections/discovery_options.h"
+#if !defined(NC_OSS_BUILD)
+#include "connections/implementation/analytics/analytics_recorder_impl.h"
+#endif  // !defined(NC_OSS_BUILD)
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -244,6 +248,7 @@ NcContext* GetContext(NC_INSTANCE instance) {
   return cpp_connection_request_info;
 }
 
+#if !defined(NC_OSS_BUILD)
 NC_INSTANCE NcCreateService() {
   return NcCreateServiceWithEventLogger(nullptr);
 }
@@ -259,12 +264,24 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
   nc_context.event_logger =
       event_logger == nullptr ? nullptr : new NcEventLogger(event_logger);
-  nc_context.core = new ::nearby::connections::Core(nc_context.event_logger,
-                                                    nc_context.router);
+  nc_context.core = new ::nearby::connections::Core(
+      std::make_unique<::nearby::analytics::AnalyticsRecorderImpl>(
+          nc_context.event_logger),
+      nc_context.router);
 
   kNcContextMap->insert({nc_context.core, nc_context});
   return nc_context.core;
 }
+#else  // !defined(NC_OSS_BUILD)
+NC_INSTANCE NcCreateService() {
+  NcContext nc_context;
+  nc_context.router = new ::nearby::connections::ServiceControllerRouter();
+  nc_context.core = new ::nearby::connections::Core(nc_context.router);
+
+  kNcContextMap->insert({nc_context.core, nc_context});
+  return nc_context.core;
+}
+#endif  // !defined(NC_OSS_BUILD)
 
 void NcCloseService(NC_INSTANCE instance) {
   NcContext* nc_context = GetContext(instance);
