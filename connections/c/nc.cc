@@ -28,6 +28,7 @@
 #if !defined(NC_OSS_BUILD)
 #include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "location/nearby/analytics/cpp/proto/connections_log.pb.h"
+#include "location/nearby/analytics/cpp/proto/nearby_sharing_log.pb.h"
 #endif  // !defined(NC_OSS_BUILD)
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
@@ -56,7 +57,6 @@
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
-#include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #if TARGET_OS_IOS
 #include "internal/platform/implementation/apple/nearby_logger.h"
 #endif  // TARGET_OS_IOS

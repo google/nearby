@@ -26,6 +26,7 @@
 
 #include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
 #include "location/nearby/analytics/cpp/logging/sharing_log_matchers.h"
+#include "location/nearby/analytics/cpp/proto/nearby_sharing_log.pb.h"
 #include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -43,7 +44,6 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"

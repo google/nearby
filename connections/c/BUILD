@@ -62,7 +62,7 @@ cc_library(
         "//internal/platform:types",
         "//location/nearby/analytics/cpp/logging:event_logger",
         "//location/nearby/analytics/cpp/proto:connections_log_cc_proto",
-        "//sharing/proto/analytics:sharing_log_cc_proto",
+        "//location/nearby/analytics/cpp/proto:sharing_log_cc_proto",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
