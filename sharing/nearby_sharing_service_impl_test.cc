@@ -5053,13 +5053,9 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
 
   FlushTesting();
   // Verify data sent to the remote device so far.
-  if (!ExpectPairedKeyEncryptionFrame()) {
-    return;
-  }
+  EXPECT_TRUE(ExpectPairedKeyEncryptionFrame());
+  EXPECT_TRUE(ExpectPairedKeyResultFrame());
 
-  if (!ExpectPairedKeyResultFrame()) {
-    return;
-  }
   // Check BindingRequest frame sent to the remote device.
   std::unique_ptr<Frame> frame = GetWrittenFrame();
   ASSERT_TRUE(frame->has_v1());
@@ -5082,8 +5078,10 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
                                           result_bytes.size());
   ReceiveMessageFromConnection(std::move(result_bytes));
 
-  // Wait for the transfer updates.
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  // Verify that connection is closed.
+  EXPECT_FALSE(
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   std::optional<nearby::sharing::sync::SyncBindingPrefs> binding =
       preference_manager_.GetSyncBindingValue();

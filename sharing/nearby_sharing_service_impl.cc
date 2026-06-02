@@ -2669,6 +2669,11 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
     session->Abort(TransferMetadata::Status::kFailed);
     return;
   }
+  LOG(INFO) << __func__ << ": Sync binding response succeeded, disconnecting.";
+  // Binding receiver side will wait for connection disconnect after sending the
+  // BindingResponse message.
+  session->Disconnect();
+
   sync::SyncBinding binding;
   binding.set_binding_id(binding_id);
   binding.set_source_name(session->share_target().device_name);
