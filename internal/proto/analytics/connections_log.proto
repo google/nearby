@@ -464,6 +464,9 @@ message ConnectionsLog {
 
     // If this connection is forced over USB.
     optional bool is_forced_usb = 18;
+
+    // The HTTP latency histogram for the entire transfer session.
+    optional HttpLatencyHistogram http_latency_histogram = 19;
   }
 
   message SpeedTestReport {
@@ -472,6 +475,20 @@ message ConnectionsLog {
 
     // Whether the throughput is incoming or outgoing.
     optional bool is_incoming = 2;
+  }
+
+  message HttpLatencyHistogram {
+    // Buckets for latency between received HTTP request and sent HTTP response:
+    // 1) 0 to 1s
+    optional int32 bucket_zero_to_one_sec_count = 1;
+    // 2) 1s to 10s
+    optional int32 bucket_one_to_ten_sec_count = 2;
+    // 3) 10s to 60s
+    optional int32 bucket_ten_to_sixty_sec_count = 3;
+    // 4) 60s to 120s
+    optional int32 bucket_one_to_two_mins_count = 4;
+    // 5) timeout
+    optional int32 bucket_timeout_count = 5;
   }
 
   // Contains the transfer statistics for a DCT payload.
