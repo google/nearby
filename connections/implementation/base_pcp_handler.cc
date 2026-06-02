@@ -730,8 +730,15 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   //
   // TODO(b/305004353): Authenticate the connection in the responder role for
   // outgoing connections.
-  if (!pending_connection_info.is_incoming) {
+  if (pending_connection_info.is_incoming) {
     LOG(ERROR) << __func__ << ": only outgoing connections are supported";
+    ProcessPreConnectionInitiationFailure(
+        pending_connection_info.client, pending_connection_info.medium,
+        remote_device.GetEndpointId(), pending_connection_info.channel.get(),
+        pending_connection_info.is_incoming, /*log_failure=*/true,
+        pending_connection_info.start_time, {Status::kConnectionRejected},
+        OperationResultCode::DETAIL_UNKNOWN,
+        pending_connection_info.result.lock().get());
     return;
   }
 
@@ -1196,7 +1203,7 @@ Status BasePcpHandler::RequestConnectionV3(
         pending_connection_info.client = client;
         pending_connection_info.remote_endpoint_info = endpoint->endpoint_info;
         pending_connection_info.nonce = connection_info.nonce;
-        pending_connection_info.is_incoming = true;
+        pending_connection_info.is_incoming = false;
         pending_connection_info.start_time = start_time;
         pending_connection_info.listener = info.listener;
         pending_connection_info.connection_options = connection_options;
