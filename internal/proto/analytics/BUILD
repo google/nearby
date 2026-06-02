@@ -13,7 +13,9 @@
 # limitations under the License.
 
 load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@com_google_protobuf//rust:defs.bzl", "rust_proto_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
@@ -25,14 +27,17 @@ proto_library(
     srcs = [
         "connections_log.proto",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//proto:connections_enums_proto",
         "//proto/errorcode:error_code_enums_proto",
+        "//storage/datapol/annotations/proto:datapol_annotations",
     ],
 )
 
 cc_proto_library(
     name = "connections_log_cc_proto",
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//connections:__subpackages__",
         "//internal/analytics:__pkg__",
@@ -52,9 +57,20 @@ cc_test(
         ":connections_log_cc_proto",
         "//internal/platform:logging",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//logs/proto/location/nearby:nearby_client_log_cc_proto",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
     ],
+)
+
+rust_proto_library(
+    name = "connections_log_rust_proto",
+    deps = [":connections_log_proto"],
+)
+
+java_lite_proto_library(
+    name = "connections_log_java_proto_lite",
+    deps = [":connections_log_proto"],
 )

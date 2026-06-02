@@ -468,7 +468,6 @@ cc_test(
         "//connections/implementation/analytics:mock_analytics_recorder",
         "//connections/implementation/flags:connections_flags",
         "//connections/v3:v3_types",
-        "//internal/analytics:mock_event_logger",
         "//internal/flags:nearby_flags",
         "//internal/interop:device",
         "//internal/platform:base",
@@ -478,7 +477,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",

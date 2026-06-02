@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
 #include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "location/nearby/sharing/lib/account/mock_account_observer.h"
 #include "location/nearby/sharing/lib/account/signin_attempt.h"
@@ -48,7 +49,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/analytics/mock_event_logger.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"

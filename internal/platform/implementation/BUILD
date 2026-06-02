@@ -182,6 +182,8 @@ cc_library(
     tags = ["keep_dep"],  # Prevent build_cleaner from removing the dependency.
     visibility = [
         "//:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/cpp:__subpackages__",
         "//location/nearby/sharing/lib:__subpackages__",
     ],
     deps = [

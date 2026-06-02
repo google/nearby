@@ -22,10 +22,10 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"

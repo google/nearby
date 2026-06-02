@@ -22,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
+#include "location/nearby/analytics/cpp/logging/sharing_log_matchers.h"
 #include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "net/proto2/contrib/parse_proto/parse_text_proto.h"
 #include "gmock/gmock.h"
@@ -29,8 +31,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/analytics/mock_event_logger.h"
-#include "internal/analytics/sharing_log_matchers.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/network/url.h"

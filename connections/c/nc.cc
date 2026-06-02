@@ -25,6 +25,10 @@
 #include <utility>
 #include <vector>
 
+#if !defined(NC_OSS_BUILD)
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
+#include "location/nearby/analytics/cpp/proto/connections_log.pb.h"
+#endif  // !defined(NC_OSS_BUILD)
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
@@ -45,7 +49,6 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/flags/flag.h"
 #include "internal/flags/flag_reader.h"
 #include "internal/flags/nearby_flags.h"
@@ -53,7 +56,6 @@
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #if TARGET_OS_IOS
 #include "internal/platform/implementation/apple/nearby_logger.h"
@@ -122,6 +124,7 @@ class FlagReaderWrapper : public nearby::flags::FlagReader {
   NC_PHENOTYPE_FLAG_READER phenotype_flag_reader_;
 };
 
+#if !defined(NC_OSS_BUILD)
 // This is a bridging class between the C API and the C++ EventLogger interface.
 class NcEventLogger : public ::nearby::analytics::EventLogger {
  public:
@@ -149,6 +152,10 @@ class NcEventLogger : public ::nearby::analytics::EventLogger {
  private:
   const NC_EVENT_LOGGER* event_logger_;
 };
+#else  // !defined(NC_OSS_BUILD)
+class NcEventLogger;
+#endif  // !defined(NC_OSS_BUILD)
+
 }  // namespace
 
 typedef struct NcContext {

@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -40,7 +41,6 @@
 #include "connections/payload_type.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"

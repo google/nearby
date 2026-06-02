@@ -17,9 +17,9 @@
 
 #include <memory>
 
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "location/nearby/sharing/lib/rpc/grpc_async_client_factory.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
-#include "internal/analytics/event_logger.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context.h"

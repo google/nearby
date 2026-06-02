@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "internal/analytics/event_logger.h"
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/public/context.h"
