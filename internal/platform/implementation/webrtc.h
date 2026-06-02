@@ -22,8 +22,8 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
-#include "webrtc/api/peer_connection_interface.h"
-#include "webrtc/api/scoped_refptr.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace api {

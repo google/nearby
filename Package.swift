@@ -345,7 +345,6 @@ let package = Package(
         "internal/platform/implementation/apple/Mediums/WiFiCommon/BUILD",
         "internal/platform/implementation/BUILD",
         "internal/platform/BUILD",
-        "internal/analytics/BUILD",
         "internal/flags/BUILD",
         "internal/network/BUILD",
         "internal/rpc/BUILD",
@@ -369,7 +368,6 @@ let package = Package(
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",
         "connections/implementation/analytics/analytics_recorder_impl_test.cc",
-        "connections/implementation/analytics/throughput_recorder_test.cc",
         "connections/implementation/mediums/advertisements/data_element_test.cc",
         "connections/implementation/mediums/advertisements/dct_advertisement_test.cc",
         "connections/implementation/mediums/advertisements/advertisement_util_test.cc",
@@ -434,7 +432,6 @@ let package = Package(
         "internal/encoding/base85_test.cc",
         "internal/data/leveldb_data_set_test.cc",
         "internal/flags/nearby_flags_test.cc",
-        "internal/proto/analytics/connections_log_test.cc",
         "internal/platform/feature_flags_test.cc",
         "internal/platform/file_test.cc",
         "internal/platform/cancelable_alarm_test.cc",
@@ -499,7 +496,6 @@ let package = Package(
         "internal/network/http_client_impl_test.cc",
         "internal/network/http_status_code_test.cc",
         "internal/test/fake_clock_test.cc",
-        "internal/test/fake_webrtc.cc",
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
         "internal/test/fake_task_runner_test.cc",
@@ -521,15 +517,9 @@ let package = Package(
         "proto",
         "internal/data/leveldb_data_set_test.proto",
         // webrtc
-        "connections/implementation/webrtc_bwu_handler.cc",
-        "connections/implementation/webrtc_endpoint_channel.cc",
-        "connections/implementation/mediums/webrtc.cc",
-        "connections/implementation/mediums/webrtc",
-        "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.cc",
-        "connections/implementation/mediums/webrtc/tachyon_express_signaling_messenger.h",
         "internal/platform/implementation/apple/webrtc.h",
         "internal/platform/implementation/apple/webrtc.mm",
-        // This breaks the build, but seems to work fine without it?
+        // Only used in tests
         "internal/platform/medium_environment.cc",
       ],
       sources: [
