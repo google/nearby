@@ -213,13 +213,14 @@ message V1Frame {
 
 // An introduction packet sent by the sending side. Contains a list of files
 // they'd like to share.
-// NEXT_ID=10
+// NEXT_ID=11
 message IntroductionFrame {
   enum SharingUseCase {
     UNKNOWN = 0;
     NEARBY_SHARE = 1;
     REMOTE_COPY = 2;
     TAP_TO_SHARE = 9;
+    FILE_SYNC = 10;
   }
 
   repeated FileMetadata file_metadata = 1;
