@@ -67,6 +67,9 @@ constexpr auto kEnableFileSync =
 // When true, enable wifi hotspot medium for HP Realtek devices.
 constexpr auto kEnableWifiHotspotForHpRealtekDevices =
     flags::Flag<bool>(kConfigPackage, "45673628", false);
+// When true, restrict auto-accept in sharing.
+constexpr auto kRestrictAutoAcceptInSharing =
+    flags::Flag<bool>(kConfigPackage, "45780100", false);
 // The amount of time in milliseconds a share target stays in discovery cache in
 // receive disabled state after a transfer.
 constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
@@ -113,6 +116,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45762616, kEnableFileSync},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
+      {45780100, kRestrictAutoAcceptInSharing},
       {45683539, kUseAlternateServiceUuidForDiscovery},
       {45776229, kEnableBackup},
       {45662570, kEnableBetaLabel},

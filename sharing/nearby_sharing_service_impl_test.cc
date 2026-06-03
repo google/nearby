@@ -3242,6 +3242,47 @@ TEST_F(NearbySharingServiceImplTest, SendTextUnableToVerifyKey) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
+TEST_F(NearbySharingServiceImplTest,
+       SendTextUnableToVerifyKey_RestrictAutoAcceptEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::
+          kRestrictAutoAcceptInSharing,
+      true);
+
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  int64_t target_id =
+      DiscoverShareTarget(transfer_callback, discovery_callback);
+  ScopedSendSurface s(service_.get(), &transfer_callback);
+
+  absl::Notification notification;
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kAwaitingLocalConfirmation},
+                        [&]() { notification.Notify(); });
+
+  SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::UNABLE);
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
+                                                              GetToken());
+  fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+
+  EXPECT_EQ(SendAttachments(target_id, CreateTextAttachments({kTextPayload})),
+            NearbySharingServiceImpl::StatusCodes::kOk);
+  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  absl::Notification accept_notification;
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kAwaitingRemoteAcceptance},
+                        [&]() { accept_notification.Notify(); });
+
+  service_->Accept(
+      target_id, [&](NearbySharingServiceImpl::StatusCodes status_code) {
+        EXPECT_EQ(status_code, NearbySharingServiceImpl::StatusCodes::kOk);
+      });
+  EXPECT_TRUE(accept_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+}
+
 INSTANTIATE_TEST_SUITE_P(NearbySharingServiceImplSendFailureTest,
                          NearbySharingServiceImplSendFailureTest,
                          testing::ValuesIn(kSendFailureTestData));

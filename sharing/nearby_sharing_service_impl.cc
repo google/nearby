@@ -2590,8 +2590,13 @@ void NearbySharingServiceImpl::BeginOutgoingTransfer(
                                      /*default_value=*/false);
   session.SetAdvancedProtectionStatus(protection_enabled,
                                       /*advanced_protection_mismatch=*/false);
-  if (session.token().empty() || !protection_enabled) {
-    // Auto accept if no token or if advanced protection is disabled.
+  bool restrict_auto_accept = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_sharing_feature::
+          kRestrictAutoAcceptInSharing);
+  if (session.token().empty() ||
+      (!restrict_auto_accept && !protection_enabled)) {
+    // Auto accept if no token, or if the restriction is disabled and advanced
+    // protection is disabled.
     OutgoingSessionAccept(session);
   } else {
     session.UpdateTransferMetadata(
