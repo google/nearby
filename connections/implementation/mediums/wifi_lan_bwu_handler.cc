@@ -41,6 +41,35 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+
+bool IsLoopbackOrLinkLocalAddress(const ServiceAddress& address) {
+  if (address.address.size() == 4) {
+    // IPv4
+    uint8_t b0 = static_cast<uint8_t>(address.address[0]);
+    uint8_t b1 = static_cast<uint8_t>(address.address[1]);
+    // Loopback: 127.0.0.0/8
+    if (b0 == 127) return true;
+    // Link-local: 169.254.0.0/16
+    if (b0 == 169 && b1 == 254) return true;
+  } else if (address.address.size() == 16) {
+    // IPv6
+    // Loopback: ::1 (15 bytes of 0, last byte 1)
+    bool is_loopback = true;
+    for (int i = 0; i < 15; ++i) {
+      if (address.address[i] != 0) {
+        is_loopback = false;
+        break;
+      }
+    }
+    if (is_loopback && address.address[15] == 1) return true;
+
+    // Link-local: fe80::/10
+    uint8_t b0 = static_cast<uint8_t>(address.address[0]);
+    uint8_t b1 = static_cast<uint8_t>(address.address[1]);
+    if (b0 == 0xfe && (b1 & 0xc0) == 0x80) return true;
+  }
+  return false;
+}
 }  // namespace
 
 WifiLanBwuHandler::WifiLanBwuHandler(
@@ -79,15 +108,33 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
                    << address_candidate.ip_address().size();
       continue;
     }
+    if (IsLoopbackOrLinkLocalAddress(service_address)) {
+      LOG(WARNING) << "Rejecting loopback/link-local address candidate: "
+                   << service_address;
+      continue;
+    }
     address_candidates.push_back(std::move(service_address));
   }
-  // Only use ip_address and wifi_port if address_candidates is empty.
-  if (address_candidates.empty()) {
-    address_candidates.push_back(ServiceAddress{
+  // Only use ip_address and wifi_port if address_candidates is empty and the
+  // proto list was empty.
+  if (address_candidates.empty() &&
+      upgrade_path_info_socket.address_candidates_size() == 0) {
+    ServiceAddress fallback_address{
         .address =
             std::vector<char>(upgrade_path_info_socket.ip_address().begin(),
                               upgrade_path_info_socket.ip_address().end()),
-        .port = static_cast<uint16_t>(upgrade_path_info_socket.wifi_port())});
+        .port = static_cast<uint16_t>(upgrade_path_info_socket.wifi_port())};
+    if (IsLoopbackOrLinkLocalAddress(fallback_address)) {
+      LOG(WARNING) << "Rejecting loopback/link-local fallback address: "
+                   << fallback_address;
+    } else {
+      address_candidates.push_back(std::move(fallback_address));
+    }
+  }
+
+  if (address_candidates.empty()) {
+    LOG(ERROR) << "WifiLanBwuHandler: no valid address candidates.";
+    return {Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
   }
   Error error;
   for (const auto& address_candidate : address_candidates) {

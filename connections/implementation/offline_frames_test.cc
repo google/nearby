@@ -449,7 +449,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
         upgrade_path_info: <
           medium: WIFI_HOTSPOT
           wifi_hotspot_credentials: <
-            ssid: "ssid"
+            ssid: "Direct-AB"
             password: "password"
             port: 1234
             gateway: "0.0.0.0"
@@ -467,7 +467,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
     >)pb";
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
       credentials;
-  credentials.set_ssid("ssid");
+  credentials.set_ssid("Direct-AB");
   credentials.set_password("password");
   credentials.set_port(1234);
   credentials.set_frequency(2412);

@@ -59,6 +59,12 @@ using ::testing::ReturnRef;
 constexpr absl::string_view kIpv4Address{"\xc0\xa8\x00\x01", 4};
 constexpr absl::string_view kIpv6Address{
     "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53", 16};
+constexpr absl::string_view kIpv4Loopback{"\x7f\x00\x00\x01", 4};
+constexpr absl::string_view kIpv6Loopback{
+    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01", 16};
+constexpr absl::string_view kIpv4LinkLocal{"\xa9\xfe\x01\x01", 4};
+constexpr absl::string_view kIpv6LinkLocal{
+    "\xfe\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01", 16};
 constexpr absl::string_view kServiceId{"service_id"};
 constexpr absl::string_view kEndpointId{"endpoint_id"};
 
@@ -324,6 +330,111 @@ TEST_F(
   EXPECT_TRUE(result.empty());
   EXPECT_TRUE(
       mediums_.GetWifiLan().IsAcceptingConnections("service_id_UPGRADE"));
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_LoopbackIpv4_Fails) {
+  ClientProxy client;
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(kIpv4Loopback);
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR);
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_LoopbackIpv6_Fails) {
+  ClientProxy client;
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(kIpv6Loopback);
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR);
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_LinkLocalIpv4_Fails) {
+  ClientProxy client;
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(kIpv4LinkLocal);
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR);
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_LinkLocalIpv6_Fails) {
+  ClientProxy client;
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(kIpv6LinkLocal);
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR);
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_AddressCandidates_FiltersInvalid_Success) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointId));
+  MockInputStream input_stream;
+  MockOutputStream output_stream;
+  auto wifi_lan_socket = std::make_unique<MockWifiLanSocket>();
+  EXPECT_CALL(*wifi_lan_socket, GetInputStream())
+      .WillRepeatedly(ReturnRef(input_stream));
+  EXPECT_CALL(*wifi_lan_socket, GetOutputStream())
+      .WillRepeatedly(ReturnRef(output_stream));
+  EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
+      .WillRepeatedly(Return(true));
+  // Should only try to connect to the valid IPv4 address, not the loopback
+  // IPv6.
+  EXPECT_CALL(*wifi_lan_medium,
+              ConnectToService(
+                  ServiceAddress{
+                      .address = {kIpv4Address.begin(), kIpv4Address.end()},
+                      .port = 8080,
+                  },
+                  _))
+      .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  auto* address_candidate =
+      path_info.mutable_wifi_lan_socket()->add_address_candidates();
+  address_candidate->set_ip_address(kIpv6Loopback);  // Invalid
+  address_candidate->set_port(8080);
+  address_candidate =
+      path_info.mutable_wifi_lan_socket()->add_address_candidates();
+  address_candidate->set_ip_address(kIpv4Address);  // Valid
+  address_candidate->set_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  EXPECT_TRUE(result.has_value());
 }
 
 }  // namespace

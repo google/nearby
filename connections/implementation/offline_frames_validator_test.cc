@@ -44,7 +44,7 @@ constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr int kApFrequency = 2412;
 constexpr int kStatusAccepted = 0;
-constexpr absl::string_view kSsid = "ssid";
+constexpr absl::string_view kSsid = "Direct-AB";
 constexpr absl::string_view kPassword = "password";
 constexpr absl::string_view kWifiHotspotGateway = "0.0.0.0";
 constexpr absl::string_view kWifiDirectSsid = "DIRECT-A0-0123456789AB";
@@ -678,6 +678,58 @@ TEST(OfflineFramesValidatorTest,
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
   EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithInvalidSsidFails) {
+  {
+    // SSID doesn't start with DIRECT- or Direct-
+    OfflineFrame offline_frame;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        credentials;
+    credentials.set_ssid("evil_ap");
+    credentials.set_password(kPassword);
+    credentials.set_port(kPort);
+    credentials.set_frequency(kHotspotFrequency);
+    credentials.set_gateway(kWifiHotspotGateway);
+    std::string bytes = ForBwuWifiHotspotPathAvailable(
+        std::move(credentials), kSupportsDisablingEncryption);
+    offline_frame.ParseFromString(bytes);
+    auto ret_value = EnsureValidOfflineFrame(offline_frame);
+    EXPECT_FALSE(ret_value.Ok());
+  }
+  {
+    // SSID too short (less than 2 chars after hyphen)
+    OfflineFrame offline_frame;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        credentials;
+    credentials.set_ssid("Direct-A");
+    credentials.set_password(kPassword);
+    credentials.set_port(kPort);
+    credentials.set_frequency(kHotspotFrequency);
+    credentials.set_gateway(kWifiHotspotGateway);
+    std::string bytes = ForBwuWifiHotspotPathAvailable(
+        std::move(credentials), kSupportsDisablingEncryption);
+    offline_frame.ParseFromString(bytes);
+    auto ret_value = EnsureValidOfflineFrame(offline_frame);
+    EXPECT_FALSE(ret_value.Ok());
+  }
+  {
+    // SSID too long (more than 32 chars)
+    OfflineFrame offline_frame;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        credentials;
+    credentials.set_ssid("Direct-123456789012345678901234567");
+    credentials.set_password(kPassword);
+    credentials.set_port(kPort);
+    credentials.set_frequency(kHotspotFrequency);
+    credentials.set_gateway(kWifiHotspotGateway);
+    std::string bytes = ForBwuWifiHotspotPathAvailable(
+        std::move(credentials), kSupportsDisablingEncryption);
+    offline_frame.ParseFromString(bytes);
+    auto ret_value = EnsureValidOfflineFrame(offline_frame);
+    EXPECT_FALSE(ret_value.Ok());
+  }
 }
 
 TEST(OfflineFramesValidatorTest,
