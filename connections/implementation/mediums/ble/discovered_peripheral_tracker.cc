@@ -228,6 +228,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
     return false;
   }
 
+  std::vector<BleAdvertisement> advertisements_to_clear;
   for (const auto& hash : on_lost_advertisement->hashes()) {
     for (const auto& it : gatt_advertisement_infos_) {
       if (it.second.instant_on_lost_hash.string_data() == hash) {
@@ -256,11 +257,15 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
                       << it.second.service_id;
           }
 
-          ClearGattAdvertisement(gatt_advertisement);
+          advertisements_to_clear.push_back(gatt_advertisement);
         }
         break;
       }
     }
+  }
+
+  for (const auto& advertisement : advertisements_to_clear) {
+    ClearGattAdvertisement(advertisement);
   }
   return true;
 }
