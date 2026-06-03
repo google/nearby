@@ -294,6 +294,25 @@ message BandwidthUpgradeNegotiationFrame {
       // The GO should listen on both IPv4 and IPv6 addresses.
       // https://en.wikipedia.org/wiki/Link-local_address#IPv6
       optional bytes ip_v6_address = 6;
+      reserved 7;
+      reserved "service_name";
+      // Windows and Android will use Wi-Fi P2P device discovery for WifiDirect.
+      // Its credentials is the device_name.
+      optional string device_name = 9;
+      // WifiDirect spec requires that pin is exactly 8 digits. The first 7
+      // digits are the PIN. The last 1 digit is a checksum calculated using a
+      // specific algorithm (CRC-8). However, the Windows WinRT
+      // WiFiDirectServiceAdvertiser::ConnectAsync() that we use does NOT
+      // enforce the CRC-8 checksum for a WPS PIN because: 1. The ConnectAsync
+      // PIN is NOT necessarily a WPS PIN. 2. WPS PIN validation is performed by
+      // the Wi-Fi driver/firmware. 3. WFDS connections often bypass or replace
+      // WPS PIN authentication
+      // pin is exchanged in the connection handshake stage, but we create and
+      // save it before starting GO, so we can send it to GC side for
+      // authentication.
+      // Note: pin is not used for WIFI_DIRECT_WITH_DEVICE_NAME, reserve for
+      // future expansion.
+      optional string pin = 8;
     }
 
     // Accompanies Medium.WEB_RTC
@@ -457,6 +476,23 @@ message AutoReconnectFrame {
 }
 
 message MediumMetadata {
+  // Should always match
+  // cs/symbol:location.nearby.proto.connections.WifiDirectAuthType
+  // LINT.IfChange
+  enum WifiDirectAuthType {
+    WIFI_DIRECT_TYPE_UNKNOWN = 0;
+    // WifiDirect type that uses ssid/password for authentication. Android
+    // supports this type, but Windows does not.
+    WIFI_DIRECT_WITH_PASSWORD = 1;
+    // WifiDirect type that uses device_name for discovery and connect.
+    // Android and Windows both support this type.
+    WIFI_DIRECT_WITH_DEVICE_NAME = 3;
+
+    reserved 2;
+    reserved "WIFI_DIRECT_WITH_PIN";
+  }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+
   // True if local device supports 5GHz.
   optional bool supports_5_ghz = 1;
   // WiFi LAN BSSID, in the form of a six-byte MAC address: XX:XX:XX:XX:XX:XX
@@ -483,6 +519,9 @@ message MediumMetadata {
   optional WifiHotspotStaUsableChannels wifi_hotspot_sta_usable_channels = 11;
   // The supported medium roles.
   optional MediumRole medium_role = 12;
+  // The supported WifiDirect auth types.
+  repeated WifiDirectAuthType supported_wifi_direct_auth_types = 13
+      [packed = true];
 }
 
 // Available channels on the local device.

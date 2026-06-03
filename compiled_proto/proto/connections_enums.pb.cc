@@ -316,6 +316,61 @@ bool Medium_Parse(
   }
   return success;
 }
+bool WifiDirectAuthType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> WifiDirectAuthType_strings[3] = {};
+
+static const char WifiDirectAuthType_names[] =
+  "WIFI_DIRECT_TYPE_UNKNOWN"
+  "WIFI_DIRECT_WITH_DEVICE_NAME"
+  "WIFI_DIRECT_WITH_PASSWORD";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry WifiDirectAuthType_entries[] = {
+  { {WifiDirectAuthType_names + 0, 24}, 0 },
+  { {WifiDirectAuthType_names + 24, 28}, 3 },
+  { {WifiDirectAuthType_names + 52, 25}, 1 },
+};
+
+static const int WifiDirectAuthType_entries_by_number[] = {
+  0, // 0 -> WIFI_DIRECT_TYPE_UNKNOWN
+  2, // 1 -> WIFI_DIRECT_WITH_PASSWORD
+  1, // 3 -> WIFI_DIRECT_WITH_DEVICE_NAME
+};
+
+const std::string& WifiDirectAuthType_Name(
+    WifiDirectAuthType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          WifiDirectAuthType_entries,
+          WifiDirectAuthType_entries_by_number,
+          3, WifiDirectAuthType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      WifiDirectAuthType_entries,
+      WifiDirectAuthType_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     WifiDirectAuthType_strings[idx].get();
+}
+bool WifiDirectAuthType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, WifiDirectAuthType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      WifiDirectAuthType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<WifiDirectAuthType>(int_value);
+  }
+  return success;
+}
 bool ConnectionTechnology_IsValid(int value) {
   switch (value) {
     case 0:

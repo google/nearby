@@ -552,6 +552,26 @@ inline const std::string& AutoReconnectFrame_EventType_Name(T enum_t_value) {
 }
 bool AutoReconnectFrame_EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AutoReconnectFrame_EventType* value);
+enum MediumMetadata_WifiDirectAuthType : int {
+  MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_TYPE_UNKNOWN = 0,
+  MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_WITH_PASSWORD = 1,
+  MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_WITH_DEVICE_NAME = 3
+};
+bool MediumMetadata_WifiDirectAuthType_IsValid(int value);
+constexpr MediumMetadata_WifiDirectAuthType MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_MIN = MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_TYPE_UNKNOWN;
+constexpr MediumMetadata_WifiDirectAuthType MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_MAX = MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_WITH_DEVICE_NAME;
+constexpr int MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_ARRAYSIZE = MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_MAX + 1;
+
+const std::string& MediumMetadata_WifiDirectAuthType_Name(MediumMetadata_WifiDirectAuthType value);
+template<typename T>
+inline const std::string& MediumMetadata_WifiDirectAuthType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, MediumMetadata_WifiDirectAuthType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function MediumMetadata_WifiDirectAuthType_Name.");
+  return MediumMetadata_WifiDirectAuthType_Name(static_cast<MediumMetadata_WifiDirectAuthType>(enum_t_value));
+}
+bool MediumMetadata_WifiDirectAuthType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, MediumMetadata_WifiDirectAuthType* value);
 enum LocationStandard_Format : int {
   LocationStandard_Format_UNKNOWN = 0,
   LocationStandard_Format_E164_CALLING = 1,
@@ -3822,6 +3842,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
     kPasswordFieldNumber = 2,
     kGatewayFieldNumber = 5,
     kIpV6AddressFieldNumber = 6,
+    kPinFieldNumber = 8,
+    kDeviceNameFieldNumber = 9,
     kPortFieldNumber = 3,
     kFrequencyFieldNumber = 4,
   };
@@ -3897,6 +3919,42 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
   std::string* _internal_mutable_ip_v6_address();
   public:
 
+  // optional string pin = 8;
+  bool has_pin() const;
+  private:
+  bool _internal_has_pin() const;
+  public:
+  void clear_pin();
+  const std::string& pin() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_pin(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_pin();
+  PROTOBUF_NODISCARD std::string* release_pin();
+  void set_allocated_pin(std::string* pin);
+  private:
+  const std::string& _internal_pin() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_pin(const std::string& value);
+  std::string* _internal_mutable_pin();
+  public:
+
+  // optional string device_name = 9;
+  bool has_device_name() const;
+  private:
+  bool _internal_has_device_name() const;
+  public:
+  void clear_device_name();
+  const std::string& device_name() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_device_name(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_device_name();
+  PROTOBUF_NODISCARD std::string* release_device_name();
+  void set_allocated_device_name(std::string* device_name);
+  private:
+  const std::string& _internal_device_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_device_name(const std::string& value);
+  std::string* _internal_mutable_device_name();
+  public:
+
   // optional int32 port = 3;
   bool has_port() const;
   private:
@@ -3937,6 +3995,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials fin
   static const ::PROTOBUF_NAMESPACE_ID::internal::LazyString _i_give_permission_to_break_this_code_default_gateway_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr gateway_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ip_v6_address_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr pin_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_name_;
   int32_t port_;
   int32_t frequency_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
@@ -7060,9 +7120,38 @@ class MediumMetadata final :
 
   // nested types ----------------------------------------------------
 
+  typedef MediumMetadata_WifiDirectAuthType WifiDirectAuthType;
+  static constexpr WifiDirectAuthType WIFI_DIRECT_TYPE_UNKNOWN =
+    MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_TYPE_UNKNOWN;
+  static constexpr WifiDirectAuthType WIFI_DIRECT_WITH_PASSWORD =
+    MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_WITH_PASSWORD;
+  static constexpr WifiDirectAuthType WIFI_DIRECT_WITH_DEVICE_NAME =
+    MediumMetadata_WifiDirectAuthType_WIFI_DIRECT_WITH_DEVICE_NAME;
+  static inline bool WifiDirectAuthType_IsValid(int value) {
+    return MediumMetadata_WifiDirectAuthType_IsValid(value);
+  }
+  static constexpr WifiDirectAuthType WifiDirectAuthType_MIN =
+    MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_MIN;
+  static constexpr WifiDirectAuthType WifiDirectAuthType_MAX =
+    MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_MAX;
+  static constexpr int WifiDirectAuthType_ARRAYSIZE =
+    MediumMetadata_WifiDirectAuthType_WifiDirectAuthType_ARRAYSIZE;
+  template<typename T>
+  static inline const std::string& WifiDirectAuthType_Name(T enum_t_value) {
+    static_assert(::std::is_same<T, WifiDirectAuthType>::value ||
+      ::std::is_integral<T>::value,
+      "Incorrect type passed to function WifiDirectAuthType_Name.");
+    return MediumMetadata_WifiDirectAuthType_Name(enum_t_value);
+  }
+  static inline bool WifiDirectAuthType_Parse(::PROTOBUF_NAMESPACE_ID::ConstStringParam name,
+      WifiDirectAuthType* value) {
+    return MediumMetadata_WifiDirectAuthType_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   enum : int {
+    kSupportedWifiDirectAuthTypesFieldNumber = 13,
     kBssidFieldNumber = 2,
     kIpAddressFieldNumber = 3,
     kAvailableChannelsFieldNumber = 7,
@@ -7076,6 +7165,23 @@ class MediumMetadata final :
     kMobileRadioFieldNumber = 5,
     kApFrequencyFieldNumber = 6,
   };
+  // repeated .location.nearby.connections.MediumMetadata.WifiDirectAuthType supported_wifi_direct_auth_types = 13 [packed = true];
+  int supported_wifi_direct_auth_types_size() const;
+  private:
+  int _internal_supported_wifi_direct_auth_types_size() const;
+  public:
+  void clear_supported_wifi_direct_auth_types();
+  private:
+  ::location::nearby::connections::MediumMetadata_WifiDirectAuthType _internal_supported_wifi_direct_auth_types(int index) const;
+  void _internal_add_supported_wifi_direct_auth_types(::location::nearby::connections::MediumMetadata_WifiDirectAuthType value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* _internal_mutable_supported_wifi_direct_auth_types();
+  public:
+  ::location::nearby::connections::MediumMetadata_WifiDirectAuthType supported_wifi_direct_auth_types(int index) const;
+  void set_supported_wifi_direct_auth_types(int index, ::location::nearby::connections::MediumMetadata_WifiDirectAuthType value);
+  void add_supported_wifi_direct_auth_types(::location::nearby::connections::MediumMetadata_WifiDirectAuthType value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>& supported_wifi_direct_auth_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* mutable_supported_wifi_direct_auth_types();
+
   // optional string bssid = 2;
   bool has_bssid() const;
   private:
@@ -7281,6 +7387,8 @@ class MediumMetadata final :
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> supported_wifi_direct_auth_types_;
+  mutable std::atomic<int> _supported_wifi_direct_auth_types_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr bssid_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ip_address_;
   ::location::nearby::connections::AvailableChannels* available_channels_;
@@ -13544,7 +13652,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 
 // optional int32 port = 3;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_port() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_port() const {
@@ -13552,7 +13660,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_port() {
   port_ = 0;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_port() const {
   return port_;
@@ -13562,7 +13670,7 @@ inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCreden
   return _internal_port();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_port(int32_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000040u;
   port_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_port(int32_t value) {
@@ -13572,7 +13680,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 
 // optional int32 frequency = 4;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_frequency() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_frequency() const {
@@ -13580,7 +13688,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_frequency() {
   frequency_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_frequency() const {
   return frequency_;
@@ -13590,7 +13698,7 @@ inline int32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCreden
   return _internal_frequency();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_frequency(int32_t value) {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000080u;
   frequency_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_frequency(int32_t value) {
@@ -13725,6 +13833,144 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.ip_v6_address)
+}
+
+// optional string device_name = 9;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_device_name() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_device_name() const {
+  return _internal_has_device_name();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_device_name() {
+  device_name_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::device_name() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.device_name)
+  return _internal_device_name();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_device_name(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000020u;
+ device_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.device_name)
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::mutable_device_name() {
+  std::string* _s = _internal_mutable_device_name();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.device_name)
+  return _s;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_device_name() const {
+  return device_name_.Get();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_device_name(const std::string& value) {
+  _has_bits_[0] |= 0x00000020u;
+  device_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_mutable_device_name() {
+  _has_bits_[0] |= 0x00000020u;
+  return device_name_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::release_device_name() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.device_name)
+  if (!_internal_has_device_name()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000020u;
+  auto* p = device_name_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_name_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_allocated_device_name(std::string* device_name) {
+  if (device_name != nullptr) {
+    _has_bits_[0] |= 0x00000020u;
+  } else {
+    _has_bits_[0] &= ~0x00000020u;
+  }
+  device_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), device_name,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (device_name_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    device_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.device_name)
+}
+
+// optional string pin = 8;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_has_pin() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::has_pin() const {
+  return _internal_has_pin();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::clear_pin() {
+  pin_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::pin() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.pin)
+  return _internal_pin();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_pin(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000010u;
+ pin_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.pin)
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::mutable_pin() {
+  std::string* _s = _internal_mutable_pin();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.pin)
+  return _s;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_pin() const {
+  return pin_.Get();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_set_pin(const std::string& value) {
+  _has_bits_[0] |= 0x00000010u;
+  pin_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_internal_mutable_pin() {
+  _has_bits_[0] |= 0x00000010u;
+  return pin_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::release_pin() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.pin)
+  if (!_internal_has_pin()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000010u;
+  auto* p = pin_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (pin_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    pin_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::set_allocated_pin(std::string* pin) {
+  if (pin != nullptr) {
+    _has_bits_[0] |= 0x00000010u;
+  } else {
+    _has_bits_[0] &= ~0x00000010u;
+  }
+  pin_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), pin,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (pin_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    pin_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials.pin)
 }
 
 // -------------------------------------------------------------------
@@ -17105,6 +17351,51 @@ inline void MediumMetadata::set_allocated_medium_role(::location::nearby::connec
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.MediumMetadata.medium_role)
 }
 
+// repeated .location.nearby.connections.MediumMetadata.WifiDirectAuthType supported_wifi_direct_auth_types = 13 [packed = true];
+inline int MediumMetadata::_internal_supported_wifi_direct_auth_types_size() const {
+  return supported_wifi_direct_auth_types_.size();
+}
+inline int MediumMetadata::supported_wifi_direct_auth_types_size() const {
+  return _internal_supported_wifi_direct_auth_types_size();
+}
+inline void MediumMetadata::clear_supported_wifi_direct_auth_types() {
+  supported_wifi_direct_auth_types_.Clear();
+}
+inline ::location::nearby::connections::MediumMetadata_WifiDirectAuthType MediumMetadata::_internal_supported_wifi_direct_auth_types(int index) const {
+  return static_cast< ::location::nearby::connections::MediumMetadata_WifiDirectAuthType >(supported_wifi_direct_auth_types_.Get(index));
+}
+inline ::location::nearby::connections::MediumMetadata_WifiDirectAuthType MediumMetadata::supported_wifi_direct_auth_types(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumMetadata.supported_wifi_direct_auth_types)
+  return _internal_supported_wifi_direct_auth_types(index);
+}
+inline void MediumMetadata::set_supported_wifi_direct_auth_types(int index, ::location::nearby::connections::MediumMetadata_WifiDirectAuthType value) {
+  assert(::location::nearby::connections::MediumMetadata_WifiDirectAuthType_IsValid(value));
+  supported_wifi_direct_auth_types_.Set(index, value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumMetadata.supported_wifi_direct_auth_types)
+}
+inline void MediumMetadata::_internal_add_supported_wifi_direct_auth_types(::location::nearby::connections::MediumMetadata_WifiDirectAuthType value) {
+  assert(::location::nearby::connections::MediumMetadata_WifiDirectAuthType_IsValid(value));
+  supported_wifi_direct_auth_types_.Add(value);
+}
+inline void MediumMetadata::add_supported_wifi_direct_auth_types(::location::nearby::connections::MediumMetadata_WifiDirectAuthType value) {
+  _internal_add_supported_wifi_direct_auth_types(value);
+  // @@protoc_insertion_point(field_add:location.nearby.connections.MediumMetadata.supported_wifi_direct_auth_types)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>&
+MediumMetadata::supported_wifi_direct_auth_types() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.MediumMetadata.supported_wifi_direct_auth_types)
+  return supported_wifi_direct_auth_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+MediumMetadata::_internal_mutable_supported_wifi_direct_auth_types() {
+  return &supported_wifi_direct_auth_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+MediumMetadata::mutable_supported_wifi_direct_auth_types() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.MediumMetadata.supported_wifi_direct_auth_types)
+  return _internal_mutable_supported_wifi_direct_auth_types();
+}
+
 // -------------------------------------------------------------------
 
 // AvailableChannels
@@ -18578,6 +18869,7 @@ template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgr
 template <> struct is_proto_enum< ::location::nearby::connections::BandwidthUpgradeRetryFrame_Medium> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::AutoResumeFrame_EventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::AutoReconnectFrame_EventType> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::connections::MediumMetadata_WifiDirectAuthType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::LocationStandard_Format> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::OsInfo_OsType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::connections::PresenceDevice_DeviceType> : ::std::true_type {};

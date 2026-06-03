@@ -100,6 +100,22 @@ enum Medium {
 //     //depot/google3/third_party/nearby/connections/c/nc_types.h
 // )
 
+// LINT.IfChange
+// The authentication type of WifiDirect.
+enum WifiDirectAuthType {
+  WIFI_DIRECT_TYPE_UNKNOWN = 0;
+  // WifiDirect type that uses ssid/password for authentication. Android
+  // supports this type, but Windows does not.
+  WIFI_DIRECT_WITH_PASSWORD = 1;
+  // WifiDirect type that uses device_name for discovery and connect.
+  // Android and Windows both support this type.
+  WIFI_DIRECT_WITH_DEVICE_NAME = 3;
+
+  reserved 2;
+  reserved "WIFI_DIRECT_WITH_PIN";
+}
+// LINT.ThenChange(//depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto)
+
 // The medium technologies used during the sharing.
 enum ConnectionTechnology {
   CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY = 0;

@@ -155,6 +155,26 @@ inline const std::string& Medium_Name(T enum_t_value) {
 }
 bool Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, Medium* value);
+enum WifiDirectAuthType : int {
+  WIFI_DIRECT_TYPE_UNKNOWN = 0,
+  WIFI_DIRECT_WITH_PASSWORD = 1,
+  WIFI_DIRECT_WITH_DEVICE_NAME = 3
+};
+bool WifiDirectAuthType_IsValid(int value);
+constexpr WifiDirectAuthType WifiDirectAuthType_MIN = WIFI_DIRECT_TYPE_UNKNOWN;
+constexpr WifiDirectAuthType WifiDirectAuthType_MAX = WIFI_DIRECT_WITH_DEVICE_NAME;
+constexpr int WifiDirectAuthType_ARRAYSIZE = WifiDirectAuthType_MAX + 1;
+
+const std::string& WifiDirectAuthType_Name(WifiDirectAuthType value);
+template<typename T>
+inline const std::string& WifiDirectAuthType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, WifiDirectAuthType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function WifiDirectAuthType_Name.");
+  return WifiDirectAuthType_Name(static_cast<WifiDirectAuthType>(enum_t_value));
+}
+bool WifiDirectAuthType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, WifiDirectAuthType* value);
 enum ConnectionTechnology : int {
   CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY = 0,
   CONNECTION_TECHNOLOGY_BLE_GATT = 1,
@@ -1098,6 +1118,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::connections::EventT
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionsStrategy> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::SessionRole> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::Medium> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::WifiDirectAuthType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionTechnology> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionBand> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionMode> : ::std::true_type {};
