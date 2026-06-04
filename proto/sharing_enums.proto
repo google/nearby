@@ -362,6 +362,7 @@ enum Visibility {
   SELECTED_CONTACTS_ONLY = 3 [deprecated = true];
   HIDDEN = 4;
   SELF_SHARE = 5;
+  FAMILY = 6;
 }
 
 enum DataUsage {
