@@ -20,6 +20,11 @@
 #include <devguid.h>
 // clang-format on
 
+// Remove LogSeverity macro defined in setupapi.h
+#if defined(LogSeverity)
+#undef LogSeverity
+#endif
+
 // Standard C/C++ headers
 #include <algorithm>
 #include <cstddef>
