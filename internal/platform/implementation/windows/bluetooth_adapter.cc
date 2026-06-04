@@ -32,6 +32,11 @@
 #include <stdio.h>
 #include <usbiodef.h>
 
+// Remove LogSeverity macro defined in setupapi.h
+#if defined(LogSeverity)
+#undef LogSeverity
+#endif
+
 #include <cstdint>
 #include <cstring>
 #include <exception>
