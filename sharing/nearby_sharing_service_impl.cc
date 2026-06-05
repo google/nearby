@@ -2703,6 +2703,28 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     return;
   }
   FilePath save_path{settings_->GetCustomSavePath()};
+  // If transfer is for file sync, override the save path to the custom save
+  // path.
+  if (frame.use_case() == IntroductionFrame::FILE_SYNC) {
+    if (!session.certificate().has_value() ||
+        session.certificate()->binding_id().empty()) {
+      LOG(ERROR) << __func__
+                 << ": Binding id is empty for file sync session.";
+      Fail(session, TransferMetadata::Status::kRejected);
+      return;
+    }
+    std::optional<sync::SyncBinding> binding =
+        sync_manager_.GetSyncBinding(session.certificate()->binding_id());
+    if (!binding.has_value()) {
+      LOG(ERROR) << __func__
+                 << ": Sync binding not found for binding id: "
+                 << session.certificate()->binding_id();
+      Fail(session, TransferMetadata::Status::kRejected);
+      return;
+    }
+    save_path = FilePath(binding->destination_directory());
+    session.set_session_usage(ShareSessionUsage::kFileSync);
+  }
   // Override save path for this connection.
   // This must be called before the transfer is accepted and payloads are being
   // received.

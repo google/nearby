@@ -32,6 +32,7 @@
 #include "internal/base/file_path.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/enums.pb.h"
@@ -202,6 +203,12 @@ void FakeNearbyConnectionsManager::SetRawAuthenticationToken(
 void FakeNearbyConnectionsManager::UpgradeBandwidth(
     absl::string_view endpoint_id) {
   upgrade_bandwidth_endpoint_ids_.insert(std::string(endpoint_id));
+}
+
+void FakeNearbyConnectionsManager::OverrideSavePath(
+    absl::string_view endpoint_id, const FilePath& custom_save_path) {
+  absl::MutexLock lock(endpoints_mutex_);
+  custom_save_paths_[endpoint_id] = custom_save_path;
 }
 
 void FakeNearbyConnectionsManager::OnEndpointFound(

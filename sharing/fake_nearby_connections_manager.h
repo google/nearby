@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -76,7 +77,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override {}
   void OverrideSavePath(absl::string_view endpoint_id,
-                        const FilePath& custom_save_path) override {}
+                        const FilePath& custom_save_path) override;
   absl::flat_hash_set<FilePath> GetAndClearUnknownFilePathsToDelete() override;
 
   // Testing methods
@@ -131,6 +132,14 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
     return it->second;
   }
 
+  std::optional<FilePath> custom_save_path(absl::string_view endpoint_id) {
+    absl::MutexLock lock(endpoints_mutex_);
+    auto it = custom_save_paths_.find(endpoint_id);
+    if (it == custom_save_paths_.end()) return std::nullopt;
+
+    return it->second;
+  }
+
   bool has_incoming_payloads() {
     absl::MutexLock lock(incoming_payloads_mutex_);
     return !incoming_payloads_.empty();
@@ -176,6 +185,9 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   absl::Mutex endpoints_mutex_;
   // Maps endpoint_id to endpoint_info.
   std::map<std::string, std::vector<uint8_t>> connection_endpoint_infos_
+      ABSL_GUARDED_BY(endpoints_mutex_);
+  // Maps endpoint_id to custom_save_path.
+  absl::flat_hash_map<std::string, FilePath> custom_save_paths_
       ABSL_GUARDED_BY(endpoints_mutex_);
 
   std::map<int64_t, std::weak_ptr<PayloadStatusListener>>

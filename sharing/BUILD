@@ -649,6 +649,7 @@ cc_test(
         ":nearby_connection_impl",
         ":nearby_sharing_service",
         ":share_session",
+        ":share_session_usage",
         ":test_support",
         ":transfer_metadata",
         ":transfer_metadata_matchers",
