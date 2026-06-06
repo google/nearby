@@ -562,6 +562,9 @@ inline constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCred
         pin_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        device_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         port_{0},
         frequency_{0} {}
 
@@ -2056,44 +2059,47 @@ bool AutoReconnectFrame_EventType_Parse(::absl::string_view name, AutoReconnectF
   return success;
 }
 PROTOBUF_CONSTINIT const uint32_t MediumMetadata_WifiDirectAuthType_internal_data_[] = {
-    196608u, 0u, };
+    262144u, 0u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    MediumMetadata_WifiDirectAuthType_strings[3] = {};
+    MediumMetadata_WifiDirectAuthType_strings[4] = {};
 
 static const char MediumMetadata_WifiDirectAuthType_names[] = {
     "WIFI_DIRECT_TYPE_UNKNOWN"
+    "WIFI_DIRECT_WITH_DEVICE_NAME"
     "WIFI_DIRECT_WITH_PASSWORD"
     "WIFI_DIRECT_WITH_PIN"
 };
 
 static const ::google::protobuf::internal::EnumEntry MediumMetadata_WifiDirectAuthType_entries[] = {
     {{&MediumMetadata_WifiDirectAuthType_names[0], 24}, 0},
-    {{&MediumMetadata_WifiDirectAuthType_names[24], 25}, 1},
-    {{&MediumMetadata_WifiDirectAuthType_names[49], 20}, 2},
+    {{&MediumMetadata_WifiDirectAuthType_names[24], 28}, 3},
+    {{&MediumMetadata_WifiDirectAuthType_names[52], 25}, 1},
+    {{&MediumMetadata_WifiDirectAuthType_names[77], 20}, 2},
 };
 
 static const int MediumMetadata_WifiDirectAuthType_entries_by_number[] = {
     0,  // 0 -> WIFI_DIRECT_TYPE_UNKNOWN
-    1,  // 1 -> WIFI_DIRECT_WITH_PASSWORD
-    2,  // 2 -> WIFI_DIRECT_WITH_PIN
+    2,  // 1 -> WIFI_DIRECT_WITH_PASSWORD
+    3,  // 2 -> WIFI_DIRECT_WITH_PIN
+    1,  // 3 -> WIFI_DIRECT_WITH_DEVICE_NAME
 };
 
 const ::std::string& MediumMetadata_WifiDirectAuthType_Name(MediumMetadata_WifiDirectAuthType value) {
   static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      MediumMetadata_WifiDirectAuthType_entries, MediumMetadata_WifiDirectAuthType_entries_by_number, 3,
+      MediumMetadata_WifiDirectAuthType_entries, MediumMetadata_WifiDirectAuthType_entries_by_number, 4,
       MediumMetadata_WifiDirectAuthType_strings);
   (void)kDummy;
 
   int idx = ::google::protobuf::internal::LookUpEnumName(MediumMetadata_WifiDirectAuthType_entries,
                                   MediumMetadata_WifiDirectAuthType_entries_by_number,
-                                  3, value);
+                                  4, value);
   return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : MediumMetadata_WifiDirectAuthType_strings[idx].get();
 }
 
 bool MediumMetadata_WifiDirectAuthType_Parse(::absl::string_view name, MediumMetadata_WifiDirectAuthType* PROTOBUF_NONNULL value) {
   int int_value;
   bool success = ::google::protobuf::internal::LookUpEnumValue(
-      MediumMetadata_WifiDirectAuthType_entries, 3, name, &int_value);
+      MediumMetadata_WifiDirectAuthType_entries, 4, name, &int_value);
   if (success) {
     *value = static_cast<MediumMetadata_WifiDirectAuthType>(int_value);
   }
@@ -7696,7 +7702,8 @@ PROTOBUF_NDEBUG_INLINE BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
         gateway_(arena, from.gateway_, _i_give_permission_to_break_this_code_default_gateway_),
         ip_v6_address_(arena, from.ip_v6_address_),
         service_name_(arena, from.service_name_),
-        pin_(arena, from.pin_) {}
+        pin_(arena, from.pin_),
+        device_name_(arena, from.device_name_) {}
 
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -7730,7 +7737,8 @@ PROTOBUF_NDEBUG_INLINE BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
         gateway_(arena, Impl_::_i_give_permission_to_break_this_code_default_gateway_),
         ip_v6_address_(arena),
         service_name_(arena),
-        pin_(arena) {}
+        pin_(arena),
+        device_name_(arena) {}
 
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -7758,6 +7766,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentia
   this_._impl_.ip_v6_address_.Destroy();
   this_._impl_.service_name_.Destroy();
   this_._impl_.pin_.Destroy();
+  this_._impl_.device_name_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -7801,16 +7810,16 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::GetClass
   return BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 0, 0, 2>
+const ::_pbi::TcParseTable<4, 9, 0, 0, 2>
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_._has_bits_),
     0, // no _extensions_
-    8, 56,  // max_field_number, fast_idx_mask
+    9, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967040,  // skipmap
+    4294966784,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    9,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials_class_data_.base(),
@@ -7820,10 +7829,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_table_ 
     ::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // optional string pin = 8;
-    {::_pbi::TcParser::FastBS1,
-     {66, 5, 0,
-      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.pin_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // optional string ssid = 1;
     {::_pbi::TcParser::FastBS1,
      {10, 0, 0,
@@ -7834,11 +7840,11 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_table_ 
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.password_)}},
     // optional int32 port = 3;
     {::_pbi::TcParser::FastV32S1,
-     {24, 6, 0,
+     {24, 7, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.port_)}},
     // optional int32 frequency = 4;
     {::_pbi::TcParser::FastV32S1,
-     {32, 7, 0,
+     {32, 8, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.frequency_)}},
     // optional string gateway = 5 [default = "0.0.0.0"];
     {::_pbi::TcParser::FastBS1,
@@ -7848,10 +7854,24 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_table_ 
     {::_pbi::TcParser::FastBS1,
      {50, 3, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.ip_v6_address_)}},
-    // optional string service_name = 7;
+    // optional string service_name = 7 [deprecated = true];
     {::_pbi::TcParser::FastBS1,
      {58, 4, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.service_name_)}},
+    // optional string pin = 8;
+    {::_pbi::TcParser::FastBS1,
+     {66, 5, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.pin_)}},
+    // optional string device_name = 9;
+    {::_pbi::TcParser::FastBS1,
+     {74, 6, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.device_name_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -7860,17 +7880,19 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_table_ 
     // optional string password = 2;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.password_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // optional int32 port = 3;
-    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.port_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.port_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional int32 frequency = 4;
-    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.frequency_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.frequency_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional string gateway = 5 [default = "0.0.0.0"];
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.gateway_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // optional bytes ip_v6_address = 6;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.ip_v6_address_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
-    // optional string service_name = 7;
+    // optional string service_name = 7 [deprecated = true];
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.service_name_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // optional string pin = 8;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.pin_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional string device_name = 9;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.device_name_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
@@ -7884,7 +7906,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.ssid_.ClearNonDefaultToEmpty();
     }
@@ -7903,12 +7925,12 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       _impl_.pin_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.device_name_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
-    ::memset(&_impl_.port_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.frequency_) -
-        reinterpret_cast<char*>(&_impl_.port_)) + sizeof(_impl_.frequency_));
-  }
+  _impl_.port_ = 0;
+  _impl_.frequency_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::std::string>();
 }
@@ -7945,14 +7967,14 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
   }
 
   // optional int32 port = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<3>(
             stream, this_._internal_port(), target);
   }
 
   // optional int32 frequency = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<4>(
             stream, this_._internal_frequency(), target);
@@ -7970,7 +7992,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
     target = stream->WriteBytesMaybeAliased(6, _s, target);
   }
 
-  // optional string service_name = 7;
+  // optional string service_name = 7 [deprecated = true];
   if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     const ::std::string& _s = this_._internal_service_name();
     target = stream->WriteStringMaybeAliased(7, _s, target);
@@ -7980,6 +8002,12 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
   if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     const ::std::string& _s = this_._internal_pin();
     target = stream->WriteStringMaybeAliased(8, _s, target);
+  }
+
+  // optional string device_name = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    const ::std::string& _s = this_._internal_device_name();
+    target = stream->WriteStringMaybeAliased(9, _s, target);
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -8028,7 +8056,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
       total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
                                       this_._internal_ip_v6_address());
     }
-    // optional string service_name = 7;
+    // optional string service_name = 7 [deprecated = true];
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                       this_._internal_service_name());
@@ -8038,13 +8066,20 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDire
       total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                       this_._internal_pin());
     }
-    // optional int32 port = 3;
+    // optional string device_name = 9;
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                      this_._internal_device_name());
+    }
+    // optional int32 port = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_port());
     }
+  }
+   {
     // optional int32 frequency = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_frequency());
     }
@@ -8090,11 +8125,14 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Mer
       _this->_internal_set_pin(from._internal_pin());
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      _this->_impl_.port_ = from._impl_.port_;
+      _this->_internal_set_device_name(from._internal_device_name());
     }
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      _this->_impl_.frequency_ = from._impl_.frequency_;
+      _this->_impl_.port_ = from._impl_.port_;
     }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    _this->_impl_.frequency_ = from._impl_.frequency_;
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::std::string>(
@@ -8121,6 +8159,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::Int
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ip_v6_address_, &other->_impl_.ip_v6_address_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.service_name_, &other->_impl_.service_name_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pin_, &other->_impl_.pin_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.device_name_, &other->_impl_.device_name_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials, _impl_.frequency_)
       + sizeof(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials::_impl_.frequency_)
@@ -13302,7 +13341,7 @@ MediumMetadata::_table_ = {
       PROTOBUF_FIELD_OFFSET(MediumMetadata, _impl_.medium_role_)}},
     // repeated .location.nearby.connections.MediumMetadata.WifiDirectAuthType supported_wifi_direct_auth_types = 13 [packed = true];
     {::_pbi::TcParser::FastEr0P1,
-     {106, 0, 2,
+     {106, 0, 3,
       PROTOBUF_FIELD_OFFSET(MediumMetadata, _impl_.supported_wifi_direct_auth_types_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -13343,7 +13382,7 @@ MediumMetadata::_table_ = {
       {::_pbi::TcParser::GetTable<::location::nearby::connections::WifiAwareUsableChannels>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::WifiHotspotStaUsableChannels>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::MediumRole>()},
-      {0, 2},
+      {0, 3},
   }},
   {{
   }},

@@ -110,9 +110,10 @@ enum WifiDirectAuthType {
   // WifiDirect type that uses ssid/password for authentication. Android
   // supports this type, but Windows does not.
   WIFI_DIRECT_WITH_PASSWORD = 1;
-  // WifiDirect type that uses service_name/pin for authentication. Android
-  // and Windows both support this type.
-  WIFI_DIRECT_WITH_PIN = 2;
+  // WifiDirect type that uses device_name for discovery and connect.
+  // Android and Windows both support this type.
+  WIFI_DIRECT_WITH_PIN = 2 [deprecated = true];
+  WIFI_DIRECT_WITH_DEVICE_NAME = 3;
 }
 // LINT.ThenChange(//depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto)
 
