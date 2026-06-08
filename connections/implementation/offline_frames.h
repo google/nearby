@@ -59,8 +59,7 @@ std::string ForConnectionRequestPresence(
     const location::nearby::connections::PresenceDevice& proto_presence_device,
     const ConnectionInfo& connection_info);
 std::string ForConnectionResponse(
-    std::int32_t status, const location::nearby::connections::OsInfo& os_info,
-    std::int32_t multiplex_socket_bitmask);
+    std::int32_t status, const location::nearby::connections::OsInfo& os_info);
 
 // Builds Payload transfer messages.
 std::string ForDataPayloadTransfer(

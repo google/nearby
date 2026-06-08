@@ -1365,11 +1365,6 @@ OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
   }
 }
 
-std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
-  MutexLock lock(&mutex_);
-  return 0;
-}
-
 void ClientProxy::SetRemoteMultiplexSocketBitmask(
     absl::string_view endpoint_id, int remote_multiplex_socket_bitmask) {
   MutexLock lock(&mutex_);
@@ -1379,51 +1374,6 @@ void ClientProxy::SetRemoteMultiplexSocketBitmask(
         remote_multiplex_socket_bitmask;
     LOG(INFO) << "ClientProxy [SetRemoteMultiplexSocketBitmask]: "
               << remote_multiplex_socket_bitmask;
-  }
-}
-
-bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
-  MutexLock lock(&mutex_);
-  int bitmask = GetLocalMultiplexSocketBitmask();
-  switch (medium) {
-    case Medium::BLUETOOTH:
-      LOG(INFO) << "ClientProxy [IsLocalMultiplexSocketSupported]: "
-                << (bitmask & kBtMultiplexEnabled);
-      return (bitmask & kBtMultiplexEnabled) != 0;
-    case Medium::WIFI_LAN:
-      return (bitmask & kWifiLanMultiplexEnabled) != 0;
-    default:
-      return false;
-  }
-}
-
-std::optional<std::int32_t> ClientProxy::GetRemoteMultiplexSocketBitmask(
-    absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    return item->first.remote_multiplex_socket_bitmask;
-  }
-  return std::nullopt;
-}
-
-bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
-                                             Medium medium) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item == nullptr) {
-    return false;
-  }
-  int combined_result = GetLocalMultiplexSocketBitmask() &
-                        item->first.remote_multiplex_socket_bitmask;
-
-  switch (medium) {
-    case Medium::BLUETOOTH:
-      return (combined_result & kBtMultiplexEnabled) != 0;
-    case Medium::WIFI_LAN:
-      return (combined_result & kWifiLanMultiplexEnabled) != 0;
-    default:
-      return false;
   }
 }
 

@@ -1585,8 +1585,7 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kSuccess, client->GetLocalOsInfo(),
-                client->GetLocalMultiplexSocketBitmask()));
+                Status::kSuccess, client->GetLocalOsInfo()));
         if (!write_exception.Ok()) {
           LOG(INFO) << "AcceptConnection: failed to send response: endpoint_id="
                     << endpoint_id;
@@ -1647,8 +1646,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kConnectionRejected, client->GetLocalOsInfo(),
-                client->GetLocalMultiplexSocketBitmask()));
+                Status::kConnectionRejected, client->GetLocalOsInfo()));
         if (!write_exception.Ok()) {
           LOG(INFO) << "RejectConnection: failed to send response: endpoint_id="
                     << endpoint_id;
@@ -2462,26 +2460,6 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     if (!channel_manager_->EncryptChannelForEndpoint(endpoint_id,
                                                      std::move(context))) {
       response_code = {Status::kEndpointUnknown};
-    }
-
-    std::shared_ptr<EndpointChannel> channel =
-        channel_manager_->GetChannelForEndpoint(endpoint_id);
-    if (channel != nullptr) {
-      if (client->IsMultiplexSocketSupported(endpoint_id,
-                                             channel->GetMedium())) {
-        if (!channel->EnableMultiplexSocket()) {
-          LOG(INFO) << "MultiplexSocket is not implemented for Medium: "
-                    << location::nearby::proto::connections::Medium_Name(
-                           channel->GetMedium());
-        } else {
-          LOG(INFO) << "MultiplexSocket is supported for Medium: "
-                    << location::nearby::proto::connections::Medium_Name(
-                           channel->GetMedium())
-                    << " on both sides.";
-        }
-      }
-    } else {
-      LOG(INFO) << "channel is null";
     }
   } else {
     LOG(INFO) << "Pending connection rejected; endpoint_id=" << endpoint_id;

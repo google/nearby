@@ -61,9 +61,6 @@ namespace connections {
 namespace {
 
 using ::location::nearby::connections::OsInfo;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::START_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::testing::_;
 using ::testing::IsEmpty;
 using ::testing::MockFunction;
@@ -1499,33 +1496,6 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   StartListeningForIncomingConnections(client1(), {},
                                        {.auto_upgrade_bandwidth = true});
   EXPECT_TRUE(client1()->AutoUpgradeBandwidth());
-}
-
-TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
-  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
-}
-
-TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
-  Endpoint advertising_endpoint =
-      StartAdvertising(client1(), advertising_connection_listener_);
-  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
-  client1()->SetRemoteMultiplexSocketBitmask(
-      advertising_endpoint.id,
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
-  ASSERT_TRUE(client1()
-                  ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
-                  .has_value());
-  EXPECT_EQ(
-      client1()
-          ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
-          .value(),
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
-  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                     Medium::BLUETOOTH));
-  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                     Medium::WIFI_LAN));
-  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                     Medium::WIFI_AWARE));
 }
 
 TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {

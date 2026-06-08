@@ -56,13 +56,6 @@ constexpr absl::string_view kIpv4PatternString{
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$"};
-constexpr absl::string_view kIpv6PatternString{
-    "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$"};
 constexpr absl::string_view kWifiDirectSsidPatternString{
     "^DIRECT-[a-zA-Z0-9]{2}.*$"};
 constexpr int kWifiDirectSsidMaxLength = 32;

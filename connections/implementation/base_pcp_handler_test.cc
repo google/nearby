@@ -1609,8 +1609,8 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
             Status{Status::kSuccess});
   LOG(INFO) << "Simulating remote accept: id=" << endpoint_id;
   OsInfo os_info;
-  auto frame = parser::FromBytes(parser::ForConnectionResponse(
-      Status::kSuccess, os_info, /*multiplex_socket_bitmask=*/0));
+  auto frame = parser::FromBytes(
+      parser::ForConnectionResponse(Status::kSuccess, os_info));
   EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, client_.get(),
                               connect_medium);

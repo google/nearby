@@ -309,19 +309,9 @@ class ClientProxy final {
   bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
   bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
 
-  // Returns the multiplex socket supports status for local device.
-  std::int32_t GetLocalMultiplexSocketBitmask() const;
   // Sets the multiplex socket supports status for remote device.
   void SetRemoteMultiplexSocketBitmask(absl::string_view endpoint_id,
                                        int remote_multiplex_socket_bitmask);
-  // Returns true if the multiplex socket is supported for the given medium.
-  bool IsLocalMultiplexSocketSupported(Medium medium);
-
-  // Gets the multiplex socket supports status for remote device.
-  std::optional<std::int32_t> GetRemoteMultiplexSocketBitmask(
-      absl::string_view endpoint_id) const;
-  // Returns true if the multiplex socket is supported for the given medium.
-  bool IsMultiplexSocketSupported(absl::string_view endpoint_id, Medium medium);
 
   // Gets the WebRTC non cellular network status.
   bool GetWebRtcNonCellular();
@@ -342,18 +332,6 @@ class ClientProxy final {
 
   std::optional<location::nearby::connections::MediumRole> GetMediumRole(
       absl::string_view endpoint_id) const;
-
-  /** Bitmask for bt multiplex connection support. */
-  // Note. Deprecates the first and second bit of BT_MULTIPLEX_ENABLED and
-  // WIFI_LAN_MULTIPLEX_ENABLED and shift them to the third and the forth bit.
-  // The reason is we need to escape the (0, 1) bit which has been set in some
-  // devices without salt enabled. If accompany with the devices with salted
-  // enabled, the frames passed cannot be decrypted and the connection shall be
-  // failed. Please refer to b/295925531#comment#14 for the details.
-  enum MultiplexSocketBitmask : uint32_t {
-    kBtMultiplexEnabled = 1 << 2,
-    kWifiLanMultiplexEnabled = 1 << 3,
-  };
 
   // Forces client to regenerate a new local endpoint id.
   void ClearCachedLocalEndpointId();

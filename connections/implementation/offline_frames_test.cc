@@ -350,7 +350,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        multiplex_socket_bitmask: 0x01
+        multiplex_socket_bitmask: 0
         safe_to_disconnect_version: 5
       >
     >)pb";
@@ -361,8 +361,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
       config_package_nearby::nearby_connections_feature::
           kSafeToDisconnectVersion,
       5);
-  auto response = FromBytes(
-      ForConnectionResponse(1, os_info, /*multiplex_socket_bitmask=*/0x01));
+  auto response = FromBytes(ForConnectionResponse(1, os_info));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
