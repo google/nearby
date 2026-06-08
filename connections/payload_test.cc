@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
@@ -28,8 +29,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 TEST(PayloadTest, DefaultPayloadHasUnknownType) {
   Payload payload;
@@ -132,5 +132,20 @@ TEST(PayloadTest, PayloadIsNotCopyable) {
   EXPECT_FALSE(std::is_copy_assignable_v<Payload>);
 }
 
-}  // namespace connections
-}  // namespace nearby
+TEST(PayloadTypeTest, Stringify) {
+  EXPECT_EQ(absl::StrCat(PayloadType::kUnknown), "Unknown");
+  EXPECT_EQ(absl::StrCat(PayloadType::kBytes), "Bytes");
+  EXPECT_EQ(absl::StrCat(PayloadType::kFile), "File");
+  EXPECT_EQ(absl::StrCat(PayloadType::kStream), "Stream");
+}
+
+TEST(PayloadDirectionTest, Stringify) {
+  EXPECT_EQ(absl::StrCat(PayloadDirection::UNKNOWN_DIRECTION_PAYLOAD),
+            "UNKNOWN_DIRECTION_PAYLOAD");
+  EXPECT_EQ(absl::StrCat(PayloadDirection::INCOMING_PAYLOAD),
+            "INCOMING_PAYLOAD");
+  EXPECT_EQ(absl::StrCat(PayloadDirection::OUTGOING_PAYLOAD),
+            "OUTGOING_PAYLOAD");
+}
+
+}  // namespace nearby::connections

@@ -28,9 +28,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/logging.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
 
@@ -151,5 +151,4 @@ const std::string& Payload::GetParentFolder() const { return parent_folder_; }
 
 const std::string& Payload::GetFileName() const { return file_name_; }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

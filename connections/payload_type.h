@@ -16,11 +16,34 @@
 #define CORE_PAYLOAD_TYPE_H_
 
 #include <ostream>
+#include "absl/strings/str_cat.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 enum class PayloadType { kUnknown = 0, kBytes = 1, kFile = 2, kStream = 3 };
+
+// Support logging of PayloadType.
+template <typename Sink>
+void AbslStringify(Sink& sink, PayloadType payload_type) {
+  switch (payload_type) {
+    case PayloadType::kBytes:
+      sink.Append("Bytes");
+      break;
+    case PayloadType::kStream:
+      sink.Append("Stream");
+      break;
+    case PayloadType::kFile:
+      sink.Append("File");
+      break;
+    case PayloadType::kUnknown:
+      sink.Append("Unknown");
+      break;
+  }
+}
+
+inline std::ostream& operator<<(std::ostream& os, PayloadType payload_type) {
+  return os << absl::StrCat(payload_type);
+}
 
 enum class PayloadDirection {
   UNKNOWN_DIRECTION_PAYLOAD = 0,
@@ -28,47 +51,27 @@ enum class PayloadDirection {
   OUTGOING_PAYLOAD = 2,
 };
 
-inline std::ostream& operator<<(std::ostream& os, PayloadType payload_type) {
-  switch (payload_type) {
-    case PayloadType::kUnknown:
-      os << "kUnknown";
+// Support logging of PayloadDirection.
+template <typename Sink>
+void AbslStringify(Sink& sink, PayloadDirection payload_direction) {
+  switch (payload_direction) {
+    case PayloadDirection::UNKNOWN_DIRECTION_PAYLOAD:
+      sink.Append("UNKNOWN_DIRECTION_PAYLOAD");
       break;
-    case PayloadType::kBytes:
-      os << "kBytes";
+    case PayloadDirection::INCOMING_PAYLOAD:
+      sink.Append("INCOMING_PAYLOAD");
       break;
-    case PayloadType::kFile:
-      os << "kFile";
-      break;
-    case PayloadType::kStream:
-      os << "kStream";
-      break;
-    default:
-      os << "Invalid PayloadType";
+    case PayloadDirection::OUTGOING_PAYLOAD:
+      sink.Append("OUTGOING_PAYLOAD");
       break;
   }
-  return os;
 }
 
 inline std::ostream& operator<<(std::ostream& os,
-                                PayloadDirection payload_direction) {
-  switch (payload_direction) {
-    case PayloadDirection::UNKNOWN_DIRECTION_PAYLOAD:
-      os << "UNKNOWN_DIRECTION_PAYLOAD";
-      break;
-    case PayloadDirection::INCOMING_PAYLOAD:
-      os << "INCOMING_PAYLOAD";
-      break;
-    case PayloadDirection::OUTGOING_PAYLOAD:
-      os << "OUTGOING_PAYLOAD";
-      break;
-    default:
-      os << "Invalid PayloadDirection";
-      break;
-  }
-  return os;
+                                  PayloadDirection payload_direction) {
+  return os << absl::StrCat(payload_direction);
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_PAYLOAD_TYPE_H_

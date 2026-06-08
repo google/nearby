@@ -42,8 +42,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // Annotations for methods that need to run on PayloadStatusUpdateThread.
 // Use only in PayloadManager
@@ -52,13 +51,13 @@ namespace connections {
 
 class PayloadManager : public EndpointManager::FrameProcessor {
  public:
-  using EndpointIds = std::vector<std::string>;
   static constexpr absl::Duration kWaitCloseTimeout = absl::Milliseconds(5000);
 
   explicit PayloadManager(EndpointManager& endpoint_manager);
   ~PayloadManager() override;
 
-  void SendPayload(ClientProxy* client, const EndpointIds& endpoint_ids,
+  void SendPayload(ClientProxy* client,
+                   const std::vector<std::string>& endpoint_ids,
                    Payload payload);
   Status CancelPayload(ClientProxy* client, Payload::Id payload_id);
 
@@ -103,7 +102,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     std::string id;
     AtomicReference<Status> status{Status::kUnknown};
-    std::int64_t offset = 0;
+    int64_t offset = 0;
     mutable Mutex payload_received_ack_mutex;
     ConditionVariable payload_received_ack_cond{&payload_received_ack_mutex};
     bool is_payload_received_ack ABSL_GUARDED_BY(payload_received_ack_mutex) =
@@ -113,10 +112,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Tracks state for an InternalPayload and the endpoints associated with it.
   class PendingPayload {
    public:
-    using DestroyCallback = absl::AnyInvocable<void(PendingPayload*) &&>;
-    PendingPayload(std::unique_ptr<InternalPayload> internal_payload,
-                   const EndpointIds& endpoint_ids, bool is_incoming,
-                   DestroyCallback destroy_callback);
+    PendingPayload(
+        std::unique_ptr<InternalPayload> internal_payload,
+        const std::vector<std::string>& endpoint_ids, bool is_incoming,
+        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
     PendingPayload(PendingPayload&&) = default;
     PendingPayload& operator=(PendingPayload&&) = default;
 
@@ -146,7 +145,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Removes the given endpoints, e.g. on error.
-    void RemoveEndpoints(const EndpointIds& endpoint_ids_to_remove)
+    void RemoveEndpoints(const std::vector<std::string>& endpoint_ids_to_remove)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Sets the status for a particular endpoint.
@@ -156,8 +155,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
             ControlMessage& control_message) ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Sets the offset for a particular endpoint.
-    void SetOffsetForEndpoint(const std::string& endpoint_id,
-                              std::int64_t offset) ABSL_LOCKS_EXCLUDED(mutex_);
+    void SetOffsetForEndpoint(const std::string& endpoint_id, int64_t offset)
+        ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Closes internal_payload_.
     // Close is called when a pending peyload does not have associated
@@ -173,11 +172,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
    private:
     mutable Mutex mutex_;
-    bool is_incoming_;
+    const bool is_incoming_;
     AtomicBoolean is_locally_canceled_{false};
     AtomicBoolean is_closed_;
-    std::unique_ptr<InternalPayload> internal_payload_;
-    DestroyCallback destroy_callback_;
+    const std::unique_ptr<InternalPayload> internal_payload_;
+    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
     int refcount_ = 0;
@@ -188,10 +187,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Create instances with `GetPayload(Payload::Id)`.
   class PendingPayloadHandle {
    public:
-    using DestroyCallback = absl::AnyInvocable<void(PendingPayload*) &&>;
     PendingPayloadHandle() = default;
-    PendingPayloadHandle(PendingPayload* payload,
-                         DestroyCallback destroy_callback);
+    PendingPayloadHandle(
+        PendingPayload* payload,
+        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
     PendingPayloadHandle(const PendingPayloadHandle&) = delete;
     PendingPayloadHandle(PendingPayloadHandle&& other) {
       payload_ = other.payload_;
@@ -217,7 +216,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
    private:
     PendingPayload* payload_ = nullptr;
-    DestroyCallback destroy_callback_;
+    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
   };
 
   // Tracks and manages PendingPayload objects in a synchronized manner.
@@ -256,31 +255,26 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   };
 
   using Endpoints = std::vector<const EndpointInfo*>;
-  static std::string ToString(const EndpointIds& endpoint_ids);
-  static std::string ToString(const Endpoints& endpoints);
-  static std::string ToString(PayloadType type);
   static std::string ToString(EndpointInfo::Status status);
 
   // Splits the endpoints for this payload by availability.
-  // Returns a pair of lists of EndpointInfo*, with the first being the list
-  // of still-available endpoints, and the second for unavailable endpoints.
-  static std::pair<Endpoints, Endpoints> GetAvailableAndUnavailableEndpoints(
-      const PendingPayload& pending_payload);
+  // Returns a pair of lists, with the first being the list of still-available
+  // endpoint ids, and the second for unavailable endpoints.
+  static std::pair<std::vector<std::string>, Endpoints>
+  GetAvailableAndUnavailableEndpoints(const PendingPayload& pending_payload);
 
-  // Converts list of EndpointInfo to list of Endpoint ids.
-  // Returns list of endpoint ids.
-  static EndpointIds EndpointsToEndpointIds(const Endpoints& endpoints);
-
-  bool SendPayloadLoop(
+  // Returns the number of bytes sent.  0 bytes sent indicates end of payload.
+  // Returns -1 on error.
+  int SendPayloadLoop(
       ClientProxy* client, PendingPayload& pending_payload,
       location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t& next_chunk_offset, size_t resume_offset, int index);
+      int64_t next_chunk_offset, size_t resume_offset, int index);
   void SendClientCallbacksForFinishedIncomingPayloadRunnable(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t offset_bytes,
+      int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
@@ -292,27 +286,14 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status);
   static location::nearby::proto::connections::OperationResultCode
   EndpointInfoStatusToOperationResultCode(EndpointInfo::Status status);
-  // Converts a ControlMessage::EventType for a particular payload to a
-  // PayloadStatus. Called when we've received a ControlMessage with this
-  // event from a remote endpoint; thus the PayloadStatuses are REMOTE_*.
-  static location::nearby::proto::connections::PayloadStatus
-  ControlMessageEventToPayloadStatus(
-      location::nearby::connections::PayloadTransferFrame::ControlMessage::
-          EventType event);
-  static location::nearby::proto::connections::OperationResultCode
-  ControlMessageEventToOperationResultCode(
-      location::nearby::connections::PayloadTransferFrame::ControlMessage::
-          EventType event);
-  static PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
-      location::nearby::proto::connections::PayloadStatus status);
 
-  int GetOptimalChunkSize(EndpointIds endpoint_ids);
+  int GetOptimalChunkSize(const std::vector<std::string>& endpoint_ids);
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader
   CreatePayloadHeader(const InternalPayload& internal_payload, size_t offset);
 
   location::nearby::connections::PayloadTransferFrame::PayloadChunk
-  CreatePayloadChunk(std::int64_t offset, ByteArray body, int index);
+  CreatePayloadChunk(int64_t offset, ByteArray body, int index);
   bool IsLastChunk(
       location::nearby::connections::PayloadTransferFrame::PayloadChunk
           payload_chunk) {
@@ -326,18 +307,19 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // path set in `SetCustomSavePath()`.
   ErrorOr<PendingPayloadHandle> CreateIncomingPayload(
       const location::nearby::connections::PayloadTransferFrame& frame,
-      const std::string& endpoint_id,
-      const std::string& save_path) ABSL_LOCKS_EXCLUDED(mutex_);
+      const std::string& endpoint_id, const std::string& save_path)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  Payload::Id CreateOutgoingPayload(Payload payload,
-                                    const EndpointIds& endpoint_ids)
+  Payload::Id CreateOutgoingPayload(
+      Payload payload, const std::vector<std::string>& endpoint_ids)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void SendClientCallbacksForFinishedOutgoingPayload(
-      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+      ClientProxy* client,
+      const std::vector<std::string>& finished_endpoint_ids,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      int64_t num_bytes_successfully_transferred,
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
@@ -345,16 +327,16 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t offset_bytes,
+      int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
 
   void SendControlMessage(
-      const EndpointIds& endpoint_ids,
+      const std::vector<std::string>& endpoint_ids,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      int64_t num_bytes_successfully_transferred,
       location::nearby::connections::PayloadTransferFrame::ControlMessage::
           EventType event_type);
 
@@ -368,7 +350,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       PendingPayload& pending_payload,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t payload_chunk_offset, bool is_last_chunk);
+      int64_t payload_chunk_offset, bool is_last_chunk);
   bool IsPayloadReceivedAckEnabled(ClientProxy* client,
                                    const std::string& endpoint_id,
                                    PendingPayload& pending_payload);
@@ -376,10 +358,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.
   void HandleFinishedOutgoingPayload(
-      ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+      ClientProxy* client,
+      const std::vector<std::string>& finished_endpoint_ids,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t num_bytes_successfully_transferred,
+      int64_t num_bytes_successfully_transferred,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code,
       location::nearby::proto::connections::PayloadStatus status = location::
@@ -388,7 +371,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int64_t offset_bytes,
+      int64_t offset_bytes,
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
@@ -397,14 +380,14 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size);
+      int32_t payload_chunk_flags, int64_t payload_chunk_offset,
+      int64_t payload_chunk_body_size);
   void HandleSuccessfulIncomingChunk(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
-      std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-      std::int64_t payload_chunk_body_size);
+      int32_t payload_chunk_flags, int64_t payload_chunk_offset,
+      int64_t payload_chunk_body_size);
 
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
@@ -436,16 +419,14 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void RecordPayloadStartedAnalytics(ClientProxy* client,
-                                     const EndpointIds& endpoint_ids,
-                                     std::int64_t payload_id,
-                                     PayloadType payload_type,
-                                     std::int64_t offset,
-                                     std::int64_t total_size);
+  void RecordPayloadStartedAnalytics(
+      ClientProxy* client, const std::vector<std::string>& endpoint_ids,
+      int64_t payload_id, PayloadType payload_type, int64_t offset,
+      int64_t total_size);
   void RecordInvalidPayloadAnalytics(
-      ClientProxy* client, const EndpointIds& endpoint_ids,
-      std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
-      std::int64_t total_size,
+      ClientProxy* client, const std::vector<std::string>& endpoint_ids,
+      int64_t payload_id, PayloadType payload_type, int64_t offset,
+      int64_t total_size,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
 
@@ -480,7 +461,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       ABSL_GUARDED_BY(chunk_update_mutex_) = absl::InfinitePast();
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_INTERNAL_PAYLOAD_MANAGER_H_

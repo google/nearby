@@ -15,26 +15,20 @@
 #ifndef CORE_PAYLOAD_H_
 #define CORE_PAYLOAD_H_
 
-#include <cstdint>
-#include <functional>
+#include <cstddef>
 #include <memory>
 #include <string>
-#include <utility>
 #include <variant>
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "absl/types/variant.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/payload_id.h"
-#include "internal/platform/prng.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
@@ -124,7 +118,6 @@ class Payload {
   Content content_;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_PAYLOAD_H_
