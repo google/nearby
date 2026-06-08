@@ -2690,6 +2690,9 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
           .set_binding_id(binding_id)
           .set_status(TransferMetadata::Status::kComplete)
           .build());
+
+  // Download public certificates again to update the newly added sync binding.
+  certificate_manager_->DownloadPublicCertificates();
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(

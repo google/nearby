@@ -5219,6 +5219,8 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   EXPECT_FALSE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
           .has_value());
+  // Once from RegisterSendSurface and once from OnPeerSyncBindingComplete.
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(), 2);
 
   std::optional<nearby::sharing::sync::SyncBindingPrefs> binding =
       preference_manager_.GetSyncBindingValue();
