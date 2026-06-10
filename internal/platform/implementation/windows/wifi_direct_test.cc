@@ -82,7 +82,7 @@ TEST(WifiDirectMedium, DISABLED_ConnectWifiDirect) {
     std::cin >> pin;
     std::string service_name_with_prefix =
         absl::StrCat(kServiceNamePrefix, service_name);
-    credentials.SetServiceName(service_name_with_prefix);
+    credentials.SetDeviceName(service_name_with_prefix);
     credentials.SetPin(pin);
 
     EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));
@@ -159,7 +159,7 @@ TEST(WifiDirectMedium, DISABLED_WifiDirectConnectToServiceServer) {
     std::cin >> pin;
     std::string service_name_with_prefix =
         absl::StrCat(kServiceNamePrefix, service_name);
-    credentials.SetServiceName(service_name_with_prefix);
+    credentials.SetDeviceName(service_name_with_prefix);
     credentials.SetPin(pin);
 
     EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));

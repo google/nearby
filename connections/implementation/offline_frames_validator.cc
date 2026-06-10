@@ -291,16 +291,16 @@ Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
       wifi_direct_credentials.has_password() &&
       WithinRange(wifi_direct_credentials.password().length(),
                   kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength);
-  bool service_name_valid =
-      wifi_direct_credentials.has_service_name() &&
-      wifi_direct_credentials.service_name().length() <
+  bool device_name_valid =
+      wifi_direct_credentials.has_device_name() &&
+      wifi_direct_credentials.device_name().length() <
           kWifiDirectSsidMaxLength;
   bool pin_valid =
       wifi_direct_credentials.has_pin() &&
       WithinRange(wifi_direct_credentials.pin().length(),
                   kWifiDirectPinMinLength, kWifiDirectPinMaxLength);
 
-  if ((ssid_valid && password_valid) || (service_name_valid && pin_valid))
+  if ((ssid_valid && password_valid) || (device_name_valid && pin_valid))
     return {Exception::kSuccess};
 
   return {Exception::kInvalidProtocolBuffer};

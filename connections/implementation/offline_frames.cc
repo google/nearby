@@ -363,7 +363,7 @@ std::string ForBwuWifiAwarePathAvailable(const std::string& service_id,
 std::string ForBwuWifiDirectPathAvailable(
     const std::string& ssid, const std::string& password, std::int32_t port,
     std::int32_t frequency, bool supports_disabling_encryption,
-    const std::string& gateway, const std::string& service_name,
+    const std::string& gateway, const std::string& device_name,
     const std::string& pin) {
   OfflineFrame frame;
 
@@ -385,7 +385,7 @@ std::string ForBwuWifiDirectPathAvailable(
   wifi_direct_credentials->set_port(port);
   wifi_direct_credentials->set_frequency(frequency);
   wifi_direct_credentials->set_gateway(gateway);
-  wifi_direct_credentials->set_service_name(service_name);
+  wifi_direct_credentials->set_device_name(device_name);
   wifi_direct_credentials->set_pin(pin);
 
   return frame.SerializeAsString();
@@ -709,8 +709,8 @@ MediumMetadata::WifiDirectAuthType WFDAuthTypeToMediumMetadataWFDAuthType(
   switch (wifi_direct_auth_type) {
     case WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD:
       return MediumMetadata::WIFI_DIRECT_WITH_PASSWORD;
-    case WifiDirectAuthType::WIFI_DIRECT_WITH_PIN:
-      return MediumMetadata::WIFI_DIRECT_WITH_PIN;
+    case WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME:
+      return MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME;
     default:
       return MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN;
   }
@@ -721,8 +721,8 @@ WifiDirectAuthType MediumMetadataWFDAuthTypeToWFDAuthType(
   switch (wifi_direct_auth_type) {
     case MediumMetadata::WIFI_DIRECT_WITH_PASSWORD:
       return WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD;
-    case MediumMetadata::WIFI_DIRECT_WITH_PIN:
-      return WifiDirectAuthType::WIFI_DIRECT_WITH_PIN;
+    case MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME:
+      return WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME;
     default:
       return WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN;
   }

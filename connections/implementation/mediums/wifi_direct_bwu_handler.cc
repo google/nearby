@@ -86,14 +86,14 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
       wifi_direct_medium_.GetCredentials(upgrade_service_id);
   std::string ssid = wifi_direct_crendential->GetSSID();
   std::string password = wifi_direct_crendential->GetPassword();
-  std::string service_name = wifi_direct_crendential->GetServiceName();
+  std::string device_name = wifi_direct_crendential->GetDeviceName();
   std::string pin = wifi_direct_crendential->GetPin();
   std::string gateway = wifi_direct_crendential->GetGateway();
   int port = wifi_direct_crendential->GetPort();
   int freq = wifi_direct_crendential->GetFrequency();
 
   if (ssid.empty()) {
-    LOG(INFO) << "Start WifiDirect GO with ServiceName: " << service_name
+    LOG(INFO) << "Start WifiDirect GO with DeviceName: " << device_name
               << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
               << ",  Gateway: " << gateway << ", Frequency: " << freq;
   } else {
@@ -108,7 +108,7 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   return parser::ForBwuWifiDirectPathAvailable(
       ssid, password, port, freq,
       /* supports_disabling_encryption */ disabling_encryption, gateway,
-      service_name, pin);
+      device_name, pin);
 }
 
 void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
@@ -138,8 +138,8 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
   const std::string& ssid = upgrade_path_info_credentials.ssid();
   const std::string& password = upgrade_path_info_credentials.password();
-  const std::string& service_name =
-      upgrade_path_info_credentials.service_name();
+  const std::string& device_name =
+      upgrade_path_info_credentials.device_name();
   const std::string& pin = upgrade_path_info_credentials.pin();
   std::int32_t port = upgrade_path_info_credentials.port();
   const std::string& gateway = upgrade_path_info_credentials.gateway();
@@ -148,14 +148,14 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
   WifiDirectCredentials wifi_direct_credentials;
   wifi_direct_credentials.SetSSID(ssid);
   wifi_direct_credentials.SetPassword(password);
-  wifi_direct_credentials.SetServiceName(service_name);
+  wifi_direct_credentials.SetDeviceName(device_name);
   wifi_direct_credentials.SetPin(pin);
   wifi_direct_credentials.SetPort(port);
   wifi_direct_credentials.SetGateway(gateway);
   wifi_direct_credentials.SetFrequency(freq);
 
   if (ssid.empty()) {
-  LOG(INFO) << "Received WifiDirect credential ServiceName: " << service_name
+  LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
             << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
             << ",  Gateway: " << gateway << ", Frequency: " << freq;
   } else {

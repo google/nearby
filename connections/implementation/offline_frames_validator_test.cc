@@ -49,7 +49,7 @@ constexpr absl::string_view kPassword = "password";
 constexpr absl::string_view kWifiHotspotGateway = "0.0.0.0";
 constexpr absl::string_view kWifiDirectSsid = "DIRECT-A0-0123456789AB";
 constexpr absl::string_view kWifiDirectPassword = "WIFIDIRECT123456";
-constexpr absl::string_view kWifiDirectServiceName = "NC-WifiDirectTest";
+constexpr absl::string_view kWifiDirectDeviceName = "NC-WifiDirectTest";
 constexpr absl::string_view kWifiDirectPin = "b592f7d3";
 constexpr absl::string_view kGateway = "192.168.1.1";
 constexpr int kWifiDirectFrequency = 2412;
@@ -723,7 +723,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkBandwidthUpgradeWifiDirect) {
   std::string bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption, std::string(kGateway),
-      std::string(kWifiDirectServiceName), std::string(kWifiDirectPin));
+      std::string(kWifiDirectDeviceName), std::string(kWifiDirectPin));
   offline_frame.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -740,7 +740,7 @@ TEST(OfflineFramesValidatorTest,
   std::string bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), std::string(kWifiDirectPassword), kPort, -2,
       kSupportsDisablingEncryption, std::string(kGateway),
-      std::string(kWifiDirectServiceName), std::string(kWifiDirectPin));
+      std::string(kWifiDirectDeviceName), std::string(kWifiDirectPin));
   offline_frame_1.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
@@ -751,7 +751,7 @@ TEST(OfflineFramesValidatorTest,
   bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), std::string(kWifiDirectPassword), kPort, -1,
       kSupportsDisablingEncryption, std::string(kGateway),
-      std::string(kWifiDirectServiceName), std::string(kWifiDirectPin));
+      std::string(kWifiDirectDeviceName), std::string(kWifiDirectPin));
   offline_frame_2.ParseFromString(bytes);
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
@@ -769,7 +769,7 @@ TEST(OfflineFramesValidatorTest,
   std::string bytes = ForBwuWifiDirectPathAvailable(
       wifi_direct_ssid, std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
-      std::string(kGateway), std::string(kWifiDirectServiceName),
+      std::string(kGateway), std::string(kWifiDirectDeviceName),
       wifi_direct_pin_wrong_length);
   offline_frame_1.ParseFromString(bytes);
 
@@ -779,13 +779,13 @@ TEST(OfflineFramesValidatorTest,
 
   std::string wifi_direct_ssid_wrong_length =
       std::string{kWifiDirectSsid} + "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
-  std::string wifi_direct_service_name_wrong_length =
-      std::string{kWifiDirectServiceName} +
+  std::string wifi_direct_device_name_wrong_length =
+      std::string{kWifiDirectDeviceName} +
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
   bytes = ForBwuWifiDirectPathAvailable(
       wifi_direct_ssid_wrong_length, std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
-      std::string(kGateway), wifi_direct_service_name_wrong_length,
+      std::string(kGateway), wifi_direct_device_name_wrong_length,
       std::string(kWifiDirectPin));
   offline_frame_2.ParseFromString(bytes);
 
@@ -804,7 +804,7 @@ TEST(OfflineFramesValidatorTest,
   std::string bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), short_wifi_direct_password, kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
-      std::string(kGateway), std::string(kWifiDirectServiceName),
+      std::string(kGateway), std::string(kWifiDirectDeviceName),
       short_wifi_direct_pin);
   offline_frame_1.ParseFromString(bytes);
 
@@ -821,7 +821,7 @@ TEST(OfflineFramesValidatorTest,
   bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), long_wifi_direct_password, kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
-      std::string(kGateway), std::string(kWifiDirectServiceName),
+      std::string(kGateway), std::string(kWifiDirectDeviceName),
       long_wifi_direct_pin);
   offline_frame_2.ParseFromString(bytes);
 

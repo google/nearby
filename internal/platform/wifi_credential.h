@@ -83,10 +83,10 @@ class WifiDirectCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
-  // Get/Set Service Name.
-  std::string GetServiceName() const { return service_name_; }
-  void SetServiceName(const std::string& service_name) {
-    service_name_ = service_name;
+  // Get/Set Device Name.
+  std::string GetDeviceName() const { return device_name_; }
+  void SetDeviceName(const std::string& device_name) {
+    device_name_ = device_name;
   }
 
   // Get/Set Pin.
@@ -126,12 +126,12 @@ class WifiDirectCredentials {
  private:
   // There are 2 types of WifiDirectAuthType.
   // 1. Without Service Discovery: the credentials are ssid/password.
-  // 2. With Service Discovery: the credentials are service_name/pin.
+  // 2. With Service Discovery: the credentials are device_name/pin.
   // Android supports type 1 and 2 in the future, but Windows only supports the
   // second type.
   std::string ssid_;
   std::string password_;
-  std::string service_name_;
+  std::string device_name_;
   std::string pin_;
   std::string ip_address_;
   std::string gateway_ = "0.0.0.0";

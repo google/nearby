@@ -135,12 +135,12 @@ bool WifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(mutex_);
 
-  std::string service_name = absl::StrCat("NC-", Prng().NextUint32());
-  wifi_direct_credentials->SetServiceName(service_name);
+  std::string device_name = absl::StrCat("NC-", Prng().NextUint32());
+  wifi_direct_credentials->SetDeviceName(device_name);
   std::string pin = absl::StrFormat("%04x", Prng().NextUint32());
   wifi_direct_credentials->SetPin(pin);
 
-  LOG(INFO) << "G3 StartWifiDirect GO: service_name:" << service_name
+  LOG(INFO) << "G3 StartWifiDirect GO: device_name:" << device_name
             << ",  pin:" << pin;
 
   auto& env = MediumEnvironment::Instance();
@@ -165,13 +165,13 @@ bool WifiDirectMedium::ConnectWifiDirect(
     const WifiDirectCredentials& wifi_direct_credentials) {
   absl::MutexLock lock(mutex_);
 
-  LOG(INFO) << "G3 ConnectWifiDirect : service_name:"
-            << wifi_direct_credentials.GetServiceName()
+  LOG(INFO) << "G3 ConnectWifiDirect : device_name:"
+            << wifi_direct_credentials.GetDeviceName()
             << ", pin:" << wifi_direct_credentials.GetPin();
 
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium = static_cast<WifiDirectMedium*>(
-      env.GetWifiDirectMedium(wifi_direct_credentials.GetServiceName(), ""));
+      env.GetWifiDirectMedium(wifi_direct_credentials.GetDeviceName(), ""));
   if (!remote_medium) {
     env.UpdateWifiDirectMediumForStartOrConnect(*this, &wifi_direct_credentials,
                                                 /*is_go=*/false,

@@ -304,13 +304,13 @@ bool WifiDirectMedium::StartWifiDirect(
   std::string pin = absl::StrFormat("%04x", prng.NextUint32());
   credentials_go_->SetPin(pin);
 
-  std::string service_name =
+  std::string device_name =
       absl::StrCat(kServiceNamePrefix, std::to_string(prng.NextUint32()));
-  credentials_go_->SetServiceName(service_name);
-  LOG(INFO) << "service_name:pin " << service_name << ":" << pin;
+  credentials_go_->SetDeviceName(device_name);
+  LOG(INFO) << "device_name:pin " << device_name << ":" << pin;
 
   // Create Advertiser object
-  advertiser_ = WiFiDirectServiceAdvertiser(winrt::to_hstring(service_name));
+  advertiser_ = WiFiDirectServiceAdvertiser(winrt::to_hstring(device_name));
   advertisement_status_changed_token_ = advertiser_.AdvertisementStatusChanged(
       {this, &WifiDirectMedium::OnAdvertisementStatusChanged});
   auto_accept_session_connected_token_ = advertiser_.AutoAcceptSessionConnected(
@@ -572,12 +572,12 @@ bool WifiDirectMedium::ConnectWifiDirect(
   }
 
   credentials_gc_ = credentials;
-  if (credentials_gc_.GetServiceName().empty()) {
-    LOG(ERROR) << "GC: Service name is empty, return false";
+  if (credentials_gc_.GetDeviceName().empty()) {
+    LOG(ERROR) << "GC: Device name is empty, return false";
     return false;
   }
   winrt::hstring device_selector = WiFiDirectService::GetSelector(
-      winrt::to_hstring(credentials_gc_.GetServiceName()));
+      winrt::to_hstring(credentials_gc_.GetDeviceName()));
   const winrt::param::iterable<winrt::hstring> requested_properties =
       winrt::single_threaded_vector<winrt::hstring>({
           winrt::to_hstring("System.Devices.WiFiDirectServices.ServiceAddress"),
@@ -762,7 +762,7 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
 std::vector<WifiDirectMedium::WifiDirectAuthType>
 WifiDirectMedium::GetSupportedWifiDirectAuthTypes() const {
   // Windows only supports WifiDirect with Service Discovery, which uses a PIN.
-  return {WifiDirectAuthType::WIFI_DIRECT_WITH_PIN};
+  return {WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME};
 }
 
 }  // namespace windows

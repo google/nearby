@@ -98,7 +98,7 @@ std::string ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         std::int32_t frequency,
                                         bool supports_disabling_encryption,
                                         const std::string& gateway,
-                                        const std::string& service_name,
+                                        const std::string& device_name,
                                         const std::string& pin);
 std::string ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        MacAddress mac_address);

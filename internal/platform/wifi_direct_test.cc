@@ -47,19 +47,19 @@ constexpr FeatureFlags kTestCases[] = {
     },
 };
 
-constexpr absl::string_view kServiceName = "NC-WifiDirectTest";
+constexpr absl::string_view kDeviceName = "NC-WifiDirectTest";
 constexpr absl::string_view kPin = "b592f7d3";
 constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
 constexpr absl::string_view kData = "ABCD";
 constexpr const size_t kChunkSize = 10;
 
-TEST(WifiDirectCredentialsTest, SetGetServiceName) {
-  std::string service_name(kServiceName);
+TEST(WifiDirectCredentialsTest, SetGetDeviceName) {
+  std::string device_name(kDeviceName);
   WifiDirectCredentials wifi_direct_credentials;
-  wifi_direct_credentials.SetServiceName(service_name);
+  wifi_direct_credentials.SetDeviceName(device_name);
 
-  EXPECT_EQ(wifi_direct_credentials.GetServiceName(), kServiceName);
+  EXPECT_EQ(wifi_direct_credentials.GetDeviceName(), kDeviceName);
 }
 
 TEST(WifiDirectCredentialsTest, SetGetPin) {
@@ -116,7 +116,7 @@ TEST_F(WifiDirectMediumTest, CanStartStopWifiDirect) {
 TEST_F(WifiDirectMediumTest, CanConnectDisconnectWifiDirect) {
   WifiDirectMedium wifi_direct_a;
   WifiDirectCredentials credentials;
-  credentials.SetServiceName(std::string(kServiceName));
+  credentials.SetDeviceName(std::string(kDeviceName));
   credentials.SetPin(std::string(kPin));
 
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
@@ -136,7 +136,7 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   WifiDirectCredentials* wifi_direct_credentials =
       wifi_direct_a.GetCredential();
   auto* medium_a =
-      env_.GetWifiDirectMedium(wifi_direct_credentials->GetServiceName(), {});
+      env_.GetWifiDirectMedium(wifi_direct_credentials->GetDeviceName(), {});
   EXPECT_NE(medium_a, nullptr);
   EXPECT_TRUE(wifi_direct_b.ConnectWifiDirect(*wifi_direct_credentials));
 
@@ -198,7 +198,7 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
   auto* medium_b =
-      env_.GetWifiDirectMedium(wifi_direct_credentials->GetServiceName(), {});
+      env_.GetWifiDirectMedium(wifi_direct_credentials->GetDeviceName(), {});
   EXPECT_EQ(medium_b, nullptr);
 }
 
@@ -278,7 +278,7 @@ TEST_F(WifiDirectMediumTest, CanStartDirectGOThatOtherFailConnect) {
   ASSERT_TRUE(wifi_direct_b.IsInterfaceValid());
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
   WifiDirectCredentials wifi_direct_credentials;
-  wifi_direct_credentials.SetServiceName(std::string(kServiceName));
+  wifi_direct_credentials.SetDeviceName(std::string(kDeviceName));
   wifi_direct_credentials.SetPin(std::string(kPin));
 
   EXPECT_FALSE(wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials));
@@ -289,12 +289,12 @@ TEST_F(WifiDirectMediumTest, CanStartDirectGOThatOtherFailConnect) {
 
 TEST_F(WifiDirectMediumTest, GetSupportedWifiDirectAuthTypes) {
   WifiDirectMedium wifi_direct_a;
-  // g3 only supports WifiDirect with auth type of PIN.
+  // g3 only supports WifiDirect with auth type of Device Name.
   auto supported_types = wifi_direct_a.GetSupportedWifiDirectAuthTypes();
   EXPECT_EQ(supported_types.size(), 1);
   EXPECT_EQ(supported_types[0],
-            location::nearby::proto::connections::
-                WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+            location::nearby::proto::connections::WifiDirectAuthType::
+                WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 }  // namespace

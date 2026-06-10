@@ -289,7 +289,7 @@ TEST(OfflineFramesTest,
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
           ap_frequency: 2412
-          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PIN
+          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_DEVICE_NAME
           supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PASSWORD
         >
         mediums: MDNS
@@ -324,7 +324,7 @@ TEST(OfflineFramesTest,
                                  kKeepAliveIntervalMillis,
                                  kKeepAliveTimeoutMillis};
   connection_info.supported_wifi_direct_auth_types = {
-      WifiDirectAuthType::WIFI_DIRECT_WITH_PIN,
+      WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME,
       WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD};
 
   location::nearby::connections::ConnectionsDevice connections_device;
@@ -596,7 +596,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
             port: 1000
             frequency: 2412
             gateway: "192.168.1.1"
-            service_name: "NC-WifiDirectTest"
+            device_name: "NC-WifiDirectTest"
             pin: "b592f7d3"
           >
           supports_disabling_encryption: false
@@ -756,8 +756,8 @@ TEST(OfflineFramesTest, WFDAuthTypeToMediumMetadataWFDAuthType) {
                 WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD),
             MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
   EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
-                WifiDirectAuthType::WIFI_DIRECT_WITH_PIN),
-            MediumMetadata::WIFI_DIRECT_WITH_PIN);
+                WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME),
+            MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME);
   EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
                 WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN),
             MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN);
@@ -768,8 +768,8 @@ TEST(OfflineFramesTest, MediumMetadataWFDAuthTypeToWFDAuthType) {
                 MediumMetadata::WIFI_DIRECT_WITH_PASSWORD),
             WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD);
   EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
-                MediumMetadata::WIFI_DIRECT_WITH_PIN),
-            WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+                MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME),
+            WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
   EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
                 MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN),
             WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN);
@@ -780,11 +780,11 @@ TEST(OfflineFramesTest, MediumMetadataWFDAuthTypesToWFDAuthTypes) {
   medium_metadata.add_supported_wifi_direct_auth_types(
       MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
   medium_metadata.add_supported_wifi_direct_auth_types(
-      MediumMetadata::WIFI_DIRECT_WITH_PIN);
+      MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME);
 
   std::vector<WifiDirectAuthType> expected = {
       WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD,
-      WifiDirectAuthType::WIFI_DIRECT_WITH_PIN};
+      WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME};
 
   EXPECT_THAT(MediumMetadataWFDAuthTypesToWFDAuthTypes(medium_metadata),
               Pointwise(testing::Eq(), expected));

@@ -45,7 +45,7 @@ constexpr FeatureFlags kTestCases[] = {
 };
 
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
-constexpr absl::string_view kServiceName{"NC-WifiDirectTest"};
+constexpr absl::string_view kDeviceName{"NC-WifiDirectTest"};
 constexpr absl::string_view kPin{"12345678"};
 constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
@@ -93,9 +93,9 @@ TEST_F(WifiDirectTest, CanStartStopGO) {
 
 TEST_F(WifiDirectTest, GCCanConnectDisconnectGO) {
   WifiDirectCredentials wifi_direct_credentials;
-  std::string service_name(kServiceName);
+  std::string device_name(kDeviceName);
   std::string pin(kPin);
-  wifi_direct_credentials.SetServiceName(service_name);
+  wifi_direct_credentials.SetDeviceName(device_name);
   wifi_direct_credentials.SetPin(pin);
   WifiDirect wifi_direct_a;
 
@@ -187,9 +187,9 @@ TEST_F(WifiDirectTest, CanStartGOTheOtherFailConnect) {
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
 
   WifiDirectCredentials wifi_direct_credentials;
-  std::string service_name(kServiceName);
+  std::string device_name(kDeviceName);
   std::string pin(kPin);
-  wifi_direct_credentials.SetServiceName(service_name);
+  wifi_direct_credentials.SetDeviceName(device_name);
   wifi_direct_credentials.SetPin(pin);
   EXPECT_FALSE(wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials));
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
@@ -201,23 +201,24 @@ TEST_F(WifiDirectTest, GetSupportedWifiDirectAuthTypes) {
   auto supported_types = wifi_direct.GetSupportedWifiDirectAuthTypes();
   EXPECT_EQ(supported_types.size(), 1);
   EXPECT_EQ(supported_types[0],
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 TEST_F(WifiDirectTest, GetPreferredWifiDirectAuthType_Default) {
   WifiDirect wifi_direct;
-  // Default should be the first supported type, which is WIFI_DIRECT_WITH_PIN
+  // Default should be the first supported type, which is
+  // WIFI_DIRECT_WITH_DEVICE_NAME
   EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Supported) {
   WifiDirect wifi_direct;
   // Attempt to set the preferred type to the already default/supported type.
   EXPECT_TRUE(wifi_direct.SetPreferredWifiDirectAuthType(
-      WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN));
+      WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME));
   EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Unsupported) {
@@ -227,7 +228,7 @@ TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Unsupported) {
       WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD));
   // Preferred type should remain the default.
   EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 }  // namespace

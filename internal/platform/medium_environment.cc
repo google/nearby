@@ -983,13 +983,13 @@ void MediumEnvironment::RegisterWifiDirectMedium(
 }
 
 api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
-    absl::string_view service_name, absl::string_view ip_address) {
+    absl::string_view device_name, absl::string_view ip_address) {
   MutexLock lock(&mutex_);
   for (auto& medium_info : wifi_direct_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
     if (info.is_go && info.is_active) {
-      if ((info.wifi_direct_credentials->GetServiceName() == service_name) ||
+      if ((info.wifi_direct_credentials->GetDeviceName() == device_name) ||
           (!ip_address.empty() &&
            (info.wifi_direct_credentials->GetGateway() == ip_address))) {
         LOG(INFO) << "Found Remote WifiDirect medium=" << medium_found;
@@ -1020,8 +1020,8 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
         if (wifi_direct_credentials) {
           LOG(INFO) << "Update WifiDirect medium for GO: this=" << this
                     << "; medium=" << &medium << role_status
-                    << "; service_name="
-                    << wifi_direct_credentials->GetServiceName()
+                    << "; device_name="
+                    << wifi_direct_credentials->GetDeviceName()
                     << "; pin=" << wifi_direct_credentials->GetPin();
         } else {
           LOG(INFO) << "Reset WifiDirect medium for GO: this=" << this
