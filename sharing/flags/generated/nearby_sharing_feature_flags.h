@@ -98,9 +98,6 @@ constexpr auto kEnableMiniPulse =
 // When true, enables notifications implemented in native code.
 constexpr auto kEnableNativeNotifications =
     flags::Flag<bool>(kConfigPackage, "45743135", false);
-// When true, enables responsive UI.
-constexpr auto kEnableResponsiveUi =
-    flags::Flag<bool>(kConfigPackage, "45727212", true);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -120,7 +117,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45720206, kEnableFlutterHooks},
       {45724244, kEnableMiniPulse},
       {45743135, kEnableNativeNotifications},
-      {45727212, kEnableResponsiveUi},
   };
 }
 
