@@ -61,8 +61,13 @@ constexpr absl::string_view kWifiDirectSsidPatternString{
 constexpr int kWifiDirectSsidMaxLength = 32;
 constexpr int kWifiPasswordSsidMinLength = 8;
 constexpr int kWifiPasswordSsidMaxLength = 64;
-// We may use Push Button for WPS, so no pin is required, the min length should
-// be 0.
+// For Windows Wifi Direct based on WinRT Windows.Devices.WiFiDirect, user can't
+// choose pin when pairing with the other device. Instead, When GO is created, a
+// pin is created by OS. But at this stage, BWU has already sent device name as
+// credential to GC for connection. Current BWU design has no way to send second
+// ForBwuWifiDirectPathAvailable frame with pin as crdential to GC. To avoid
+// major change in BWU structure, we decided to use ConfirmOnly(Push Button) for
+// WPS, so no pin is required, the min length should be 0.
 constexpr int kWifiDirectPinMinLength = 0;
 constexpr int kWifiDirectPinMaxLength = 16;
 

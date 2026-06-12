@@ -274,7 +274,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
   bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
-  // GO is starated and sending beacon
+  // GO is started and sending beacon
   bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
   // GC is connecting to the GO
   bool IsConnecting() {

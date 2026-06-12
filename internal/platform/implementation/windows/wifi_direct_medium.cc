@@ -44,8 +44,10 @@
 namespace nearby::windows {
 
 namespace {
-constexpr int kWaitingForConnectionTimeoutSeconds = 60;  // seconds
-constexpr int kWaitingForRePair = 3;                     // seconds
+constexpr absl::Duration kServiceConnectionTimeout = absl::Seconds(60);
+constexpr absl::Duration kWaitingForRePair = absl::Seconds(3);
+constexpr absl::Duration kWaitForGOServerStart = absl::Milliseconds(500);
+constexpr absl::Duration kConnectTimeout = absl::Seconds(30);
 }  // namespace
 
 WifiDirectDeviceDiscovered::WifiDirectDeviceDiscovered(
@@ -135,7 +137,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   LOG(INFO) << "Connect to service ";
   // In the test, GO server takes longer to started, so wait for 500ms before
   // trying to connect to the service.
-  absl::SleepFor(absl::Milliseconds(500));
+  absl::SleepFor(kWaitForGOServerStart);
   for (int i = 0; i < wifi_direct_max_connection_retries; ++i) {
     auto wifi_direct_socket = std::make_unique<WifiDirectSocket>();
 
@@ -200,8 +202,8 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     if (ip_address_local_.empty()) {
       if (server_socket_ptr_) {
         LOG(INFO) << "Waiting for IP address is ready.";
-        is_ip_address_ready_.WaitWithTimeout(
-            &mutex_, absl::Seconds(kWaitingForConnectionTimeoutSeconds));
+        is_ip_address_ready_.WaitWithTimeout(&mutex_,
+                                             kServiceConnectionTimeout);
         if (!server_socket_ptr_) {
           LOG(WARNING)
               << "Server socket was closed before IP address is ready.";
@@ -459,8 +461,8 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
         unpairing_result.Status() ==
             DeviceUnpairingResultStatus::AlreadyUnpaired) {
       LOG(INFO) << "GO Unpaired GC, Re-pair";
-      // Wait for kWaitingForRePair seconds to allow WiFi driver to stabilize.
-      absl::SleepFor(absl::Seconds(kWaitingForRePair));
+      // Wait for kWaitingForRePair to allow WiFi driver to stabilize.
+      absl::SleepFor(kWaitingForRePair);
       // Refresh device info after unpairing.
       DeviceInformation refreshed_device_info =
           DeviceInformation::CreateFromIdAsync(device_id).get();
@@ -642,8 +644,9 @@ bool WifiDirectMedium::ConnectWifiDirect(
     }
   }
 
-  LOG(INFO) << "Started to discover and wait 30s for connection.";
-  connection_latch_->Await(absl::Seconds(30));
+  LOG(INFO) << "Started to discover and wait " << kConnectTimeout
+            << " for connection.";
+  connection_latch_->Await(kConnectTimeout);
   {
     absl::MutexLock lock(mutex_);
     if (IsConnected()) {
@@ -777,10 +780,9 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     if (unpairing_result.Status() == DeviceUnpairingResultStatus::Unpaired ||
         unpairing_result.Status() ==
             DeviceUnpairingResultStatus::AlreadyUnpaired) {
-      // Wait kWaitingForRePair seconds for the device stabilize before
-      // re-pairing. This may avoid the possible contention problems in Intel
-      // WiFi driver.
-      absl::SleepFor(absl::Seconds(kWaitingForRePair));
+      // Wait kWaitingForRePair for the device stabilize before re-pairing.
+      // This may avoid the possible contention problems in Intel WiFi driver.
+      absl::SleepFor(kWaitingForRePair);
       DeviceInformation refreshed_device_info =
           DeviceInformation::CreateFromIdAsync(device_id).get();
       is_paired = RequestPairDeviceAsync(refreshed_device_info.Pairing(), 1,
