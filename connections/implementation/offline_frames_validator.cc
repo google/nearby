@@ -61,7 +61,9 @@ constexpr absl::string_view kWifiDirectSsidPatternString{
 constexpr int kWifiDirectSsidMaxLength = 32;
 constexpr int kWifiPasswordSsidMinLength = 8;
 constexpr int kWifiPasswordSsidMaxLength = 64;
-constexpr int kWifiDirectPinMinLength = 4;
+// We may use Push Button for WPS, so no pin is required, the min length should
+// be 0.
+constexpr int kWifiDirectPinMinLength = 0;
 constexpr int kWifiDirectPinMaxLength = 16;
 
 inline bool WithinRange(int value, int min, int max) {
@@ -302,7 +304,6 @@ Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
 
   if ((ssid_valid && password_valid) || (device_name_valid && pin_valid))
     return {Exception::kSuccess};
-
   return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be null-checked

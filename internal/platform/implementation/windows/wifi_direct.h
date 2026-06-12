@@ -17,15 +17,13 @@
 
 // Windows headers
 #include <windows.h>
+#include <winsock2.h>
 #include <wlanapi.h>
 
 // Standard C/C++ headers
-#include <cstddef>
-#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
-#include <utility>
-#include <vector>
 
 // Nearby connections headers
 #include "absl/base/nullability.h"
@@ -35,6 +33,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
@@ -46,8 +45,9 @@
 #include "internal/platform/wifi_credential.h"
 
 // WinRT headers
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.Services.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.h"
@@ -55,33 +55,55 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Cryptography.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.System.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 
 namespace nearby::windows {
 
+// Windows.Devices.WiFiDirect Namespace contains classes that support connecting
+// to associated Wi-Fi Direct devices and associated endpoints for PCs, tablets,
+// and phones.
+// https://learn.microsoft.com/en-us/uwp/api/windows.devices.wifidirect?view=winrt-22000
 using ::winrt::event_token;
 using ::winrt::fire_and_forget;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectAdvertisementListenStateDiscoverability;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectAdvertisementPublisherStatus;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectAdvertisementPublisherStatusChangedEventArgs;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConfigurationMethod;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionParameters;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectConnectionRequestedEventArgs;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDeviceSelectorType;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectPairingProcedure;
+
 using ::winrt::Windows::Devices::Enumeration::DeviceInformation;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationCollection;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationKind;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationPairing;
 using ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
+using ::winrt::Windows::Devices::Enumeration::DevicePairingKinds;
+using ::winrt::Windows::Devices::Enumeration::DevicePairingProtectionLevel;
+using ::winrt::Windows::Devices::Enumeration::DevicePairingRequestedEventArgs;
+using ::winrt::Windows::Devices::Enumeration::DevicePairingResult;
+using ::winrt::Windows::Devices::Enumeration::DevicePairingResultStatus;
+using ::winrt::Windows::Devices::Enumeration::DeviceUnpairingResult;
+using ::winrt::Windows::Devices::Enumeration::DeviceUnpairingResultStatus;
 using ::winrt::Windows::Devices::Enumeration::DeviceWatcher;
-using ::winrt::Windows::Devices::WiFiDirect::Services::WiFiDirectService;
-using ::winrt::Windows::Devices::WiFiDirect::Services::
-    WiFiDirectServiceAdvertisementStatus;
-using ::winrt::Windows::Devices::WiFiDirect::Services::
-    WiFiDirectServiceAdvertiser;
-using ::winrt::Windows::Devices::WiFiDirect::Services::
-    WiFiDirectServiceAutoAcceptSessionConnectedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::Services::
-    WiFiDirectServiceConfigurationMethod;
-using ::winrt::Windows::Devices::WiFiDirect::Services::WiFiDirectServiceSession;
-using ::winrt::Windows::Devices::WiFiDirect::Services::
-    WiFiDirectServiceSessionRequestedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::Services::WiFiDirectServiceStatus;
+
 using ::winrt::Windows::Foundation::AsyncStatus;
+using ::winrt::Windows::Foundation::IAsyncOperation;
 using ::winrt::Windows::Foundation::IInspectable;
+using ::winrt::Windows::Foundation::Collections::IVectorView;
+using ::winrt::Windows::Networking::EndpointPair;
 
 // WifiDirectSocket wraps the socket functions to read and write stream.
-// On WiFiDirect GO serverside, a WifiDirectSocket will be passed to
+// On WiFiDirect GO server side, a WifiDirectSocket will be passed to
 // StartAcceptingConnections's callback when Winsock Server Socket receives a
 // new connection. When client side call API to connect to remote WiFi
 // WifiDirect GO service, it will return a WifiDirectServiceSocket to caller.
@@ -177,6 +199,26 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   bool server_socket_accepted_connection_ = false;
 };
 
+class WifiDirectDeviceDiscovered {
+ public:
+  explicit WifiDirectDeviceDiscovered(
+      const DeviceInformation& device_info);
+
+  ~WifiDirectDeviceDiscovered() = default;
+  WifiDirectDeviceDiscovered(WifiDirectDeviceDiscovered&&) = default;
+  WifiDirectDeviceDiscovered& operator=(WifiDirectDeviceDiscovered&&) = default;
+
+  std::string GetId() { return id_; }
+  DeviceInformation GetDeviceInformation() {
+    return windows_wifi_direct_device_;
+  }
+
+ private:
+  DeviceInformation windows_wifi_direct_device_;
+  std::string id_;
+};
+
+// Container of operations that can be performed over the WifiLan medium.
 class WifiDirectMedium : public api::WifiDirectMedium {
  public:
   WifiDirectMedium();
@@ -217,54 +259,46 @@ class WifiDirectMedium : public api::WifiDirectMedium {
       const override;
 
  private:
+  // Medium status
   enum Value : char {
     kMediumStatusIdle = 0,
     kMediumStatusAccepting = (1 << 0),
-    kMediumStatusGOStarted = (1 << 1),
+    kMediumStatusBeaconing = (1 << 1),
     kMediumStatusConnecting = (1 << 2),
     kMediumStatusConnected = (1 << 3),
   };
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
 
-  bool IsWifiDirectServiceSupported();
+  bool IsWifiDirectSupported();
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
   bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
-  // Advertiser started WifiDirect GO
-  bool IsGOStarted() {
-    return (medium_status_ & kMediumStatusGOStarted) != 0;
-  }
-  // Discoverer is connecting with the WifiDirect
+  // GO is starated and sending beacon
+  bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
+  // GC is connecting to the GO
   bool IsConnecting() {
     return (medium_status_ & kMediumStatusConnecting) != 0;
   }
-  // Discoverer is connected with the WifiDirect
+  // GC is connected to the GO
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
 
-  // Converts WiFiDirectServiceConfigurationMethod enum to a string.
-  static std::string ConfigMethodToString(
-      WiFiDirectServiceConfigurationMethod config_method);
+  // Advertising properties
+  WiFiDirectAdvertisementPublisher publisher_{nullptr};
+  WiFiDirectConnectionListener listener_{nullptr};
+  WiFiDirectDevice wifi_direct_device_{nullptr};
 
-  WiFiDirectServiceAdvertiser advertiser_ = nullptr;
-  WiFiDirectService service_ = nullptr;
-  WiFiDirectServiceSession session_ = nullptr;
-  winrt::Windows::System::DispatcherQueueController controller_ = nullptr;
-  winrt::Windows::System::DispatcherQueue dispatcher_queue_ = nullptr;
-  DeviceInformation device_info_ = nullptr;
+  fire_and_forget OnStatusChanged(
+      WiFiDirectAdvertisementPublisher sender,
+      WiFiDirectAdvertisementPublisherStatusChangedEventArgs event);
+  event_token publisher_status_changed_token_;
 
-  fire_and_forget OnAdvertisementStatusChanged(
-      WiFiDirectServiceAdvertiser sender, IInspectable const& event);
-  fire_and_forget OnAutoAcceptSessionConnected(
-      WiFiDirectServiceAdvertiser sender,
-      WiFiDirectServiceAutoAcceptSessionConnectedEventArgs const& args);
-  fire_and_forget OnSessionRequested(
-      WiFiDirectServiceAdvertiser const& sender,
-      WiFiDirectServiceSessionRequestedEventArgs const& args);
+  fire_and_forget OnConnectionRequested(
+      WiFiDirectConnectionListener const& sender,
+      WiFiDirectConnectionRequestedEventArgs const& event);
+  event_token connection_requested_token_;
 
-  event_token advertisement_status_changed_token_;
-  event_token auto_accept_session_connected_token_;
-  event_token session_requested_token_;
+  bool IsAepPaired(winrt::hstring device_id);
 
   // Discovery properties
   DeviceWatcher device_watcher_{nullptr};
@@ -280,24 +314,43 @@ class WifiDirectMedium : public api::WifiDirectMedium {
       DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
   fire_and_forget Watcher_DeviceRemoved(
       DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
-  fire_and_forget Watcher_DeviceEnumerationCompleted(DeviceWatcher sender,
-                                                     IInspectable inspectable);
-  fire_and_forget Watcher_DeviceStopped(DeviceWatcher sender,
-                                        IInspectable inspectable);
+  fire_and_forget Watcher_DeviceEnumerationCompleted(
+      DeviceWatcher sender, IInspectable inspectable);
+  fire_and_forget Watcher_DeviceStopped(
+      DeviceWatcher sender, IInspectable inspectable);
+
+  fire_and_forget OnPairingRequested(
+      DeviceInformationCustomPairing const& sender,
+      DevicePairingRequestedEventArgs const& e);
+  void OnConnectionStatusChanged(
+      WiFiDirectDevice const& sender,
+      winrt::Windows::Foundation::IInspectable const& e);
+  // IAsyncOperation<bool> RequestPairDeviceAsync(
+  bool RequestPairDeviceAsync(DeviceInformationPairing pairing,
+                              int group_owner_intent,
+                              WiFiDirectConfigurationMethod config_method);
+
+  std::unique_ptr<CountDownLatch> connection_latch_;
+  absl::Mutex mutex_;
+
+  absl::flat_hash_map<winrt::hstring,
+                      std::unique_ptr<WifiDirectDeviceDiscovered>>
+      discovered_devices_by_id_;
+
+  absl::flat_hash_map<winrt::hstring,
+                      std::unique_ptr<WifiDirectDeviceDiscovered>>
+      connection_requested_devices_by_id_;
 
   bool is_interface_valid_ = false;
   WifiDirectCredentials* credentials_go_ = nullptr;
   WifiDirectCredentials credentials_gc_;
   std::string ip_address_local_;
   std::string ip_address_remote_;
-
-  absl::Mutex mutex_;
   absl::CondVar is_ip_address_ready_;
-  // Keep the server socket listener pointer
+
   WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
   SubmittableExecutor listener_executor_;
 };
-
 }  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_DIRECT_H_

@@ -25,6 +25,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
@@ -32,7 +33,7 @@
 
 namespace nearby::windows {
 namespace {
-constexpr int kWaitingForServerSocketReadyTimeoutSeconds = 90;  // seconds
+constexpr int kWaitingForServerSocketReadyTimeoutSeconds = 60;  // seconds
 }  // namespace
 
 WifiDirectServerSocket::~WifiDirectServerSocket() { Close(); }
@@ -50,27 +51,32 @@ void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
 }
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
-  absl::MutexLock lock(mutex_);
-  if (server_socket_accepted_connection_) {
-    LOG(INFO) << "Server socket has already accepted a connection. Return.";
-    return nullptr;
-  }
-  if (!is_listen_started_) {
-    LOG(INFO) << __func__
-              << ": Server socket is not started, wait for server socket is "
-                 "ready.";
-    is_listen_ready_.WaitWithTimeout(
-        &mutex_, absl::Seconds(kWaitingForServerSocketReadyTimeoutSeconds));
-    if (!is_listen_started_) {
-      LOG(INFO) << __func__
-                << ": Server socket failed to start within timeout.";
+  {
+    absl::MutexLock lock(&mutex_);
+    if (closed_) return nullptr;
+    if (server_socket_accepted_connection_) {
+      LOG(INFO) << "Server socket has already accepted a connection. Return.";
       return nullptr;
+    }
+    LOG(INFO) << "Check if server socket is ready.";
+    if (!is_listen_started_) {
+      LOG(INFO) <<"Server socket is not started, wait for server socket is "
+                   "ready.";
+      is_listen_ready_.WaitWithTimeout(
+          &mutex_, absl::Seconds(kWaitingForServerSocketReadyTimeoutSeconds));
+      if (closed_ || !is_listen_started_) {
+        LOG(INFO) << ": Server socket failed to start or was closed.";
+        return nullptr;
+      }
     }
   }
 
+  LOG(INFO) << "Start to accept connection from WiFiDirect client.";
   auto client_socket = server_socket_.Accept();
-  if (client_socket == nullptr) {
-    LOG(INFO) << "Accept server socket failed.";
+
+  absl::MutexLock lock(&mutex_);
+  if (closed_ || client_socket == nullptr) {
+    LOG(INFO) << "Accept server socket failed or closed.";
     return nullptr;
   }
 
@@ -80,9 +86,45 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   return std::make_unique<WifiDirectSocket>(std::move(client_socket));
 }
 
+std::string GetWifiDirectGOAddresses() {
+  for (int i = 0; i < 3; i++) {
+    // Force refresh network info since assignment of the well known
+    // static IP address to the hotspot interface does not trigger the IP
+    // interface change notification in network_monitor.cc.
+    NetworkInfo::GetNetworkInfo().Refresh();
+    for (const auto& net_interface :
+        NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+      if (net_interface.type == InterfaceType::kWifiHotspot) {
+        LOG(INFO) << "Found Wifi Hotspot interface, index: "
+                  << net_interface.index;
+        for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
+          LOG(INFO) << "Found ipv6 address: " << ipaddress.ToString();
+          // IPv6 link-local addresses are allowed and preferred since it skips
+          // the DHCP wait time.
+        }
+        for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
+          LOG(INFO) << "Found ipv4 address: " << ipaddress.ToString();
+          // Skip link-local IPv4 addresses.
+          if (ipaddress.IsV4LinkLocal()) {
+            LOG(INFO) << "Skip link-local IPv4 address: ";
+            continue;
+          }
+
+          return ipaddress.ToString();
+        }
+      }
+    }
+    LOG(WARNING)
+        << "Failed to find Wifi Hotspot interface. Wait 500ms snd try again";
+    Sleep(500);
+  }
+  return "";
+}
+
 void WifiDirectServerSocket::PopulateWifiDirectCredentials(
     WifiDirectCredentials& wifi_direct_credentials) {
-  wifi_direct_credentials.SetGateway(wifi_direct_ipaddr_);
+  std::string wifi_direct_ipaddr = GetWifiDirectGOAddresses();
+  wifi_direct_credentials.SetGateway(wifi_direct_ipaddr);
   if (GetPort() != 0) {
   wifi_direct_credentials.SetPort(GetPort());
   } else {
@@ -93,15 +135,19 @@ void WifiDirectServerSocket::PopulateWifiDirectCredentials(
 }
 
 Exception WifiDirectServerSocket::Close() {
-  absl::MutexLock lock(mutex_);
-  if (closed_) {
-    return {Exception::kSuccess};
+  {
+    absl::MutexLock lock(mutex_);
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
+    closed_ = true;
+    wifi_direct_ipaddr_.clear();
+    is_listen_started_ = false;
+    server_socket_accepted_connection_ = false;
+    is_listen_ready_.SignalAll();
   }
-  wifi_direct_ipaddr_.clear();
-  is_listen_started_ = false;
-  server_socket_accepted_connection_ = false;
+
   server_socket_.Close();
-  closed_ = true;
 
   LOG(INFO) << __func__ << ": Close completed succesfully.";
   return {Exception::kSuccess};

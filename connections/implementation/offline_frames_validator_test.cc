@@ -765,7 +765,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame_2;
 
   std::string wifi_direct_ssid{"DIRECT-A*-0123456789AB"};
-  std::string wifi_direct_pin_wrong_length = "abc";
+  std::string wifi_direct_pin_wrong_length = "abcefghijklmnopqrstuvwxyz";
   std::string bytes = ForBwuWifiDirectPathAvailable(
       wifi_direct_ssid, std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
@@ -799,33 +799,20 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame_1;
   OfflineFrame offline_frame_2;
 
-  std::string short_wifi_direct_password{"Test"};
-  std::string short_wifi_direct_pin{"abc"};
-  std::string bytes = ForBwuWifiDirectPathAvailable(
-      std::string(kWifiDirectSsid), short_wifi_direct_password, kPort,
-      kWifiDirectFrequency, kSupportsDisablingEncryption,
-      std::string(kGateway), std::string(kWifiDirectDeviceName),
-      short_wifi_direct_pin);
-  offline_frame_1.ParseFromString(bytes);
-
-  auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
-
-  ASSERT_FALSE(ret_value.Ok());
-
   std::string long_wifi_direct_password =
       std::string{kWifiDirectSsid} +
       "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789";
   std::string long_wifi_direct_pin =
       std::string{kWifiDirectPin} +
       "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789";
-  bytes = ForBwuWifiDirectPathAvailable(
+  std::string bytes = ForBwuWifiDirectPathAvailable(
       std::string(kWifiDirectSsid), long_wifi_direct_password, kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,
       std::string(kGateway), std::string(kWifiDirectDeviceName),
       long_wifi_direct_pin);
   offline_frame_2.ParseFromString(bytes);
 
-  ret_value = EnsureValidOfflineFrame(offline_frame_2);
+  auto ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
   EXPECT_FALSE(ret_value.Ok());
 }
