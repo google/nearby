@@ -233,6 +233,7 @@ message IntroductionFrame {
   repeated StreamMetadata stream_metadata = 7;
   optional SharingUseCase use_case = 8;
   repeated int64 preview_payload_ids = 9;
+  optional string transfer_id = 10;
 }
 
 // A progress update packet sent by the sending side. Contains transfer progress
