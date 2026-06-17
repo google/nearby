@@ -188,7 +188,6 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//connections:partners",
-        "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
         "//internal/crypto:__subpackages__",
         "//internal/data:__subpackages__",
