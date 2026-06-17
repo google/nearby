@@ -782,7 +782,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 TEST_F(NearbyShareCertificateManagerImplTest,
        QuerySharedCredentialsWithBindingIdsSuccess) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kEnableFileSync, true);
+      config_package_nearby::nearby_sharing_feature::kEnableBackup, true);
   Initialize();
   ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
       /*num_pages=*/2, DownloadPublicCertificatesResult::kSuccess));
@@ -791,7 +791,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 TEST_F(NearbyShareCertificateManagerImplTest,
        QuerySharedCredentialsWithBindingIdsRPCFailure) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kEnableFileSync, true);
+      config_package_nearby::nearby_sharing_feature::kEnableBackup, true);
   Initialize();
   ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
       /*num_pages=*/2, DownloadPublicCertificatesResult::kHttpError));

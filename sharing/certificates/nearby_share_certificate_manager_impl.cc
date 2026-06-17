@@ -489,7 +489,7 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
         notification.Notify();
       });
   if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::kEnableFileSync)) {
+          config_package_nearby::nearby_sharing_feature::kEnableBackup)) {
     context->QuerySharedCredentialsWithBindingIdsFetchNextPage();
   } else {
     context->QuerySharedCredentialsFetchNextPage();
