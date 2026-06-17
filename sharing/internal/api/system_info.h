@@ -80,6 +80,9 @@ class SystemInfo {
 
   virtual void GetBatteryUsageReport(const FilePath& save_path) = 0;
 
+  // Returns true if the computer is part of a domain.
+  virtual bool IsPartOfDomain() = 0;
+
   // Outputs all system information to a readable string.
   std::string Dump() {
     std::ostringstream oss;
@@ -97,6 +100,12 @@ class SystemInfo {
         << "  OS Language: " << GetOsLanguage() << std::endl
         << "  CPU Manufacturer: " << GetProcessorManufacturer() << std::endl
         << "  CPU Name: " << GetProcessorName() << std::endl;
+
+    if (IsPartOfDomain()) {
+      oss << "  Computer is part of a domain." << std::endl;
+    } else {
+      oss << "  Computer is not part of a domain." << std::endl;
+    }
 
     oss << std::endl;
     std::optional<std::list<DriverInfo>> bluetooth_drivers =
