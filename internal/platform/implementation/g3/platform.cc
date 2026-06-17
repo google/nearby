@@ -20,6 +20,7 @@
 #include <string>
 
 #include "absl/base/attributes.h"
+#include "absl/base/no_destructor.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -239,7 +240,8 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 }
 
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
-  return std::make_unique<g3::Timer>();
+  static absl::NoDestructor<g3::ScheduledExecutor> timer_executor;
+  return std::make_unique<g3::Timer>(timer_executor.get());
 }
 
 std::unique_ptr<nearby::api::DeviceInfo>

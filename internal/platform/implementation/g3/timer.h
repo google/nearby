@@ -19,10 +19,13 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/g3/scheduled_executor.h"
+#include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -30,8 +33,11 @@ namespace g3 {
 
 class Timer : public api::Timer {
  public:
-  Timer() = default;
-  ~Timer() override = default;
+  explicit Timer(api::ScheduledExecutor* absl_nonnull executor)
+      : executor_(executor) {};
+  ~Timer() override {
+    Stop();
+  };
 
   bool Create(int delay, int interval,
               absl::AnyInvocable<void()> callback) override {
@@ -52,13 +58,16 @@ class Timer : public api::Timer {
       task_.reset();
       return result;
     }
-    return false;
+    return true;
   }
 
  private:
   bool Schedule(absl::Duration delay) {
     absl::MutexLock lock(mutex_);
-    task_ = executor_.Schedule([this]() { TriggerCallback(); }, delay);
+    if (is_stopped_) {
+      return false;
+    }
+    task_ = executor_->Schedule([this]() { TriggerCallback(); }, delay);
     return true;
   }
 
@@ -77,7 +86,7 @@ class Timer : public api::Timer {
   std::atomic_bool is_stopped_;
   absl::Duration interval_;
   std::shared_ptr<api::Cancelable> task_ ABSL_GUARDED_BY(mutex_);
-  ScheduledExecutor executor_;
+  api::ScheduledExecutor* absl_nonnull const executor_;
 };
 
 }  // namespace g3
