@@ -103,6 +103,10 @@ class FakeEndpointChannel : public EndpointChannel {
   }
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override {}
+  void SetLocalEndpointId(const std::string& local_endpoint_id) override {
+    local_endpoint_id_ = local_endpoint_id;
+  }
+  std::string GetLocalEndpointId() const override { return local_endpoint_id_; }
 
  private:
   InputStream* in_ = nullptr;
@@ -110,6 +114,7 @@ class FakeEndpointChannel : public EndpointChannel {
   absl::Time read_timestamp_ = absl::InfinitePast();
   absl::Time write_timestamp_ = absl::InfinitePast();
   mutable uint32_t next_keep_alive_seq_no_ = 0;
+  std::string local_endpoint_id_;
 };
 
 struct User {

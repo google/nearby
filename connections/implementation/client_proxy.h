@@ -103,6 +103,9 @@ class ClientProxy final {
   // Clears all the runtime state of this client.
   void Reset();
 
+  // Resets the local endpoint ID and sets the last local endpoint ID.
+  void ResetLocalEndpointId();
+
   // Marks this client as advertising with the given callbacks.
   void StartedAdvertising(
       const std::string& service_id, Strategy strategy,
@@ -210,6 +213,14 @@ class ClientProxy final {
   // Returns true if there is at least one connected connection or one pending
   // connection.
   bool HasOngoingConnection() const;
+  // Returns true if there is at least one active WiFi Direct connection.
+  bool HasWifiDirectConnection() const;
+  // Returns true if there is at least one active WiFi Hotspot connection.
+  bool HasWifiHotspotConnection() const;
+  // Returns true if there is at least one active WiFi Aware connection.
+  bool HasWifiAwareConnection() const;
+  std::string GetLastLocalEndpointId() const;
+  void SetLastLocalEndpointId(absl::string_view endpoint_id);
   // Returns the number of endpoints that are connected and outgoing.
   std::int32_t GetNumOutgoingConnections() const;
   // Returns the number of endpoints that are connected and incoming.
@@ -333,6 +344,18 @@ class ClientProxy final {
   std::optional<location::nearby::connections::MediumRole> GetMediumRole(
       absl::string_view endpoint_id) const;
 
+  struct MediumsAvailability {
+    bool is_wifi_direct_go_available = false;
+    bool is_wifi_direct_gc_available = false;
+    bool is_wifi_hotspot_ap_available = false;
+    bool is_wifi_hotspot_client_available = false;
+  };
+
+  location::nearby::connections::MediumRole GetLocalMediumRole(
+      const MediumsAvailability& mediums_availability) const;
+
+  bool IsUsingP2pMedium() const;
+
   // Forces client to regenerate a new local endpoint id.
   void ClearCachedLocalEndpointId();
 
@@ -441,6 +464,7 @@ class ClientProxy final {
   std::int64_t client_id_;
   std::string local_endpoint_id_;
   std::string local_endpoint_info_;
+  std::string last_local_endpoint_id_;
 
   // If advertising is in stable endpoint ID mode, the endpoint ID is stable
   // for 30s after advertising or disconnection. When stable_endpoint_id_mode_

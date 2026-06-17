@@ -76,6 +76,7 @@ std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
 std::string ForBwuIntroduction(const std::string& endpoint_id,
+                             const std::string& last_endpoint_id,
                              bool supports_disabling_encryption);
 std::string ForBwuIntroductionAck();
 std::string ForBwuWifiHotspotPathAvailable(
@@ -107,7 +108,7 @@ std::string ForBwuWebrtcPathAvailable(
     const location::nearby::connections::LocationHint& location_hint_a);
 std::string ForBwuFailure(const UpgradePathInfo& info);
 std::string ForBwuPathRequest(
-    const std::vector<Medium>& mediums,
+    Medium medium, const std::vector<Medium>& mediums,
     const location::nearby::connections::MediumRole& medium_role);
 std::string ForBwuLastWrite();
 std::string ForBwuSafeToClose();

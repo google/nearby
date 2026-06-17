@@ -460,6 +460,7 @@ std::string ForBwuSafeToClose() {
 }
 
 std::string ForBwuIntroduction(const std::string& endpoint_id,
+                             const std::string& last_endpoint_id,
                              bool supports_disabling_encryption) {
   OfflineFrame frame;
 
@@ -473,6 +474,9 @@ std::string ForBwuIntroduction(const std::string& endpoint_id,
   client_introduction->set_endpoint_id(endpoint_id);
   client_introduction->set_supports_disabling_encryption(
       supports_disabling_encryption);
+  if (!last_endpoint_id.empty()) {
+    client_introduction->set_last_endpoint_id(last_endpoint_id);
+  }
 
   return frame.SerializeAsString();
 }
@@ -498,15 +502,12 @@ std::string ForBwuFailure(const UpgradePathInfo& info) {
   v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
   auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
   sub_frame->set_event_type(BandwidthUpgradeNegotiationFrame::UPGRADE_FAILURE);
-  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
-  *upgrade_path_info = info;
-
   *sub_frame->mutable_upgrade_path_info() = info;
 
   return frame.SerializeAsString();
 }
 
-std::string ForBwuPathRequest(const std::vector<Medium>& mediums,
+std::string ForBwuPathRequest(Medium medium, const std::vector<Medium>& mediums,
                             const MediumRole& medium_role) {
   OfflineFrame frame;
 
@@ -516,8 +517,10 @@ std::string ForBwuPathRequest(const std::vector<Medium>& mediums,
   auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
   sub_frame->set_event_type(
       BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(MediumToUpgradePathInfoMedium(medium));
   auto* upgrade_path_request =
-      sub_frame->mutable_upgrade_path_info()->mutable_upgrade_path_request();
+      upgrade_path_info->mutable_upgrade_path_request();
   for (const auto& medium : mediums) {
     upgrade_path_request->add_mediums(MediumToUpgradePathInfoMedium(medium));
   }

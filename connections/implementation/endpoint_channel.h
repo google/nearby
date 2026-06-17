@@ -128,6 +128,9 @@ class EndpointChannel {
 
   // Enables the multiplex socket on the EndpointChannel.
   virtual bool EnableMultiplexSocket() { return false; }
+
+  virtual void SetLocalEndpointId(const std::string& local_endpoint_id) = 0;
+  virtual std::string GetLocalEndpointId() const = 0;
 };
 
 inline bool operator==(const EndpointChannel& lhs, const EndpointChannel& rhs) {

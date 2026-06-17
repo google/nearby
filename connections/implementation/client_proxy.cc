@@ -376,9 +376,10 @@ void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
 
 std::string ClientProxy::GenerateLocalEndpointId() {
   if (!cached_endpoint_id_.empty()) {
-    if (stable_endpoint_id_mode_) {
+    if (stable_endpoint_id_mode_ || HasOngoingConnection()) {
       LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                    "endpoint id due to in stable endpoint id mode]: "
+                    "endpoint id due to in stable endpoint id mode or having "
+                    "ongoing connection]: "
                     "client="
                 << GetClientId()
                 << "; cached_endpoint_id_=" << cached_endpoint_id_;
@@ -875,6 +876,48 @@ bool ClientProxy::HasOngoingConnection() const {
          !GetConnectedEndpoints().empty();
 }
 
+bool ClientProxy::HasWifiDirectConnection() const {
+  MutexLock lock(&mutex_);
+  for (const auto& entry : connections_) {
+    if (entry.second.first.connected_medium == Medium::WIFI_DIRECT) {
+      LOG(INFO) << "ClientProxy [HasWifiDirectConnection]: true";
+      return true;
+    }
+  }
+  LOG(INFO) << "ClientProxy [HasWifiDirectConnection]: false";
+  return false;
+}
+
+bool ClientProxy::HasWifiHotspotConnection() const {
+  MutexLock lock(&mutex_);
+  for (const auto& entry : connections_) {
+    if (entry.second.first.connected_medium == Medium::WIFI_HOTSPOT) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool ClientProxy::HasWifiAwareConnection() const {
+  MutexLock lock(&mutex_);
+  for (const auto& entry : connections_) {
+    if (entry.second.first.connected_medium == Medium::WIFI_AWARE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string ClientProxy::GetLastLocalEndpointId() const {
+  MutexLock lock(&mutex_);
+  return last_local_endpoint_id_;
+}
+
+void ClientProxy::SetLastLocalEndpointId(absl::string_view endpoint_id) {
+  MutexLock lock(&mutex_);
+  last_local_endpoint_id_ = std::string(endpoint_id);
+}
+
 std::int32_t ClientProxy::GetNumOutgoingConnections() const {
   return GetMatchingEndpoints([](const Connection& connection) {
            return connection.status == Connection::kConnected &&
@@ -1249,9 +1292,23 @@ void ClientProxy::RemoveAllEndpoints() {
   OnSessionComplete();
 }
 
+void ClientProxy::ResetLocalEndpointId() {
+  MutexLock lock(&mutex_);
+  if (HasOngoingConnection()) {
+    return;
+  }
+  if (!local_endpoint_id_.empty()) {
+    last_local_endpoint_id_ = local_endpoint_id_;
+    local_endpoint_id_.clear();
+  }
+}
+
 void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
   if (connections_.empty() && !IsAdvertising()) {
+    if (!local_endpoint_id_.empty()) {
+      last_local_endpoint_id_ = local_endpoint_id_;
+    }
     local_endpoint_id_.clear();
 
     analytics_recorder_->LogSession();
@@ -1298,6 +1355,9 @@ void ClientProxy::EnterStableEndpointIdMode() {
           << GetClientId();
 
   stable_endpoint_id_mode_ = true;
+  if (!IsAdvertising() && !IsDiscovering() && !HasOngoingConnection()) {
+    ResetLocalEndpointId();
+  }
 }
 
 void ClientProxy::ExitStableEndpointIdMode() {
@@ -1305,6 +1365,7 @@ void ClientProxy::ExitStableEndpointIdMode() {
   VLOG(1) << "ClientProxy [ExitStableEndpointIdMode]: client=" << GetClientId();
 
   stable_endpoint_id_mode_ = false;
+  ResetLocalEndpointId();
   ScheduleClearCachedEndpointIdAlarm();
 }
 
@@ -1318,7 +1379,7 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
     return;
   }
 
-  if (HasOngoingConnection()) {
+  if (IsAdvertising() || IsDiscovering() || HasOngoingConnection()) {
     VLOG(1) << "ClientProxy [Handle clearing cached endpoint ID "
                "during disconnection]: client="
             << GetClientId();
@@ -1429,6 +1490,41 @@ std::optional<MediumRole> ClientProxy::GetMediumRole(
     return item->first.connection_options.connection_info.medium_role;
   }
   return std::nullopt;
+}
+
+location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
+    const ClientProxy::MediumsAvailability& mediums_availability) const {
+  location::nearby::connections::MediumRole medium_role;
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableDynamicRoleSwitch)) {
+    return medium_role;
+  }
+
+  if (GetLocalOsInfo().type() == OsInfo::APPLE) {
+    medium_role.set_support_awdl_publisher(true);
+    medium_role.set_support_awdl_subscriber(true);
+    // Apple always supports wifi hotspot client role since they can always
+    // join a hotspot.
+    medium_role.set_support_wifi_hotspot_client(true);
+    return medium_role;
+  }
+
+  medium_role.set_support_wifi_direct_group_owner(
+      mediums_availability.is_wifi_direct_go_available && !IsUsingP2pMedium());
+  medium_role.set_support_wifi_direct_group_client(
+      mediums_availability.is_wifi_direct_gc_available);
+  medium_role.set_support_wifi_hotspot_host(
+      mediums_availability.is_wifi_hotspot_ap_available && !IsUsingP2pMedium());
+  medium_role.set_support_wifi_hotspot_client(
+      mediums_availability.is_wifi_hotspot_client_available);
+  LOG(INFO) << "medium_role: " << medium_role.DebugString();
+  return medium_role;
+}
+
+bool ClientProxy::IsUsingP2pMedium() const {
+  return HasWifiDirectConnection() || HasWifiHotspotConnection() ||
+         HasWifiAwareConnection();
 }
 
 std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {

@@ -89,6 +89,7 @@ class FakeBwuHandler : public BaseBwuHandler {
     upgraded_channel->set_read_output(
         ExceptionOr<ByteArray>(ByteArray(parser::ForBwuIntroduction(
             *handle_initialize_calls_[initialize_call_index].endpoint_id,
+            /*last_endpoint_id=*/"",
             false /* supports_disabling_encryption */))));
     auto connection = std::make_unique<IncomingSocketConnection>();
     connection->channel = std::move(upgraded_channel);

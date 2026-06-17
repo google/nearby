@@ -765,7 +765,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame_2;
 
   std::string wifi_direct_ssid{"DIRECT-A*-0123456789AB"};
-  std::string wifi_direct_pin_wrong_length = "abcefghijklmnopqrstuvwxyz";
+  std::string wifi_direct_pin_wrong_length = "01234567890123456";
   std::string bytes = ForBwuWifiDirectPathAvailable(
       wifi_direct_ssid, std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption,

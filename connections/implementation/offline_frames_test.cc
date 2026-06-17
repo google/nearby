@@ -502,10 +502,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
               ip_address: "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53"
               port: 1234
             >
-            address_candidates: <
-              ip_address: "\001\002\003\004"
-              port: 1234
-            >
+            address_candidates: < ip_address: "\001\002\003\004" port: 1234 >
           >
           supports_client_introduction_ack: true
         >
@@ -679,11 +676,13 @@ TEST(OfflineFramesTest, CanGenerateBwuIntroduction) {
         client_introduction: <
           endpoint_id: "ABC"
           supports_disabling_encryption: false
+          last_endpoint_id: "DEF"
         >
       >
     >)pb";
-  auto response = FromBytes(ForBwuIntroduction(
-      std::string(kEndpointId), false /* supports_disabling_encryption */));
+  auto response =
+      FromBytes(ForBwuIntroduction(std::string(kEndpointId), "DEF",
+                                   false /* supports_disabling_encryption */));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -722,7 +721,6 @@ TEST(OfflineFramesTest, CanGenerateDisconnection) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
-
 TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   constexpr absl::string_view kExpected =
       R"pb(
@@ -732,6 +730,7 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
       bandwidth_upgrade_negotiation: <
         event_type: UPGRADE_PATH_REQUEST
         upgrade_path_info: <
+          medium: WIFI_HOTSPOT
           upgrade_path_request: <
             mediums: WIFI_HOTSPOT
             medium_meta_data: <
@@ -745,7 +744,8 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   mediums.push_back(Medium::WIFI_HOTSPOT);
   MediumRole medium_role;
   medium_role.set_support_wifi_hotspot_client(true);
-  auto response = FromBytes(ForBwuPathRequest(mediums, medium_role));
+  auto response =
+      FromBytes(ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));

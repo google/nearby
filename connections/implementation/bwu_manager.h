@@ -221,7 +221,16 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   bool NeedToSwitchRole(
       ClientProxy* client, const std::string& endpoint_id, Medium medium,
-      const location::nearby::connections::MediumRole& medium_role);
+      const location::nearby::connections::MediumRole& medium_role,
+      const location::nearby::connections::OsInfo& remote_os_info);
+
+  void ProcessUpgradePathRequest(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
+
+  bool CanHost(ClientProxy* client,
+               const location::nearby::connections::MediumRole& medium_role);
 
   virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
       ClientProxy* client) const;

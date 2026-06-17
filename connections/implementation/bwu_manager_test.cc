@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/bwu_handler.h"
@@ -83,10 +84,13 @@ CreateWifiHotspotCredentials() {
 
 class BwuManagerTest : public ::testing::Test {
  protected:
-  BwuManagerTest() {
+  static void SetUpTestSuite() {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
+  }
+
+  BwuManagerTest() {
     // Set up fake BWU handlers for WebRTC and WifiLAN.
     absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
     auto fake_web_rtc = std::make_unique<FakeBwuHandler>(Medium::WEB_RTC);
@@ -305,6 +309,141 @@ TEST(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_Success) {
   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
                                       Medium::WIFI_HOTSPOT);
   EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  bwu_manager->Shutdown();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
+TEST(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_WindowsAndroid_Success) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+
+  // Set up local as WINDOWS, remote as ANDROID
+  client.SetLocalOsType(OsInfo::WINDOWS);
+  OsInfo remote_os_info;
+  remote_os_info.set_type(OsInfo::ANDROID);
+
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  auto* channel1_ptr = channel1.get();
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint")},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {remote_medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  client.SetRemoteOsInfo(kEndpointId1, remote_os_info);
+
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+
+  // Verify that before upgrade, write_timestamp is infinite past
+  EXPECT_EQ(channel1_ptr->GetLastWriteTimestamp(), absl::InfinitePast());
+
+  // Initiate BWU for WiFi Direct on Windows, which forces
+  // role switch to Android
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_DIRECT);
+
+  // Since role is switched, upgrade is NOT initiated locally, but delegated
+  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  // Verify that an UPGRADE_PATH_REQUEST frame was actually written to
+  // the channel
+  EXPECT_NE(channel1_ptr->GetLastWriteTimestamp(), absl::InfinitePast());
+
+  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  bwu_manager->Shutdown();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
+TEST(BwuManagerBaseTest,
+     InitiateBwu_NeedToSwitchRole_WindowsAndroid_NoSwitch_Success) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  config.allow_upgrade_to.wifi_direct = true;
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_wifi_direct = std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  auto* fake_wifi_direct_ptr = fake_wifi_direct.get();
+  handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+
+  // Set up local as WINDOWS, remote as ANDROID
+  client.SetLocalOsType(OsInfo::WINDOWS);
+  OsInfo remote_os_info;
+  remote_os_info.set_type(OsInfo::ANDROID);
+
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(false);
+
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint")},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {remote_medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  client.SetRemoteOsInfo(kEndpointId1, remote_os_info);
+
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+
+  // Verify that before upgrade, upgrade is not ongoing
+  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  // Initiate BWU for WiFi Direct on Windows. Since remote doesn't support GO,
+  // we do not switch roles, so we host/upgrade locally.
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_DIRECT);
+
+  // Upgrade is ongoing locally
+  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_EQ(fake_wifi_direct_ptr->handle_initialize_calls().size(), 1u);
 
   ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
                                    DisconnectionReason::LOCAL_DISCONNECTION,
@@ -1172,6 +1311,210 @@ TEST_F(BwuManagerTest, ReceiveUnexpectedLastWriteBeforeUpgrade_NoWedge) {
   EXPECT_FALSE(upgraded_channel->IsPaused());
   EXPECT_TRUE(old_channel->is_closed());
   UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_True) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+
+  // Shutdown original BwuManager to clean up registrations cleanly.
+  bwu_manager_->Shutdown();
+
+  // Set up fake BWU handlers for WifiDirect.
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_wifi_direct =
+      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
+  handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
+
+  BwuManager::Config config;
+  config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
+
+  bwu_manager_ = std::make_unique<BwuManager>(
+      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_->MakeSingleThreadedForTesting();
+
+  // Create initial connection
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  // Build the UpgradePathRequest frame using the parser helper
+  location::nearby::connections::MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_client(true);
+  std::string bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+  OfflineFrame frame;
+  frame.ParseFromString(bytes);
+
+  // Process the request
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  // Verify that WiFi Direct BWU was initiated
+  EXPECT_EQ(fake_wifi_direct_handler_ptr->handle_initialize_calls().size(), 1u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
+TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_False) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+
+  // Shutdown original BwuManager to clean up registrations cleanly.
+  bwu_manager_->Shutdown();
+
+  // Set up fake BWU handlers for WifiDirect.
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_wifi_direct =
+      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
+  handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
+
+  BwuManager::Config config;
+  config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
+
+  bwu_manager_ = std::make_unique<BwuManager>(
+      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_->MakeSingleThreadedForTesting();
+
+  // Create initial connection
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  // Build the UpgradePathRequest frame where remote doesn't support GC
+  location::nearby::connections::MediumRole remote_medium_role;
+  std::string bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+  OfflineFrame frame;
+  frame.ParseFromString(bytes);
+
+  // Process the request
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  // Verify that WiFi Direct BWU was NOT initiated
+  EXPECT_EQ(fake_wifi_direct_handler_ptr->handle_initialize_calls().size(), 0u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
+TEST_F(BwuManagerTest, ProcessUpgradePathRequest_DynamicRoleSwitchDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+
+  // Shutdown original BwuManager to clean up registrations cleanly.
+  bwu_manager_->Shutdown();
+
+  // Set up fake BWU handlers for WifiDirect.
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_wifi_direct =
+      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
+  handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
+
+  BwuManager::Config config;
+  config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
+
+  bwu_manager_ = std::make_unique<BwuManager>(
+      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_->MakeSingleThreadedForTesting();
+
+  // Create initial connection
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  // Build the UpgradePathRequest frame where remote supports GC
+  location::nearby::connections::MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_client(true);
+  std::string bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+  OfflineFrame frame;
+  frame.ParseFromString(bytes);
+
+  // Process the request
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  // Verify that WiFi Direct BWU was NOT initiated
+  EXPECT_EQ(fake_wifi_direct_handler_ptr->handle_initialize_calls().size(), 0u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
+TEST_F(BwuManagerTest, OnIncomingConnection_EndpointAliasesToLastEndpointId) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+
+  // Shutdown original BwuManager to clean up registrations cleanly.
+  bwu_manager_->Shutdown();
+
+  // Create a new BwuManager with the overridden flag. We use WEB_RTC since
+  // it has a simple, standard BWU flow.
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_web_rtc = std::make_unique<FakeBwuHandler>(Medium::WEB_RTC);
+  handlers.emplace(Medium::WEB_RTC, std::move(fake_web_rtc));
+
+  BwuManager::Config config;
+  config.allow_upgrade_to = BooleanMediumSelector{.web_rtc = true};
+
+  bwu_manager_ = std::make_unique<BwuManager>(
+      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_->MakeSingleThreadedForTesting();
+
+  // Create initial connection with the old endpoint ID "OldEndpoint"
+  CreateInitialEndpoint(&client_, kServiceIdA, "OldEndpoint",
+                        Medium::BLUETOOTH);
+
+  // Initiate upgrade for "OldEndpoint" (inserts into in_progress_upgrades_)
+  bwu_manager_->InitiateBwuForEndpoint(&client_, "OldEndpoint",
+                                       Medium::WEB_RTC);
+
+  // Now simulate incoming upgraded connection. Set introduction read output:
+  // - endpoint_id = "NewEndpoint"
+  // - last_endpoint_id = "OldEndpoint"
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WEB_RTC, std::string(kServiceIdA));
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+
+  std::string intro_frame = parser::ForBwuIntroduction(
+      "NewEndpoint", "OldEndpoint", /*supports_disabling_encryption=*/false);
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(intro_frame)));
+
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>();
+  connection->channel = std::move(upgraded_channel);
+
+  // Invoke OnIncomingConnection
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  // Verify that an Ack frame was written to upgraded_channel_raw
+  EXPECT_NE(upgraded_channel_raw->GetLastWriteTimestamp(),
+            absl::InfinitePast());
+
+  // Clean up
+  UnRegisterChannelForEndpoint("OldEndpoint");
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
 }
 
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,

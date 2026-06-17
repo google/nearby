@@ -107,6 +107,7 @@ void EndpointChannelManager::SetActiveEndpointChannel(
   // Update the channel first, then encrypt this new channel, if
   // crypto context is present.
   channel->SetAnalyticsRecorder(&client->GetAnalyticsRecorder(), endpoint_id);
+  channel->SetLocalEndpointId(client->GetLocalEndpointId());
   channel_state_.UpdateChannelForEndpoint(endpoint_id, std::move(channel));
   channel_state_.UpdateSafeToDisconnectForEndpoint(
       endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));

@@ -2949,5 +2949,37 @@ TEST_F(BasePcpHandlerTest, TestForceUpdateEndpointIdAdvertisingOption) {
   env_.Stop();
 }
 
+TEST_P(BasePcpHandlerTest,
+       FillConnectionInfo_kEnableDynamicRoleSwitch_Enabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  ConnectionRequestInfo request_info = {
+      .endpoint_info = ByteArray("EndpointInfo"),
+  };
+  ConnectionOptions connection_options = {};
+
+  // Call FillConnectionInfo with dynamic role switch enabled
+  ConnectionInfo connection_info = pcp_handler.FillConnectionInfo(
+      client_.get(), request_info, connection_options);
+
+  // Verify that medium_role is set (populated) in connection_info!
+  EXPECT_TRUE(connection_info.medium_role.has_value());
+
+  bwu.Shutdown();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+}
+
 }  // namespace
 }  // namespace nearby::connections

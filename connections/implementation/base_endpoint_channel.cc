@@ -418,6 +418,15 @@ int BaseEndpointChannel::GetFrequency() const { return frequency_; }
 // Returns the try count of this EndpointChannel.
 int BaseEndpointChannel::GetTryCount() const { return try_count_; }
 
+void BaseEndpointChannel::SetLocalEndpointId(
+    const std::string& local_endpoint_id) {
+  local_endpoint_id_ = local_endpoint_id;
+}
+
+std::string BaseEndpointChannel::GetLocalEndpointId() const {
+  return local_endpoint_id_;
+}
+
 int BaseEndpointChannel::GetMaxAllowedReadBytes() const {
   int64_t max_allowed_read_bytes = NearbyFlags::GetInstance().GetInt64Flag(
       config_package_nearby::nearby_connections_feature::

@@ -81,6 +81,8 @@ class BaseEndpointChannel : public EndpointChannel {
   uint32_t GetNextKeepAliveSeqNo() const override;
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override;
+  void SetLocalEndpointId(const std::string& local_endpoint_id) override;
+  std::string GetLocalEndpointId() const override;
 
   // Reads a complete packet from the underlying medium.
   virtual ExceptionOr<ByteArray> DispatchPacket() {
@@ -166,6 +168,7 @@ class BaseEndpointChannel : public EndpointChannel {
 
   analytics::AnalyticsRecorder* analytics_recorder_ = nullptr;
   std::string endpoint_id_ = "";
+  std::string local_endpoint_id_ = "";
 };
 
 }  // namespace nearby::connections
