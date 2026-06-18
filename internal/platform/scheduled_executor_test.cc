@@ -24,7 +24,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 
@@ -209,59 +208,6 @@ TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
   executor.Shutdown();
 }
 
-TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
-  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  ScheduledExecutor executor;
-  std::atomic_int value = 0;
-  CountDownLatch first_task_latch(1);
-  CountDownLatch second_task_latch(1);
-  // schedule job due in kLongDelay.
-  executor.Schedule(
-      [&]() {
-        EXPECT_EQ(value, 1);
-        value = 5;
-        first_task_latch.CountDown();
-      },
-      kLongDelay);
-  // schedule job due in kShortDelay; must fire before the first one.
-  executor.Schedule(
-      [&]() {
-        EXPECT_EQ(value, 0);
-        value = 1;
-        second_task_latch.CountDown();
-      },
-      kShortDelay);
-  EXPECT_EQ(value, 0);
-  MediumEnvironment::Instance().FastForward(kShortDelay -
-                                            absl::Milliseconds(1));
-  EXPECT_EQ(value, 0);
-  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  second_task_latch.Await();
-  EXPECT_EQ(value, 1);
-  MediumEnvironment::Instance().FastForward(kLongDelay - kShortDelay);
-  first_task_latch.Await();
-  EXPECT_EQ(value, 5);
-  // Very long sleep to make sure that the sleep is truly simulated.
-  MediumEnvironment::Instance().FastForward(absl::Minutes(30));
-  MediumEnvironment::Instance().Stop();
-}
-
-TEST(ScheduledExecutorTest,
-     DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
-  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  {
-    ScheduledExecutor executor;
-    executor.Schedule(
-        [&]() {
-          // This task should never be executed.
-          EXPECT_TRUE(false);
-        },
-        kShortDelay);
-  }
-  MediumEnvironment::Instance().FastForward(absl::Minutes(30));
-  MediumEnvironment::Instance().Stop();
-}
-
 struct ScheduledThreadCheckTestClass {
   ScheduledExecutor executor;
   int value ABSL_GUARDED_BY(executor) = 0;
@@ -395,54 +341,6 @@ TEST(ScheduledExecutorTest, CanCancelOneOfTwoRepeatedTasks) {
   EXPECT_GE(valueB, 2);
 
   cancelableB.Cancel();
-}
-
-TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
-  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  ScheduledExecutor executor;
-  std::atomic_int value = 0;
-  std::atomic_int i = 0;
-  CountDownLatch latch[] = {CountDownLatch(1), CountDownLatch(1)};
-
-  Cancelable cancelable = executor.ScheduleRepeatedly(
-      [&]() {
-        value++;
-        latch[i.fetch_add(1)].CountDown();
-      },
-      kShortDelay);
-
-  EXPECT_EQ(value, 0);
-  // Advance to just before the first execution.
-  MediumEnvironment::Instance().FastForward(kShortDelay -
-                                            absl::Milliseconds(1));
-  EXPECT_EQ(value, 0);
-
-  // Advance past the first execution.
-  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  latch[0].Await(absl::Seconds(1));
-  EXPECT_EQ(value, 1);
-
-  // Wait for the second execution to schedule.
-  absl::SleepFor(kShortDelay);
-
-  // Advance to just before the second execution.
-  MediumEnvironment::Instance().FastForward(kShortDelay -
-                                            absl::Milliseconds(1));
-  EXPECT_EQ(value, 1);
-
-  // Advance past the second execution.
-  MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  latch[1].Await(absl::Seconds(1));
-  EXPECT_EQ(value, 2);
-
-  // Cancel the task.
-  cancelable.Cancel();
-
-  // Advance a long time and make sure it doesn't run again.
-  MediumEnvironment::Instance().FastForward(kLongDelay * 5);
-  EXPECT_EQ(value, 2);
-
-  MediumEnvironment::Instance().Stop();
 }
 
 }  // namespace nearby

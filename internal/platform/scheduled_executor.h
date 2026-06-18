@@ -144,15 +144,23 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
         return;
       }
 
+      // Re-schedule the next execution before running the task to avoid clock
+      // slip as much as possible.
+      // Ideally the next event should be scheduled at
+      // (last scheduled time + delay).  So that if the task takes too long to
+      // finish, we can still catch up the schedule.
+      // However, that would require changing the scheduler to allow scheduling
+      // an event at a specific time.
+      {
+        MutexLock lock(&executor_->mutex_);
+        ScheduleNextUnderLock();
+      }
+
       (*cancellable_task_)();
 
       if (cancelled_.Get()) {
         return;
       }
-
-      // Re-schedule the next execution.
-      MutexLock lock(&executor_->mutex_);
-      ScheduleNextUnderLock();
     }
 
     void ScheduleNextUnderLock()
