@@ -96,6 +96,7 @@ objc_library(
         ":ble_v2",
         ":app_lifecycle_monitor",
         ":network_utils",
+        "//location/nearby/sharing/lib/account",
         # Required Reason API File: third_party/nearby/internal/platform/implementation/apple/preferences_manager.mm
         "//releasetools/apple/privacy/privacymanifests/requiredreasonsapi:user_defaults-user_defaults-read_write_app_data_ca92_1",
         "@com_google_absl//absl/base:core_headers",
@@ -114,7 +115,6 @@ objc_library(
         "//internal/base:masker",
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Mediums/Hotspot",
-        "//internal/account",
         "//internal/crypto_cros",
         "//internal/platform:comm",
         "//internal/platform:logging",

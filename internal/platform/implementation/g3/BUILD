@@ -188,7 +188,6 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//connections:partners",
-        "//internal/auth:__subpackages__",
         "//internal/crypto:__subpackages__",
         "//internal/data:__subpackages__",
         "//internal/network:__subpackages__",
@@ -196,6 +195,7 @@ cc_library(
         "//internal/preferences:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//internal/weave:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
         "//sharing:__subpackages__",
         "//third_party/nearby/presence:__subpackages__",

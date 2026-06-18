@@ -26,6 +26,7 @@ cc_library(
     ],
     visibility = [
         "//:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/log",

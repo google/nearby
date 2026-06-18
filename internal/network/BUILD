@@ -31,6 +31,7 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [
@@ -59,6 +60,7 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
     ],
     deps = [
         ":url",
@@ -87,6 +89,7 @@ cc_library(
     visibility = [
         "//internal:__pkg__",
         "//internal:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
     ],
     deps = [
         ":types",
