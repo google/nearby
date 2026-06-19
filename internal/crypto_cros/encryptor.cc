@@ -176,7 +176,7 @@ std::optional<size_t> Encryptor::Crypt(bool do_encrypt,
   if (!EVP_CipherInit_ex(ctx.get(), cipher, nullptr,
                          reinterpret_cast<const uint8_t*>(key.data()),
                          iv_.data(), do_encrypt)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Encrypting needs a block size of space to allow for any padding.
@@ -184,13 +184,13 @@ std::optional<size_t> Encryptor::Crypt(bool do_encrypt,
   int out_len;
   if (!EVP_CipherUpdate(ctx.get(), output.data(), &out_len, input.data(),
                         input.size()))
-    return absl::nullopt;
+    return std::nullopt;
 
   // Write out the final block plus padding (if any) to the end of the data
   // just written.
   int tail_len;
   if (!EVP_CipherFinal_ex(ctx.get(), output.data() + out_len, &tail_len))
-    return absl::nullopt;
+    return std::nullopt;
 
   out_len += tail_len;
   DCHECK_LE(out_len, static_cast<int>(output.size()));
@@ -202,13 +202,13 @@ std::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
                                           absl::Span<uint8_t> output) {
   if (iv_.size() != AES_BLOCK_SIZE) {
     LOG(ERROR) << "Counter value not set in CTR mode.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   AES_KEY aes_key;
   if (AES_set_encrypt_key(reinterpret_cast<const uint8_t*>(key_->key().data()),
                           key_->key().size() * 8, &aes_key) != 0) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   uint8_t ecount_buf[AES_BLOCK_SIZE] = {0};

@@ -114,7 +114,7 @@ std::optional<std::vector<uint8_t>> Aead::Open(
   size_t output_length;
   if (!Open(ciphertext, nonce, additional_data, ret.data(), &output_length,
             max_output_length)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   ret.resize(output_length);
