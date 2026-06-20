@@ -627,6 +627,14 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
             }));
 
         // Make sure we can connect to this device via Classic Bluetooth.
+        if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kPreventCrossMediumRouting)) {
+          LOG(INFO) << "kPreventCrossMediumRouting is enabled; ignore the "
+                       "embedded Bluetooth MAC address.";
+          return;
+        }
+
         MacAddress remote_bluetooth_mac_address =
             advertisement.GetBluetoothMacAddress();
         if (!remote_bluetooth_mac_address.IsSet()) {
