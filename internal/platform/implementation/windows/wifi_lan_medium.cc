@@ -34,19 +34,15 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/feature_flags.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/registry.h"
 #include "internal/platform/implementation/windows/socket_address.h"
@@ -157,17 +153,6 @@ bool GetMdnsIpv6Address(const std::string& address_str,
   }
   // Should not reach here.
   return false;
-}
-
-// Returns true if a connection can be established to the given address within
-// the given timeout.
-bool TestConnection(const SocketAddress& address, absl::Duration timeout) {
-  VLOG(1) << "Checking connection to: " << address.ToString();
-  NearbyClientSocket client_socket;
-  if (!client_socket.Connect(address, timeout)) {
-    return false;
-  }
-  return true;
 }
 
 }  // namespace
@@ -405,8 +390,7 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
                  << it->second->GetPort();
     return nullptr;
   }
-  std::unique_ptr<WifiLanServerSocket> server_socket =
-      std::make_unique<WifiLanServerSocket>();
+  auto server_socket = std::make_unique<WifiLanServerSocket>();
   WifiLanServerSocket* server_socket_ptr = server_socket.get();
 
   if (server_socket->Listen(port)) {
@@ -470,9 +454,9 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   }
 
   auto text_attributes = InspectableReader::ReadStringArray(inspectable);
-  for (auto text_attribute : text_attributes) {
+  for (const auto& text_attribute : text_attributes) {
     // text attribute in format key=value
-    int pos = text_attribute.find("=");
+    int pos = text_attribute.find('=');
     if (pos <= 0 || pos == text_attribute.size() - 1) {
       VLOG(1) << "found invalid text attribute " << text_attribute;
       continue;
@@ -544,7 +528,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
 }
 
 fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
-    DeviceWatcher sender, DeviceInformation deviceInfo) {
+    DeviceWatcher sender, DeviceInformation deviceInfo) try {
   VLOG(1) << "WifiLanMedium::Watcher_DeviceAdded";
   if (IsSelfInstance(deviceInfo.Properties(), service_name_)) {
     return fire_and_forget{};
@@ -575,10 +559,13 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
   discovered_service_callback_.service_discovered_cb(nsd_service_info);
 
   return fire_and_forget();
+} catch (...) {
+  LOG(ERROR) << "Exception caught in Watcher_DeviceAdded";
+  return fire_and_forget();
 }
 
 fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
-    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) try {
   VLOG(1) << "WifiLanMedium::Watcher_DeviceUpdated";
   if (IsSelfInstance(deviceInfoUpdate.Properties(), service_name_)) {
     return fire_and_forget{};
@@ -646,10 +633,13 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
   // Report the updated device discovered.
   discovered_service_callback_.service_discovered_cb(nsd_service_info);
   return fire_and_forget();
+} catch (...) {
+  LOG(ERROR) << "Exception caught in Watcher_DeviceUpdated";
+  return fire_and_forget();
 }
 
 fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
-    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
+    DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) try {
   VLOG(1) << "WifiLanMedium::Watcher_DeviceRemoved";
   if (IsSelfInstance(deviceInfoUpdate.Properties(), service_name_)) {
     return fire_and_forget{};
@@ -670,6 +660,9 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
   RemoveDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
   discovered_service_callback_.service_lost_cb(nsd_service_info);
 
+  return fire_and_forget();
+} catch (...) {
+  LOG(ERROR) << "Exception caught in Watcher_DeviceRemoved";
   return fire_and_forget();
 }
 
@@ -704,17 +697,18 @@ void WifiLanMedium::RemoveDiscoveredService(absl::string_view id) {
 }
 
 bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
-                                           absl::Duration timeout) {
+                                           absl::Duration /*timeout*/) {
   std::string ipv4_address = nsd_service_info.GetIPAddress();
   if (!ipv4_address.empty()) {
     SocketAddress service_address;
     if (SocketAddress::FromBytes(service_address, ipv4_address,
                                  nsd_service_info.GetPort())) {
-      if (TestConnection(service_address, timeout)) {
+      if (!service_address.IsLoopback() && !service_address.IsMulticast() &&
+          !service_address.IsUnspecified() &&
+          !service_address.IsV4LinkLocal()) {
         return true;
       }
-      VLOG(1) << "Failed to connect to IPv4 address: "
-              << service_address.ToString();
+      VLOG(1) << "Invalid IPv4 address: " << service_address.ToString();
     }
   }
   std::string ipv6_address = nsd_service_info.GetIPv6Address();
@@ -726,10 +720,11 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
                                  nsd_service_info.GetPort())) {
     return false;
   }
-  if (TestConnection(server_address, timeout)) {
+  if (!server_address.IsLoopback() && !server_address.IsMulticast() &&
+      !server_address.IsUnspecified() && !server_address.IsV6LinkLocal()) {
     return true;
   }
-  VLOG(1) << "Failed to connect to IPv6 address: " << ipv6_address;
+  VLOG(1) << "Invalid IPv6 address: " << ipv6_address;
   return false;
 }
 

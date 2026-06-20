@@ -76,6 +76,10 @@ class SocketAddress {
   // Returns false if the address is not IPv4 or is not link local.
   bool IsV4LinkLocal() const;
 
+  bool IsLoopback() const;
+  bool IsMulticast() const;
+  bool IsUnspecified() const;
+
   // Sets the scope id of the address.
   // Returns false if the address is not IPv6.
   bool SetScopeId(uint32_t scope_id);
