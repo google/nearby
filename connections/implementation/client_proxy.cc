@@ -1097,6 +1097,28 @@ bool ClientProxy::AutoUpgradeBandwidth() const {
   return result;
 }
 
+Strategy ClientProxy::GetEndpointStrategy(
+    absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  auto it = connections_.find(endpoint_id);
+  if (it != connections_.end()) {
+    Strategy strategy = it->second.first.connection_options.strategy;
+    if (strategy.IsNone()) {
+      if (it->second.first.is_incoming) {
+        if (IsAdvertising()) {
+          strategy = advertising_options_.strategy;
+        } else {
+          strategy = listening_options_.strategy;
+        }
+      } else {
+        strategy = discovery_options_.strategy;
+      }
+    }
+    return strategy;
+  }
+  return Strategy::kNone;
+}
+
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
   MutexLock lock(&mutex_);
   bool result = false;
