@@ -259,6 +259,9 @@ class ClientProxy final {
   // Returns true if the client should enforce topology constraints.
   bool ShouldEnforceTopologyConstraints() const;
 
+  // Returns the strategy associated with an endpoint connection, if any.
+  Strategy GetEndpointStrategy(absl::string_view endpoint_id) const;
+
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
   bool AutoUpgradeBandwidth() const;
