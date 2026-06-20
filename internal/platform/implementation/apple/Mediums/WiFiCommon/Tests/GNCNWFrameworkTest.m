@@ -272,6 +272,55 @@ static NSString *const kHostAddress = @"127.0.0.1";
   XCTAssertEqualObjects(foundTXTRecords, @{@"key" : @"value"});
 }
 
+- (void)testStartDiscoveryForServiceTypeNilName API_AVAILABLE(ios(13.0)) {
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWBrowser *fakeBrowser = [[GNCFakeNWBrowser alloc] init];
+  fakeBrowser.createWithDescriptorResult = (nw_browser_t)fakeBrowser;
+  OCMStub([_mockBrowserImpl alloc]).andReturn(fakeBrowser);
+
+  __block BOOL serviceFound = NO;
+
+  NSError *error = nil;
+  BOOL result = [framework startDiscoveryForServiceType:kServiceType
+      serviceFoundHandler:^(NSString *serviceName,
+                            NSDictionary<NSString *, NSString *> *txtRecords) {
+        serviceFound = YES;
+      }
+      serviceLostHandler:^(NSString *serviceName,
+                           NSDictionary<NSString *, NSString *> *txtRecords) {
+      }
+      includePeerToPeer:NO
+      error:&error];
+
+  XCTAssertTrue(result);
+  XCTAssertNil(error);
+
+  // Simulate a service being found with nil name.
+  GNCFakeNWBrowseResult *fakeBrowseResult = [[GNCFakeNWBrowseResult alloc] init];
+  fakeBrowseResult.txtRecord = @{@"key" : @"value"};
+  fakeBrowseResult.getChangesFromResult = nw_browse_result_change_result_added;
+  nw_endpoint_t fakeEndpoint =
+      nw_endpoint_create_host("localhost", [[NSString stringWithFormat:@"%ld", kPort] UTF8String]);
+  fakeBrowseResult.endpointFromResultResult = fakeEndpoint;
+  fakeBrowseResult.returnNilServiceName = YES;
+  OCMStub([_mockBrowseResultImpl sharedInstance]).andReturn(fakeBrowseResult);
+
+  if (fakeBrowser.browseResultsChangedHandler) {
+    GNCFakeNWBrowseResult *oldFakeBrowseResult = [[GNCFakeNWBrowseResult alloc] init];
+    fakeBrowser.browseResultsChangedHandler((nw_browse_result_t)oldFakeBrowseResult,
+                                            (nw_browse_result_t)fakeBrowseResult, true);
+  }
+
+  // Allow async blocks to run.
+  XCTestExpectation *delay = [[XCTestExpectation alloc] initWithDescription:@"delay"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    [delay fulfill];
+  });
+  [self waitForExpectations:@[ delay ] timeout:0.5];
+
+  XCTAssertFalse(serviceFound);
+}
+
 - (void)testStartDiscoveryForServiceTypeDuplicate API_AVAILABLE(ios(13.0)) {
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
   GNCFakeNWBrowser *fakeBrowser = [[GNCFakeNWBrowser alloc] init];

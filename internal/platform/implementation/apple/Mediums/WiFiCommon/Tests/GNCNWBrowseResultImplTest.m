@@ -67,4 +67,32 @@
   XCTAssertEqualObjects(results[@"key2"], @"value2");
 }
 
+- (void)testGetBonjourServiceName_InvalidUTF8 {
+  GNCNWBrowseResultImpl *browseResult = [[GNCNWBrowseResultImpl alloc] init];
+  const char *raw_invalid = "\xc3\x28"
+                            "abc";
+  nw_endpoint_t endpoint =
+      nw_endpoint_create_bonjour_service(raw_invalid, "_servicetype._tcp", "local.");
+  XCTAssertNotNil(endpoint);
+  if (endpoint == nil) return;
+
+  NSString *serviceName = [browseResult getBonjourServiceNameFromEndpoint:endpoint];
+  XCTAssertNotNil(serviceName);
+  // We don't assert exact match because the OS might sanitise it (to "(abc")
+  // or pass it through (which would fallback to "Ã(abc").
+  // We just ensure it is not nil (which would cause crashes later).
+}
+
+- (void)testLatin1FallbackLogic {
+  const char *invalid = "\xc3\x28"
+                        "abc";
+  NSString *boxed = @(invalid);
+  XCTAssertNil(boxed);  // Should be nil for invalid UTF-8
+
+  NSString *fallback =
+      boxed ?: [NSString stringWithCString:invalid encoding:NSISOLatin1StringEncoding];
+  XCTAssertNotNil(fallback);
+  XCTAssertEqualObjects(fallback, @"Ã(abc");
+}
+
 @end

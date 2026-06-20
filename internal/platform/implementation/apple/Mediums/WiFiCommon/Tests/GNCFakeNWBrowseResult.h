@@ -31,6 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic) nw_browse_result_change_t getChangesFromResult;
 @property(nonatomic, nullable) nw_endpoint_t endpointFromResultResult;
 @property(nonatomic, nullable) NSString *getBonjourServiceNameFromEndpointResult;
+@property(nonatomic) BOOL returnNilServiceName;
 
 @end
 

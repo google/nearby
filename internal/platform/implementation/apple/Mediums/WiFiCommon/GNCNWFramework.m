@@ -63,11 +63,14 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                     block:^bool(const char *key, const nw_txt_record_find_key_t found,
                                 const uint8_t *value, const size_t value_len) {
                       if (found == nw_txt_record_find_key_non_empty_value) {
+                        NSString *keyString = @(key);
                         NSString *valueString =
                             [[NSString alloc] initWithBytes:value
                                                      length:value_len
                                                    encoding:NSUTF8StringEncoding];
-                        [txtRecords setValue:valueString forKey:@(key)];
+                        if (keyString != nil && valueString != nil) {
+                          [txtRecords setObject:valueString forKey:keyString];
+                        }
                       }
                       return YES;
                     }];
@@ -231,6 +234,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                        [browseResultWrapper copyEndpointFromResult:new_result];
                                    NSString *name = [browseResultWrapper
                                        getBonjourServiceNameFromEndpoint:endpoint];
+                                   if (name == nil) {
+                                     GNCLoggerInfo(
+                                         @"Dropping mDNS result with unrepresentable name.");
+                                     break;
+                                   }
                                    NSDictionary<NSString *, NSString *> *txtRecords =
                                        GNCTXTRecordForBrowseResult(new_result);
                                    serviceFoundHandler(name, txtRecords);
@@ -250,6 +258,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                        [browseResultWrapper copyEndpointFromResult:old_result];
                                    NSString *oldName = [browseResultWrapper
                                        getBonjourServiceNameFromEndpoint:old_endpoint];
+                                   if (oldName == nil) {
+                                     GNCLoggerInfo(
+                                         @"Dropping mDNS result with unrepresentable old name.");
+                                     break;
+                                   }
                                    NSDictionary<NSString *, NSString *> *oldTXTRecords =
                                        GNCTXTRecordForBrowseResult(old_result);
                                    serviceLostHandler(oldName, oldTXTRecords);
@@ -258,6 +271,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                        [browseResultWrapper copyEndpointFromResult:new_result];
                                    NSString *newName = [browseResultWrapper
                                        getBonjourServiceNameFromEndpoint:new_endpoint];
+                                   if (newName == nil) {
+                                     GNCLoggerInfo(
+                                         @"Dropping mDNS result with unrepresentable new name.");
+                                     break;
+                                   }
                                    NSDictionary<NSString *, NSString *> *newTXTRecords =
                                        GNCTXTRecordForBrowseResult(new_result);
                                    serviceFoundHandler(newName, newTXTRecords);
@@ -276,6 +294,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                        [browseResultWrapper copyEndpointFromResult:old_result];
                                    NSString *name = [browseResultWrapper
                                        getBonjourServiceNameFromEndpoint:endpoint];
+                                   if (name == nil) {
+                                     GNCLoggerInfo(
+                                         @"Dropping mDNS result with unrepresentable name.");
+                                     break;
+                                   }
                                    NSDictionary<NSString *, NSString *> *txtRecords =
                                        GNCTXTRecordForBrowseResult(old_result);
                                    serviceLostHandler(name, txtRecords);
