@@ -189,6 +189,40 @@ bool SocketAddress::IsV4LinkLocal() const {
           v4_address->sin_addr.S_un.S_un_b.s_b2 == 254);
 }
 
+bool SocketAddress::IsLoopback() const {
+  if (address_.ss_family == AF_INET) {
+    const sockaddr_in* v4_address = ipv4_address();
+    return (v4_address->sin_addr.S_un.S_un_b.s_b1 == 127);
+  } else if (address_.ss_family == AF_INET6) {
+    const sockaddr_in6* v6_address = ipv6_address();
+    return IN6_IS_ADDR_LOOPBACK(&v6_address->sin6_addr);
+  }
+  return false;
+}
+
+bool SocketAddress::IsMulticast() const {
+  if (address_.ss_family == AF_INET) {
+    const sockaddr_in* v4_address = ipv4_address();
+    return (v4_address->sin_addr.S_un.S_un_b.s_b1 >= 224 &&
+            v4_address->sin_addr.S_un.S_un_b.s_b1 <= 239);
+  } else if (address_.ss_family == AF_INET6) {
+    const sockaddr_in6* v6_address = ipv6_address();
+    return IN6_IS_ADDR_MULTICAST(&v6_address->sin6_addr);
+  }
+  return false;
+}
+
+bool SocketAddress::IsUnspecified() const {
+  if (address_.ss_family == AF_INET) {
+    const sockaddr_in* v4_address = ipv4_address();
+    return (v4_address->sin_addr.s_addr == INADDR_ANY);
+  } else if (address_.ss_family == AF_INET6) {
+    const sockaddr_in6* v6_address = ipv6_address();
+    return IN6_IS_ADDR_UNSPECIFIED(&v6_address->sin6_addr);
+  }
+  return false;
+}
+
 bool SocketAddress::SetScopeId(uint32_t scope_id) {
   if (address_.ss_family != AF_INET6) {
     return false;
