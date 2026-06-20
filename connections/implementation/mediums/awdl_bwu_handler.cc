@@ -241,11 +241,11 @@ std::string AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             << " and service_type: " << service_type
             << " and password: " << masker::Mask(password);
 
-  // The AWDL upgraded medium is running under TLS, so we don't need to
-  // encryption for it again.
+  // We enable encryption on AWDL path to provide defence in depth, rather than
+  // relying only on Apple's link-layer secrecy.
   return parser::ForBwuAwdlPathAvailable(
       service_name, service_type, password,
-      /*supports_disabling_encryption=*/true);
+      /*supports_disabling_encryption=*/false);
 }
 
 void AwdlBwuHandler::HandleRevertInitiatorStateForService(
