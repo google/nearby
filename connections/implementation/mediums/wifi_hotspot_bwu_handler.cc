@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <regex>  // NOLINT
 #include <string>
 #include <utility>
 #include <vector>
@@ -176,6 +177,14 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
       WifiHotspotCredentials& upgrade_path_info_credentials =
           upgrade_path_info.wifi_hotspot_credentials();
+
+  std::regex ssid_pattern("^(DIRECT|Direct)-[a-zA-Z0-9]{2}.*$");
+  if (!std::regex_match(upgrade_path_info_credentials.ssid(), ssid_pattern)) {
+    LOG(ERROR) << "Invalid Hotspot SSID: "
+               << upgrade_path_info_credentials.ssid();
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
+  }
 
   HotspotCredentials hotspot_credentials;
   hotspot_credentials.SetSSID(upgrade_path_info_credentials.ssid());

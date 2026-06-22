@@ -169,5 +169,30 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   EXPECT_FALSE(mediums_HS_sta.GetWifiHotspot().IsConnectedToHotspot());
 }
 
+TEST_F(WifiHotspotTest, CreateUpgradedEndpointChannel_InvalidSsid_Fails) {
+  ClientProxy client;
+  Mediums mediums;
+  auto handler = std::make_unique<WifiHotspotBwuHandler>(
+      &mediums.GetWifiHotspot(), nullptr);
+
+  // Invalid SSID: doesn't start with DIRECT- or Direct-
+  UpgradePathInfo upgrade_path_info;
+  auto* credentials = upgrade_path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid("evil_ap");
+  credentials->set_password("password");
+  credentials->set_port(1234);
+  credentials->set_frequency(2412);
+  credentials->set_gateway("0.0.0.0");
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
+      handler->CreateUpgradedEndpointChannel(
+          &client, std::string(kServiceID), std::string(kEndpointID),
+          upgrade_path_info);
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL);
+}
+
 }  // namespace connections
 }  // namespace nearby

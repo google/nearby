@@ -59,6 +59,9 @@ constexpr absl::string_view kIpv4PatternString{
 constexpr absl::string_view kWifiDirectSsidPatternString{
     "^DIRECT-[a-zA-Z0-9]{2}.*$"};
 constexpr int kWifiDirectSsidMaxLength = 32;
+constexpr absl::string_view kWifiHotspotSsidPatternString{
+    "^(DIRECT|Direct)-[a-zA-Z0-9]{2}.*$"};
+constexpr int kWifiHotspotSsidMaxLength = 32;
 constexpr int kWifiPasswordSsidMinLength = 8;
 constexpr int kWifiPasswordSsidMaxLength = 64;
 // For Windows Wifi Direct based on WinRT Windows.Devices.WiFiDirect, user can't
@@ -228,8 +231,13 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
 
 Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
     const WifiHotspotCredentials& wifi_hotspot_credentials) {
-  if (!wifi_hotspot_credentials.has_ssid())
+  const std::regex ssid_pattern(
+      std::string(kWifiHotspotSsidPatternString).c_str());
+  if (!wifi_hotspot_credentials.has_ssid() ||
+      wifi_hotspot_credentials.ssid().length() >= kWifiHotspotSsidMaxLength ||
+      !std::regex_match(wifi_hotspot_credentials.ssid(), ssid_pattern)) {
     return {Exception::kInvalidProtocolBuffer};
+  }
   if (!wifi_hotspot_credentials.has_password() ||
       !WithinRange(wifi_hotspot_credentials.password().length(),
                    kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
