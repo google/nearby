@@ -977,6 +977,9 @@ inline constexpr ConnectionResponseFrame::Impl_::Impl_(
         handshake_data_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        wifi_direct_device_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         os_info_{nullptr},
         location_hint_{nullptr},
         status_{0},
@@ -4110,7 +4113,8 @@ PROTOBUF_NDEBUG_INLINE ConnectionResponseFrame::Impl_::Impl_(
     [[maybe_unused]] const ::location::nearby::connections::ConnectionResponseFrame& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        handshake_data_(arena, from.handshake_data_) {}
+        handshake_data_(arena, from.handshake_data_),
+        wifi_direct_device_name_(arena, from.wifi_direct_device_name_) {}
 
 ConnectionResponseFrame::ConnectionResponseFrame(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -4126,10 +4130,10 @@ ConnectionResponseFrame::ConnectionResponseFrame(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.os_info_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.os_info_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.os_info_)
                 : nullptr;
-  _impl_.location_hint_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.location_hint_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.location_hint_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
@@ -4146,7 +4150,8 @@ PROTOBUF_NDEBUG_INLINE ConnectionResponseFrame::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        handshake_data_(arena) {}
+        handshake_data_(arena),
+        wifi_direct_device_name_(arena) {}
 
 inline void ConnectionResponseFrame::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -4169,6 +4174,7 @@ inline void ConnectionResponseFrame::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::std::string>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.handshake_data_.Destroy();
+  this_._impl_.wifi_direct_device_name_.Destroy();
   delete this_._impl_.os_info_;
   delete this_._impl_.location_hint_;
   this_._impl_.~Impl_();
@@ -4214,16 +4220,16 @@ ConnectionResponseFrame::GetClassData() const {
   return ConnectionResponseFrame_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 3, 0, 2>
+const ::_pbi::TcParseTable<4, 10, 3, 0, 2>
 ConnectionResponseFrame::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    10, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294966272,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    10,  // num_field_entries
     3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     ConnectionResponseFrame_class_data_.base(),
@@ -4236,7 +4242,7 @@ ConnectionResponseFrame::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // optional int32 status = 1 [deprecated = true];
     {::_pbi::TcParser::FastV32S1,
-     {8, 3, 0,
+     {8, 4, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.status_)}},
     // optional bytes handshake_data = 2;
     {::_pbi::TcParser::FastBS1,
@@ -4244,33 +4250,36 @@ ConnectionResponseFrame::_table_ = {
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.handshake_data_)}},
     // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
     {::_pbi::TcParser::FastEr0S1,
-     {24, 4, 2,
+     {24, 5, 2,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.response_)}},
     // optional .location.nearby.connections.OsInfo os_info = 4;
     {::_pbi::TcParser::FastMtS1,
-     {34, 1, 0,
+     {34, 2, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.os_info_)}},
     // optional int32 multiplex_socket_bitmask = 5;
     {::_pbi::TcParser::FastV32S1,
-     {40, 5, 0,
+     {40, 6, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.multiplex_socket_bitmask_)}},
     // optional int32 nearby_connections_version = 6 [deprecated = true];
     {::_pbi::TcParser::FastV32S1,
-     {48, 6, 0,
+     {48, 7, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.nearby_connections_version_)}},
     // optional int32 safe_to_disconnect_version = 7;
     {::_pbi::TcParser::FastV32S1,
-     {56, 7, 0,
+     {56, 8, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.safe_to_disconnect_version_)}},
     // optional .location.nearby.connections.LocationHint location_hint = 8;
     {::_pbi::TcParser::FastMtS1,
-     {66, 2, 1,
+     {66, 3, 1,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.location_hint_)}},
     // optional int32 keep_alive_timeout_millis = 9;
     {::_pbi::TcParser::FastV32S1,
-     {72, 8, 0,
+     {72, 9, 0,
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.keep_alive_timeout_millis_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // optional string wifi_direct_device_name = 10;
+    {::_pbi::TcParser::FastBS1,
+     {82, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.wifi_direct_device_name_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -4280,23 +4289,25 @@ ConnectionResponseFrame::_table_ = {
     65535, 65535
   }}, {{
     // optional int32 status = 1 [deprecated = true];
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.status_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.status_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional bytes handshake_data = 2;
     {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.handshake_data_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.response_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcOptional | ::_fl::kEnumRange)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.response_), _Internal::kHasBitsOffset + 5, 2, (0 | ::_fl::kFcOptional | ::_fl::kEnumRange)},
     // optional .location.nearby.connections.OsInfo os_info = 4;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.os_info_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.os_info_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional int32 multiplex_socket_bitmask = 5;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.multiplex_socket_bitmask_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.multiplex_socket_bitmask_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional int32 nearby_connections_version = 6 [deprecated = true];
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.nearby_connections_version_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.nearby_connections_version_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional int32 safe_to_disconnect_version = 7;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.safe_to_disconnect_version_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.safe_to_disconnect_version_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // optional .location.nearby.connections.LocationHint location_hint = 8;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.location_hint_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.location_hint_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional int32 keep_alive_timeout_millis = 9;
-    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.keep_alive_timeout_millis_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.keep_alive_timeout_millis_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // optional string wifi_direct_device_name = 10;
+    {PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.wifi_direct_device_name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::location::nearby::connections::OsInfo>()},
@@ -4314,25 +4325,32 @@ PROTOBUF_NOINLINE void ConnectionResponseFrame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.handshake_data_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.wifi_direct_device_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.os_info_ != nullptr);
       _impl_.os_info_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.location_hint_ != nullptr);
       _impl_.location_hint_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000f8U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000f0U)) {
     ::memset(&_impl_.status_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.safe_to_disconnect_version_) -
-        reinterpret_cast<char*>(&_impl_.status_)) + sizeof(_impl_.safe_to_disconnect_version_));
+        reinterpret_cast<char*>(&_impl_.nearby_connections_version_) -
+        reinterpret_cast<char*>(&_impl_.status_)) + sizeof(_impl_.nearby_connections_version_));
   }
-  _impl_.keep_alive_timeout_millis_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.safe_to_disconnect_version_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.keep_alive_timeout_millis_) -
+        reinterpret_cast<char*>(&_impl_.safe_to_disconnect_version_)) + sizeof(_impl_.keep_alive_timeout_millis_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::std::string>();
 }
@@ -4357,7 +4375,7 @@ PROTOBUF_NOINLINE void ConnectionResponseFrame::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // optional int32 status = 1 [deprecated = true];
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<1>(
             stream, this_._internal_status(), target);
@@ -4370,52 +4388,58 @@ PROTOBUF_NOINLINE void ConnectionResponseFrame::Clear() {
   }
 
   // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
         3, this_._internal_response(), target);
   }
 
   // optional .location.nearby.connections.OsInfo os_info = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.os_info_, this_._impl_.os_info_->GetCachedSize(), target,
         stream);
   }
 
   // optional int32 multiplex_socket_bitmask = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<5>(
             stream, this_._internal_multiplex_socket_bitmask(), target);
   }
 
   // optional int32 nearby_connections_version = 6 [deprecated = true];
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<6>(
             stream, this_._internal_nearby_connections_version(), target);
   }
 
   // optional int32 safe_to_disconnect_version = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<7>(
             stream, this_._internal_safe_to_disconnect_version(), target);
   }
 
   // optional .location.nearby.connections.LocationHint location_hint = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         8, *this_._impl_.location_hint_, this_._impl_.location_hint_->GetCachedSize(), target,
         stream);
   }
 
   // optional int32 keep_alive_timeout_millis = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     target =
         ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<9>(
             stream, this_._internal_keep_alive_timeout_millis(), target);
+  }
+
+  // optional string wifi_direct_device_name = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    const ::std::string& _s = this_._internal_wifi_direct_device_name();
+    target = stream->WriteStringMaybeAliased(10, _s, target);
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -4449,45 +4473,50 @@ PROTOBUF_NOINLINE void ConnectionResponseFrame::Clear() {
       total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
                                       this_._internal_handshake_data());
     }
-    // optional .location.nearby.connections.OsInfo os_info = 4;
+    // optional string wifi_direct_device_name = 10;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                      this_._internal_wifi_direct_device_name());
+    }
+    // optional .location.nearby.connections.OsInfo os_info = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.os_info_);
     }
     // optional .location.nearby.connections.LocationHint location_hint = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.location_hint_);
     }
     // optional int32 status = 1 [deprecated = true];
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_status());
     }
     // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::_pbi::WireFormatLite::EnumSize(this_._internal_response());
     }
     // optional int32 multiplex_socket_bitmask = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_multiplex_socket_bitmask());
     }
     // optional int32 nearby_connections_version = 6 [deprecated = true];
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_nearby_connections_version());
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // optional int32 safe_to_disconnect_version = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_safe_to_disconnect_version());
     }
-  }
-   {
     // optional int32 keep_alive_timeout_millis = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
           this_._internal_keep_alive_timeout_millis());
     }
@@ -4519,6 +4548,9 @@ void ConnectionResponseFrame::MergeImpl(::google::protobuf::MessageLite& to_msg,
       _this->_internal_set_handshake_data(from._internal_handshake_data());
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _this->_internal_set_wifi_direct_device_name(from._internal_wifi_direct_device_name());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.os_info_ != nullptr);
       if (_this->_impl_.os_info_ == nullptr) {
         _this->_impl_.os_info_ = ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.os_info_);
@@ -4526,7 +4558,7 @@ void ConnectionResponseFrame::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.os_info_->MergeFrom(*from._impl_.os_info_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(from._impl_.location_hint_ != nullptr);
       if (_this->_impl_.location_hint_ == nullptr) {
         _this->_impl_.location_hint_ = ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.location_hint_);
@@ -4534,24 +4566,26 @@ void ConnectionResponseFrame::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.location_hint_->MergeFrom(*from._impl_.location_hint_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       _this->_impl_.status_ = from._impl_.status_;
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       _this->_impl_.response_ = from._impl_.response_;
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       _this->_impl_.multiplex_socket_bitmask_ = from._impl_.multiplex_socket_bitmask_;
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       _this->_impl_.nearby_connections_version_ = from._impl_.nearby_connections_version_;
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       _this->_impl_.safe_to_disconnect_version_ = from._impl_.safe_to_disconnect_version_;
     }
-  }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    _this->_impl_.keep_alive_timeout_millis_ = from._impl_.keep_alive_timeout_millis_;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      _this->_impl_.keep_alive_timeout_millis_ = from._impl_.keep_alive_timeout_millis_;
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::std::string>(
@@ -4573,6 +4607,7 @@ void ConnectionResponseFrame::InternalSwap(ConnectionResponseFrame* PROTOBUF_RES
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.handshake_data_, &other->_impl_.handshake_data_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.wifi_direct_device_name_, &other->_impl_.wifi_direct_device_name_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(ConnectionResponseFrame, _impl_.keep_alive_timeout_millis_)
       + sizeof(ConnectionResponseFrame::_impl_.keep_alive_timeout_millis_)

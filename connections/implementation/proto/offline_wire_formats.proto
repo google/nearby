@@ -157,6 +157,7 @@ message ConnectionResponseFrame {
   optional int32 safe_to_disconnect_version = 7;
   optional LocationHint location_hint = 8;
   optional int32 keep_alive_timeout_millis = 9;
+  optional string wifi_direct_device_name = 10;
 }
 
 message PayloadTransferFrame {
