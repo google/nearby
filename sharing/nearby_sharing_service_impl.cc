@@ -194,6 +194,8 @@ OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
       return OSType::IOS;
     case ::nearby::api::DeviceInfo::OsType::kMacOS:
       return OSType::MACOS;
+    case ::nearby::api::DeviceInfo::OsType::kVisionOS:
+      return OSType::VISION_OS;
     case ::nearby::api::DeviceInfo::OsType::kUnknown:
       return OSType::UNKNOWN_OS_TYPE;
   }
