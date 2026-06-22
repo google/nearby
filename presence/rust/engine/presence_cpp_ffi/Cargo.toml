@@ -1,0 +1,22 @@
+[package]
+name = "presence_cpp_ffi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "presence"
+crate-type = ["staticlib"]
+
+[dependencies]
+presence_core = { path = "../presence_core" }
+tokio = { version = "1.36.0", features = ["sync"] }
+log = "0.4.20"
+env_logger = "0.11.2"
+libc = "^0.2"
+
+[build-dependencies]
+cbindgen = "0.24.0"
+bindgen = "0.65.1"
+cmake = "0.1"
