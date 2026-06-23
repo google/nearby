@@ -119,7 +119,6 @@ objc_library(
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
-        "//internal/proto:tachyon_cc_proto",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
