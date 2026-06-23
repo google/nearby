@@ -372,8 +372,7 @@ void OutgoingShareSession::SendPayloads(
   analytics_recorder().NewSendAttachmentsStart(
       session_id(), attachment_container(),
       /*transfer_position=*/1,
-      /*concurrent_connections=*/1, advanced_protection_enabled_,
-      advanced_protection_mismatch_);
+      /*concurrent_connections=*/1, advanced_protection_enabled_);
   VLOG(1) << "The connection was accepted. Payloads are now being sent.";
   InitializePayloadTracker(std::move(payload_transder_update_callback));
   SendNextPayload();

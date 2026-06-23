@@ -2588,8 +2588,7 @@ void NearbySharingServiceImpl::BeginOutgoingTransfer(
   bool protection_enabled =
       preference_manager_.GetBoolean(PrefNames::kAdvancedProtectionEnabled,
                                      /*default_value=*/false);
-  session.SetAdvancedProtectionStatus(protection_enabled,
-                                      /*advanced_protection_mismatch=*/false);
+  session.SetAdvancedProtectionStatus(protection_enabled);
   if (session.token().empty() || !protection_enabled) {
     // Auto accept if no token or if advanced protection is disabled.
     OutgoingSessionAccept(session);

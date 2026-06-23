@@ -142,8 +142,7 @@ class AnalyticsRecorder {
                                        const AttachmentContainer& attachments,
                                        int transfer_position,
                                        int concurrent_connections,
-                                       bool advanced_protection_enabled,
-                                       bool advanced_protection_mismatch) = 0;
+                                       bool advanced_protection_enabled) = 0;
 
   virtual void NewSendFastInitialization() = 0;
 

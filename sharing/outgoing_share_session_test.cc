@@ -676,11 +676,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloads) {
       Log(Matcher<const SharingLog&>(AllOf(
           (HasCategory(EventCategory::SENDING_EVENT),
            HasEventType(EventType::SEND_ATTACHMENTS_START),
-           ProtoField<"send_attachments_start", "session_id">(1234),
-           ProtoField<"send_attachments_start", "advanced_protection_enabled">(
-               false),
-           ProtoField<"send_attachments_start", "advanced_protection_mismatch">(
-               false))))));
+           ProtoField<"send_attachments_start", "session_id">(1234))))));
 
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
@@ -717,15 +713,12 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsSetsAdvancedProtectionFlags) {
            HasEventType(EventType::SEND_ATTACHMENTS_START),
            ProtoField<"send_attachments_start", "session_id">(1234),
            ProtoField<"send_attachments_start", "advanced_protection_enabled">(
-               true),
-           ProtoField<"send_attachments_start", "advanced_protection_mismatch">(
                true))))));
 
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SetAdvancedProtectionStatus(/*advanced_protection_enabled=*/true,
-                                       /*advanced_protection_mismatch=*/true);
+  session_.SetAdvancedProtectionStatus(/*advanced_protection_enabled=*/true);
   session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
                         payload_transder_update_callback.AsStdFunction());
 
@@ -759,8 +752,6 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
            HasEventType(EventType::SEND_ATTACHMENTS_START),
            ProtoField<"send_attachments_start", "session_id">(1234),
            ProtoField<"send_attachments_start", "advanced_protection_enabled">(
-               false),
-           ProtoField<"send_attachments_start", "advanced_protection_mismatch">(
                false))))));
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);

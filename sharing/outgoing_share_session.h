@@ -141,10 +141,8 @@ class OutgoingShareSession : public ShareSession {
 
   std::optional<TransferMetadata> ProcessPayloadTransferUpdates();
 
-  void SetAdvancedProtectionStatus(bool advanced_protection_enabled,
-                                   bool advanced_protection_mismatch) {
+  void SetAdvancedProtectionStatus(bool advanced_protection_enabled) {
     advanced_protection_enabled_ = advanced_protection_enabled;
-    advanced_protection_mismatch_ = advanced_protection_mismatch;
   }
 
   // Returns true if the session is connected or in the process of connecting.
@@ -210,7 +208,6 @@ class OutgoingShareSession : public ShareSession {
   // Timeout waiting for remote disconnect in order to complete transfer.
   std::unique_ptr<ThreadTimer> disconnection_timeout_;
   bool advanced_protection_enabled_ = false;
-  bool advanced_protection_mismatch_ = false;
   bool is_connecting_ = false;
   // Session can be for transfer or pairing.
   bool is_transfer_session_ = false;
