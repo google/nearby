@@ -19,11 +19,11 @@
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
-#include "thread/fiber/fiber.h"
 
 namespace nearby {
 namespace g3 {

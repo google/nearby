@@ -152,13 +152,13 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//third_party/gloop/thread/fiber",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-        "@com_google_nisaba//nisaba/port:thread_pool/fiber",
     ],
 )
 
