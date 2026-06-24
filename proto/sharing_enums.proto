@@ -395,9 +395,8 @@ enum EstablishConnectionStatus {
       /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
   CONNECTION_STATUS_LOST_CONNECTIVITY = 9
       /*[ status_bucket = STATUS_INTERRUPTION ]*/;
-  // TODO: b/341782941 - : Annote this status when it's confirmed by Nearby
-  // Connections team.
-  CONNECTION_STATUS_INVALID_ADVERTISEMENT = 10;
+  CONNECTION_STATUS_INVALID_ADVERTISEMENT = 10
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
 }
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
