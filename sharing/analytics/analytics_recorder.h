@@ -111,7 +111,9 @@ class AnalyticsRecorder {
   virtual void NewReceiveIntroduction(
       int64_t session_id, const ShareTarget& share_target,
       std::optional<std::string> referrer_package,
-      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
+      location::nearby::proto::sharing::OSType share_target_os_type,
+      location::nearby::proto::sharing::SharingUseCase sharing_use_case,
+      location::nearby::proto::sharing::PowerStatus power_status) = 0;
 
   virtual void NewRespondToIntroduction(
       location::nearby::proto::sharing::ResponseToIntroduction action,
@@ -158,7 +160,8 @@ class AnalyticsRecorder {
   virtual void NewSendIntroduction(
       int64_t session_id, const ShareTarget& share_target,
       int transfer_position, int concurrent_connections,
-      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
+      location::nearby::proto::sharing::OSType share_target_os_type,
+      location::nearby::proto::sharing::PowerStatus power_status) = 0;
 
   virtual void NewSetVisibility(
       nearby::sharing::proto::DeviceVisibility src_visibility,
