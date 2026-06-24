@@ -437,7 +437,7 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
       std::make_unique<WifiDirectDeviceDiscovered>(windows_device_info);
 
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     connection_requested_devices_by_id_[device_id] = std::move(deviceInfoP);
   }
 
@@ -500,7 +500,7 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
       std::string remote_ip =
           winrt::to_string(pair.RemoteHostName().DisplayName());
 
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       wifi_direct_device_ = device;
       ip_address_local_ = local_ip;
       ip_address_remote_ = remote_ip;
@@ -749,7 +749,7 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
             << ";   device name: " << winrt::to_string(device_info.Name());
   winrt::hstring device_id = device_info.Id();
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (discovered_devices_by_id_.contains(device_id)) {
       return winrt::fire_and_forget();
     }
@@ -800,7 +800,7 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
   // Create a WiFiDirectDevice out of this id
   if (!is_paired) {
     LOG(INFO) << "GC paired failed!";
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (connection_latch_) {
       connection_latch_->CountDown();
     }

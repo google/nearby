@@ -52,7 +52,7 @@ void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (closed_) return nullptr;
     if (server_socket_accepted_connection_) {
       LOG(INFO) << "Server socket has already accepted a connection. Return.";
@@ -74,7 +74,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   LOG(INFO) << "Start to accept connection from WiFiDirect client.";
   auto client_socket = server_socket_.Accept();
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_ || client_socket == nullptr) {
     LOG(INFO) << "Accept server socket failed or closed.";
     return nullptr;
