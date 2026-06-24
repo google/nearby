@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_SERVICE_ADDRESS_H_
 
 #include <cstdint>
-#include <ostream>
 #include <string>
 #include <vector>
 
@@ -33,6 +32,14 @@ struct ServiceAddress {
   uint16_t port;
 
   bool operator==(const ServiceAddress& other) const = default;
+
+  // Returns true if the address is a loopback address (IPv4 127.0.0.0/8 or
+  // IPv6 ::1).
+  bool IsLoopbackAddress() const;
+
+  // Returns true if the address is a link-local address (IPv4 169.254.0.0/16 or
+  // IPv6 fe80::/10).
+  bool IsLinkLocalAddress() const;
 };
 
 // Support logging of ServiceAddress.

@@ -118,5 +118,104 @@ TEST(ServiceAddressTest, ServiceAddressEquality) {
   EXPECT_EQ(service_address5, service_address6);
 }
 
+TEST(ServiceAddressTest, IsLoopbackAddressIPv4) {
+  ServiceAddress service_address = {
+      .address = {127, 0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(service_address.IsLoopbackAddress());
+
+  ServiceAddress not_loopback = {
+      .address = {10, 0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_loopback.IsLoopbackAddress());
+}
+
+TEST(ServiceAddressTest, IsLoopbackAddressIPv6) {
+  ServiceAddress service_address = {
+      .address = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(service_address.IsLoopbackAddress());
+
+  ServiceAddress not_loopback = {
+      .address = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_loopback.IsLoopbackAddress());
+}
+
+TEST(ServiceAddressTest, IsLinkLocalAddressIPv4) {
+  ServiceAddress service_address = {
+      .address = {static_cast<char>(169), static_cast<char>(254), 0, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(service_address.IsLinkLocalAddress());
+
+  ServiceAddress not_link_local = {
+      .address = {169, static_cast<char>(253), 0, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_link_local.IsLinkLocalAddress());
+
+  ServiceAddress not_link_local_b0 = {
+      .address = {100, static_cast<char>(254), 0, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_link_local_b0.IsLinkLocalAddress());
+}
+
+TEST(ServiceAddressTest, IsLinkLocalAddressIPv6) {
+  ServiceAddress service_address = {
+      .address = {static_cast<char>(0xfe), static_cast<char>(0x80), 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(service_address.IsLinkLocalAddress());
+
+  ServiceAddress not_link_local = {
+      .address = {static_cast<char>(0xfd), static_cast<char>(0x80), 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_link_local.IsLinkLocalAddress());
+
+  ServiceAddress not_link_local_b1 = {
+      .address = {static_cast<char>(0xfe), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(not_link_local_b1.IsLinkLocalAddress());
+}
+
+TEST(ServiceAddressTest, IsLoopbackAddressInvalidLength) {
+  ServiceAddress service_address = {
+      .address = {127, 0, 0},
+      .port = 8080,
+  };
+  EXPECT_FALSE(service_address.IsLoopbackAddress());
+
+  ServiceAddress empty_address = {
+      .address = {},
+      .port = 8080,
+  };
+  EXPECT_FALSE(empty_address.IsLoopbackAddress());
+}
+
+TEST(ServiceAddressTest, IsLinkLocalAddressInvalidLength) {
+  ServiceAddress service_address = {
+      .address = {static_cast<char>(169), static_cast<char>(254), 0},
+      .port = 8080,
+  };
+  EXPECT_FALSE(service_address.IsLinkLocalAddress());
+
+  ServiceAddress empty_address = {
+      .address = {},
+      .port = 8080,
+  };
+  EXPECT_FALSE(empty_address.IsLinkLocalAddress());
+}
+
 }  // namespace
 }  // namespace nearby

@@ -79,21 +79,40 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
                    << address_candidate.ip_address().size();
       continue;
     }
+    if (service_address.IsLoopbackAddress() ||
+        service_address.IsLinkLocalAddress()) {
+      LOG(WARNING) << "Loopback/link-local address candidate is rejected.";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
+    }
     address_candidates.push_back(std::move(service_address));
   }
   // Only use ip_address and wifi_port if address_candidates is empty.
   if (address_candidates.empty()) {
-    address_candidates.push_back(ServiceAddress{
-        .address =
-            std::vector<char>(upgrade_path_info_socket.ip_address().begin(),
-                              upgrade_path_info_socket.ip_address().end()),
-        .port = static_cast<uint16_t>(upgrade_path_info_socket.wifi_port())});
+    if (upgrade_path_info_socket.ip_address().size() != 4) {
+      LOG(ERROR) << "WifiLanBwuHandler: fallback ip_address size is not 4 "
+                 << "(IPv4 only).";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
+    }
+    ServiceAddress service_address;
+    service_address.address = {upgrade_path_info_socket.ip_address().begin(),
+                               upgrade_path_info_socket.ip_address().end()};
+    service_address.port =
+        static_cast<uint16_t>(upgrade_path_info_socket.wifi_port());
+    if (service_address.IsLoopbackAddress() ||
+        service_address.IsLinkLocalAddress()) {
+      LOG(WARNING) << "Loopback/link-local fallback address is rejected.";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
+    }
+    address_candidates.push_back(std::move(service_address));
   }
   Error error;
   for (const auto& address_candidate : address_candidates) {
     VLOG(1) << "WifiLanBwuHandler is attempting to connect to available "
-               "WifiLan service (" << address_candidate << ") for endpoint "
-            << endpoint_id;
+               "WifiLan service ("
+            << address_candidate << ") for endpoint " << endpoint_id;
     std::shared_ptr<CancellationFlag> cancellation_flag =
         client->GetCancellationFlag(endpoint_id);
     ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(

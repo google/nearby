@@ -240,7 +240,7 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
   const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
   if (!wifi_hotspot_credentials.gateway().empty() &&
       !(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern))) {
-      return {Exception::kInvalidProtocolBuffer};
+    return {Exception::kInvalidProtocolBuffer};
   }
   for (const auto& address_candidate :
        wifi_hotspot_credentials.address_candidates()) {
@@ -300,8 +300,7 @@ Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
                   kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength);
   bool device_name_valid =
       wifi_direct_credentials.has_device_name() &&
-      wifi_direct_credentials.device_name().length() <
-          kWifiDirectSsidMaxLength;
+      wifi_direct_credentials.device_name().length() < kWifiDirectSsidMaxLength;
   bool pin_valid =
       wifi_direct_credentials.has_pin() &&
       WithinRange(wifi_direct_credentials.pin().length(),

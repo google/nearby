@@ -209,6 +209,71 @@ TEST_F(WifiLanBwuHandlerTest,
   EXPECT_TRUE(result.has_value());
 };
 
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_RejectLoopbackAndLinkLocalCandidates) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+
+  // 1st candidate: Loopback
+  auto* address_candidate =
+      path_info.mutable_wifi_lan_socket()->add_address_candidates();
+  address_candidate->set_ip_address(std::string("\x7f\x00\x00\x01", 4));
+  address_candidate->set_port(8080);
+
+  // 2nd candidate: Link-Local (169.254.1.1)
+  address_candidate =
+      path_info.mutable_wifi_lan_socket()->add_address_candidates();
+  address_candidate->set_ip_address("\xa9\xfe\x01\x01");
+  address_candidate->set_port(8080);
+
+  // 3rd candidate: Valid IP
+  address_candidate =
+      path_info.mutable_wifi_lan_socket()->add_address_candidates();
+  address_candidate->set_ip_address(kIpv4Address);
+  address_candidate->set_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_RejectLoopbackFallbackIp) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(
+      std::string("\x7f\x00\x00\x01", 4));
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_RejectInvalidFallbackIpLength) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address("123");
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(8080);
+
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId),
+      std::move(path_info));
+
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   ClientProxy client;
@@ -289,9 +354,8 @@ TEST_F(WifiLanBwuHandlerTest,
       mediums_.GetWifiLan().IsAcceptingConnections("service_id_UPGRADE"));
 }
 
-TEST_F(
-    WifiLanBwuHandlerTest,
-    InitializeUpgradedMediumForEndpoint_AlreadyAccepting_KeepAccepting) {
+TEST_F(WifiLanBwuHandlerTest,
+       InitializeUpgradedMediumForEndpoint_AlreadyAccepting_KeepAccepting) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   ClientProxy client;
   client.AddCancellationFlag(std::string(kEndpointId));
