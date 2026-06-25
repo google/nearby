@@ -408,7 +408,8 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
                        << absl::BytesToHexString(credential.data());
             continue;
           }
-          VLOG(1) << "Successfully parsed credential: " << credential.id();
+          VLOG(1) << "Successfully parsed credential: " << credential.id()
+                  << " with binding id: " << certificate.binding_id();
           certificates_.push_back(certificate);
         }
 
