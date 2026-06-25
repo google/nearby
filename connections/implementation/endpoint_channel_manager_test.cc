@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
@@ -314,6 +315,64 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   ecm_b.UnregisterChannelForEndpoint(
       std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
       SafeDisconnectionResult::kSafeDisconnection);
+}
+
+TEST(BaseEndpointChannelManagerTest,
+     CreateNewTimeoutDisconnectedStateUnregisterDuringWait) {
+  ClientProxy proxy;
+  EndpointChannelManager ecm;
+  auto client = CreatePipe();
+  auto server = CreatePipe();
+  auto channel = std::make_shared<MockEndpointChannel>(server.first.get(),
+                                                       client.second.get());
+  auto channel_raw = channel.get();
+
+  ON_CALL(*channel_raw, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, std::string(kEndpointId),
+                                 std::move(channel));
+
+  EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 1);
+
+  MultiThreadExecutor executor(1);
+  CountDownLatch start_latch(1);
+  CountDownLatch finish_latch(1);
+  bool wait_result = false;
+
+  executor.Execute([&]() {
+    start_latch.CountDown();
+    wait_result = ecm.CreateNewTimeoutDisconnectedState(
+        kEndpointId, absl::Seconds(5));
+    finish_latch.CountDown();
+  });
+
+  ASSERT_TRUE(start_latch.Await(absl::Seconds(1)).result());
+
+  // Sleep briefly using abseil to wait for the thread to enter wait state.
+  absl::SleepFor(absl::Milliseconds(100));
+
+  // Close the channel first to prevent UnregisterChannelForEndpoint from
+  // attempting to write disconnection frames to it, bypassing the 500ms data
+  // transfer delay and potential segfaults.
+  channel_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+
+  bool unregister_result = ecm.UnregisterChannelForEndpoint(
+      kEndpointId, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
+  EXPECT_TRUE(unregister_result);
+
+  EXPECT_TRUE(finish_latch.Await(absl::Seconds(2)).result());
+  EXPECT_TRUE(wait_result);
+  EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 0);
+}
+
+TEST(BaseEndpointChannelManagerTest,
+     CreateNewTimeoutDisconnectedStateReturnsFalseForNonexistentEndpoint) {
+  EndpointChannelManager ecm;
+  EXPECT_FALSE(ecm.CreateNewTimeoutDisconnectedState("NonexistentEndpoint",
+                                                     absl::Seconds(1)));
 }
 
 }  // namespace
