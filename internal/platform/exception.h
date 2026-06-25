@@ -34,6 +34,7 @@ struct Exception {
     kIllegalCharacters = 6,  // File name or parent path contained
                              // illegal chars
     kNoData = 7,            // No data available.
+    kInvalidFile = 8,        // File is invalid.
   };
   bool Ok() const { return value == kSuccess; }
   explicit operator bool() const { return Ok(); }
