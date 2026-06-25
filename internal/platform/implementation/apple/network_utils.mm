@@ -63,7 +63,7 @@ bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
       serviceFoundHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
         NsdServiceInfo nsd_service_info;
         nsd_service_info.SetServiceType([serviceType UTF8String]);
-        nsd_service_info.SetServiceName([name UTF8String]);
+        nsd_service_info.SetServiceName(name ? [name UTF8String] : "");
         [txtRecords
             enumerateKeysAndObjectsUsingBlock:[nsd_service_info = &nsd_service_info](
                                                   NSString* key, NSString* val, BOOL* stop) {
@@ -74,7 +74,7 @@ bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
       serviceLostHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
         NsdServiceInfo nsd_service_info;
         nsd_service_info.SetServiceType([serviceType UTF8String]);
-        nsd_service_info.SetServiceName([name UTF8String]);
+        nsd_service_info.SetServiceName(name ? [name UTF8String] : "");
         [txtRecords
             enumerateKeysAndObjectsUsingBlock:[nsd_service_info = &nsd_service_info](
                                                   NSString* key, NSString* val, BOOL* stop) {

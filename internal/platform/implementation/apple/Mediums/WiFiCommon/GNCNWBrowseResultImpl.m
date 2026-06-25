@@ -57,7 +57,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (nullable NSString *)getBonjourServiceNameFromEndpoint:(nw_endpoint_t)endpoint {
   const char *name = nw_endpoint_get_bonjour_service_name(endpoint);
-  return name ? @(name) : nil;
+  if (name == NULL) return nil;
+  // @() returns nil on non-UTF-8 input; the wire format does not guarantee UTF-8.
+  // Round-trip through Latin-1 so callers always get a non-nil NSString.
+  return @(name) ?: [NSString stringWithCString:name encoding:NSISOLatin1StringEncoding];
 }
 
 @end
