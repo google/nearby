@@ -27,6 +27,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -387,10 +388,10 @@ void Ble::AddAlternateUuidForService(uint16_t uuid,
   medium_.AddAlternateUuidForService(uuid, service_id);
 }
 
-ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
-                                 PowerLevel power_level,
-                                 bool include_dct_advertisement,
-                                 DiscoveredPeripheralCallback callback) {
+ErrorOr<bool> Ble::StartScanning(
+    const std::string& service_id, Pcp pcp, PowerLevel power_level,
+    bool include_dct_advertisement, DiscoveredPeripheralCallback callback,
+    absl::string_view fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
@@ -414,13 +415,32 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
     return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
+  Uuid fast_uuid = mediums::bleutils::kCopresenceServiceUuid;
+  if (!fast_advertisement_service_uuid.empty()) {
+    auto parsed = Uuid::FromString(fast_advertisement_service_uuid);
+    if (parsed.has_value()) {
+      fast_uuid = *parsed;
+    } else {
+      uint64_t uuid16;
+      if (absl::SimpleHexAtoi(fast_advertisement_service_uuid, &uuid16)) {
+        fast_uuid =
+            Uuid(0x0000000000001000 | (uuid16 << 32), 0x800000805F9B34FB);
+      }
+    }
+  }
+
+  LOG(INFO) << "Ble::StartScanning service_id=" << service_id
+            << " fast_advertisement_service_uuid="
+            << fast_advertisement_service_uuid
+            << " resolved fast_uuid=" << std::string(fast_uuid);
+
   // Start to track the advertisement found for specific `service_id`.
-  discovered_peripheral_tracker_.StartTracking(
-      service_id, include_dct_advertisement, pcp, std::move(callback),
-      mediums::bleutils::kCopresenceServiceUuid);
+  discovered_peripheral_tracker_.StartTracking(service_id,
+                                               include_dct_advertisement, pcp,
+                                               std::move(callback), fast_uuid);
 
   if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
-    return StartAsyncScanningLocked(service_id, power_level);
+    return StartAsyncScanningLocked(service_id, power_level, fast_uuid);
   }
 
   // Check if scan has been activated, if yes, no need to notify client
@@ -433,12 +453,18 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
   }
 
   scanned_service_ids_.insert(service_id);
-  // TODO(b/213835576): We should re-start scanning once the power level is
-  // changed.
+
+  std::vector<Uuid> service_uuids = {fast_uuid};
   if (include_dct_advertisement) {
-    std::vector<Uuid> service_uuids = {
-        mediums::bleutils::kCopresenceServiceUuid,
-        mediums::bleutils::kDctServiceUuid};
+    service_uuids.push_back(mediums::bleutils::kDctServiceUuid);
+  }
+  if (fast_uuid != mediums::bleutils::kCopresenceServiceUuid) {
+    service_uuids.push_back(mediums::bleutils::kCopresenceServiceUuid);
+  }
+
+  if (service_uuids.size() > 1) {
+    LOG(INFO) << "Ble::StartScanning starting multiple services scanning for "
+              << service_uuids.size() << " UUIDs";
     if (!medium_.StartMultipleServicesScanning(
             service_uuids, PowerLevelToTxPowerLevel(power_level),
             {
@@ -457,11 +483,6 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
                                            interesting_service_ids,
                                        mediums::AdvertisementReadResult&
                                            advertisement_read_result) {
-                                  // Th`mutex_` is already held here. Use
-                                  // `AssumeHeld` tell the thread
-                                  // annotation static analysis that
-                                  // `mutex_` is already exclusively
-                                  // locked.
                                   AssumeHeld(mutex_);
                                   ProcessFetchGattAdvertisementsRequest(
                                       std::move(peripheral), num_slots, psm,
@@ -473,15 +494,14 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
             })) {
       LOG(INFO) << "Failed to start scan of multiple BLE services.";
       discovered_peripheral_tracker_.StopTracking(service_id);
-      // Erase the service id that is just added.
       scanned_service_ids_.erase(service_id);
       return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
     }
-
   } else {
+    LOG(INFO) << "Ble::StartScanning starting single service scanning for "
+              << std::string(fast_uuid);
     if (!medium_.StartScanning(
-            mediums::bleutils::kCopresenceServiceUuid,
-            PowerLevelToTxPowerLevel(power_level),
+            fast_uuid, PowerLevelToTxPowerLevel(power_level),
             {
                 .advertisement_found_cb =
                     [this](BlePeripheral peripheral,
@@ -498,11 +518,6 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
                                            interesting_service_ids,
                                        mediums::AdvertisementReadResult&
                                            advertisement_read_result) {
-                                  // Th`mutex_` is already held here. Use
-                                  // `AssumeHeld` tell the thread
-                                  // annotation static analysis that
-                                  // `mutex_` is already exclusively
-                                  // locked.
                                   AssumeHeld(mutex_);
                                   ProcessFetchGattAdvertisementsRequest(
                                       std::move(peripheral), num_slots, psm,
@@ -514,7 +529,6 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
             })) {
       LOG(INFO) << "Failed to start scan of BLE services.";
       discovered_peripheral_tracker_.StopTracking(service_id);
-      // Erase the service id that is just added.
       scanned_service_ids_.erase(service_id);
       return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
     }
@@ -1632,7 +1646,8 @@ bool Ble::StartDctAdvertisingLocked(const std::string& service_id,
 }
 
 bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
-                                   PowerLevel power_level) {
+                                   PowerLevel power_level,
+                                   const Uuid& fast_uuid) {
   CHECK(FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning);
 
   // Use the asynchronous StartScanning method instead of the synchronous one.
@@ -1643,8 +1658,7 @@ bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
   // If so, do we store a nullptr instead of a scanning session ptr?
 
   auto scanning_session = medium_.StartScanning(
-      mediums::bleutils::kCopresenceServiceUuid,
-      PowerLevelToTxPowerLevel(power_level),
+      fast_uuid, PowerLevelToTxPowerLevel(power_level),
       api::ble::BleMedium::ScanningCallback{
           .start_scanning_result =
               [this, &service_id](absl::Status status) mutable {
