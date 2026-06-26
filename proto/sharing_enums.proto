@@ -847,6 +847,8 @@ enum SharingUseCase {
   // The user was redirected from Bluetooth sharing UI to Nearby Share
   USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE = 8;
   USE_CASE_TAP_TO_SHARE = 9;
+  // Automatic backup use case.
+  USE_CASE_FILE_SYNC = 10;
 }
 
 enum SharingSurface {
@@ -1066,4 +1068,12 @@ enum CloudActionType {
   CLOUD_ACTION_TYPE_NORMAL = 1;
   // The action is a retry of a previous failed upload/download.
   CLOUD_ACTION_TYPE_RETRY = 2;
+}
+
+// Defines how the device is powered.
+enum PowerStatus {
+  POWER_STATUS_UNKNOWN = 0;
+  POWER_STATUS_BATTERY = 1;
+  POWER_STATUS_AC = 2;
+  POWER_STATUS_BATTERY_AND_AC = 3;
 }

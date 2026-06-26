@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/cpp/sharing/clients/cpp/common/nearby_sharing_common.h"
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
@@ -249,6 +250,24 @@ sync::SyncBinding::SourceDeviceType ShareTargetTypeToSourceDeviceType(
       return sync::SyncBinding::SOURCE_DEVICE_TYPE_XR;
     case ShareTargetType::kUnknown:
       return sync::SyncBinding::SOURCE_DEVICE_TYPE_UNKNOWN;
+  }
+}
+
+location::nearby::proto::sharing::SharingUseCase
+IntroductionUseCaseToLoggingUseCase(
+    IntroductionFrame::SharingUseCase use_case) {
+  switch (use_case) {
+    case IntroductionFrame::NEARBY_SHARE:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_NEARBY_SHARE;
+    case IntroductionFrame::TAP_TO_SHARE:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_TAP_TO_SHARE;
+    case IntroductionFrame::FILE_SYNC:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_FILE_SYNC;
+   default:
+      return location::nearby::proto::sharing::SharingUseCase::USE_CASE_UNKNOWN;
   }
 }
 }  // namespace
@@ -2736,7 +2755,9 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   // Log analytics event of receiving introduction.
   analytics_recorder_.NewReceiveIntroduction(
       session.session_id(), session.share_target(),
-      /*referrer_package=*/std::nullopt, session.os_type());
+      /*referrer_package=*/std::nullopt, session.os_type(),
+      IntroductionUseCaseToLoggingUseCase(frame.use_case()),
+      nearby::sharing::cpp::common::GetPowerStatus());
 
   std::optional<size_t> available_storage =
       device_info_.GetAvailableDiskSpaceInBytes(save_path);

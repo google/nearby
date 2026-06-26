@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/cpp/sharing/clients/cpp/common/nearby_sharing_common.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -422,10 +423,11 @@ bool OutgoingShareSession::SendIntroduction(
   }
   WriteFrame(frame);
   // Log analytics event of sending introduction.
-  analytics_recorder().NewSendIntroduction(session_id(), share_target(),
-                                           /*transfer_position=*/1,
-                                           /*concurrent_connections=*/1,
-                                           os_type());
+  analytics_recorder().NewSendIntroduction(
+      session_id(), share_target(),
+      /*transfer_position=*/1,
+      /*concurrent_connections=*/1, os_type(),
+      nearby::sharing::cpp::common::GetPowerStatus());
   VLOG(1) << "Successfully wrote the introduction frame";
   ready_for_accept_ = true;
   mutual_acceptance_timeout_ = std::make_unique<ThreadTimer>(
