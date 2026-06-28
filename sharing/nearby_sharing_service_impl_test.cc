@@ -5219,7 +5219,13 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   EXPECT_FALSE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
           .has_value());
-  // Once from RegisterSendSurface and once from OnPeerSyncBindingComplete.
+  // Once from RegisterSendSurface. OnPeerSyncBindingComplete's download is
+  // delayed.
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(), 1);
+
+  FastForward(kDownloadPublicCertificatesDelay);
+
+  // Now it should have been called twice.
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(), 2);
 
   std::optional<nearby::sharing::sync::SyncBindingPrefs> binding =

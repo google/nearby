@@ -50,6 +50,10 @@ constexpr absl::Duration kReadFramesTimeout = absl::Seconds(15);
 // Time to delay running the task to invalidate send and receive surfaces.
 constexpr absl::Duration kInvalidateDelay = absl::Milliseconds(500);
 
+// The delay before downloading public certificates after a sync binding is
+// completed, to avoid server propagation delay.
+constexpr absl::Duration kDownloadPublicCertificatesDelay = absl::Seconds(5);
+
 // Attachments size threshold for transferring high quality medium. The default
 // value is 1MB to match the default setting on Android.
 constexpr int64_t kAttachmentsSizeThresholdOverHighQualityMedium = 1000000;
