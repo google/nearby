@@ -2710,7 +2710,10 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
           .build());
 
   // Download public certificates again to update the newly added sync binding.
-  certificate_manager_->DownloadPublicCertificates();
+  // Delay it to avoid server propagation delay.
+  RunOnNearbySharingServiceThreadDelayed(
+      "download-certs-after-binding", kDownloadPublicCertificatesDelay,
+      [this]() { certificate_manager_->DownloadPublicCertificates(); });
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(
