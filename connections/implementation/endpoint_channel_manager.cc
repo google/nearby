@@ -112,8 +112,13 @@ void EndpointChannelManager::SetActiveEndpointChannel(
   channel_state_.UpdateSafeToDisconnectForEndpoint(
       endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
-  if (endpoint->IsEncrypted() && enable_encryption)
+  if (endpoint->IsEncrypted()) {
+    if (!enable_encryption) {
+      LOG(WARNING) << "Encryption disabling requested but forcing encryption "
+                      "for safety.";
+    }
     channel_state_.EncryptChannel(endpoint);
+  }
 }
 
 int EndpointChannelManager::GetConnectedEndpointsCount() const {
