@@ -363,6 +363,7 @@ cc_test(
         ":internal_test",
         "//connections:core_types",
         "//connections/v3:v3_types",
+        "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
