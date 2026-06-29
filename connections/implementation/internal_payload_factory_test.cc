@@ -230,7 +230,7 @@ TEST(InternalPayloadFactoryTest,
   // converted to a double for the proto and then back to a time.
   EXPECT_LE(
       std::abs(absl::ToUnixMillis(internal_payload->GetLastModifiedTime()) -
-             time_millis),
+               time_millis),
       1);
 }
 
@@ -294,8 +294,7 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
 }
 
-TEST(InternalPayloadFactoryTest,
-     AttachNextChunkForOutgoingStreamPayloadFails) {
+TEST(InternalPayloadFactoryTest, AttachNextChunkForOutgoingStreamPayloadFails) {
   auto [input, output] = CreatePipe();
   ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload(std::move(input)));
@@ -351,8 +350,7 @@ TEST(InternalPayloadFactoryTest, IncomingFilePayloadBehavesCorrectly) {
             PayloadTransferFrame::PayloadHeader::FILE);
   EXPECT_EQ(internal_payload->GetTotalSize(), total_size);
   EXPECT_TRUE(internal_payload->DetachNextChunk(1024).Empty());
-  EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(),
-            Exception::kIo);
+  EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
 
   // Attach a chunk.
   std::string chunk1 = "chunk1";
@@ -426,6 +424,33 @@ TEST(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
   ByteArray expected_content(expected_content_str);
   EXPECT_EQ(result_bytes, expected_content);
   input_stream->Close();
+}
+
+TEST(InternalPayloadFactoryTest, IncomingFilePayloadExceedsDeclaredSizeFails) {
+  PayloadTransferFrame frame;
+  std::int64_t total_size = 10;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(total_size);
+  header.set_file_name("test_file_name");
+  header.set_parent_folder("test_parent_folder");
+  header.set_last_modified_timestamp_millis(1234567890);
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  // Attach a chunk (total size 6 bytes <= 10).
+  std::string chunk1 = "chunk1";
+  ASSERT_TRUE(internal_payload->AttachNextChunk(chunk1).Ok());
+
+  // Attach another chunk (total size 12 bytes > 10).
+  std::string chunk2 = "chunk2";
+  EXPECT_FALSE(internal_payload->AttachNextChunk(chunk2).Ok());
 }
 
 }  // namespace

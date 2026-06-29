@@ -113,8 +113,10 @@ Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
     return {Exception::kInvalidProtocolBuffer};
   }
   if (totalSize != InternalPayload::kIndeterminateSize &&
-      totalSize < payload_chunk.offset()) {
-    LOG(ERROR) << "Payload chunk offset > totalSize";
+      (totalSize < payload_chunk.offset() ||
+       totalSize - payload_chunk.offset() <
+           static_cast<int64_t>(payload_chunk.body().size()))) {
+    LOG(ERROR) << "Payload chunk offset/body exceeds totalSize";
     return {Exception::kInvalidProtocolBuffer};
   }
 

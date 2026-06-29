@@ -54,7 +54,7 @@ class PayloadTrackerTest : public ::testing::Test {
             .Build();
     attachment_payload_map_.clear();
     attachment_payload_map_.emplace(container_->GetFileAttachments()[0].id(),
-                                 kFileId);
+                                    kFileId);
     auto payload_updates_queue =
         std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner_);
     payload_tracker_ = std::make_unique<PayloadTracker>(
@@ -78,7 +78,7 @@ class PayloadTrackerTest : public ::testing::Test {
     return metadata_builder->build();
   }
 
- private:
+ protected:
   FakeClock fake_clock_;
   FakeTaskRunner task_runner_{&fake_clock_, 1};
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
@@ -107,6 +107,17 @@ TEST_F(PayloadTrackerTest, StatusUpdateWithTimeUpdate) {
   metadata = PayloadUpdate(3072);
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata->progress(), 3.0);
+}
+
+TEST_F(PayloadTrackerTest, ReconcileConsentedSizeFail) {
+  auto transfer_update = std::make_unique<PayloadTransferUpdate>(
+      /*payload_id=*/kFileId, PayloadStatus::kInProgress,
+      /*total_bytes=*/kFileSize + 1, /*bytes_transferred=*/1024);
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      payload_tracker_->ProcessPayloadUpdate(std::move(transfer_update));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
 }
 
 }  // namespace
