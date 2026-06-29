@@ -251,8 +251,10 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
 
 bool WifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
+  remote_device_name_ = wifi_direct_credentials->GetRemoteDeviceName();
+  LOG(INFO) << __func__ << ": remote_device_name from credentials: "
+            << remote_device_name_;
   absl::MutexLock lock(mutex_);
-  LOG(INFO) << __func__ << ": Start to create WiFiDirect.";
   if (IsBeaconing()) {
     LOG(WARNING) << "Cannot create WiFiDirect GO again when it is running.";
     return true;
@@ -431,6 +433,12 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
   LOG(INFO) << "Receive connection request from: "
             << winrt::to_string(device_name)
             << "; device ID: " << winrt::to_string(device_id);
+  if (!remote_device_name_.empty() &&
+      !absl::EqualsIgnoreCase(remote_device_name_,
+                              winrt::to_string(device_name))) {
+    LOG(INFO) << "Ignore the connection request from the unrelated device.";
+    return winrt::fire_and_forget();
+  }
 
   DeviceInformation windows_device_info(connection_request.DeviceInformation());
   auto deviceInfoP =

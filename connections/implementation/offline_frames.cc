@@ -180,7 +180,8 @@ std::string ForConnectionRequestPresence(
   return frame.SerializeAsString();
 }
 
-std::string ForConnectionResponse(std::int32_t status, const OsInfo& os_info) {
+std::string ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
+                                const std::string& device_name) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -201,6 +202,7 @@ std::string ForConnectionResponse(std::int32_t status, const OsInfo& os_info) {
       NearbyFlags::GetInstance().GetInt64Flag(
           config_package_nearby::nearby_connections_feature::
               kSafeToDisconnectVersion));
+  sub_frame->set_wifi_direct_device_name(device_name);
 
   return frame.SerializeAsString();
 }
@@ -508,7 +510,8 @@ std::string ForBwuFailure(const UpgradePathInfo& info) {
 }
 
 std::string ForBwuPathRequest(Medium medium, const std::vector<Medium>& mediums,
-                            const MediumRole& medium_role) {
+                              const MediumRole& medium_role,
+                              bool supports_5_ghz) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -524,6 +527,9 @@ std::string ForBwuPathRequest(Medium medium, const std::vector<Medium>& mediums,
   for (const auto& medium : mediums) {
     upgrade_path_request->add_mediums(MediumToUpgradePathInfoMedium(medium));
   }
+  LOG(INFO) << "ForBwuPathRequest: supports_5_ghz: " << supports_5_ghz;
+  upgrade_path_request->mutable_medium_meta_data()->set_supports_5_ghz(
+      supports_5_ghz);
   auto* role =
       upgrade_path_request->mutable_medium_meta_data()->mutable_medium_role();
   role->MergeFrom(medium_role);

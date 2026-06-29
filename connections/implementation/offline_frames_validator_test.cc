@@ -179,7 +179,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  std::string bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  std::string bytes = ForConnectionResponse(kStatusAccepted, os_info,
+                                          "device_name");
   offline_frame.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -192,7 +193,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  std::string bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  std::string bytes =
+      ForConnectionResponse(kStatusAccepted, os_info, "device_name");
   offline_frame.ParseFromString(bytes);
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -208,7 +210,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  std::string bytes = ForConnectionResponse(-1, os_info);
+  std::string bytes =
+      ForConnectionResponse(-1, os_info, "device_name");
   offline_frame.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -775,6 +778,25 @@ TEST(OfflineFramesValidatorTest,
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
 
   EXPECT_FALSE(ret_value.Ok());
+
+  std::string wifi_direct_ssid_64_length =
+      "DIRECT-A0-" + std::string(54, 'A');
+  bytes = ForBwuWifiDirectPathAvailable(
+      wifi_direct_ssid_64_length, std::string(kWifiDirectPassword), kPort,
+      kWifiDirectFrequency, kSupportsDisablingEncryption, std::string(kGateway),
+      std::string(kWifiDirectDeviceName), /*pin=*/"01234567890123456");
+  offline_frame_2.ParseFromString(bytes);
+  ret_value = EnsureValidOfflineFrame(offline_frame_2);
+  EXPECT_FALSE(ret_value.Ok());
+
+  std::string wifi_direct_pin_16_length = "0123456789012345";
+  bytes = ForBwuWifiDirectPathAvailable(
+      std::string(kWifiDirectSsid), std::string(kWifiDirectPassword), kPort,
+      kWifiDirectFrequency, kSupportsDisablingEncryption, std::string(kGateway),
+      std::string(kWifiDirectDeviceName), wifi_direct_pin_16_length);
+  offline_frame_2.ParseFromString(bytes);
+  ret_value = EnsureValidOfflineFrame(offline_frame_2);
+  EXPECT_TRUE(ret_value.Ok());
 
   std::string wifi_direct_ssid_wrong_length =
       std::string{kWifiDirectSsid} + "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";

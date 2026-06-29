@@ -239,7 +239,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   std::unique_ptr<api::WifiDirectServerSocket> ListenForService(
       int port) override;
 
-  // Advertiser start WiFiDirect GO with specific Credentials.
   bool StartWifiDirect(WifiDirectCredentials* wifi_direct_credentials) override;
   // Advertiser stop the current WiFiDirect GO.
   bool StopWifiDirect() override;
@@ -347,6 +346,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   std::string ip_address_local_;
   std::string ip_address_remote_;
   absl::CondVar is_ip_address_ready_;
+  std::string remote_device_name_;
 
   WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
   SubmittableExecutor listener_executor_;

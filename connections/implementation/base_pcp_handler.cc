@@ -1591,7 +1591,8 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kSuccess, client->GetLocalOsInfo()));
+                Status::kSuccess, client->GetLocalOsInfo(),
+                client->GetLocalDeviceName()));
         if (!write_exception.Ok()) {
           LOG(INFO) << "AcceptConnection: failed to send response: endpoint_id="
                     << endpoint_id;
@@ -1652,7 +1653,8 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 
         Exception write_exception =
             channel->Write(parser::ForConnectionResponse(
-                Status::kConnectionRejected, client->GetLocalOsInfo()));
+                Status::kConnectionRejected, client->GetLocalOsInfo(),
+                client->GetLocalDeviceName()));
         if (!write_exception.Ok()) {
           LOG(INFO) << "RejectConnection: failed to send response: endpoint_id="
                     << endpoint_id;
@@ -1735,6 +1737,10 @@ void BasePcpHandler::OnIncomingFrame(
         EvaluateConnectionResult(client, endpoint_id,
                                  /* can_close_immediately= */ true);
 
+        if (connection_response.has_wifi_direct_device_name()) {
+          client->SetRemoteDeviceName(
+              endpoint_id, connection_response.wifi_direct_device_name());
+        }
         latch.CountDown();
       });
   WaitForLatch("OnIncomingFrame()", &latch);

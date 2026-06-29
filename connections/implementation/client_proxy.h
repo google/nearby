@@ -75,6 +75,9 @@ class ClientProxy final {
 
   std::string GetLocalEndpointId();
   std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
+  std::string GetLocalDeviceName() {
+    return local_device_name_;
+  }
 
   // Override the base for received file attachments from a specific endpoint.
   // Returns true if the endpoint is found and the path is overridden.
@@ -148,7 +151,6 @@ class ClientProxy final {
     MutexLock lock(&mutex_);
     local_endpoint_info_ = std::string(endpoint_info);
   }
-
   void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options) {
     MutexLock lock(&mutex_);
     advertising_options_ = advertising_options;
@@ -298,6 +300,9 @@ class ClientProxy final {
   void SetRemoteOsInfo(
       absl::string_view endpoint_id,
       const location::nearby::connections::OsInfo& remote_os_info);
+  void SetRemoteDeviceName(absl::string_view endpoint_id,
+                           absl::string_view device_name);
+  std::string GetRemoteDeviceName(absl::string_view endpoint_id) const;
 
   void RegisterDeviceProvider(NearbyDeviceProvider* provider) {
     external_device_provider_ = provider;
@@ -395,6 +400,7 @@ class ClientProxy final {
     std::int32_t safe_to_disconnect_version;
     std::int32_t remote_multiplex_socket_bitmask;
     std::string save_path;
+    std::string device_name;
   };
   using ConnectionPair = std::pair<Connection, PayloadListener>;
 
@@ -465,6 +471,7 @@ class ClientProxy final {
   std::string local_endpoint_id_;
   std::string local_endpoint_info_;
   std::string last_local_endpoint_id_;
+  std::string local_device_name_;
 
   // If advertising is in stable endpoint ID mode, the endpoint ID is stable
   // for 30s after advertising or disconnection. When stable_endpoint_id_mode_

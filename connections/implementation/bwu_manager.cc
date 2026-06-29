@@ -305,7 +305,8 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
                  ->Write(parser::ForBwuPathRequest(
                      proposed_medium,
                      client->GetUpgradeMediums(endpoint_id).GetMediums(true),
-                     medium_role))
+                     medium_role,
+                     mediums_->GetWifi().GetCapability().supports_5_ghz))
                  .Ok()) {
           LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
                      << endpoint_id << " to medium "

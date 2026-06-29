@@ -58,7 +58,8 @@ class WifiDirect {
   bool IsGOStarted() ABSL_LOCKS_EXCLUDED(mutex_);
   // Start WifiDirect Group Owner. Returns true if WifiDirect GO is successfully
   // started.
-  bool StartWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StartWifiDirect()
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Stop WifiDirect Group Owner
   bool StopWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
 

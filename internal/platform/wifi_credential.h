@@ -123,6 +123,12 @@ class WifiDirectCredentials {
     return technology_;
   }
 
+  // Get/Set Remote Device Name.
+  std::string GetRemoteDeviceName() const { return remote_device_name_; }
+  void SetRemoteDeviceName(const std::string& remote_device_name) {
+    remote_device_name_ = remote_device_name;
+  }
+
  private:
   // There are 2 types of WifiDirectAuthType.
   // 1. Without Service Discovery: the credentials are ssid/password.
@@ -137,6 +143,7 @@ class WifiDirectCredentials {
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
+  std::string remote_device_name_;
   location::nearby::proto::connections::ConnectionBand band_;
   location::nearby::proto::connections::ConnectionTechnology technology_;
 };

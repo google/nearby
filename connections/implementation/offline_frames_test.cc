@@ -352,6 +352,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         os_info { type: LINUX }
         multiplex_socket_bitmask: 0
         safe_to_disconnect_version: 5
+        wifi_direct_device_name: "device_name"
       >
     >)pb";
 
@@ -361,7 +362,8 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
       config_package_nearby::nearby_connections_feature::
           kSafeToDisconnectVersion,
       5);
-  auto response = FromBytes(ForConnectionResponse(1, os_info));
+  auto response = FromBytes(
+      ForConnectionResponse(1, os_info, "device_name"));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -734,6 +736,7 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
           upgrade_path_request: <
             mediums: WIFI_HOTSPOT
             medium_meta_data: <
+              supports_5_ghz: true
               medium_role: < support_wifi_hotspot_client: true >
             >
           >
@@ -745,7 +748,8 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   MediumRole medium_role;
   medium_role.set_support_wifi_hotspot_client(true);
   auto response =
-      FromBytes(ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role));
+      FromBytes(ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role,
+                                  /*supports_5_ghz=*/true));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));

@@ -72,7 +72,7 @@ constexpr int kWifiDirectPinMinLength = 0;
 constexpr int kWifiDirectPinMaxLength = 16;
 
 inline bool WithinRange(int value, int min, int max) {
-  return value >= min && value < max;
+  return value >= min && value <= max;
 }
 
 Exception EnsureValidConnectionRequestFrame(
@@ -292,7 +292,7 @@ Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
       std::string(kWifiDirectSsidPatternString).c_str());
   bool ssid_valid =
       wifi_direct_credentials.has_ssid() &&
-      wifi_direct_credentials.ssid().length() < kWifiDirectSsidMaxLength &&
+      wifi_direct_credentials.ssid().length() <= kWifiDirectSsidMaxLength &&
       std::regex_match(wifi_direct_credentials.ssid(), ssid_pattern);
   bool password_valid =
       wifi_direct_credentials.has_password() &&

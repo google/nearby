@@ -276,6 +276,12 @@ ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
   // Load advertising info from preferences.
   LoadClientInfoFromPreferences();
 
+#ifndef NEARBY_CHROMIUM
+  local_device_name_ = api::ImplementationPlatform::CreateDeviceInfo()
+                           ->GetOsDeviceName()
+                           .value_or("");
+#endif
+
   if (preferences_manager_ != nullptr) {
     app_lifecycle_monitor_ =
         api::ImplementationPlatform::CreateAppLifecycleMonitor(
@@ -1176,6 +1182,26 @@ void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
   }
 }
 
+void ClientProxy::SetRemoteDeviceName(absl::string_view endpoint_id,
+                                      absl::string_view device_name) {
+  MutexLock lock(&mutex_);
+  ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->first.device_name = std::string(device_name);
+    LOG(INFO) << "ClientProxy [SetRemoteDeviceName]: " << device_name;
+  }
+}
+
+std::string ClientProxy::GetRemoteDeviceName(
+    absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  const ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->first.device_name;
+  }
+  return "";
+}
+
 std::optional<std::int32_t> ClientProxy::GetRemoteSafeToDisconnectVersion(
     absl::string_view endpoint_id) const {
   MutexLock lock(&mutex_);
@@ -1655,6 +1681,7 @@ std::string ClientProxy::Dump() {
                     ? location::nearby::connections::OsInfo::OsType_Name(
                           it->second.first.os_info->type())
                     : "unknown")
+            << ", (remote device name) " << it->second.first.device_name
             << std::endl;
   }
 

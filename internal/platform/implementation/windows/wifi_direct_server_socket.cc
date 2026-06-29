@@ -14,7 +14,6 @@
 
 #include <windows.h>
 
-#include <exception>
 #include <memory>
 #include <string>
 #include <utility>

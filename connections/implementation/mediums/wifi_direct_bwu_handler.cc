@@ -54,6 +54,11 @@ WifiDirectBwuHandler::WifiDirectBwuHandler(
 std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
+  auto remote_device_name = client->GetRemoteDeviceName(endpoint_id);
+  WifiDirectCredentials* wifi_direct_crendential =
+      wifi_direct_medium_.GetCredentials(upgrade_service_id);
+  wifi_direct_crendential->SetRemoteDeviceName(remote_device_name);
+
   // Create WifiDirect GO
   if (!wifi_direct_medium_.StartWifiDirect()) {
     LOG(INFO) << "Failed to start Wifi Direct!";
@@ -82,7 +87,7 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Note: Credentials are not generated until Medium StartWifiDirect() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  WifiDirectCredentials* wifi_direct_crendential =
+  wifi_direct_crendential =
       wifi_direct_medium_.GetCredentials(upgrade_service_id);
   std::string ssid = wifi_direct_crendential->GetSSID();
   std::string password = wifi_direct_crendential->GetPassword();

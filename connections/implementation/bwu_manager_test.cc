@@ -1343,7 +1343,8 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_True) {
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_client(true);
   std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
+      /*supports_5_ghz=*/true);
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1390,7 +1391,8 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_False) {
   // Build the UpgradePathRequest frame where remote doesn't support GC
   location::nearby::connections::MediumRole remote_medium_role;
   std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
+      /*supports_5_ghz=*/true);
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1438,7 +1440,8 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_DynamicRoleSwitchDisabled) {
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_client(true);
   std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role);
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
+      /*supports_5_ghz=*/true);
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
