@@ -20,6 +20,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -91,11 +92,11 @@ class EndpointChannelManager final {
   // EndpointManager methods that use a channel are running, it is better to
   // have a shared ownership.
   std::shared_ptr<EndpointChannel> GetChannelForEndpoint(
-      const std::string& endpoint_id) ABSL_LOCKS_EXCLUDED(mutex_);
+      absl::string_view endpoint_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if 'endpoint_id' actually had a registered EndpointChannel.
   // IOW, a return of false signifies a no-op.
-  bool UnregisterChannelForEndpoint(const std::string& endpoint_id,
+  bool UnregisterChannelForEndpoint(absl::string_view endpoint_id,
                                     DisconnectionReason reason,
                                     SafeDisconnectionResult result)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -107,16 +108,17 @@ class EndpointChannelManager final {
   void UpdateSafeToDisconnectForEndpoint(const std::string& endpoint_id,
                                          bool safe_to_disconnect_enabled)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  void MarkEndpointStopWaitToDisconnect(const std::string& endpoint_id,
+  bool CreateNewTimeoutDisconnectedState(absl::string_view endpoint_id,
+                                         absl::Duration timeout_millis)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void MarkEndpointStopWaitToDisconnect(absl::string_view endpoint_id,
                                         bool is_safe_to_disconnect,
                                         bool notify_stop_waiting)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id,
-                                         absl::Duration timeout_millis)
+
+  bool IsSafeToDisconnect(absl::string_view endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool IsSafeToDisconnect(const std::string& endpoint_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  void RemoveTimeoutDisconnectedState(const std::string& endpoint_id)
+  void RemoveTimeoutDisconnectedState(absl::string_view endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -137,6 +139,13 @@ class EndpointChannelManager final {
 
       // True if we have a 'context' for the endpoint.
       bool IsEncrypted() const { return context != nullptr; }
+
+      void CreateNewTimeoutDisconnectedState(absl::Duration timeout_millis);
+      void MarkEndpointStopWaitToDisconnect(bool is_safe_to_disconnect,
+                                            bool notify_stop_waiting);
+      bool IsWaitingForSafeToDisconnectTimeout() const;
+      bool IsSafeToDisconnect() const;
+      void RemoveTimeoutDisconnectedState();
 
       std::shared_ptr<EndpointChannel> channel;
       std::shared_ptr<EncryptionContext> context;
@@ -160,27 +169,29 @@ class EndpointChannelManager final {
 
     // Provides a way to destroy contents of a container, while holding a lock.
     void DestroyAll();
+
     // Return pointer to endpoint data, or nullptr, it not found.
-    EndpointData* LookupEndpointData(const std::string& endpoint_id);
+    std::shared_ptr<EndpointData> GetEndpointData(
+        absl::string_view endpoint_id);
 
     // Stores a new EndpointChannel for the endpoint.
-    // Prevoius one is destroyed, if it existed.
+    // Previous one is destroyed, if it existed.
     void UpdateChannelForEndpoint(const std::string& endpoint_id,
                                   std::shared_ptr<EndpointChannel> channel);
 
     // Stores a new EncryptionContext for the endpoint.
-    // Prevoius one is destroyed, if it existed.
+    // Previous one is destroyed, if it existed.
     void UpdateEncryptionContextForEndpoint(
         const std::string& endpoint_id,
         std::unique_ptr<EncryptionContext> context);
 
     void UpdateSafeToDisconnectForEndpoint(const std::string& endpoint_id,
                                            bool safe_to_disconnect_enabled);
-    bool GetSafeToDisconnectForEndpoint(const std::string& endpoint_id);
+    bool GetSafeToDisconnectForEndpoint(absl::string_view endpoint_id);
 
     // Removes all knowledge of this endpoint, cleaning up as necessary.
     // Returns false if the endpoint was not found.
-    bool RemoveEndpoint(const std::string& endpoint_id,
+    bool RemoveEndpoint(absl::string_view endpoint_id,
                         DisconnectionReason reason,
                         bool safe_to_disconnect_enabled,
                         SafeDisconnectionResult result);
@@ -188,19 +199,17 @@ class EndpointChannelManager final {
     bool EncryptChannel(EndpointData* endpoint);
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
     bool isWifiLanConnected() const;
-    void MarkEndpointStopWaitToDisconnect(const std::string& endpoint_id,
+    void MarkEndpointStopWaitToDisconnect(absl::string_view endpoint_id,
                                           bool is_safe_to_disconnect,
                                           bool notify_stop_waiting);
-    bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id,
-                                           absl::Duration timeout_millis);
-    bool IsWaitingForSafeToDisconnectTimeout(const std::string& endpoint_id);
-    bool IsSafeToDisconnect(const std::string& endpoint_id);
-    void RemoveTimeoutDisconnectedState(const std::string& endpoint_id);
+    bool IsWaitingForSafeToDisconnectTimeout(absl::string_view endpoint_id);
+    bool IsSafeToDisconnect(absl::string_view endpoint_id);
+    void RemoveTimeoutDisconnectedState(absl::string_view endpoint_id);
 
    private:
     // Endpoint ID -> EndpointData. Contains everything we know about the
     // endpoint.
-    absl::flat_hash_map<std::string, EndpointData> endpoints_;
+    absl::flat_hash_map<std::string, std::shared_ptr<EndpointData>> endpoints_;
   };
 
   void SetActiveEndpointChannel(ClientProxy* client,
@@ -210,7 +219,7 @@ class EndpointChannelManager final {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;
-  ChannelState channel_state_;
+  ChannelState channel_state_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby::connections
