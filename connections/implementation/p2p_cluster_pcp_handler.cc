@@ -1238,8 +1238,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
             std::string(service_id),
             absl::bind_front(
                 &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
-                client_proxy, local_endpoint_id,
-                options.listening_endpoint_type));
+                client_proxy, options.listening_endpoint_type));
     if (bluetooth_result.has_error()) {
       LOG(WARNING)
           << "Failed to start listening for incoming connections on Bluetooth";
@@ -1266,8 +1265,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
               std::string(service_id),
               absl::bind_front(
                   &P2pClusterPcpHandler::BleConnectionAcceptedHandler2, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
+                  client_proxy, options.listening_endpoint_type))) {
         LOG(WARNING) << "Failed to start listening for incoming L2CAP "
                         "connections on ble";
       } else {
@@ -1278,8 +1276,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
               std::string(service_id),
               absl::bind_front(
                   &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler,
-                  this, client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
+                  this, client_proxy, options.listening_endpoint_type))) {
         LOG(WARNING) << "Failed to start listening for incoming L2CAP "
                         "connections on ble";
       } else {
@@ -1295,8 +1292,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
               std::string(service_id),
               absl::bind_front(
                   &P2pClusterPcpHandler::BleConnectionAcceptedHandler2, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
+                  client_proxy, options.listening_endpoint_type))) {
         LOG(WARNING)
             << "Failed to start listening for incoming connections on ble_v2";
       } else {
@@ -1307,8 +1303,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
               std::string(service_id),
               absl::bind_front(
                   &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
+                  client_proxy, options.listening_endpoint_type))) {
         LOG(WARNING)
             << "Failed to start listening for incoming connections on ble";
       } else {
@@ -1327,7 +1322,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
         std::string(service_id),
         absl::bind_front(
             &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
-            client_proxy, local_endpoint_id, "",
+            client_proxy, std::string(local_endpoint_id),
             options.listening_endpoint_type));
     if (wifi_lan_result.has_error()) {
       LOG(WARNING)
@@ -1680,8 +1675,7 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
       restarted_mediums.push_back(AWDL);
       operation_result_with_mediums.push_back(
           GetOperationResultWithMediumByResultCode(
-              client, AWDL, update_index,
-              OperationResultCode::DETAIL_SUCCESS));
+              client, AWDL, update_index, OperationResultCode::DETAIL_SUCCESS));
     } else {
       ErrorOr<Medium> awdl_result =
           StartAwdlDiscovery(client, std::string(service_id));
@@ -1739,15 +1733,8 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
 }
 
 void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, const std::string& service_id,
-    BluetoothSocket socket) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
+    ClientProxy* client, NearbyDevice::Type device_type,
+    const std::string& service_id, BluetoothSocket socket) {
   RunOnPcpHandlerThread(
       "p2p-bt-on-incoming-connection",
       [this, client, service_id, socket = std::move(socket), device_type]()
@@ -1782,8 +1769,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBluetoothAdvertising(
           service_id,
           absl::bind_front(
               &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
-              client, local_endpoint_info.AsStringView(),
-              NearbyDevice::Type::kConnectionsDevice));
+              client, NearbyDevice::Type::kConnectionsDevice));
       if (accept_result.has_error()) {
         error = {Error(accept_result.error().operation_result_code().value())};
       }
@@ -1987,15 +1973,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 }
 
 void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, BleSocket socket,
+    ClientProxy* client, NearbyDevice::Type device_type, BleSocket socket,
     const std::string& service_id) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
   RunOnPcpHandlerThread(
       "p2p-ble-on-incoming-connection",
       [this, client, service_id, device_type,
@@ -2010,15 +1989,8 @@ void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
 }
 
 void P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, BleL2capSocket socket,
+    ClientProxy* client, NearbyDevice::Type device_type, BleL2capSocket socket,
     const std::string& service_id) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept L2CAP callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
   RunOnPcpHandlerThread(
       "p2p-ble-l2cap-on-incoming-connection",
       [this, client, service_id, device_type,
@@ -2033,15 +2005,8 @@ void P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler(
 }
 
 void P2pClusterPcpHandler::BleConnectionAcceptedHandler2(
-    ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, std::unique_ptr<mediums::BleSocket> socket,
-    const std::string& service_id) {
-  if (socket == nullptr || !socket->IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
+    ClientProxy* client, NearbyDevice::Type device_type,
+    std::unique_ptr<mediums::BleSocket> socket, const std::string& service_id) {
   RunOnPcpHandlerThread(
       "p2p-ble-on-incoming-connection",
       [this, client, service_id, device_type, socket = std::move(socket)]()
@@ -2101,15 +2066,13 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
             service_id,
             absl::bind_front(
                 &P2pClusterPcpHandler::BleConnectionAcceptedHandler2, this,
-                client, local_endpoint_info.AsStringView(),
-                NearbyDevice::Type::kConnectionsDevice));
+                client, NearbyDevice::Type::kConnectionsDevice));
       } else {
         ble_l2cap_result = ble_medium_.StartAcceptingL2capConnections(
             service_id,
             absl::bind_front(
                 &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler, this,
-                client, local_endpoint_info.AsStringView(),
-                NearbyDevice::Type::kConnectionsDevice));
+                client, NearbyDevice::Type::kConnectionsDevice));
       }
     }
 
@@ -2118,13 +2081,13 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
       ble_result = ble_medium_.StartAcceptingConnections(
           service_id,
           absl::bind_front(&P2pClusterPcpHandler::BleConnectionAcceptedHandler2,
-                           this, client, local_endpoint_info.AsStringView(),
+                           this, client,
                            NearbyDevice::Type::kConnectionsDevice));
     } else {
       ble_result = ble_medium_.StartAcceptingConnections(
           service_id,
           absl::bind_front(&P2pClusterPcpHandler::BleConnectionAcceptedHandler,
-                           this, client, local_endpoint_info.AsStringView(),
+                           this, client,
                            NearbyDevice::Type::kConnectionsDevice));
     }
     if (ble_result.has_error() && ble_l2cap_result.has_error()) {
@@ -2169,8 +2132,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
           service_id,
           absl::bind_front(
               &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
-              client, local_endpoint_info.AsStringView(),
-              NearbyDevice::Type::kConnectionsDevice));
+              client, NearbyDevice::Type::kConnectionsDevice));
       if (accept_result.has_error()) {
         LOG(WARNING)
             << "In BT StartBleAdvertising("
@@ -2430,23 +2392,16 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 }
 
 void P2pClusterPcpHandler::AwdlConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_id,
-    absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
-    const std::string& service_id, AwdlSocket socket) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
+    ClientProxy* client, const std::string& local_endpoint_id,
+    NearbyDevice::Type device_type, const std::string& service_id,
+    AwdlSocket socket) {
   RunOnPcpHandlerThread(
       "p2p-awdl-on-incoming-connection",
       [this, client, local_endpoint_id, service_id, device_type,
        socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        std::string remote_service_name = std::string(local_endpoint_id);
         auto channel = std::make_unique<AwdlEndpointChannel>(
-            service_id, /*channel_name=*/remote_service_name, socket);
-        ByteArray remote_service_name_byte{remote_service_name};
+            service_id, /*channel_name=*/local_endpoint_id, socket);
+        ByteArray remote_service_name_byte{local_endpoint_id};
 
         OnIncomingConnection(client, remote_service_name_byte,
                              std::move(channel), AWDL, device_type);
@@ -2454,23 +2409,16 @@ void P2pClusterPcpHandler::AwdlConnectionAcceptedHandler(
 }
 
 void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_id,
-    absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
-    const std::string& service_id, WifiLanSocket socket) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
+    ClientProxy* client, const std::string& local_endpoint_id,
+    NearbyDevice::Type device_type, const std::string& service_id,
+    WifiLanSocket socket) {
   RunOnPcpHandlerThread(
       "p2p-wifi-on-incoming-connection",
       [this, client, local_endpoint_id, service_id, device_type,
        socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        std::string remote_service_name = std::string(local_endpoint_id);
         auto channel = std::make_unique<WifiLanEndpointChannel>(
-            service_id, /*channel_name=*/remote_service_name, socket);
-        ByteArray remote_service_name_byte{remote_service_name};
+            service_id, /*channel_name=*/local_endpoint_id, socket);
+        ByteArray remote_service_name_byte{local_endpoint_id};
 
         OnIncomingConnection(client, remote_service_name_byte,
                              std::move(channel), WIFI_LAN, device_type);
@@ -2490,7 +2438,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlAdvertising(
         service_id,
         absl::bind_front(&P2pClusterPcpHandler::AwdlConnectionAcceptedHandler,
                          this, client, local_endpoint_id,
-                         local_endpoint_info.AsStringView(),
                          NearbyDevice::Type::kConnectionsDevice));
     if (awdl_result.has_error()) {
       LOG(WARNING)
@@ -2608,7 +2555,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
       service_id, nsd_service_info,
       absl::bind_front(&P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler,
                        this, client, local_endpoint_id,
-                       local_endpoint_info.AsStringView(),
                        NearbyDevice::Type::kConnectionsDevice));
   if (wifi_lan_result.has_error()) {
     LOG(WARNING) << "In StartWifiLanAdvertising("

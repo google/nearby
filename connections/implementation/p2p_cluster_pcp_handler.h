@@ -40,10 +40,13 @@
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
+#include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
+#include "connections/implementation/wifi_lan_service_info.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
 #include "connections/power_level.h"
@@ -54,13 +57,10 @@
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/nsd_service_info.h"
-#include "internal/platform/wifi_lan.h"
-#include "connections/implementation/mediums/webrtc.h"
-#include "connections/implementation/pcp.h"
-#include "connections/implementation/wifi_lan_service_info.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
@@ -192,7 +192,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                   const std::string& service_id,
                                   BluetoothDevice& device);
   void BluetoothConnectionAcceptedHandler(ClientProxy* client,
-                                          absl::string_view local_endpoint_info,
                                           NearbyDevice::Type device_type,
                                           const std::string& service_id,
                                           BluetoothSocket socket);
@@ -232,19 +231,16 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                              bool fast_advertisement);
   void BleLegacyDeviceDiscoveredHandler();
   void BleConnectionAcceptedHandler(ClientProxy* client,
-                                    absl::string_view local_endpoint_info,
                                     NearbyDevice::Type device_type,
                                     BleSocket socket,
                                     const std::string& service_id);
   void BleL2capConnectionAcceptedHandler(ClientProxy* client,
-                                         absl::string_view local_endpoint_info,
                                          NearbyDevice::Type device_type,
                                          BleL2capSocket socket,
                                          const std::string& service_id);
   // The refactor version of BleConnectionAcceptedHandler() and
   // BleL2capConnectionAcceptedHandler above.
   void BleConnectionAcceptedHandler2(ClientProxy* client,
-                                     absl::string_view local_endpoint_info,
                                      NearbyDevice::Type device_type,
                                      std::unique_ptr<mediums::BleSocket> socket,
                                      const std::string& service_id);
@@ -265,8 +261,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void AwdlServiceLostHandler(ClientProxy* client, NsdServiceInfo service_info,
                               const std::string& service_id);
   void AwdlConnectionAcceptedHandler(ClientProxy* client,
-                                     absl::string_view local_endpoint_id,
-                                     absl::string_view local_endpoint_info,
+                                     const std::string& local_endpoint_id,
                                      NearbyDevice::Type device_type,
                                      const std::string& service_id,
                                      AwdlSocket socket);
@@ -290,8 +285,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                  NsdServiceInfo service_info,
                                  const std::string& service_id);
   void WifiLanConnectionAcceptedHandler(ClientProxy* client,
-                                        absl::string_view local_endpoint_id,
-                                        absl::string_view local_endpoint_info,
+                                        const std::string& local_endpoint_id,
                                         NearbyDevice::Type device_type,
                                         const std::string& service_id,
                                         WifiLanSocket socket);
