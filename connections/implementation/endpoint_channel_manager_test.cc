@@ -302,8 +302,8 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   ecm_b.ReplaceChannelForEndpoint(&proxy_b, std::string(kEndpointId),
                                   std::move(channel_b), false);
 
-  EXPECT_EQ(channel_a_raw->GetType(), "BLUETOOTH");
-  EXPECT_EQ(channel_b_raw->GetType(), "BLUETOOTH");
+  EXPECT_EQ(channel_a_raw->GetType(), "ENCRYPTED_BLUETOOTH");
+  EXPECT_EQ(channel_b_raw->GetType(), "ENCRYPTED_BLUETOOTH");
 
   // Shutdown test environment.
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
