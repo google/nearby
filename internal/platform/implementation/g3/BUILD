@@ -193,7 +193,6 @@ cc_library(
         "//internal/data:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
-        "//internal/preferences:__subpackages__",
         "//internal/proto/analytics:__subpackages__",
         "//internal/weave:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
