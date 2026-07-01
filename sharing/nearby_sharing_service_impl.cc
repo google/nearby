@@ -44,6 +44,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
@@ -2350,6 +2351,15 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
       if (!nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete()
                .empty()) {
         LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
+      }
+    }
+    // If backup session, update last backup time in preference.
+    if (session.session_usage() == ShareSessionUsage::kFileSync) {
+      if (session.certificate()) {
+        sync_manager_.SetSyncConfigBackupTime(
+            session.certificate()->binding_id(),
+            metadata.status() == TransferMetadata::Status::kComplete,
+            absl::Now());
       }
     }
   } else if (metadata.status() ==
