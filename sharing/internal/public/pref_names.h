@@ -58,10 +58,18 @@ class PrefNames {
   // Binding configs preferences are stored in pref keys:
   //   kBindingConfigPrefix + <service_name>
   // Example: "nearby_sharing.binding_config.FileSync"
-  // TODO: b/485304482 - define data format for binding configs.
+  // For FileSync service, data stored in binding config prefs is a
+  // nearby::sharing::sync::SyncBindingPrefs proto.
   static constexpr absl::string_view kBindingConfigPrefix =
       "nearby_sharing.binding_config.";
-};
+
+  // Sync configs preferences are stored in pref keys:
+  //   kSyncConfigPrefix + <binding ID>
+  // Example: "nearby_sharing.sync_config.01243347-2343-4324-3423-432432432432"
+  // Data stored in sync config prefs is a
+  // nearby::sharing::sync::SyncConfigPrefs proto.
+  static constexpr absl::string_view kSyncConfigPrefix =
+      "nearby_sharing.sync_config.";};
 
 }  // namespace nearby::sharing
 
