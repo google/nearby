@@ -112,7 +112,8 @@ class EndpointManager::LockedFrameProcessor {
 void EndpointManager::EndpointChannelLoopRunnable(
     const std::string& runnable_name, ClientProxy* client,
     const std::string& endpoint_id,
-    absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler) {
+    absl::AnyInvocable<ExceptionOr<bool>(std::shared_ptr<EndpointChannel>)>
+        handler) {
   // EndpointChannelManager will not let multiple channels exist simultaneously
   // for the same endpoint_id; it will be closing "old" channels as new ones
   // come.
@@ -143,7 +144,7 @@ void EndpointManager::EndpointChannelLoopRunnable(
       break;
     }
 
-    ExceptionOr<bool> keep_using_channel = handler(channel.get());
+    ExceptionOr<bool> keep_using_channel = handler(channel);
 
     if (!keep_using_channel.ok()) {
       Exception exception = keep_using_channel.GetException();
@@ -195,7 +196,7 @@ void EndpointManager::EndpointChannelLoopRunnable(
 }
 
 ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
-    const ByteArray& data, EndpointChannel* endpoint_channel) {
+    const ByteArray& data, std::shared_ptr<EndpointChannel> endpoint_channel) {
   auto start_time = SystemClock::ElapsedRealtime();
   while (true) {
     ExceptionOr<ByteArray> decrypted = endpoint_channel->TryDecrypt(data);
@@ -222,7 +223,7 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
 
 ExceptionOr<bool> EndpointManager::HandleData(
     const std::string& endpoint_id, ClientProxy* client,
-    EndpointChannel* endpoint_channel) {
+    std::shared_ptr<EndpointChannel> endpoint_channel) {
   bool try_decrypting = !endpoint_channel->IsEncrypted();
   // Read as much as we can from the healthy EndpointChannel - when it is no
   // longer in good shape (i.e. our read from it throws an Exception), our
@@ -317,7 +318,7 @@ ExceptionOr<bool> EndpointManager::HandleData(
 
 void EndpointManager::ProcessDisconnectionFrame(
     ClientProxy* client, const std::string& endpoint_id,
-    EndpointChannel* endpoint_channel, OfflineFrame& frame) {
+    std::shared_ptr<EndpointChannel> endpoint_channel, OfflineFrame& frame) {
   if (!client->IsSafeToDisconnectEnabled(endpoint_id)) {
     LOG(INFO) << "EndpointManager received a DISCONNECTION frame from endpoint "
               << endpoint_id << " on channel " << endpoint_channel->GetType()
@@ -371,9 +372,9 @@ void EndpointManager::ProcessDisconnectionFrame(
 }
 
 ExceptionOr<bool> EndpointManager::HandleKeepAlive(
-    EndpointChannel* endpoint_channel, absl::Duration keep_alive_interval,
-    absl::Duration keep_alive_timeout, Mutex* keep_alive_waiter_mutex,
-    ConditionVariable* keep_alive_waiter) {
+    std::shared_ptr<EndpointChannel> endpoint_channel,
+    absl::Duration keep_alive_interval, absl::Duration keep_alive_timeout,
+    Mutex* keep_alive_waiter_mutex, ConditionVariable* keep_alive_waiter) {
   // Check if it has been too long since we received a frame from our endpoint.
   absl::Time last_read_time = endpoint_channel->GetLastReadTimestamp();
   absl::Duration duration_until_timeout =
@@ -578,7 +579,8 @@ void EndpointManager::RegisterEndpoint(
     endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
       EndpointChannelLoopRunnable(
           "Read", client, endpoint_id,
-          [this, client, endpoint_id](EndpointChannel* channel) {
+          [this, client,
+           endpoint_id](std::shared_ptr<EndpointChannel> channel) {
             return HandleData(endpoint_id, client, channel);
           });
     });
@@ -605,7 +607,7 @@ void EndpointManager::RegisterEndpoint(
               "KeepAliveManager", client, endpoint_id,
               [this, keep_alive_interval, keep_alive_timeout,
                keep_alive_waiter_mutex,
-               keep_alive_waiter](EndpointChannel* channel) {
+               keep_alive_waiter](std::shared_ptr<EndpointChannel> channel) {
                 return HandleKeepAlive(
                     channel, keep_alive_interval, keep_alive_timeout,
                     keep_alive_waiter_mutex, keep_alive_waiter);
@@ -745,8 +747,8 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
       SafeDisconnectionResult::kSafeDisconnection;
 
   // Grab the service ID before we destroy the channel.
-  EndpointChannel* channel =
-      channel_manager_->GetChannelForEndpoint(endpoint_id).get();
+  std::shared_ptr<EndpointChannel> channel =
+      channel_manager_->GetChannelForEndpoint(endpoint_id);
   std::string service_id =
       channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
 
@@ -784,9 +786,10 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
   RemoveEndpointState(endpoint_id);
 }
 
-bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
-                                            EndpointChannel* endpoint_channel,
-                                            DisconnectionReason reason) {
+bool EndpointManager::ApplySafeToDisconnect(
+    const std::string& endpoint_id,
+    std::shared_ptr<EndpointChannel> endpoint_channel,
+    DisconnectionReason reason) {
   LOG(INFO) << "[safe-to-disconnect] ApplySafeToDisconnect reason: " << reason;
   // TODO(b/303544913): clean up the safe-to-disconnect logic
   bool is_safe_disconnection = false;

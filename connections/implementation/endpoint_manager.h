@@ -229,15 +229,14 @@ class EndpointManager {
   LockedFrameProcessor GetFrameProcessor(
       location::nearby::connections::V1Frame::FrameType frame_type);
 
-  ExceptionOr<bool> HandleData(const std::string& endpoint_id,
-                               ClientProxy* client_proxy,
-                               EndpointChannel* endpoint_channel);
+  ExceptionOr<bool> HandleData(
+      const std::string& endpoint_id, ClientProxy* client_proxy,
+      std::shared_ptr<EndpointChannel> endpoint_channel);
 
-  ExceptionOr<bool> HandleKeepAlive(EndpointChannel* endpoint_channel,
-                                    absl::Duration keep_alive_interval,
-                                    absl::Duration keep_alive_timeout,
-                                    Mutex* keep_alive_waiter_mutex,
-                                    ConditionVariable* keep_alive_waiter);
+  ExceptionOr<bool> HandleKeepAlive(
+      std::shared_ptr<EndpointChannel> endpoint_channel,
+      absl::Duration keep_alive_interval, absl::Duration keep_alive_timeout,
+      Mutex* keep_alive_waiter_mutex, ConditionVariable* keep_alive_waiter);
 
   // Waits for a given endpoint EndpointChannelLoopRunnable() workers to
   // terminate.
@@ -249,7 +248,8 @@ class EndpointManager {
   void EndpointChannelLoopRunnable(
       const std::string& runnable_name, ClientProxy* client_proxy,
       const std::string& endpoint_id,
-      absl::AnyInvocable<ExceptionOr<bool>(EndpointChannel*)> handler);
+      absl::AnyInvocable<ExceptionOr<bool>(std::shared_ptr<EndpointChannel>)>
+          handler);
 
   static void WaitForLatch(const std::string& method_name,
                            CountDownLatch* latch);
@@ -265,7 +265,7 @@ class EndpointManager {
   void RemoveEndpoint(ClientProxy* client, const std::string& endpoint_id,
                       bool notify, DisconnectionReason reason);
   bool ApplySafeToDisconnect(const std::string& endpoint_id,
-                             EndpointChannel* endpoint_channel,
+                             std::shared_ptr<EndpointChannel> endpoint_channel,
                              DisconnectionReason reason);
   void WaitForEndpointDisconnectionProcessing(ClientProxy* client,
                                               const std::string& service_id,
@@ -273,7 +273,7 @@ class EndpointManager {
                                               DisconnectionReason reason);
   void ProcessDisconnectionFrame(
       ClientProxy* client, const std::string& endpoint_id,
-      EndpointChannel* endpoint_channel,
+      std::shared_ptr<EndpointChannel> endpoint_channel,
       location::nearby::connections::OfflineFrame& frame);
   CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
       ClientProxy* client, const std::string& service_id,
@@ -287,8 +287,8 @@ class EndpointManager {
   // Executes all jobs sequentially, on a serial_executor_.
   void RunOnEndpointManagerThread(const std::string& name, Runnable runnable);
 
-  ExceptionOr<OfflineFrame> TryDecryptFrame(const ByteArray& data,
-                                            EndpointChannel* endpoint_channel);
+  ExceptionOr<OfflineFrame> TryDecryptFrame(
+      const ByteArray& data, std::shared_ptr<EndpointChannel> endpoint_channel);
   EndpointChannelManager* channel_manager_;
 
   RecursiveMutex frame_processors_lock_;
