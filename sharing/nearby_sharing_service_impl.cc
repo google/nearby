@@ -2352,6 +2352,15 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
         LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
       }
     }
+    // If backup session, update last backup time in preference.
+    if (session.session_usage() == ShareSessionUsage::kFileSync) {
+      if (session.certificate()) {
+        sync_manager_.SetSyncConfigBackupTime(
+            session.certificate()->binding_id(),
+            metadata.status() == TransferMetadata::Status::kComplete,
+            context_->GetClock()->Now());
+      }
+    }
   } else if (metadata.status() ==
              TransferMetadata::Status::kAwaitingLocalConfirmation) {
     OnTransferStarted(/*is_incoming=*/true);
