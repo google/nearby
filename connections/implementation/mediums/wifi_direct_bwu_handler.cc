@@ -160,9 +160,11 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
   wifi_direct_credentials.SetFrequency(freq);
 
   if (ssid.empty()) {
-  LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
-            << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
-            << ",  Gateway: " << gateway << ", Frequency: " << freq;
+    LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
+              << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
+              << ",  Gateway: " << gateway;
+    LOG(INFO) << "Update frequency of the P2P Group for WIFI_DIRECT to "
+              << freq;
   } else {
     LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
               << ",  Password: " << masker::Mask(password)
