@@ -128,13 +128,13 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   absl::flat_hash_set<FilePath> GetUnknownFilePathsToDelete();
 
   std::optional<std::weak_ptr<PayloadStatusListener>> GetStatusListenerForId(
-      int64_t payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
+      int64_t payload_id) const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   NearbyConnectionImpl* GetConnectionForId(absl::string_view endpoint_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void RemoveStatusListenerForPayloadId(int64_t payload_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void Reset();
 

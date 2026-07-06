@@ -821,7 +821,6 @@ void NearbyConnectionsManagerImpl::DeleteUnknownFilePayloadAndCancel(
 std::optional<
     std::weak_ptr<NearbyConnectionsManagerImpl::PayloadStatusListener>>
 NearbyConnectionsManagerImpl::GetStatusListenerForId(int64_t payload_id) const {
-  MutexLock lock(&mutex_);
   auto listener_it = payload_status_listeners_.find(payload_id);
   if (listener_it == payload_status_listeners_.end()) {
     return std::nullopt;
@@ -840,12 +839,12 @@ NearbyConnectionImpl* NearbyConnectionsManagerImpl::GetConnectionForId(
 
 void NearbyConnectionsManagerImpl::RemoveStatusListenerForPayloadId(
     int64_t payload_id) {
-  MutexLock lock(&mutex_);
   payload_status_listeners_.erase(payload_id);
 }
 
 void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
     absl::string_view endpoint_id, const PayloadTransferUpdate& update) {
+  MutexLock lock(&mutex_);
   VLOG(1) << "Received payload transfer update id=" << update.payload_id
           << ",status=" << PayloadStatusToString(update.status)
           << ",total=" << update.total_bytes
@@ -879,16 +878,21 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
   // If this is an incoming payload that we have not registered for, then
   // we'll treat it as a control frame (e.g. IntroductionFrame) and
   // forward it to the associated NearbyConnection.
-  auto payload = GetIncomingPayload(update.payload_id);
-  if (payload == nullptr) return;
+  if (update.status == PayloadStatus::kInProgress) {
+    return;
+  }
+
+  auto node = incoming_payloads_.extract(update.payload_id);
+  if (node.empty()) return;
 
   if (update.status != PayloadStatus::kSuccess) return;
 
-  NearbyConnectionImpl* connection = GetConnectionForId(endpoint_id);
-  if (connection == nullptr) return;
+  auto connection_it = connections_.find(endpoint_id);
+  if (connection_it == connections_.end()) return;
 
   VLOG(1) << "Writing incoming byte message to NearbyConnection.";
-  connection->WriteMessage(payload->content.bytes_payload.bytes);
+  connection_it->second->WriteMessage(
+      std::move(node.mapped().content.bytes_payload.bytes));
 }
 
 void NearbyConnectionsManagerImpl::Reset() {
