@@ -247,6 +247,7 @@ class BleMedium : public api::ble::BleMedium {
   GNSPeripheralManager *socketPeripheralManager_;
 
   absl::Mutex scanning_mutex_;
+  std::vector<Uuid> scanning_service_uuids_ ABSL_GUARDED_BY(scanning_mutex_);
   GNSCentralManager *socketCentralManager_ ABSL_GUARDED_BY(scanning_mutex_);
 
   // Used for the blocking version of StartAdvertising and only has an advertisement found callback.

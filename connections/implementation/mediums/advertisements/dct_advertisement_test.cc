@@ -113,5 +113,10 @@ TEST(DctAdvertisementTest, ParseData) {
   EXPECT_EQ(dct_advertisement->GetPsm(), 192);
 }
 
+TEST(DctAdvertisementTest, ParseWithEmptyDeviceInformationDataElement) {
+  std::string data = std::string("\x20\x25\0\0\x24\0\0\x07", 8);
+  EXPECT_FALSE(DctAdvertisement::Parse(data).has_value());
+}
+
 }  // namespace
 }  // namespace nearby::connections::advertisements::ble

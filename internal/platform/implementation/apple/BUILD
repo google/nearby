@@ -214,6 +214,7 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Peripheral",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",

@@ -66,8 +66,7 @@ constexpr absl::Duration kAdvertisementHeaderExpiry = absl::Seconds(15);
 // Private c'tor for testing.
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available, bool start_fetch_executor)
-    : is_extended_advertisement_available_(
-          is_extended_advertisement_available),
+    : is_extended_advertisement_available_(is_extended_advertisement_available),
       start_fetch_executor_(start_fetch_executor) {}
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
@@ -75,9 +74,7 @@ DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     : DiscoveredPeripheralTracker(is_extended_advertisement_available,
                                   /*start_fetch_executor=*/true) {}
 
-DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
-  Shutdown();
-}
+DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() { Shutdown(); }
 
 void DiscoveredPeripheralTracker::StartFetchExecutorIfNeeded() {
   if (executor_ != nullptr) {
@@ -199,7 +196,8 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
-  if (advertisement_data.service_data.contains(bleutils::kDctServiceUuid)) {
+  if (!dct_service_id_hash_to_service_id_map_.empty() &&
+      advertisement_data.service_data.contains(bleutils::kDctServiceUuid)) {
     std::optional<BleAdvertisementData> dct_advertisement_data =
         HandleDctAdvertisement(advertisement_data);
 
@@ -749,15 +747,14 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   // support extended advertisement.
   if (!advertisement_header.IsSupportExtendedAdvertisement()) {
     for (auto& item : service_id_infos_) {
-      item.second.discovered_peripheral_callback
-          .legacy_device_discovered_cb();
+      item.second.discovered_peripheral_callback.legacy_device_discovered_cb();
     }
   }
 
   // Determine whether or not we need to read a fresh GATT advertisement.
   VLOG(1) << "Handle GATT advertisement header with hash "
           << absl::BytesToHexString(
-                  advertisement_header.GetAdvertisementHash().AsStringView())
+                 advertisement_header.GetAdvertisementHash().AsStringView())
           << " in thread";
 
   if (!ShouldReadRawAdvertisementFromServer(advertisement_header)) {
@@ -1015,7 +1012,7 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
     }
     if (!found_task) {
       LOG(WARNING) << "No task found, skip to fetch raw advertisement.";
-      continue;;
+      continue;
     }
 
     // Check if the task is expired.
@@ -1027,8 +1024,7 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
                          .AsStringView())
               << " is expired, skip to fetch raw advertisement.";
     } else {
-      FetchRawAdvertisementsInThread(task.peripheral,
-                                     task.advertisement_header,
+      FetchRawAdvertisementsInThread(task.peripheral, task.advertisement_header,
                                      std::move(task.advertisement_fetcher));
     }
     // Clear in progress header after the task is done.

@@ -129,7 +129,8 @@ std::optional<DctAdvertisement> DctAdvertisement::Parse(
     LOG(WARNING) << "Failed to read device information.";
     return std::nullopt;
   }
-  if (device_information->type() != kDataTypeDeviceInformation) {
+  if (device_information->type() != kDataTypeDeviceInformation ||
+      device_information->value().empty()) {
     LOG(WARNING) << "Invalid device information.";
     return std::nullopt;
   }
