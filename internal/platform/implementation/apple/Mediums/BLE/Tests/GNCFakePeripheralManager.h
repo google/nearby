@@ -47,6 +47,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** Expectation fulfilled when peripheral responds to a request with an error. */
 @property(nonatomic, readonly) XCTestExpectation *respondToRequestErrorExpectation;
 
+/** The last response result. */
+@property(nonatomic, assign) CBATTError lastResponseResult;
+
 /** Expectation fulfilled when peripheral unpublishes an L2CAP channel. */
 @property(nonatomic, readonly) XCTestExpectation *unpublishExpectation;
 
@@ -116,6 +119,20 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)simulatePeripheralManagerDidReceiveReadRequestForService:(CBUUID *)service
                                                   characteristic:(CBUUID *)characteristic;
+
+/**
+ * Simulates a read request event with an offset.
+ *
+ * Creates a fake read request with the given offset for the given service and characteristic UUIDs
+ * and calls the @c gnc_peripheralManager:didReceiveReadRequest: delegate method.
+ *
+ * @param service The service UUID of the characteristic to read from.
+ * @param characteristic The characteristic UUID to read from.
+ * @param offset The offset to read from.
+ */
+- (void)simulatePeripheralManagerDidReceiveReadRequestForService:(CBUUID *)service
+                                                  characteristic:(CBUUID *)characteristic
+                                                          offset:(NSUInteger)offset;
 
 @end
 

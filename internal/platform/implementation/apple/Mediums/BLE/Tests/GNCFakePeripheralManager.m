@@ -37,6 +37,9 @@
 // Keep a strong reference to the service.
 @property(readwrite, nonatomic) CBService *service;
 
+// Change property to readwrite for tests.
+@property(readwrite, nonatomic) NSUInteger offset;
+
 - (instancetype)initWithService:(CBUUID *)service characteristic:(CBUUID *)characteristic;
 
 @end
@@ -115,6 +118,7 @@ static const uint16_t kPSM = 192;
 }
 
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result {
+  self.lastResponseResult = result;
   if (result == CBATTErrorSuccess) {
     [_respondToRequestSuccessExpectation fulfill];
     return;
@@ -173,6 +177,15 @@ static const uint16_t kPSM = 192;
                                                   characteristic:(CBUUID *)characteristic {
   CBATTRequest *request = [[CBATTRequest alloc] initWithService:service
                                                  characteristic:characteristic];
+  [_peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
+}
+
+- (void)simulatePeripheralManagerDidReceiveReadRequestForService:(CBUUID *)service
+                                                  characteristic:(CBUUID *)characteristic
+                                                          offset:(NSUInteger)offset {
+  CBATTRequest *request = [[CBATTRequest alloc] initWithService:service
+                                                 characteristic:characteristic];
+  request.offset = offset;
   [_peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
 }
 

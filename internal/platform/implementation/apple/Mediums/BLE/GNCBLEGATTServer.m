@@ -357,6 +357,10 @@ static const int kMaxAdvertisementLengthOnIOS = 23;
     [_peripheralManager respondToRequest:request withResult:CBATTErrorAttributeNotFound];
     return;
   }
+  if (request.offset > value.length) {
+    [_peripheralManager respondToRequest:request withResult:CBATTErrorInvalidOffset];
+    return;
+  }
   request.value =
       [value subdataWithRange:NSMakeRange(request.offset, value.length - request.offset)];
   [_peripheralManager respondToRequest:request withResult:CBATTErrorSuccess];
