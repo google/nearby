@@ -43,7 +43,8 @@
 #include "internal/platform/mock_input_stream.h"
 #include "internal/platform/mock_output_stream.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/output_stream.h"
+#include "connections/implementation/service_id_constants.h"
+
 
 namespace nearby {
 
@@ -175,7 +176,9 @@ TEST_F(AwdlBwuHandlerTest, CreateUpgradedEndpointChannel_Success) {
         }
         return true;
       });
-  EXPECT_CALL(*awdl_medium_mock, StopDiscovery(_)).WillRepeatedly(Return(true));
+  EXPECT_CALL(*awdl_medium_mock, StopDiscovery(_))
+      .Times(1)
+      .WillRepeatedly(Return(true));
   EXPECT_CALL(*awdl_medium_mock, ConnectToService(_, _, _))
       .WillOnce(Return(ByMove(std::move(awdl_socket))));
 
@@ -191,6 +194,8 @@ TEST_F(AwdlBwuHandlerTest, CreateUpgradedEndpointChannel_Success) {
           path_info);
 
   EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(mediums_.GetAwdl().IsDiscovering(
+      WrapInitiatorUpgradeServiceId(kServiceId)));
 }
 
 TEST_F(AwdlBwuHandlerTest,

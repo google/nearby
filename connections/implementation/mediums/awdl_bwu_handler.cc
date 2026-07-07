@@ -182,6 +182,7 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
 
+  awdl_medium_.StopDiscovery(upgrade_service_id);
   return {std::move(channel)};
 }
 

@@ -248,6 +248,7 @@ cc_test(
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
         "//connections/implementation:offline_frames",
+        "//connections/implementation:service_id_constants",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
