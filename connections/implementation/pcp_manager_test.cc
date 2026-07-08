@@ -16,20 +16,27 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/simulation_user.h"
+#include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connection_result.h"
+#include "connections/v3/listeners.h"
+#include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
@@ -259,6 +266,188 @@ TEST_F(PcpManagerTest, TestUpdateDiscoveryFailsWithoutPcpHandler) {
   SimulationUser user_a(kDeviceA, selector);
   EXPECT_EQ(user_a.UpdateDiscoveryOptions(kServiceId).value,
             Status::Value::kOutOfOrderApiCall);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, TestUpdateAdvertisingFailsWithoutPcpHandler) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  EXPECT_EQ(user_a.GetPcpManager()
+                .UpdateAdvertisingOptions(&user_a.GetClientProxy(), kServiceId,
+                                          AdvertisingOptions{})
+                .value,
+            Status::Value::kOutOfOrderApiCall);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, TestAcceptConnectionReturnsEndpointUnknown) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  EXPECT_EQ(
+      user_a.GetPcpManager()
+          .AcceptConnection(&user_a.GetClientProxy(), "unknown_endpoint", {})
+          .value,
+      Status::Value::kEndpointUnknown);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, TestRejectConnectionReturnsEndpointUnknown) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  EXPECT_EQ(user_a.GetPcpManager()
+                .RejectConnection(&user_a.GetClientProxy(), "unknown_endpoint")
+                .value,
+            Status::Value::kEndpointUnknown);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, TestRequestConnectionReturnsEndpointUnknown) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  EXPECT_EQ(user_a.GetPcpManager()
+                .RequestConnection(&user_a.GetClientProxy(), "unknown_endpoint",
+                                   {}, {})
+                .value,
+            Status::Value::kEndpointUnknown);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, TestRequestConnectionV3ReturnsEndpointUnknown) {
+  BooleanMediumSelector selector;
+  selector.SetAll(true);
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+  auto remote_device = MockNearbyDevice();
+  EXPECT_CALL(remote_device, GetEndpointId)
+      .WillRepeatedly(Return("unknown_endpoint"));
+  EXPECT_EQ(
+      user_a.GetPcpManager()
+          .RequestConnectionV3(&user_a.GetClientProxy(), remote_device, {}, {})
+          .value,
+      Status::Value::kEndpointUnknown);
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, MixedTopologiesCorrectlyRouted) {
+  BooleanMediumSelector selector;
+  selector.wifi_lan = true;
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+
+  // Start advertising with kP2pStar
+  AdvertisingOptions advertising_options;
+  advertising_options.strategy = Strategy::kP2pStar;
+  advertising_options.allowed = selector;
+
+  ConnectionListener life_cycle_listener = {
+      .initiated_cb = [](const std::string&, const ConnectionResponseInfo&) {},
+      .accepted_cb = [](const std::string&) {},
+      .rejected_cb = [](const std::string&, const Status&) {},
+  };
+
+  EXPECT_TRUE(user_a.GetPcpManager()
+                  .StartAdvertising(
+                      &user_a.GetClientProxy(), kServiceId, advertising_options,
+                      {
+                          .endpoint_info = user_a.GetInfo(),
+                          .listener = std::move(life_cycle_listener),
+                      })
+                  .Ok());
+
+  EXPECT_TRUE(user_a.GetClientProxy().IsAdvertising());
+
+  // Start discovery with kP2pPointToPoint
+  DiscoveryOptions discovery_options;
+  discovery_options.strategy = Strategy::kP2pPointToPoint;
+  discovery_options.allowed = selector;
+
+  DiscoveryListener discovery_listener = {
+      .endpoint_found_cb = [](const std::string&, const ByteArray&,
+                              const std::string&) {},
+      .endpoint_lost_cb = [](const std::string&) {},
+  };
+
+  EXPECT_TRUE(user_a.GetPcpManager()
+                  .StartDiscovery(&user_a.GetClientProxy(), kServiceId,
+                                  discovery_options,
+                                  std::move(discovery_listener))
+                  .Ok());
+
+  EXPECT_TRUE(user_a.GetClientProxy().IsDiscovering());
+
+  // Stop advertising. Under the old code, this was misrouted and left
+  // IsAdvertising() as true.
+  user_a.GetPcpManager().StopAdvertising(&user_a.GetClientProxy());
+  EXPECT_FALSE(user_a.GetClientProxy().IsAdvertising());
+
+  // Stop discovery
+  user_a.GetPcpManager().StopDiscovery(&user_a.GetClientProxy());
+  EXPECT_FALSE(user_a.GetClientProxy().IsDiscovering());
+
+  env_.Stop();
+}
+
+TEST_F(PcpManagerTest, ListenAndDiscoverMixedTopologiesCorrectlyRouted) {
+  BooleanMediumSelector selector;
+  selector.wifi_lan = true;
+  env_.Start();
+  SimulationUser user_a(kDeviceA, selector);
+
+  // Start listening with kP2pStar
+  v3::ConnectionListeningOptions listening_options;
+  listening_options.strategy = Strategy::kP2pStar;
+
+  v3::ConnectionListener listener = {
+      .initiated_cb = [](const NearbyDevice&,
+                         const v3::InitialConnectionInfo&) {},
+      .result_cb = [](const NearbyDevice&, v3::ConnectionResult) {},
+      .disconnected_cb = [](const NearbyDevice&) {},
+  };
+
+  auto listening_result =
+      user_a.GetPcpManager().StartListeningForIncomingConnections(
+          &user_a.GetClientProxy(), kServiceId, std::move(listener),
+          listening_options);
+  EXPECT_TRUE(listening_result.first.Ok());
+  EXPECT_TRUE(user_a.GetClientProxy().IsListeningForIncomingConnections());
+
+  // Start discovery with kP2pPointToPoint
+  DiscoveryOptions discovery_options;
+  discovery_options.strategy = Strategy::kP2pPointToPoint;
+  discovery_options.allowed = selector;
+
+  DiscoveryListener discovery_listener = {
+      .endpoint_found_cb = [](const std::string&, const ByteArray&,
+                              const std::string&) {},
+      .endpoint_lost_cb = [](const std::string&) {},
+  };
+
+  EXPECT_TRUE(user_a.GetPcpManager()
+                  .StartDiscovery(&user_a.GetClientProxy(), kServiceId,
+                                  discovery_options,
+                                  std::move(discovery_listener))
+                  .Ok());
+
+  EXPECT_TRUE(user_a.GetClientProxy().IsDiscovering());
+
+  // Stop listening. Under the old code, this was misrouted and left
+  // IsListeningForIncomingConnections() as true.
+  user_a.GetPcpManager().StopListeningForIncomingConnections(
+      &user_a.GetClientProxy());
+  EXPECT_FALSE(user_a.GetClientProxy().IsListeningForIncomingConnections());
+
+  // Stop discovery
+  user_a.GetPcpManager().StopDiscovery(&user_a.GetClientProxy());
+  EXPECT_FALSE(user_a.GetClientProxy().IsDiscovering());
+
   env_.Stop();
 }
 
