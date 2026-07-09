@@ -1833,6 +1833,17 @@ void BasePcpHandler::OnEndpointFound(
     }
   }
 
+  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPreventCrossMediumRouting) &&
+      !is_range_empty) {
+    LOG(INFO) << "kPreventCrossMediumRouting is enabled; ignore new medium "
+              << location::nearby::proto::connections::Medium_Name(
+                     endpoint->medium)
+              << " for already discovered endpoint_id=" << endpoint_id;
+    return;
+  }
+
   owned_endpoint =
       discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
           ->second.get();
