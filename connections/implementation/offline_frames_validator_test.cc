@@ -836,5 +836,42 @@ TEST(OfflineFramesValidatorTest,
   EXPECT_FALSE(ret_value.Ok());
 }
 
+TEST(OfflineFramesValidatorTest,
+     PayloadTransferFrameExceededTotalSizeIsInvalid) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(10);
+  chunk.set_body("payload data that exceeds 10 bytes");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest, PayloadTransferFrameValidTotalSizeIsValid) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(20);
+  chunk.set_body("payload data");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+  EXPECT_TRUE(ret_value.Ok());
+}
+
 }  // namespace
 }  // namespace nearby::connections::parser

@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
+#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
@@ -58,7 +59,8 @@ PayloadTracker::PayloadTracker(
       continue;
     }
 
-    payload_state_.emplace(it->second, State(file.id(), file.size()));
+    payload_state_.emplace(
+        it->second, State(file.id(), Attachment::Family::kFile, file.size()));
     ++num_file_attachments_;
     total_transfer_size_ += file.size();
   }
@@ -72,7 +74,8 @@ PayloadTracker::PayloadTracker(
       continue;
     }
 
-    payload_state_.emplace(it->second, State(text.id(), text.size()));
+    payload_state_.emplace(
+        it->second, State(text.id(), Attachment::Family::kText, text.size()));
     ++num_text_attachments_;
     total_transfer_size_ += text.size();
   }
@@ -89,7 +92,9 @@ PayloadTracker::PayloadTracker(
     }
 
     payload_state_.emplace(
-        it->second, State(wifi_credentials.id(), wifi_credentials.size()));
+        it->second,
+        State(wifi_credentials.id(), Attachment::Family::kWifiCredentials,
+              wifi_credentials.size()));
     ++num_wifi_credentials_attachments_;
     total_transfer_size_ += wifi_credentials.size();
   }
@@ -114,6 +119,16 @@ std::optional<TransferMetadataBuilder> PayloadTracker::ProcessPayloadUpdate(
     return std::nullopt;
   }
   State& state = it->second;
+
+  // Reconcile sharing-layer consented size with NC-layer total_size.
+  if (state.family != Attachment::Family::kWifiCredentials &&
+      update->total_bytes > state.total_size) {
+    LOG(WARNING) << "Rejecting payload " << update->payload_id
+                 << ": NC total_size " << update->total_bytes
+                 << " exceeds consented size " << state.total_size;
+    update->status = PayloadStatus::kFailure;
+  }
+
   if (state.status != update->status) {
     state.status = update->status;
 
@@ -143,27 +158,30 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
     const State& state) {
   if (IsComplete()) {
     VLOG(1) << __func__ << ": All payloads are complete.";
-    return std::move(TransferMetadataBuilder()
-        .set_status(TransferMetadata::Status::kComplete)
-        .set_progress(100)
-        .set_total_attachments_count(payload_state_.size())
-        .set_transferred_attachments_count(transferred_attachments_count_));
+    return std::move(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kComplete)
+            .set_progress(100)
+            .set_total_attachments_count(payload_state_.size())
+            .set_transferred_attachments_count(transferred_attachments_count_));
   }
 
   if (IsCancelled(state)) {
     VLOG(1) << __func__ << ": Payloads cancelled.";
-    return std::move(TransferMetadataBuilder()
-        .set_status(TransferMetadata::Status::kCancelled)
-        .set_total_attachments_count(payload_state_.size())
-        .set_transferred_attachments_count(transferred_attachments_count_));
+    return std::move(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kCancelled)
+            .set_total_attachments_count(payload_state_.size())
+            .set_transferred_attachments_count(transferred_attachments_count_));
   }
 
   if (HasFailed(state)) {
     VLOG(1) << __func__ << ": Payloads failed.";
-    return std::move(TransferMetadataBuilder()
-        .set_status(TransferMetadata::Status::kFailed)
-        .set_total_attachments_count(payload_state_.size())
-        .set_transferred_attachments_count(transferred_attachments_count_));
+    return std::move(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kFailed)
+            .set_total_attachments_count(payload_state_.size())
+            .set_transferred_attachments_count(transferred_attachments_count_));
   }
 
   double percent = CalculateProgressPercent(state);
@@ -217,17 +235,19 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
 
   last_update_progress_ = current_progress;
 
-  return std::move(TransferMetadataBuilder()
-      .set_status(TransferMetadata::Status::kInProgress)
-      .set_progress(percent)
-      .set_transferred_bytes(current_transferred_size)
-      .set_transfer_speed(static_cast<uint64_t>(current_speed_))
-      .set_estimated_time_remaining(std::llround(estimated_time_remaining_))
-      .set_total_attachments_count(payload_state_.size())
-      .set_transferred_attachments_count(transferred_attachments_count_)
-      .set_in_progress_attachment_id(state.attachment_id)
-      .set_in_progress_attachment_total_bytes(state.total_size)
-      .set_in_progress_attachment_transferred_bytes(state.amount_transferred));
+  return std::move(
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kInProgress)
+          .set_progress(percent)
+          .set_transferred_bytes(current_transferred_size)
+          .set_transfer_speed(static_cast<uint64_t>(current_speed_))
+          .set_estimated_time_remaining(std::llround(estimated_time_remaining_))
+          .set_total_attachments_count(payload_state_.size())
+          .set_transferred_attachments_count(transferred_attachments_count_)
+          .set_in_progress_attachment_id(state.attachment_id)
+          .set_in_progress_attachment_total_bytes(state.total_size)
+          .set_in_progress_attachment_transferred_bytes(
+              state.amount_transferred));
 }
 
 bool PayloadTracker::IsComplete() const {
