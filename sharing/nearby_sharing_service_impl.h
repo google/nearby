@@ -281,7 +281,6 @@ class NearbySharingServiceImpl
   void InvalidateSendSurfaceState();
   void InvalidateScanningState();
   void InvalidateFastInitiationAdvertising();
-  void InvalidateReceiveSurfaceState();
   void InvalidateAdvertisingState();
   void StopAdvertising();
   void StartScanning();
@@ -546,6 +545,11 @@ class NearbySharingServiceImpl
   bool force_new_endpoint_id_ = false;
   OutgoingTargetsManager outgoing_targets_manager_;
   nearby::sharing::SyncManager sync_manager_;
+
+  // Visibility used for the last advertisement.
+  proto::DeviceVisibility last_advertised_device_visibility_ =
+      proto::DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED;
+  bool advertising_on_screen_locked_ = false;
 };
 
 }  // namespace nearby::sharing

@@ -687,7 +687,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           VLOG(1) << "[Call Identity API] ForceUploadPrivateCertificates.";
           certificate_manager_->ForceUploadPrivateCertificates();
         }
-        InvalidateReceiveSurfaceState();
+        InvalidateAdvertisingState();
         status_codes_callback(StatusCodes::kOk);
       });
 }
@@ -1864,7 +1864,7 @@ bool NearbySharingServiceImpl::HasAvailableConnectionMediums() {
 
 void NearbySharingServiceImpl::InvalidateSurfaceState() {
   InvalidateSendSurfaceState();
-  InvalidateReceiveSurfaceState();
+  InvalidateAdvertisingState();
 }
 
 void NearbySharingServiceImpl::InvalidateSendSurfaceState() {
@@ -1948,13 +1948,16 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
   StartFastInitiationAdvertising();
 }
 
-void NearbySharingServiceImpl::InvalidateReceiveSurfaceState() {
-  InvalidateAdvertisingState();
-}
-
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
-  // Do not advertise on lock screen unless Self Share is enabled.
-  if (is_screen_locked_) {
+  bool supports_advertising_on_lock_screen =
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kEnableBackup) &&
+      sync_manager_.HasSyncBindings();
+  DeviceVisibility visibility = settings_->GetVisibility();
+  // Do not advertise on lock screen unless Self Share is enabled, or Backup is
+  // enabled and there are existing SyncBindings.
+  if (is_screen_locked_ && !supports_advertising_on_lock_screen) {
     StopAdvertising();
     VLOG(1) << __func__
             << ": Stopping advertising because the screen is locked.";
@@ -1988,11 +1991,34 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
 
   // We should only advertise if the user has set the visibility to something
   // other than HIDDEN or UNSPECIFIED.
-  if (!IsVisibleInBackground(settings_->GetVisibility())) {
+  if (!IsVisibleInBackground(visibility)) {
     StopAdvertising();
     VLOG(1) << __func__
             << ": Stopping advertising because device is visible to NO_ONE.";
     return;
+  }
+
+  if (is_screen_locked_ && supports_advertising_on_lock_screen) {
+    if (visibility != DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE) {
+      VLOG(1) << __func__
+              << ": Restarting advertising to SELF_SHARE on lock screen.";
+      visibility = DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE;
+    }
+  }
+
+  bool need_to_restart_advertising = false;
+
+  // This is used to set up the PairedKeyVerificationRunner correctly on
+  // incoming connections.
+  advertising_on_screen_locked_ = is_screen_locked_;
+
+  if (last_advertised_device_visibility_ !=
+          DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED &&
+      visibility != last_advertised_device_visibility_) {
+    StopAdvertising();
+    need_to_restart_advertising = true;
+    VLOG(1) << __func__
+            << ": Restarting advertising because visibility has changed.";
   }
 
   PowerLevel power_level;
@@ -2001,16 +2027,15 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   } else {
     power_level = PowerLevel::kLowPower;
   }
-
   DataUsage data_usage = settings_->GetDataUsage();
-  if (advertising_power_level_ != PowerLevel::kUnknown) {
+  if (!need_to_restart_advertising &&
+      advertising_power_level_ != PowerLevel::kUnknown) {
     if (power_level == advertising_power_level_) {
       VLOG(1) << __func__ << ": Ignoring, already advertising with power level "
               << PowerLevelToString(advertising_power_level_)
               << " and data usage preference " << static_cast<int>(data_usage);
       return;
     }
-
     StopAdvertising();
     VLOG(1) << __func__ << ": Restart advertising with power level "
             << PowerLevelToString(power_level) << " and data usage preference "
@@ -2018,7 +2043,6 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   }
 
   std::optional<std::string> device_name;
-  DeviceVisibility visibility = settings_->GetVisibility();
   if (visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
     device_name = local_device_data_manager_->GetDeviceName();
   }
@@ -2062,11 +2086,13 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   force_new_endpoint_id_ = false;
 
   advertising_power_level_ = power_level;
+  last_advertised_device_visibility_ = visibility;
   VLOG(1) << __func__
           << ": StartAdvertising requested over Nearby Connections: "
           << " power level: " << PowerLevelToString(power_level)
+          << " screen locked: " << is_screen_locked_
           << " visibility: "
-          << DeviceVisibility_Name(settings_->GetVisibility())
+          << DeviceVisibility_Name(visibility)
           << " data usage: " << DataUsage_Name(data_usage)
           << " advertise device name?: "
           << (device_name.has_value() ? "yes" : "no");
@@ -2109,7 +2135,7 @@ void NearbySharingServiceImpl::StartScanning() {
   scanning_start_timestamp_ = context_->GetClock()->Now();
   share_foreground_send_surface_start_timestamp_ = absl::InfinitePast();
   is_scanning_ = true;
-  InvalidateReceiveSurfaceState();
+  InvalidateAdvertisingState();
 
   outgoing_targets_manager_.AllTargetsLost(
       Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
@@ -2491,6 +2517,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
           .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
+          .screen_locked_advertising = advertising_on_screen_locked_,
       },
       GetCertificateManager(),
       absl::bind_front(
