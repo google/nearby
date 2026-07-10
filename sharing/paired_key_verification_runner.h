@@ -51,6 +51,8 @@ class PairedKeyVerificationRunner
     proto::DeviceVisibility visibility;
     proto::DeviceVisibility last_visibility;
     absl::Time last_visibility_time;
+    // Set to true if device is advertising under lock screen.
+    bool screen_locked_advertising = false;
   };
 
   PairedKeyVerificationRunner(
@@ -85,10 +87,10 @@ class PairedKeyVerificationRunner
   void OnReadPairedKeyResultFrame(
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void SendPairedKeyResultFrame(PairedKeyVerificationResult result);
-  // Verifies auth token hash in frame using private certificate for visibility.
-  // Returns either kSuccess or kUnable.  This function never returns kFail.
-  PairedKeyVerificationResult VerifyAuthTokenHashWithPrivateCertificate(
-      proto::DeviceVisibility visibility,
+  // Verifies auth token hash in frame using private certificates in
+  // `visibility_history_`. Returns either kSuccess or kUnable.  This function
+  // never returns kFail.
+  PairedKeyVerificationResult VerifyAuthTokenHashWithPrivateCertificates(
       const nearby::sharing::service::proto::V1Frame& frame);
   PairedKeyVerificationResult VerifyPairedKeyEncryptionFrame(
       const nearby::sharing::service::proto::V1Frame& frame);

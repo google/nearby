@@ -126,9 +126,13 @@ GenerateVisibilityHistory() {
       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
   };
   std::list<PairedKeyVerificationRunner::VisibilityHistory> result;
-  for (DeviceVisibility visibility : kValidVisibilities) {
-    for (DeviceVisibility last_visibility : kValidVisibilities) {
-      result.push_back({visibility, last_visibility, absl::UnixEpoch()});
+  for (bool screen_locked_advertising : {true, false}) {
+    for (DeviceVisibility visibility : kValidVisibilities) {
+      for (DeviceVisibility last_visibility : kValidVisibilities) {
+        result.push_back(
+            {visibility, last_visibility, absl::UnixEpoch(),
+             screen_locked_advertising});
+      }
     }
   }
   return result;
@@ -476,10 +480,12 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
       std::get<2>(GetParam());
   PairedKeyVerificationRunner::PairedKeyVerificationResult result =
       params.result;
-  // If our visibility has no certificates, then downgrade expected result to
-  // kUnable if it is not expected to fail.
+  // If our visibility has no certificates (i.e. EVERYONE and not under lock
+  // screen), then downgrade expected result to kUnable if it is not expected to
+  // fail.
   if ((visibility_history.visibility ==
-       DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) &&
+           DeviceVisibility::DEVICE_VISIBILITY_EVERYONE &&
+       !visibility_history.screen_locked_advertising) &&
       !(visibility_history.last_visibility !=
             DeviceVisibility::DEVICE_VISIBILITY_EVERYONE &&
         (params.encryption_frame_type ==
@@ -511,7 +517,9 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
              << ", expected_result=" << (int)expected_result
              << ", result_frame=" << (int)result_frame.status()
              << ", visibility=" << (int)visibility_history.visibility
-             << ", last_visibility=" << (int)visibility_history.last_visibility;
+             << ", last_visibility=" << (int)visibility_history.last_visibility
+             << ", screen_locked_advertising="
+             << visibility_history.screen_locked_advertising;
 
   SetUpPairedKeyEncryptionFrame(params.encryption_frame_type);
   bool encryption_frame_timeout =

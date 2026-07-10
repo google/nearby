@@ -140,18 +140,8 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
                          OSType::UNKNOWN_OS_TYPE);
     return;
   }
-
   PairedKeyVerificationResult auth_token_hash_result =
-      VerifyAuthTokenHashWithPrivateCertificate(visibility_history_.visibility,
-                                                *frame);
-
-  if (auth_token_hash_result != PairedKeyVerificationResult::kSuccess) {
-    if (IsVisibilityRecentlyUpdated()) {
-      auth_token_hash_result = VerifyAuthTokenHashWithPrivateCertificate(
-          visibility_history_.last_visibility, *frame);
-    }
-  }
-
+      VerifyAuthTokenHashWithPrivateCertificates(*frame);
   if (auth_token_hash_result == PairedKeyVerificationResult::kUnable) {
     if (share_target_is_incoming_ &&
         visibility_history_.visibility !=
@@ -255,9 +245,18 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
       share_target_is_incoming_ ? kNearbyShareReceiverVerificationPrefix
                                 : kNearbyShareSenderVerificationPrefix,
       raw_token_);
+  DeviceVisibility primary_visibility;
+  DeviceVisibility secondary_visibility;
+  if (visibility_history_.screen_locked_advertising) {
+    primary_visibility = DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE;
+    secondary_visibility = visibility_history_.visibility;
+  } else {
+    primary_visibility = visibility_history_.visibility;
+    secondary_visibility = visibility_history_.last_visibility;
+  }
   std::optional<std::vector<uint8_t>> signature =
-      certificate_manager_.SignWithPrivateCertificate(
-          visibility_history_.visibility, padded_token);
+      certificate_manager_.SignWithPrivateCertificate(primary_visibility,
+                                                      padded_token);
   if (!signature.has_value() || signature->empty()) {
     signature = GenerateRandomBytes(kNearbyShareNumBytesRandomSignature);
   }
@@ -282,8 +281,8 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
     LOG(INFO)
         << "Attempts to sign authentication token with a previous private key.";
     std::optional<std::vector<uint8_t>> optional_signature =
-        certificate_manager_.SignWithPrivateCertificate(
-            visibility_history_.last_visibility, padded_token);
+        certificate_manager_.SignWithPrivateCertificate(secondary_visibility,
+                                                        padded_token);
 
     if (optional_signature.has_value()) {
       encryption_frame->set_optional_signed_data(optional_signature->data(),
@@ -297,22 +296,36 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationResult
-PairedKeyVerificationRunner::VerifyAuthTokenHashWithPrivateCertificate(
-    DeviceVisibility visibility,
+PairedKeyVerificationRunner::VerifyAuthTokenHashWithPrivateCertificates(
     const nearby::sharing::service::proto::V1Frame& frame) {
-  std::optional<std::vector<uint8_t>> hash =
-      certificate_manager_.HashAuthenticationTokenWithPrivateCertificate(
-          visibility, raw_token_);
-
   const std::string& frame_hash =
       frame.paired_key_encryption().secret_id_hash();
   std::vector<uint8_t> frame_hash_data{frame_hash.begin(), frame_hash.end()};
 
-  if (hash.has_value() && *hash == frame_hash_data) {
-    VLOG(1) << __func__ << ": Successfully verified remote public certificate.";
-    return PairedKeyVerificationResult::kSuccess;
+  std::vector<DeviceVisibility> visibilities_to_check;
+  // At most 3 visibilities to check.
+  visibilities_to_check.reserve(3);
+  // If we are advertising under lock screen then verify against self share
+  // private certificate first.
+  if (visibility_history_.screen_locked_advertising) {
+    visibilities_to_check.push_back(
+        DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   }
+  visibilities_to_check.push_back(visibility_history_.visibility);
+  if (IsVisibilityRecentlyUpdated()) {
+    visibilities_to_check.push_back(visibility_history_.last_visibility);
+  }
+  for (const auto& visibility : visibilities_to_check) {
+    std::optional<std::vector<uint8_t>> hash =
+        certificate_manager_.HashAuthenticationTokenWithPrivateCertificate(
+            visibility, raw_token_);
 
+    if (hash.has_value() && *hash == frame_hash_data) {
+      VLOG(1) << __func__
+              << ": Successfully verified remote public certificate.";
+      return PairedKeyVerificationResult::kSuccess;
+    }
+  }
   VLOG(1) << __func__ << ": Unable to verify remote public certificate.";
   return PairedKeyVerificationResult::kUnable;
 }
