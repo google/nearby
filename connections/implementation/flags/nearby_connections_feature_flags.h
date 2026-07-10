@@ -80,6 +80,11 @@ constexpr auto kEnableWifiDirect =
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
+// Enforces frame filtering on unconfirmed endpoints in EndpointManager and
+// BaseEndpointChannel so application payloads and upgrade requests are blocked
+// before connection acceptance.
+constexpr auto kFilterUnconfirmedEndpointFrames =
+    flags::Flag<bool>(kConfigPackage, "45813128", true);
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);

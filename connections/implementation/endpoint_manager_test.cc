@@ -94,6 +94,10 @@ class SetSafeToDisconnect {
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
         safe_to_disconnect_version);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kFilterUnconfirmedEndpointFrames,
+        false);
   }
 };
 
@@ -108,11 +112,11 @@ class EndpointManagerTest : public ::testing::Test {
  protected:
   void RegisterEndpoint(std::unique_ptr<MockEndpointChannel> channel,
                         bool should_close = true) {
-    CountDownLatch done(1);
+    auto done = std::make_shared<CountDownLatch>(1);
     if (should_close) {
       ON_CALL(*channel, Close(_))
           .WillByDefault(
-              [&done](DisconnectionReason reason) { done.CountDown(); });
+              [done](DisconnectionReason reason) { done->CountDown(); });
     }
     EXPECT_CALL(*channel, GetMedium()).WillRepeatedly(Return(Medium::BLE));
     EXPECT_CALL(*channel, GetLastReadTimestamp())
@@ -124,7 +128,7 @@ class EndpointManagerTest : public ::testing::Test {
                          connection_options_, std::move(channel), listener_,
                          connection_token_);
     if (should_close) {
-      EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
+      EXPECT_TRUE(done->Await(absl::Milliseconds(1000)).result());
     }
   }
   SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
@@ -426,6 +430,70 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
   em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
                              connect_request.get());
   processors_.emplace_back(std::move(connect_request));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest,
+       FilterUnconfirmedFrames_DiscardsPayloadBeforeConfirmation) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFilterUnconfirmedEndpointFrames,
+      true);
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(1024);
+  PayloadTransferFrame::PayloadChunk chunk;
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+  std::string payload_bytes = parser::ForDataPayloadTransfer(header, chunk);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  auto payload_processor = std::make_unique<MockFrameProcessor>();
+  EXPECT_CALL(*payload_processor, OnIncomingFrame).Times(0);
+  EXPECT_CALL(*payload_processor, OnEndpointDisconnect);
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(payload_bytes))))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  em_.RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                             payload_processor.get());
+  processors_.emplace_back(std::move(payload_processor));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest,
+       FilterUnconfirmedFrames_AllowsPayloadAfterConfirmation) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFilterUnconfirmedEndpointFrames,
+      true);
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(1024);
+  PayloadTransferFrame::PayloadChunk chunk;
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+  std::string payload_bytes = parser::ForDataPayloadTransfer(header, chunk);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  auto payload_processor = std::make_unique<MockFrameProcessor>();
+  EXPECT_CALL(mock_listener_.accepted_cb, Call).Times(1);
+  EXPECT_CALL(*payload_processor, OnIncomingFrame).Times(1);
+  EXPECT_CALL(*payload_processor, OnEndpointDisconnect);
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce([this, payload_bytes]() {
+        client_->OnConnectionAccepted(endpoint_id_);
+        return ExceptionOr<ByteArray>(ByteArray(payload_bytes));
+      })
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  em_.RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                             payload_processor.get());
+  processors_.emplace_back(std::move(payload_processor));
   RegisterEndpoint(std::move(endpoint_channel));
 }
 

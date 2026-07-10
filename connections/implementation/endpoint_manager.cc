@@ -28,11 +28,13 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/service_id_constants.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -64,6 +66,15 @@ constexpr absl::Time kInvalidTimestamp = absl::InfinitePast();
 // The maximum time we will wait for the encryption setup during negotiating a
 // connection.
 constexpr absl::Duration kDecryptRetryTimeout = absl::Seconds(3);
+
+// Returns true if the given `frame_type` is allowed before the connection to
+// the endpoint is confirmed (i.e., KEEP_ALIVE, CONNECTION_RESPONSE, and
+// DISCONNECTION frames).
+bool IsAllowedPreConfirmationFrameType(V1Frame::FrameType frame_type) {
+  return frame_type == V1Frame::KEEP_ALIVE ||
+         frame_type == V1Frame::CONNECTION_RESPONSE ||
+         frame_type == V1Frame::DISCONNECTION;
+}
 }  // namespace
 
 class EndpointManager::LockedFrameProcessor {
@@ -275,6 +286,17 @@ ExceptionOr<bool> EndpointManager::HandleData(
 
     // Route the incoming offlineFrame to its registered processor.
     V1Frame::FrameType frame_type = parser::GetFrameType(frame);
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kFilterUnconfirmedEndpointFrames) &&
+        client->HasPendingConnectionToEndpoint(endpoint_id) &&
+        !IsAllowedPreConfirmationFrameType(frame_type)) {
+      LOG(WARNING) << "EndpointManager discarded unauthorized frame ("
+                   << V1Frame::FrameType_Name(frame_type)
+                   << ") from unconfirmed endpoint " << endpoint_id << ".";
+      continue;
+    }
+
     LockedFrameProcessor frame_processor = GetFrameProcessor(frame_type);
     if (!frame_processor) {
       // report messages without handlers, except KEEP_ALIVE, which has
