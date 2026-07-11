@@ -36,6 +36,7 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/cancelable_alarm.h"
@@ -944,8 +945,13 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   }
 
   in_progress_upgrades_.emplace(endpoint_id, client);
+  bool local_supports_disabling =
+      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint ||
+       client->GetDiscoveryOptions().strategy == Strategy::kP2pPointToPoint);
+  bool enable_encryption = !upgrade_path_info.supports_disabling_encryption() ||
+                           !local_supports_disabling;
   RunUpgradeProtocol(client, endpoint_id, std::move(channel),
-                     !upgrade_path_info.supports_disabling_encryption());
+                     enable_encryption);
 }
 
 ErrorOr<std::unique_ptr<EndpointChannel>>
@@ -1050,10 +1056,14 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
             << (previous_channel != nullptr ? "endpoint channel"
                                             : "client proxy");
 
+  bool local_supports_disabling =
+      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint ||
+       client->GetDiscoveryOptions().strategy == Strategy::kP2pPointToPoint);
   if (!new_channel
            ->Write(parser::ForBwuIntroduction(
                client->GetLocalEndpointId(), last_local_endpoint_id,
-               upgrade_path_info.supports_disabling_encryption()))
+               local_supports_disabling &&
+                   upgrade_path_info.supports_disabling_encryption()))
            .Ok()) {
     // This was never a fully EstablishedConnection, no need to provide a
     // closure reason.
