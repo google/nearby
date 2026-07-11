@@ -274,6 +274,33 @@ TEST_F(WifiLanBwuHandlerTest,
   EXPECT_FALSE(result.has_value());
 }
 
+TEST_F(WifiLanBwuHandlerTest,
+       CreateUpgradedEndpointChannel_RejectFallbackPort0) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointId));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
+  path_info.mutable_wifi_lan_socket()->set_ip_address(kIpv4Address);
+
+  // Port 0
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(0);
+  auto result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId), path_info);
+  EXPECT_FALSE(result.has_value());
+
+  // Port > 65535
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(65536);
+  result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId), path_info);
+  EXPECT_FALSE(result.has_value());
+
+  // Port < 0
+  path_info.mutable_wifi_lan_socket()->set_wifi_port(-1);
+  result = handler_.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceId), std::string(kEndpointId), path_info);
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   ClientProxy client;

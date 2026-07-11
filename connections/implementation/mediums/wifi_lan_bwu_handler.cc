@@ -89,9 +89,11 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   }
   // Only use ip_address and wifi_port if address_candidates is empty.
   if (address_candidates.empty()) {
-    if (upgrade_path_info_socket.ip_address().size() != 4) {
+    if (upgrade_path_info_socket.ip_address().size() != 4 ||
+        upgrade_path_info_socket.wifi_port() <= 0 ||
+        upgrade_path_info_socket.wifi_port() > 65535) {
       LOG(ERROR) << "WifiLanBwuHandler: fallback ip_address size is not 4 "
-                 << "(IPv4 only).";
+                 << "or port is invalid (IPv4 only).";
       return {
           Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
     }
@@ -121,7 +123,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
       LOG(ERROR)
           << "WifiLanBwuHandler failed to connect to the WifiLan service ("
           << address_candidate << ") for endpoint " << endpoint_id;
-      error = Error(socket_result.error().operation_result_code().value());
+      error = Error(socket_result.error().operation_result_code().value_or(
+          OperationResultCode::DETAIL_UNKNOWN));
       continue;
     }
     VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("

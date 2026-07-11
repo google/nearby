@@ -55,8 +55,9 @@ class WifiHotspotTest : public testing::Test {
   ~WifiHotspotTest() override { env_.Stop(); }
   void SetUp() override {
     nearby::NearbyFlags::GetInstance().OverrideInt64FlagValue(
-      platform::config_package_nearby::nearby_platform_feature::
-              kWifiHotspotConnectionIntervalMillis, 1);
+        platform::config_package_nearby::nearby_platform_feature::
+            kWifiHotspotConnectionIntervalMillis,
+        1);
   }
   void TearDown() override {
     nearby::NearbyFlags::GetInstance().ResetOverridedValues();
@@ -89,9 +90,10 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto handler_1 = std::make_unique<WifiHotspotBwuHandler>(
-      &mediums_HS_ap.GetWifiHotspot(), [&](ClientProxy* client,
-                         std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                             mutable_connection) {
+      &mediums_HS_ap.GetWifiHotspot(),
+      [&](ClientProxy* client,
+          std::unique_ptr<BwuHandler::IncomingSocketConnection>
+              mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back, Socket name: "
                   << mutable_connection->socket->ToString();
         accept_latch.CountDown();
@@ -167,6 +169,43 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
   EXPECT_FALSE(mediums_HS_sta.GetWifiHotspot().IsConnectedToHotspot());
+}
+
+TEST_F(WifiHotspotTest, CreateUpgradedEndpointChannel_RejectGatewayPort0) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointID));
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+
+  UpgradePathInfo path_info;
+  auto* credentials = path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid("SSID");
+  credentials->set_password("password");
+  credentials->set_gateway("192.168.43.1");
+
+  // Port 0
+  credentials->set_port(0);
+  auto result = handler.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceID), std::string(kEndpointID), path_info);
+  EXPECT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL);
+
+  // Port > 65535
+  credentials->set_port(65536);
+  result = handler.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceID), std::string(kEndpointID), path_info);
+  EXPECT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL);
+
+  // Port < 0
+  credentials->set_port(-1);
+  result = handler.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceID), std::string(kEndpointID), path_info);
+  EXPECT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL);
 }
 
 }  // namespace connections

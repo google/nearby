@@ -26,6 +26,7 @@
 #include "connections/medium_selector.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace connections {
@@ -73,6 +74,11 @@ constexpr int kWifiDirectPinMaxLength = 16;
 
 inline bool WithinRange(int value, int min, int max) {
   return value >= min && value <= max;
+}
+
+bool IsValidWifiLanServiceAddress(const ServiceAddress& service_address) {
+  return !service_address.IsLoopbackAddress() &&
+         !service_address.IsLinkLocalAddress();
 }
 
 Exception EnsureValidConnectionRequestFrame(
@@ -234,21 +240,29 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
       !WithinRange(wifi_hotspot_credentials.password().length(),
                    kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_hotspot_credentials.has_gateway() &&
-      wifi_hotspot_credentials.address_candidates_size() == 0)
-    return {Exception::kInvalidProtocolBuffer};
-  const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
-  if (!wifi_hotspot_credentials.gateway().empty() &&
-      !(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern))) {
+
+  if ((!wifi_hotspot_credentials.has_gateway() ||
+       wifi_hotspot_credentials.gateway().empty()) &&
+      wifi_hotspot_credentials.address_candidates_size() == 0) {
     return {Exception::kInvalidProtocolBuffer};
   }
-  for (const auto& address_candidate :
-       wifi_hotspot_credentials.address_candidates()) {
-    if (!address_candidate.has_ip_address() || !address_candidate.has_port()) {
+
+  const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
+  if (wifi_hotspot_credentials.has_gateway() &&
+      !wifi_hotspot_credentials.gateway().empty()) {
+    if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern))) {
       return {Exception::kInvalidProtocolBuffer};
     }
-    if (address_candidate.ip_address().size() != 4 &&
-        address_candidate.ip_address().size() != 16) {
+    if (!wifi_hotspot_credentials.has_port() ||
+        !WithinRange(wifi_hotspot_credentials.port(), 1, 65535)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
+
+  for (const auto& address_candidate :
+       wifi_hotspot_credentials.address_candidates()) {
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
       return {Exception::kInvalidProtocolBuffer};
     }
   }
@@ -263,6 +277,29 @@ Exception EnsureValidBandwidthUpgradeWifiLanPathAvailableFrame(
   if ((!wifi_lan_socket.has_ip_address() || wifi_lan_socket.wifi_port() <= 0) &&
       wifi_lan_socket.address_candidates_size() == 0) {
     return {Exception::kInvalidProtocolBuffer};
+  }
+
+  if (wifi_lan_socket.has_ip_address()) {
+    location::nearby::connections::ServiceAddress proto;
+    proto.set_ip_address(wifi_lan_socket.ip_address());
+    proto.set_port(wifi_lan_socket.wifi_port());
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(proto, service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (!IsValidWifiLanServiceAddress(service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
+
+  for (const auto& address_candidate : wifi_lan_socket.address_candidates()) {
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (!IsValidWifiLanServiceAddress(service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
   }
 
   // For backwards compatibility reasons, no other fields should be null-checked

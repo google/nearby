@@ -36,6 +36,7 @@ using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::connections::V1Frame;
 
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};
@@ -122,7 +123,7 @@ TEST_F(OfflineFramesConnectionRequestTest,
        ValidatesAsFailWithEmptyEndpointIdInConnectionRequestFrame) {
   connection_info_.local_endpoint_id = "";
   std::string bytes = ForConnectionRequestConnections({}, connection_info_);
-  location::nearby::connections::OfflineFrame frame;
+  OfflineFrame frame;
   frame.ParseFromString(bytes);
   frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
   ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
@@ -681,6 +682,86 @@ TEST(OfflineFramesValidatorTest,
 }
 
 TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithLargePortCandidateFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  auto* candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string("\xc0\xa8\x00\x01", 4));
+  candidate->set_port(70000);
+  std::string bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithFallbackInvalidPortFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway(std::string(kWifiHotspotGateway));
+  credentials.set_port(70000);
+  std::string bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithEmptyGatewayAndNoCandidatesFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway("");
+  std::string bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithNoGatewayAndNoCandidatesFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  // Do not set gateway
+  // Do not set address candidates
+  std::string bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
      ValidateWifiLanUpgradeFrameWithAddressCandidatesSucceeds) {
   OfflineFrame offline_frame;
   std::vector<ServiceAddress> address_candidates = {
@@ -695,6 +776,144 @@ TEST(OfflineFramesValidatorTest,
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
   EXPECT_TRUE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithLoopbackAddressCandidateFails) {
+  OfflineFrame offline_frame;
+  std::vector<ServiceAddress> address_candidates = {
+      {{127, 0, 0, 1}, kPort},
+  };
+  std::string bytes = ForBwuWifiLanPathAvailable(address_candidates);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithLinkLocalAddressCandidateFails) {
+  OfflineFrame offline_frame;
+  std::vector<ServiceAddress> address_candidates = {
+      {{169, 254, 1, 1}, kPort},
+  };
+  std::string bytes = ForBwuWifiLanPathAvailable(address_candidates);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithInvalidIpAddressSizeCandidateFails) {
+  OfflineFrame offline_frame;
+  std::vector<ServiceAddress> address_candidates = {
+      {{1, 2, 3}, kPort},
+  };
+  std::string bytes = ForBwuWifiLanPathAvailable(address_candidates);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithZeroPortCandidateFails) {
+  OfflineFrame offline_frame;
+  std::vector<ServiceAddress> address_candidates = {
+      {{192, 168, 1, 1}, 0},
+  };
+  std::string bytes = ForBwuWifiLanPathAvailable(address_candidates);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithLargePortCandidateFails) {
+  OfflineFrame offline_frame;
+  std::vector<ServiceAddress> address_candidates = {
+      {{192, 168, 1, 1}, kPort},
+  };
+  std::string bytes = ForBwuWifiLanPathAvailable(address_candidates);
+  offline_frame.ParseFromString(bytes);
+
+  auto* negotiation =
+      offline_frame.mutable_v1()->mutable_bandwidth_upgrade_negotiation();
+  auto* wifi_lan_socket =
+      negotiation->mutable_upgrade_path_info()->mutable_wifi_lan_socket();
+  if (wifi_lan_socket->address_candidates_size() > 0) {
+    wifi_lan_socket->mutable_address_candidates(0)->set_port(70000);
+  }
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithFallbackLoopbackAddressFails) {
+  OfflineFrame offline_frame;
+  offline_frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = offline_frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* negotiation = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  negotiation->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = negotiation->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
+  auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
+  wifi_lan_socket->set_ip_address(std::string({127, 0, 0, 1}));
+  wifi_lan_socket->set_wifi_port(kPort);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithFallbackLinkLocalAddressFails) {
+  OfflineFrame offline_frame;
+  offline_frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = offline_frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* negotiation = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  negotiation->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = negotiation->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
+  auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
+  wifi_lan_socket->set_ip_address(std::string({169, 254, 1, 1}));
+  wifi_lan_socket->set_wifi_port(kPort);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithFallbackInvalidPortFails) {
+  OfflineFrame offline_frame;
+  offline_frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = offline_frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* negotiation = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  negotiation->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = negotiation->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
+  auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
+  wifi_lan_socket->set_ip_address(std::string({192, 168, 1, 1}));
+  wifi_lan_socket->set_wifi_port(70000);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,

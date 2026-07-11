@@ -194,7 +194,9 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   }
   // Add gateway and port to address candidates if address candidates is empty.
   if (service_addresses.empty() &&
-      upgrade_path_info_credentials.has_gateway()) {
+      upgrade_path_info_credentials.has_gateway() &&
+      upgrade_path_info_credentials.port() > 0 &&
+      upgrade_path_info_credentials.port() <= 65535) {
     std::vector<char> address_bytes =
         GatewayToAddressBytes(upgrade_path_info_credentials.gateway());
     if (!address_bytes.empty()) {
@@ -230,7 +232,8 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     LOG(ERROR) << "WifiHotspotBwuHandler failed to connect to the WifiHotspot "
                   "service for endpoint "
                << endpoint_id;
-    return {Error(socket_result.error().operation_result_code().value())};
+    return {Error(socket_result.error().operation_result_code().value_or(
+        OperationResultCode::DETAIL_UNKNOWN))};
   }
   VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service "

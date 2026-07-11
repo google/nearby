@@ -81,8 +81,18 @@ TEST(ServiceAddressTest, ServiceAddressFromProtoInvalidAddress) {
 TEST(ServiceAddressTest, ServiceAddressFromProtoInvalidPort) {
   ProtoServiceAddress proto;
   proto.set_ip_address(std::string("\x7f\0\0\1", 4));
-  proto.set_port(0);
   ServiceAddress service_address;
+
+  // Port 0
+  proto.set_port(0);
+  EXPECT_FALSE(ServiceAddressFromProto(proto, service_address));
+
+  // Port > 65535
+  proto.set_port(65536);
+  EXPECT_FALSE(ServiceAddressFromProto(proto, service_address));
+
+  // Port < 0
+  proto.set_port(-1);
   EXPECT_FALSE(ServiceAddressFromProto(proto, service_address));
 }
 

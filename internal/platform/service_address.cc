@@ -37,9 +37,9 @@ void ServiceAddressToProto(
 bool ServiceAddressFromProto(
     const location::nearby::connections::ServiceAddress& proto,
     ServiceAddress& service_address) {
-  // Address must be either 4 or 16 bytes and port must be set.
+  // Address must be either 4 or 16 bytes and port must be valid (1 to 65535).
   if ((proto.ip_address().size() != 16 && proto.ip_address().size() != 4) ||
-      proto.port() == 0) {
+      proto.port() <= 0 || proto.port() > 65535) {
     return false;
   }
   service_address.address = {proto.ip_address().begin(),
