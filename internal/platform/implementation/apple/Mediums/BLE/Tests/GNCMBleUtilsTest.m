@@ -45,6 +45,18 @@ static const NSTimeInterval kWaitForConnectionTimeout = 6.0;  // Allow for the 5
   XCTAssertEqualObjects(parsedHash, serviceIDHash);
 }
 
+- (void)testParseBLEFramesIntroductionPacketFailure_InvalidHashLength {
+  // Too long hash (4 bytes, protocol expects 3 bytes)
+  NSData *longHash = [@"1234" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *longPacket = GNCMGenerateBLEFramesIntroductionPacket(longHash);
+  XCTAssertNil(GNCMParseBLEFramesIntroductionPacket(longPacket));
+
+  // Too short hash (2 bytes, protocol expects 3 bytes)
+  NSData *shortHash = [@"12" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *shortPacket = GNCMGenerateBLEFramesIntroductionPacket(shortHash);
+  XCTAssertNil(GNCMParseBLEFramesIntroductionPacket(shortPacket));
+}
+
 - (void)testParseBLEFramesIntroductionPacketFailure_NilData {
   NSData *parsedHash = GNCMParseBLEFramesIntroductionPacket(nil);
   XCTAssertNil(parsedHash);

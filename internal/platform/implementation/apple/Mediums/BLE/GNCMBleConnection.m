@@ -140,7 +140,11 @@ NS_ASSUME_NONNULL_BEGIN
       return;
     }
 
-    if (![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
+    // IntroductionFrame.service_id_hash. We MUST bounds-check before
+    // -subdataWithRange:, otherwise a short follow-up packet throws
+    // NSRangeException on CoreBluetooth's dispatch queue -> objc_terminate.
+    if (data.length < prefixLength ||
+        ![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
       GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
       return;
     }

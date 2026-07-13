@@ -241,4 +241,33 @@ static const NSTimeInterval kTimeout = 1.0;
   [self waitForExpectationsWithTimeout:kTimeout handler:nil];
 }
 
+- (void)testReceiveShortDataPacketAfterIntro {
+  _connection = [GNCMBleConnection connectionWithSocket:(GNSSocket *)_fakeSocket
+                                              serviceID:nil
+                                    expectedIntroPacket:YES
+                                          callbackQueue:_callbackQueue];
+
+  NSData *introPacket = GNCMGenerateBLEFramesIntroductionPacket(GNCMServiceIDHash(kServiceID));
+
+  // Receive the intro packet first to set `_serviceIDHash`.
+  [_fakeSocket simulateSocketDidReceiveData:introPacket];
+
+  // Receive a data packet that is shorter than the service ID hash length.
+  // This should not crash; it should just be discarded.
+  NSData *shortPacket = [@"ab" dataUsingEncoding:NSUTF8StringEncoding];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"Payload handler not called"];
+  expectation.inverted = YES;
+
+  GNCMConnectionHandlers *handlers = [[GNCMConnectionHandlers alloc] init];
+  handlers.payloadHandler = ^(NSData *data) {
+    [expectation fulfill];
+  };
+  _connection.connectionHandlers = handlers;
+
+  [_fakeSocket simulateSocketDidReceiveData:shortPacket];
+
+  [self waitForExpectationsWithTimeout:kTimeout handler:nil];
+}
+
 @end

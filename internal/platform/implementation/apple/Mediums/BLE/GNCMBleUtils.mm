@@ -78,6 +78,11 @@ NSData *_Nullable GNCMParseBLEFramesIntroductionPacket(NSData *_Nullable data) {
             ::location::nearby::mediums::SocketVersion::V2 &&
         socket_control_frame.introduction().has_service_id_hash()) {
       std::string service_id_hash = socket_control_frame.introduction().service_id_hash();
+      // service_id_hash is attacker-supplied; clamp to the protocol-defined
+      // 3-byte length so it cannot be used to inflate prefixLength downstream.
+      if (service_id_hash.size() != GNCMBleAdvertisementLengthServiceIDHash) {
+        return nil;
+      }
       return [NSData dataWithBytes:service_id_hash.data() length:service_id_hash.length()];
     }
   }
