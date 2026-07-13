@@ -297,8 +297,12 @@ ExceptionOr<bool> EndpointManager::HandleData(
       continue;
     }
 
-    LockedFrameProcessor frame_processor = GetFrameProcessor(frame_type);
-    if (!frame_processor) {
+    FrameProcessor* processor = nullptr;
+    {
+      LockedFrameProcessor frame_processor = GetFrameProcessor(frame_type);
+      processor = frame_processor.get();
+    }
+    if (!processor) {
       // report messages without handlers, except KEEP_ALIVE, which has
       // no explicit handler.
       if (frame_type == V1Frame::KEEP_ALIVE) {
@@ -333,8 +337,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
       continue;
     }
 
-    frame_processor->OnIncomingFrame(frame, endpoint_id, client,
-                                     endpoint_channel->GetMedium());
+    processor->OnIncomingFrame(frame, endpoint_id, client,
+                               endpoint_channel->GetMedium());
   }
 }
 

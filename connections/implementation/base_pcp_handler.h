@@ -278,7 +278,7 @@ class BasePcpHandler : public PcpHandler,
   };
 
   void Shutdown();
-  void RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
+  bool RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
 
   BluetoothDevice GetRemoteBluetoothDevice(
       MacAddress remote_bluetooth_mac_address);

@@ -455,8 +455,7 @@ class BasePcpHandlerTest
   void TearDown() override { env_.Stop(); }
 
   std::unique_ptr<analytics::AnalyticsRecorder> CreateAnalyticsRecorder() {
-    auto recorder =
-        std::make_unique<analytics::MockAnalyticsRecorder>();
+    auto recorder = std::make_unique<analytics::MockAnalyticsRecorder>();
     mock_analytics_recorder_ptr_ = recorder.get();
     return recorder;
   }
@@ -576,10 +575,9 @@ class BasePcpHandlerTest
             [channel = channel_a.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_a, Write(_))
         .WillOnce(Return(Exception{Exception::kSuccess}))
-        .WillRepeatedly(
-            [channel = channel_a.get()](absl::string_view data) {
-              return channel->DoWrite(data);
-            });
+        .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+          return channel->DoWrite(data);
+        });
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -588,10 +586,9 @@ class BasePcpHandlerTest
         .WillRepeatedly(
             [channel = channel_b.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_b, Write(_))
-        .WillRepeatedly(
-            [channel = channel_b.get()](absl::string_view data) {
-              return channel->DoWrite(data);
-            });
+        .WillRepeatedly([channel = channel_b.get()](absl::string_view data) {
+          return channel->DoWrite(data);
+        });
     EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_b, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -628,10 +625,9 @@ class BasePcpHandlerTest
         .WillRepeatedly(
             [channel = channel_b.get()]() { return channel->DoRead(); });
     EXPECT_CALL(*channel_b, Write(_))
-        .WillRepeatedly(
-            [channel = channel_b.get()](absl::string_view data) {
-              return channel->DoWrite(data);
-            });
+        .WillRepeatedly([channel = channel_b.get()](absl::string_view data) {
+          return channel->DoWrite(data);
+        });
     EXPECT_CALL(*channel_b, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_b, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -751,16 +747,15 @@ class BasePcpHandlerTest
     auto allowed_mediums = pcp_handler->GetDiscoveryMediums(client);
 
     EXPECT_CALL(*pcp_handler, ConnectImpl)
-        .WillRepeatedly(
-            [&channel_a, connect_medium](
-                ClientProxy* client,
-                MockPcpHandler::DiscoveredEndpoint* endpoint) {
-              return MockPcpHandler::ConnectImplResult{
-                  .medium = connect_medium,
-                  .status = {Status::kSuccess},
-                  .endpoint_channel = std::move(channel_a),
-              };
-            });
+        .WillRepeatedly([&channel_a, connect_medium](
+                            ClientProxy* client,
+                            MockPcpHandler::DiscoveredEndpoint* endpoint) {
+          return MockPcpHandler::ConnectImplResult{
+              .medium = connect_medium,
+              .status = {Status::kSuccess},
+              .endpoint_channel = std::move(channel_a),
+          };
+        });
 
     for (const auto& discovered_medium : allowed_mediums) {
       pcp_handler->OnEndpointFound(
@@ -1609,9 +1604,51 @@ TEST_P(BasePcpHandlerTest, OnIncomingFrameChangesState) {
             Status{Status::kSuccess});
   LOG(INFO) << "Simulating remote accept: id=" << endpoint_id;
   OsInfo os_info;
-  auto frame = parser::FromBytes(parser::ForConnectionResponse(
-      Status::kSuccess, os_info, "device_name"));
+  auto frame = parser::FromBytes(
+      parser::ForConnectionResponse(Status::kSuccess, os_info, "device_name"));
   EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
+  pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, client_.get(),
+                              connect_medium);
+  LOG(INFO) << "Closing connection: id=" << endpoint_id;
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_P(BasePcpHandlerTest, OnIncomingFrameDuplicateFrameDoesNotDeadlock) {
+  env_.Start();
+  std::string endpoint_id{"1234"};
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  RequestConnection(endpoint_id, std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
+  LOG(INFO) << "Attempting to accept connection: id=" << endpoint_id;
+  EXPECT_CALL(mock_connection_listener_.accepted_cb, Call).Times(1);
+  EXPECT_CALL(mock_connection_listener_.disconnected_cb, Call)
+      .Times(AtLeast(0));
+  EXPECT_EQ(pcp_handler.AcceptConnection(client_.get(), endpoint_id, {}),
+            Status{Status::kSuccess});
+  LOG(INFO) << "Simulating remote accept: id=" << endpoint_id;
+  OsInfo os_info;
+  auto frame = parser::FromBytes(
+      parser::ForConnectionResponse(Status::kSuccess, os_info, "device_name"));
+  EXPECT_CALL(mock_connection_listener_.bandwidth_changed_cb, Call).Times(1);
+  pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, client_.get(),
+                              connect_medium);
+  LOG(INFO) << "Simulating duplicate remote accept: id=" << endpoint_id;
   pcp_handler.OnIncomingFrame(frame.result(), endpoint_id, client_.get(),
                               connect_medium);
   LOG(INFO) << "Closing connection: id=" << endpoint_id;
@@ -1798,8 +1835,8 @@ TEST_F(BasePcpHandlerTest, InjectEndpoint) {
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl(client_.get(), service_id, _))
       .WillOnce([&pcp_handler, &endpoint_id](
-                           ClientProxy* client, const std::string& service_id,
-                           const OutOfBandConnectionMetadata& metadata) {
+                    ClientProxy* client, const std::string& service_id,
+                    const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
             client,
             std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
@@ -1862,8 +1899,8 @@ TEST_F(BasePcpHandlerTest,
   ::testing::InSequence seq;
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
       .WillOnce([id = endpoint_id](const std::string& endpoint_id,
-                                          const ByteArray& endpoint_info,
-                                          const std::string& service_id) {
+                                   const ByteArray& endpoint_info,
+                                   const std::string& service_id) {
         EXPECT_EQ(endpoint_id, id);
         EXPECT_EQ(endpoint_info, ByteArray{"ABCD"});
       });
@@ -1875,8 +1912,8 @@ TEST_F(BasePcpHandlerTest,
 
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call)
       .WillOnce([id = endpoint_id](const std::string& endpoint_id,
-                                          const ByteArray& endpoint_info,
-                                          const std::string& service_id) {
+                                   const ByteArray& endpoint_info,
+                                   const std::string& service_id) {
         EXPECT_EQ(endpoint_id, id);
         EXPECT_EQ(endpoint_info, ByteArray{"ABCDEF"});
       });
@@ -1975,8 +2012,8 @@ TEST_F(BasePcpHandlerTest, TestStartStopEndpointLostAlarm) {
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
       .WillOnce([&pcp_handler, &endpoint_id](
-                           ClientProxy* client, const std::string& service_id,
-                           const OutOfBandConnectionMetadata& metadata) {
+                    ClientProxy* client, const std::string& service_id,
+                    const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
             client,
             std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
@@ -2038,8 +2075,8 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
 
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
       .WillOnce([&pcp_handler, &endpoint_id](
-                           ClientProxy* client, const std::string& service_id,
-                           const OutOfBandConnectionMetadata& metadata) {
+                    ClientProxy* client, const std::string& service_id,
+                    const OutOfBandConnectionMetadata& metadata) {
         pcp_handler.OnEndpointFound(
             client,
             std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
@@ -2103,31 +2140,30 @@ TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
   bool first_call = true;
   EXPECT_CALL(pcp_handler, InjectEndpointImpl)
       .Times(2)
-      .WillRepeatedly(
-          [&pcp_handler, &endpoint_id, &first_call](
-                     ClientProxy* client, const std::string& service_id,
-                     const OutOfBandConnectionMetadata& metadata) {
-            ByteArray endpoint_info;
-            if (first_call) {
-              endpoint_info = ByteArray("ABCD");
-            } else {
-              endpoint_info = ByteArray("ABCDE");
-            }
-            first_call = false;
-            pcp_handler.OnEndpointFound(
-                client,
-                std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
-                    {
-                        endpoint_id,
-                        endpoint_info,
-                        service_id,
-                        Medium::BLUETOOTH,
-                        WebRtcState::kUndefined,
-                    },
-                    MockContext{nullptr},
-                }));
-            return Status{Status::kSuccess};
-          });
+      .WillRepeatedly([&pcp_handler, &endpoint_id, &first_call](
+                          ClientProxy* client, const std::string& service_id,
+                          const OutOfBandConnectionMetadata& metadata) {
+        ByteArray endpoint_info;
+        if (first_call) {
+          endpoint_info = ByteArray("ABCD");
+        } else {
+          endpoint_info = ByteArray("ABCDE");
+        }
+        first_call = false;
+        pcp_handler.OnEndpointFound(
+            client,
+            std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                {
+                    endpoint_id,
+                    endpoint_info,
+                    service_id,
+                    Medium::BLUETOOTH,
+                    WebRtcState::kUndefined,
+                },
+                MockContext{nullptr},
+            }));
+        return Status{Status::kSuccess};
+      });
   pcp_handler.InjectEndpoint(
       client_.get(), service_id,
       OutOfBandConnectionMetadata{

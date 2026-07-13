@@ -25,6 +25,7 @@
 
 #include "securegcm/ukey2_handshake.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
@@ -94,7 +95,6 @@ using ::location::nearby::connections::ConnectionResponseFrame;
 using ::location::nearby::connections::ConnectionsDevice;
 using ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::OfflineFrame;
-using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::OperationResultCode;
@@ -576,15 +576,16 @@ Status BasePcpHandler::WaitForResult(const std::string& method_name,
   return result.result();
 }
 
-void BasePcpHandler::RunOnPcpHandlerThread(const std::string& name,
+bool BasePcpHandler::RunOnPcpHandlerThread(const std::string& name,
                                            Runnable runnable) {
   if (closed_.Get()) {
     LOG(WARNING) << "Skip to run PCP Handler task " << name
                  << " due to PCP Handler is closed";
-    return;
+    return false;
   }
 
   serial_executor_.Execute(name, std::move(runnable));
+  return true;
 }
 
 EncryptionRunner::ResultListener BasePcpHandler::GetResultListener(
@@ -1681,9 +1682,10 @@ void BasePcpHandler::OnIncomingFrame(
     OfflineFrame& frame, const std::string& endpoint_id, ClientProxy* client,
     location::nearby::proto::connections::Medium medium) {
   CountDownLatch latch(1);
-  RunOnPcpHandlerThread(
+  bool scheduled = RunOnPcpHandlerThread(
       "incoming-frame",
       [this, client, endpoint_id, frame, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+        absl::Cleanup release_caller = [&latch] { latch.CountDown(); };
         LOG(INFO) << "OnConnectionResponse: endpoint_id=" << endpoint_id;
 
         if (client->HasRemoteEndpointResponded(endpoint_id)) {
@@ -1741,9 +1743,10 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteDeviceName(
               endpoint_id, connection_response.wifi_direct_device_name());
         }
-        latch.CountDown();
       });
-  WaitForLatch("OnIncomingFrame()", &latch);
+  if (scheduled) {
+    WaitForLatch("OnIncomingFrame()", &latch);
+  }
 }
 
 void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
