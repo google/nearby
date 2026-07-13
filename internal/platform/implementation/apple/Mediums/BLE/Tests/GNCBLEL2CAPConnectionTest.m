@@ -140,6 +140,32 @@ static const NSTimeInterval kTestTimeout = 1.0;
   XCTAssertNil(realData);
 }
 
+- (void)testExtractRealDataFromData_oversizedData {
+  _connection = [self createConnectionWithIncoming:YES];
+
+  XCTestExpectation *disconnectionExpectation =
+      [self expectationWithDescription:@"disconnection handler"];
+  _connection.connectionHandlers = [GNCMConnectionHandlers
+      payloadHandler:^(NSData *data) {
+        XCTFail(@"Unexpected payload");
+      }
+      disconnectedHandler:^{
+        [disconnectionExpectation fulfill];
+      }];
+
+  // 6 MB frame length
+  uint32_t oversizedLength = 6 * 1024 * 1024;
+  uint32_t lengthBigEndian = CFSwapInt32HostToBig(oversizedLength);
+  NSMutableData *prefixData = [NSMutableData dataWithCapacity:sizeof(uint32_t)];
+  [prefixData appendBytes:&lengthBigEndian length:sizeof(uint32_t)];
+
+  NSData *realData = [_connection extractRealDataFromData:prefixData];
+  XCTAssertNil(realData);
+  XCTAssertEqual(_connection.expectedDataLength, 0);
+
+  [self waitForExpectationsWithTimeout:kTestTimeout handler:nil];
+}
+
 - (void)testExtractRealDataFromData_moreThanExpectedData {
   _connection = [self createConnectionWithIncoming:YES];
   NSData *testData = [self createDataWithLength:10];

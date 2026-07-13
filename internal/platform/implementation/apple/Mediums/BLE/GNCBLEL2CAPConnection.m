@@ -24,6 +24,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMConnection.h"
 
 enum { kL2CAPPacketLength = 4 };
+static const NSUInteger kGNCBLEL2CAPMaxFrameLength = 5 * 1024 * 1024;  // 5 MB
 static const CGFloat kRequestDataConnectionDelayInSeconds = 0.0;
 static const UInt8 kRequestDataConnectionTimeoutInSeconds = 5;
 
@@ -266,6 +267,20 @@ static NSData *PrefixLengthData(NSData *data) {
     }
     _expectedDataLength = CFSwapInt32BigToHost(
         *(int *)([[data subdataWithRange:NSMakeRange(0, kL2CAPPacketLength)] bytes]));
+    if (_expectedDataLength == 0 || _expectedDataLength > kGNCBLEL2CAPMaxFrameLength) {
+      GNCLoggerError(@"[NEARBY] Rejecting L2CAP frame: declared length %lu out of range "
+                     @"(max %lu); closing.",
+                     (unsigned long)_expectedDataLength,
+                     (unsigned long)kGNCBLEL2CAPMaxFrameLength);
+      _expectedDataLength = 0;
+      [_stream close];
+      if (_connectionHandlers.disconnectedHandler) {
+        dispatch_async(_callbackQueue, ^{
+          _connectionHandlers.disconnectedHandler();
+        });
+      }
+      return nil;
+    }
   }
   NSUInteger realDataLength = data.length - kL2CAPPacketLength;
   if (realDataLength < _expectedDataLength) {

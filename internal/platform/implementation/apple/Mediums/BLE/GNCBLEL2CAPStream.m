@@ -74,6 +74,9 @@ enum { READ_BUFFER_SIZE = 409600 };
 
   /// Whether the stream is closed.
   BOOL _closed;
+
+  /// Buffer for reading data from the input stream.
+  uint8_t _readBuffer[READ_BUFFER_SIZE];
 }
 
 #pragma mark Public
@@ -319,12 +322,11 @@ enum { READ_BUFFER_SIZE = 409600 };
 /// Receives data from device and invokes |_receivedDataBlock|.
 - (void)receiveStreamData {
   dispatch_assert_queue_debug(_streamQueue);
-  uint8_t readBuffer[READ_BUFFER_SIZE];
-  NSInteger bytesRead = [self.inputStream read:readBuffer maxLength:READ_BUFFER_SIZE];
+  NSInteger bytesRead = [self.inputStream read:_readBuffer maxLength:READ_BUFFER_SIZE];
 
   if (bytesRead > 0) {
     NSMutableData *data = [NSMutableData data];
-    [data appendBytes:readBuffer length:(NSUInteger)bytesRead];
+    [data appendBytes:_readBuffer length:(NSUInteger)bytesRead];
 
     if (_verboseLoggingEnabled) {
       GNCLoggerDebug(@"[NEARBY] Stream data from device of length %@", @(data.length));
