@@ -211,20 +211,20 @@ TEST_F(NearbyShareCertificateStorageImplTest, InitializeRetrySucceed) {
   auto db = std::make_unique<StrictMock<MockPublicCertificateDb>>();
   MockPublicCertificateDb* mock_db = db.get();
   EXPECT_CALL(*mock_db, Initialize(_))
-      .WillOnce(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+      .WillOnce(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kError);
-          }))
-      .WillRepeatedly(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+          })
+      .WillRepeatedly(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kOk);
-          }));
+          });
   EXPECT_CALL(*mock_db, Destroy(_))
-      .WillOnce(Invoke([](absl::AnyInvocable<void(bool)&&> callback) {
+      .WillOnce([](absl::AnyInvocable<void(bool) &&> callback) {
         std::move(callback)(true);
-      }));
+      });
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
@@ -243,11 +243,11 @@ TEST_F(NearbyShareCertificateStorageImplTest, InitializeRetryFailed) {
   auto db = std::make_unique<StrictMock<MockPublicCertificateDb>>();
   MockPublicCertificateDb* mock_db = db.get();
   EXPECT_CALL(*mock_db, Initialize(_))
-      .WillRepeatedly(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+      .WillRepeatedly(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kError);
-          }));
+          });
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
@@ -267,23 +267,23 @@ TEST_F(NearbyShareCertificateStorageImplTest,
   auto db = std::make_unique<StrictMock<MockPublicCertificateDb>>();
   MockPublicCertificateDb* mock_db = db.get();
   EXPECT_CALL(*mock_db, Initialize(_))
-      .WillOnce(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+      .WillOnce(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kCorrupt);
-          }))
-      .WillRepeatedly(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+          })
+      .WillRepeatedly(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kOk);
-          }));
+          });
   // Destroy called once from corrupted initialization and once from cal to
   // ClearPublicCertificates.
   EXPECT_CALL(*mock_db, Destroy(_))
       .Times(2)
-      .WillRepeatedly(Invoke([](absl::AnyInvocable<void(bool)&&> callback) {
+      .WillRepeatedly([](absl::AnyInvocable<void(bool) &&> callback) {
         std::move(callback)(true);
-      }));
+      });
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
@@ -301,15 +301,15 @@ TEST_F(NearbyShareCertificateStorageImplTest, InitializeCorruptDestroyFails) {
   auto db = std::make_unique<StrictMock<MockPublicCertificateDb>>();
   MockPublicCertificateDb* mock_db = db.get();
   EXPECT_CALL(*mock_db, Initialize(_))
-      .WillOnce(Invoke(
-          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
+      .WillOnce(
+          [](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
                  callback) {
             std::move(callback)(MockPublicCertificateDb::InitStatus::kCorrupt);
-          }));
+          });
   EXPECT_CALL(*mock_db, Destroy(_))
-      .WillOnce(Invoke([](absl::AnyInvocable<void(bool)&&> callback) {
+      .WillOnce([](absl::AnyInvocable<void(bool) &&> callback) {
         std::move(callback)(false);
-      }));
+      });
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
@@ -333,18 +333,18 @@ TEST_F(NearbyShareCertificateStorageImplTest, DeferredCallbackQueue) {
   auto db = std::make_unique<StrictMock<MockPublicCertificateDb>>();
   MockPublicCertificateDb* mock_db = db.get();
   EXPECT_CALL(*mock_db, Initialize(_))
-      .WillOnce(Invoke(
-          [&](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus)&&>
-                  callback) { init_status_callback = std::move(callback); }));
+      .WillOnce(
+          [&](absl::AnyInvocable<void(MockPublicCertificateDb::InitStatus) &&>
+                  callback) { init_status_callback = std::move(callback); });
   EXPECT_CALL(*mock_db, Destroy(_))
-      .WillOnce(Invoke([&](absl::AnyInvocable<void(bool)&&> callback) {
+      .WillOnce([&](absl::AnyInvocable<void(bool) &&> callback) {
         destroy_callback = std::move(callback);
-      }));
+      });
   EXPECT_CALL(*mock_db, LoadEntries(_))
-      .WillOnce(Invoke(
+      .WillOnce(
           [&](absl::AnyInvocable<void(
-                  bool, std::unique_ptr<std::vector<PublicCertificate>>)&&>
-                  callback) { load_callback = std::move(callback); }));
+                  bool, std::unique_ptr<std::vector<PublicCertificate>>) &&>
+                  callback) { load_callback = std::move(callback); });
 
   auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
       preference_manager_, std::move(db));
