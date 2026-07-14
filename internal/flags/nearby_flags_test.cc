@@ -89,28 +89,27 @@ TEST(NearbyFlags, SetFlagReader) {
   auto flag_reader = std::make_unique<::testing::NiceMock<MockFlagReader>>();
   NearbyFlags::GetInstance().SetFlagReader(*flag_reader.get());
   EXPECT_CALL(*flag_reader, GetBoolFlag(::testing::_))
-      .WillOnce(::testing::Invoke([=](const flags::Flag<bool>& flag) {
+      .WillOnce([=](const flags::Flag<bool>& flag) {
         return kTestBoolFlagTestValue;
-      }));
+      });
   EXPECT_EQ(NearbyFlags::GetInstance().GetBoolFlag(kTestBoolFlag),
             kTestBoolFlagTestValue);
   EXPECT_CALL(*flag_reader, GetInt64Flag(::testing::_))
-      .WillOnce(::testing::Invoke([=](const flags::Flag<int64_t>& flag) {
+      .WillOnce([=](const flags::Flag<int64_t>& flag) {
         return kTestInt64FlagTestValue;
-      }));
+      });
   EXPECT_EQ(NearbyFlags::GetInstance().GetInt64Flag(kTestInt64Flag),
             kTestInt64FlagTestValue);
   EXPECT_CALL(*flag_reader, GetDoubleFlag(::testing::_))
-      .WillOnce(::testing::Invoke([=](const flags::Flag<double>& flag) {
+      .WillOnce([=](const flags::Flag<double>& flag) {
         return kTestDoubleFlagTestValue;
-      }));
+      });
   EXPECT_EQ(NearbyFlags::GetInstance().GetDoubleFlag(kTestDoubleFlag),
             kTestDoubleFlagTestValue);
   EXPECT_CALL(*flag_reader, GetStringFlag(::testing::_))
-      .WillOnce(
-          ::testing::Invoke([=](const flags::Flag<absl::string_view>& flag) {
-            return std::string(kTestStringFlagTestValue);
-          }));
+      .WillOnce([=](const flags::Flag<absl::string_view>& flag) {
+        return std::string(kTestStringFlagTestValue);
+      });
   EXPECT_EQ(NearbyFlags::GetInstance().GetStringFlag(kTestStringFlag),
             kTestStringFlagTestValue);
 }
