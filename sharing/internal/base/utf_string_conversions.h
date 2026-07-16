@@ -19,9 +19,9 @@
 // Stub out string conversion functions for github builds.
 namespace nearby::utils {
 
-bool IsStringUtf8(std::string_view str) { return true; }
+inline bool IsStringUtf8(std::string_view str) { return true; }
 
-void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
+inline void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
                             std::string* output) {}
 
 }  // namespace nearby::utils
@@ -29,11 +29,11 @@ void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
 // Forward to chromium implementations.
 #include "base/strings/string_util.h"
 namespace nearby::utils {
-bool IsStringUtf8(std::string_view str) {
+inline bool IsStringUtf8(std::string_view str) {
   return base::IsStringUTF8(str);
 }
 
-void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
+inline void TruncateUtf8ToByteSize(const std::string& input, size_t byte_size,
                             std::string* output) {
   base::TruncateUTF8ToByteSize(input, byte_size, output);
 }

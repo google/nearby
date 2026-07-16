@@ -99,6 +99,8 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
+        "//sharing/internal/base:utf_utils",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
     ],

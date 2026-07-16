@@ -180,8 +180,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  std::string bytes = ForConnectionResponse(kStatusAccepted, os_info,
-                                          "device_name");
+  std::string bytes =
+      ForConnectionResponse(kStatusAccepted, os_info, "device_name");
   offline_frame.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -211,8 +211,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  std::string bytes =
-      ForConnectionResponse(-1, os_info, "device_name");
+  std::string bytes = ForConnectionResponse(-1, os_info, "device_name");
   offline_frame.ParseFromString(bytes);
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -361,6 +360,92 @@ TEST(OfflineFramesValidatorTest,
 
   OfflineFrame offline_frame;
 
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
+}
+
+TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithNonUtf8FilePath) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_total_size(100);
+  header.set_file_name(std::string("hello\xffworld"));
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidatesAsFailedTypeFileWithNonUtf8ParentFolder) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_total_size(100);
+  header.set_file_name(std::string("valid.txt"));
+  header.set_parent_folder(std::string("folder\xff"));
+  chunk.set_body("payload data");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
+}
+
+TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithNullInFilePath) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_total_size(100);
+  header.set_file_name(std::string("hello\0world", 11));
+  header.set_parent_folder(std::string());
+  chunk.set_body("payload data");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
+  std::string bytes = ForDataPayloadTransfer(header, chunk);
+  offline_frame.ParseFromString(bytes);
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidatesAsFailedTypeFileWithNullInParentFolder) {
+  PayloadTransferFrame::PayloadHeader header;
+  PayloadTransferFrame::PayloadChunk chunk;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_total_size(100);
+  header.set_file_name(std::string("valid.txt"));
+  header.set_parent_folder(std::string("folder\0name", 11));
+  chunk.set_body("payload data");
+  chunk.set_offset(0);
+  chunk.set_flags(1);
+
+  OfflineFrame offline_frame;
   std::string bytes = ForDataPayloadTransfer(header, chunk);
   offline_frame.ParseFromString(bytes);
 
@@ -998,8 +1083,7 @@ TEST(OfflineFramesValidatorTest,
 
   EXPECT_FALSE(ret_value.Ok());
 
-  std::string wifi_direct_ssid_64_length =
-      "DIRECT-A0-" + std::string(54, 'A');
+  std::string wifi_direct_ssid_64_length = "DIRECT-A0-" + std::string(54, 'A');
   bytes = ForBwuWifiDirectPathAvailable(
       wifi_direct_ssid_64_length, std::string(kWifiDirectPassword), kPort,
       kWifiDirectFrequency, kSupportsDisablingEncryption, std::string(kGateway),

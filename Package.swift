@@ -535,6 +535,7 @@ let package = Package(
         .headerSearchPath("third_party/ukey2/ukey2/"),
         .headerSearchPath("third_party/ukey2/compiled_proto/src/main/proto"),
         .define("NO_WEBRTC"),
+        .define("GITHUB_BUILD"),
       ]
     ),
     .target(
@@ -553,6 +554,7 @@ let package = Package(
         .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
         .define("NC_OSS_BUILD"),
+        .define("GITHUB_BUILD"),
       ]
     ),
     .target(
@@ -566,6 +568,7 @@ let package = Package(
         .headerSearchPath("./"),
         .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
+        .define("GITHUB_BUILD"),
       ]
     ),
     .target(

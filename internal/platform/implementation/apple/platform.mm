@@ -51,8 +51,12 @@ namespace api {
 std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_folder,
                                                       const std::string& file_name) {
   // Collapse any path escaping characters.
-  NSString* parentFolder = [@(parent_folder.c_str()) stringByReplacingOccurrencesOfString:@"../"
-                                                                               withString:@""];
+  NSString* parentFolderRaw = @(parent_folder.c_str());
+  if (parentFolderRaw == nil) {
+    return std::string();
+  }
+  NSString* parentFolder = [parentFolderRaw stringByReplacingOccurrencesOfString:@"../"
+                                                                      withString:@""];
   NSURL* parentFolderURL = [NSURL fileURLWithPath:parentFolder];
 
   // The only reserved character in a file name on macOS is the forward-slash. It's unclear if iOS
@@ -66,8 +70,12 @@ std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_
   // """
   //
   // See: https://en.wikipedia.org/wiki/Filename
-  NSString* fileName = [@(file_name.c_str()) stringByReplacingOccurrencesOfString:@"/"
-                                                                       withString:@":"];
+  NSString* fileNameRaw = @(file_name.c_str());
+  if (fileNameRaw == nil) {
+    return std::string();
+  }
+  NSString* fileName = [fileNameRaw stringByReplacingOccurrencesOfString:@"/"
+                                                              withString:@":"];
   NSString* baseName = [fileName stringByDeletingPathExtension];
   NSString* extension = [fileName pathExtension];
 
@@ -86,8 +94,12 @@ std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_
 
 std::string ImplementationPlatform::GetDownloadPath(const std::string& parent_folder,
                                                     const std::string& file_name) {
+  NSString* parentFolderRaw = @(parent_folder.c_str());
+  if (parentFolderRaw == nil) {
+    return std::string();
+  }
   NSString* customSavePath =
-      [NSTemporaryDirectory() stringByAppendingPathComponent:@(parent_folder.c_str())];
+      [NSTemporaryDirectory() stringByAppendingPathComponent:parentFolderRaw];
   return GetCustomSavePath(customSavePath.UTF8String, file_name);
 }
 
