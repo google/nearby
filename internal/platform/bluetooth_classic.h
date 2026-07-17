@@ -157,7 +157,7 @@ class BluetoothServerSocket final {
   BluetoothServerSocket& operator=(const BluetoothServerSocket&) = default;
   ~BluetoothServerSocket() = default;
   explicit BluetoothServerSocket(
-      std::unique_ptr<api::BluetoothServerSocket> socket)
+      std::shared_ptr<api::BluetoothServerSocket> socket)
       : impl_(std::move(socket)) {}
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()

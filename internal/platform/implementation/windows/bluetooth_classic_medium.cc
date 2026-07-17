@@ -32,6 +32,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
+#include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_pairing.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
@@ -43,8 +44,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService;
 using ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId;
@@ -124,7 +124,13 @@ BluetoothClassicMedium::BluetoothClassicMedium(
       &BluetoothClassicMedium::OnScanModeChanged, this, std::placeholders::_1));
 }
 
-BluetoothClassicMedium::~BluetoothClassicMedium() {}
+BluetoothClassicMedium::~BluetoothClassicMedium() {
+  // Clear the close notifier to prevent UAF if the server_socket_ outlives
+  // the BluetoothClassicMedium.
+  if (raw_server_socket_ != nullptr) {
+    raw_server_socket_->SetCloseNotifier(nullptr);
+  }
+}
 
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
@@ -259,7 +265,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 // UUID.
 //
 //  Returns nullptr error.
-std::unique_ptr<api::BluetoothServerSocket>
+std::shared_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
   VLOG(1) << "ListenForService is called with service name: " << service_name
@@ -283,14 +289,24 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   bool radio_discoverable =
       scan_mode_ == BluetoothAdapter::ScanMode::kConnectableDiscoverable;
 
-  bool result = StartAdvertising(radio_discoverable);
+  if (rfcomm_provider_ != nullptr &&
+      is_radio_discoverable_ == radio_discoverable) {
+    LOG(WARNING) << __func__
+                  << ": Ignore StartAdvertising due to no change to "
+                    "current advertising.";
+    return server_socket_;
+  }
 
-  if (!result) {
+  auto server_socket = StartAdvertising(radio_discoverable);
+
+  if (!server_socket) {
     LOG(ERROR) << __func__ << ": Failed to start listening.";
     return nullptr;
   }
 
-  return std::move(server_socket_);
+  raw_server_socket_ = server_socket.get();
+  server_socket_ = std::move(server_socket);
+  return server_socket_;
 }
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
@@ -833,25 +849,19 @@ bool BluetoothClassicMedium::IsWatcherRunning() {
          (status == DeviceWatcherStatus::Stopping);
 }
 
-bool BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
+std::shared_ptr<BluetoothServerSocket>
+BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
   LOG(INFO) << __func__
             << ": StartAdvertising is called with radio_discoverable: "
             << radio_discoverable << ".";
 
+  std::shared_ptr<BluetoothServerSocket> server_socket;
   try {
-    if (rfcomm_provider_ != nullptr &&
-        is_radio_discoverable_ == radio_discoverable) {
-      LOG(WARNING) << __func__
-                   << ": Ignore StartAdvertising due to no change to "
-                      "current advertising.";
-      return true;
-    }
-
     if (rfcomm_provider_ != nullptr && !StopAdvertising()) {
       LOG(WARNING) << __func__
                    << ": Failed to StartAdvertising due to cannot stop "
                       "running advertising.";
-      return false;
+      return nullptr;
     }
 
     rfcomm_provider_ =
@@ -859,79 +869,57 @@ bool BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
             RfcommServiceId::FromUuid(winrt::guid(service_uuid_)))
             .get();
 
-    server_socket_ = std::make_unique<BluetoothServerSocket>(
+    server_socket = BluetoothServerSocket::Create(
         winrt::to_string(rfcomm_provider_.ServiceId().AsString()));
 
-    raw_server_socket_ = server_socket_.get();
-
-    if (!server_socket_->listen()) {
+    if (!server_socket->listen()) {
       LOG(ERROR) << __func__
                  << ": Failed to StartAdvertising due to cannot start socket.";
-      server_socket_->Close();
-      server_socket_ = nullptr;
       rfcomm_provider_ = nullptr;
-      return false;
+      return nullptr;
     }
 
-    server_socket_->SetCloseNotifier([&]() { StopAdvertising(); });
+    server_socket->SetCloseNotifier([&]() { StopAdvertising(); });
 
     // Set the SDP attributes and start Bluetooth advertising
     InitializeServiceSdpAttributes(rfcomm_provider_, service_name_);
 
     // Start to advertising.
-    rfcomm_provider_.StartAdvertising(server_socket_->stream_socket_listener(),
+    rfcomm_provider_.StartAdvertising(server_socket->stream_socket_listener(),
                                       radio_discoverable);
     is_radio_discoverable_ = radio_discoverable;
 
     LOG(INFO) << ": StartListening completed successfully.";
-    return true;
+    return server_socket;
   } catch (std::exception exception) {
     // We will log and eat the exception since the caller
     // expects nullptr if it fails
     LOG(ERROR) << __func__
                << ": Exception setting up for listen: " << exception.what();
 
-    if (server_socket_ != nullptr) {
-      server_socket_->Close();
-      server_socket_ = nullptr;
-    }
-
     if (rfcomm_provider_ != nullptr) {
       rfcomm_provider_ = nullptr;
     }
-
-    return false;
+    return nullptr;
   } catch (const winrt::hresult_error& ex) {
     LOG(ERROR) << __func__ << ": Exception setting up for listen: " << ex.code()
                << ": " << winrt::to_string(ex.message());
-    if (server_socket_ != nullptr) {
-      server_socket_->Close();
-      server_socket_ = nullptr;
-    }
-
     if (rfcomm_provider_ != nullptr) {
       rfcomm_provider_ = nullptr;
     }
-
-    return false;
+    return nullptr;
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-    if (server_socket_ != nullptr) {
-      server_socket_->Close();
-      server_socket_ = nullptr;
-    }
-
     if (rfcomm_provider_ != nullptr) {
       rfcomm_provider_ = nullptr;
     }
-
-    return false;
+    return nullptr;
   }
 }
 
 bool BluetoothClassicMedium::StopAdvertising() {
   VLOG(1) << __func__ << ": StopAdvertising is called";
-
+  bool result = false;
   try {
     if (rfcomm_provider_ == nullptr) {
       LOG(ERROR) << __func__
@@ -940,12 +928,9 @@ bool BluetoothClassicMedium::StopAdvertising() {
     }
 
     rfcomm_provider_.StopAdvertising();
-    rfcomm_provider_ = nullptr;
-    raw_server_socket_ = nullptr;
-    server_socket_ = nullptr;
 
     LOG(INFO) << ": StopAdvertising completed successfully.";
-    return true;
+    result = true;
   } catch (std::exception exception) {
     LOG(ERROR) << __func__
                << ": StopAdvertising exception: " << exception.what();
@@ -957,9 +942,9 @@ bool BluetoothClassicMedium::StopAdvertising() {
   }
 
   rfcomm_provider_ = nullptr;
-  raw_server_socket_ = nullptr;
   server_socket_ = nullptr;
-  return false;
+  raw_server_socket_ = nullptr;
+  return result;
 }
 
 bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
@@ -988,5 +973,4 @@ bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

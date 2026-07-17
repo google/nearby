@@ -19,7 +19,6 @@
 #include <optional>
 #include <string>
 
-#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
@@ -29,8 +28,7 @@
 #include "internal/platform/mac_address.h"
 #include "internal/platform/output_stream.h"
 
-namespace nearby {
-namespace api {
+namespace nearby::api {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice {
@@ -273,7 +271,7 @@ class BluetoothClassicMedium {
   // UUID.
   //
   //  Returns nullptr error.
-  virtual std::unique_ptr<BluetoothServerSocket> ListenForService(
+  virtual std::shared_ptr<BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#createBond()
@@ -290,7 +288,6 @@ class BluetoothClassicMedium {
   virtual void RemoveObserver(Observer* observer) = 0;
 };
 
-}  // namespace api
-}  // namespace nearby
+}  // namespace nearby::api
 
 #endif  // PLATFORM_API_BLUETOOTH_CLASSIC_H_

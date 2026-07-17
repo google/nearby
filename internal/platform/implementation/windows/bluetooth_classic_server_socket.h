@@ -15,25 +15,30 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <memory>
-#include <queue>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
-class BluetoothServerSocket : public api::BluetoothServerSocket {
+class BluetoothServerSocket
+    : public api::BluetoothServerSocket,
+      public std::enable_shared_from_this<BluetoothServerSocket> {
  public:
-  explicit BluetoothServerSocket(absl::string_view service_name);
+  static std::shared_ptr<BluetoothServerSocket> Create(
+      absl::string_view service_name) {
+    return std::shared_ptr<BluetoothServerSocket>(
+        new BluetoothServerSocket(service_name));
+  }
 
   ~BluetoothServerSocket() override;
 
@@ -65,6 +70,9 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   }
 
  private:
+  // BluetoothServerSocket must be created as a shared_ptr.
+  explicit BluetoothServerSocket(absl::string_view service_name);
+
   // The listener is accepting incoming connections
   ::winrt::fire_and_forget Listener_ConnectionReceived(
       ::winrt::Windows::Networking::Sockets::StreamSocketListener listener,
@@ -93,7 +101,6 @@ class BluetoothServerSocket : public api::BluetoothServerSocket {
   bool closed_ = false;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SERVER_SOCKET_H_

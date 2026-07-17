@@ -26,10 +26,10 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using ::winrt::Windows::Networking::Sockets::SocketProtectionLevel;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
@@ -132,7 +132,8 @@ bool BluetoothServerSocket::listen() {
 
     // Setup socket event of ConnectionReceived.
     listener_event_token_ = stream_socket_listener_.ConnectionReceived(
-        {this, &BluetoothServerSocket::Listener_ConnectionReceived});
+        {shared_from_this(),
+         &BluetoothServerSocket::Listener_ConnectionReceived});
 
     stream_socket_listener_
         .BindServiceNameAsync(winrt::to_hstring(service_name_),
@@ -167,5 +168,4 @@ bool BluetoothServerSocket::listen() {
   return ::winrt::fire_and_forget{};
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
