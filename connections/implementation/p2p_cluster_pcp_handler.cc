@@ -307,6 +307,9 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
               << bluetooth_classic_advertiser_client_id_;
   }
 
+  wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+  wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -315,9 +318,6 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
     ble_medium_.StopAcceptingL2capConnections(
         client->GetAdvertisingServiceId());
   }
-
-  wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
-  wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableAwdl)) {

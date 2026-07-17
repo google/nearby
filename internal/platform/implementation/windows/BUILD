@@ -72,7 +72,13 @@ cc_library(
         "timer.h",
         "utils.h",
     ],
-    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
+    defines = [
+        "_SILENCE_CLANG_COROUTINE_MESSAGE",
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+    ],
+    linkopts = [
+        "powrprof.lib",
+    ],
     tags = ["windows"],
     visibility = ["//visibility:private"],
     deps = [

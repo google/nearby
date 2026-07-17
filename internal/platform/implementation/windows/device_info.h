@@ -15,11 +15,19 @@
 #ifndef PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 #define PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 
+// clang-format off
+#include <windows.h>
+#include <powerbase.h>
+// clang-format on
+
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/base/file_path.h"
@@ -31,7 +39,7 @@ namespace windows {
 
 class DeviceInfo : public api::DeviceInfo {
  public:
-  ~DeviceInfo() override = default;
+  ~DeviceInfo() override;
 
   std::optional<std::string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
@@ -51,9 +59,26 @@ class DeviceInfo : public api::DeviceInfo {
   bool PreventSleep() override;
   bool AllowSleep() override;
 
+  int64_t RegisterSuspendResumeListener(
+      std::function<void(api::DeviceInfo::SuspendResumeEvent)> callback)
+      override;
+  void UnregisterSuspendResumeListener(int64_t listener_id) override;
+
  private:
+  static ULONG PowerSuspendResumeCallback(PVOID context, ULONG type,
+                                          PVOID setting);
+  void OnSuspendResumeEvent(SuspendResumeEvent event);
+
   mutable absl::Mutex mutex_;
   SessionManager session_manager_ ABSL_GUARDED_BY(mutex_);
+  absl::Mutex suspend_resume_mutex_;
+  int64_t next_suspend_resume_listener_id_ ABSL_GUARDED_BY(
+      suspend_resume_mutex_) = 0;
+  absl::flat_hash_map<
+      int64_t, absl::AnyInvocable<void(SuspendResumeEvent)>>
+      suspend_resume_listeners_ ABSL_GUARDED_BY(suspend_resume_mutex_);
+  HPOWERNOTIFY suspend_resume_notification_handle_
+      ABSL_GUARDED_BY(suspend_resume_mutex_) = nullptr;
 };
 
 }  // namespace windows

@@ -14,13 +14,19 @@
 
 #include "internal/platform/implementation/windows/device_info.h"
 
+// clang-format off
 #include <shlobj_core.h>
 #include <windows.h>
 #include <wtsapi32.h>
+#include <powrprof.h>
+#include <powerbase.h>
+// clang-format on
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -30,10 +36,19 @@
 #include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/logging.h"
 
 namespace nearby::windows {
-
+namespace {
 using ::nearby::windows::string_utils::WideStringToString;
+}  // namespace
+
+DeviceInfo::~DeviceInfo() {
+  if (suspend_resume_notification_handle_ != nullptr) {
+    PowerUnregisterSuspendResumeNotification(
+        suspend_resume_notification_handle_);
+  }
+}
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   std::optional<std::wstring> device_name = GetDnsHostName();
@@ -111,6 +126,63 @@ bool DeviceInfo::PreventSleep() {
 bool DeviceInfo::AllowSleep() {
   absl::MutexLock lock(mutex_);
   return session_manager_.AllowSleep();
+}
+
+ULONG DeviceInfo::PowerSuspendResumeCallback(PVOID context, ULONG type,
+                                             PVOID setting) {
+  api::DeviceInfo::SuspendResumeEvent event;
+  switch (type) {
+    case PBT_APMSUSPEND:
+      event = api::DeviceInfo::SuspendResumeEvent::kSuspend;
+      break;
+    case PBT_APMRESUMESUSPEND:
+      event = api::DeviceInfo::SuspendResumeEvent::kResume;
+      break;
+    default:
+      return 0;
+  }
+  DeviceInfo* device_info = static_cast<DeviceInfo*>(context);
+  device_info->OnSuspendResumeEvent(event);
+  return 0;
+}
+
+int64_t DeviceInfo::RegisterSuspendResumeListener(
+    std::function<void(api::DeviceInfo::SuspendResumeEvent)> callback) {
+  absl::MutexLock lock(suspend_resume_mutex_);
+  int64_t listener_id = ++next_suspend_resume_listener_id_;
+  suspend_resume_listeners_.emplace(listener_id, std::move(callback));
+  if (suspend_resume_listeners_.size() == 1) {
+    DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS subscribe_params;
+    subscribe_params.Callback = PowerSuspendResumeCallback;
+    subscribe_params.Context = this;
+    PowerRegisterSuspendResumeNotification(
+        DEVICE_NOTIFY_CALLBACK, &subscribe_params,
+        &suspend_resume_notification_handle_);
+  }
+  return listener_id;
+}
+
+void DeviceInfo::UnregisterSuspendResumeListener(int64_t listener_id) {
+  absl::MutexLock lock(suspend_resume_mutex_);
+  suspend_resume_listeners_.erase(listener_id);
+  if (suspend_resume_listeners_.empty()) {
+    if (suspend_resume_notification_handle_ != nullptr) {
+    PowerUnregisterSuspendResumeNotification(
+        suspend_resume_notification_handle_);
+    }
+    suspend_resume_notification_handle_ = nullptr;
+  }
+}
+
+void DeviceInfo::OnSuspendResumeEvent(
+    api::DeviceInfo::SuspendResumeEvent event) {
+  LOG(INFO) << "OnSuspendResumeEvent: "
+            << (event == DeviceInfo::SuspendResumeEvent::kSuspend ? "kSuspend"
+                                                                  : "kResume");
+  absl::MutexLock lock(suspend_resume_mutex_);
+  for (auto& it : suspend_resume_listeners_) {
+    it.second(event);
+  }
 }
 
 }  // namespace nearby::windows

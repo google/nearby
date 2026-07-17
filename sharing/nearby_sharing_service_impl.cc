@@ -44,6 +44,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
@@ -133,6 +134,12 @@ constexpr absl::Duration kInvalidateSurfaceStateDelayAfterTransferDone =
 constexpr absl::Duration kProcessShutdownPendingTimerDelay =  // NOLINT
     absl::Seconds(15);
 constexpr absl::Duration kProcessNetworkChangeTimerDelay = absl::Seconds(1);
+
+// Delay invalidating the surface state after a resume event.
+// Network activities can cause system to resume for short periods before
+// suspending again. This delay allows us to ignore those and only resume
+// fully when the system is stable.
+constexpr absl::Duration kResumeDelay = absl::Milliseconds(500);
 
 // The maximum number of certificate downloads that can be performed during a
 // discovery session.
@@ -337,6 +344,13 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
         OnLockStateChanged(screen_status ==
                            nearby::api::DeviceInfo::ScreenStatus::kLocked);
       });
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kEnableSuspendResumeListener)) {
+    suspend_resume_listener_id_ =
+        device_info_.RegisterSuspendResumeListener(absl::bind_front(
+            &NearbySharingServiceImpl::OnSuspendResumeEvent, this));
+  }
 
   account_manager_.AddObserver(this);
   settings_->AddSettingsObserver(this);
@@ -384,6 +398,8 @@ void NearbySharingServiceImpl::Shutdown(
         background_receive_callbacks_map_.clear();
 
         device_info_.UnregisterScreenLockedListener(kScreenStateListenerName);
+        device_info_.UnregisterSuspendResumeListener(
+            suspend_resume_listener_id_);
 
         settings_->RemoveSettingsObserver(this);
 
@@ -1415,6 +1431,42 @@ void NearbySharingServiceImpl::OnLockStateChanged(bool locked) {
   });
 }
 
+void NearbySharingServiceImpl::OnSuspendResumeEvent(
+    nearby::api::DeviceInfo::SuspendResumeEvent event) {
+  bool suspended =
+      event == nearby::api::DeviceInfo::SuspendResumeEvent::kSuspend;
+  {
+    absl::MutexLock lock(suspend_mutex_);
+    suspended_ = suspended;
+    if (!suspended) {
+      resume_delay_timer_ = std::make_unique<ThreadTimer>(
+          *service_thread_, "suspend_resume_timer", kResumeDelay, [this]() {
+            {
+              absl::MutexLock lock(suspend_mutex_);
+              if (suspended_) {
+                return;
+              }
+            }
+            LOG(INFO) << "InvalidateSurfaceState due to system resume";
+            InvalidateSurfaceState();
+          });
+    }
+  }
+  if (suspended) {
+    RunOnNearbySharingServiceThread("on_suspend", [this]() {
+      LOG(INFO) << "InvalidateSurfaceState due to system suspend";
+      {
+        absl::MutexLock lock(suspend_mutex_);
+        if (!suspended_) {
+          return;
+        }
+        resume_delay_timer_.reset();
+      }
+      InvalidateSurfaceState();
+    });
+  }
+}
+
 void NearbySharingServiceImpl::AdapterPresentChanged(
     sharing::api::BluetoothAdapter* adapter, bool present) {
   RunOnNearbySharingServiceThread("bt_adapter_present_changed", [this, adapter,
@@ -1873,6 +1925,16 @@ void NearbySharingServiceImpl::InvalidateSendSurfaceState() {
 }
 
 void NearbySharingServiceImpl::InvalidateScanningState() {
+  {
+    absl::MutexLock lock(suspend_mutex_);
+    if (suspended_) {
+      StopScanning();
+      VLOG(1) << __func__
+              << ": Stopping discovery because the system is suspended.";
+      return;
+    }
+  }
+
   // Stop scanning when screen is off.
   if (is_screen_locked_) {
     StopScanning();
@@ -1910,6 +1972,17 @@ void NearbySharingServiceImpl::InvalidateScanningState() {
 }
 
 void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
+  {
+    absl::MutexLock lock(suspend_mutex_);
+    if (suspended_) {
+      StopFastInitiationAdvertising();
+      VLOG(1) << __func__
+              << ": Stopping fast initiation advertising because the "
+                 "system is suspended.";
+      return;
+    }
+  }
+
   // Screen is off. Do no work.
   if (is_screen_locked_) {
     StopFastInitiationAdvertising();
@@ -1949,6 +2022,16 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
 }
 
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
+  {
+    absl::MutexLock lock(suspend_mutex_);
+    if (suspended_) {
+      StopAdvertising();
+      VLOG(1) << __func__
+              << ": Stopping advertising because the system is suspended.";
+      return;
+    }
+  }
+
   bool supports_advertising_on_lock_screen =
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::

@@ -16,6 +16,7 @@
 #define PLATFORM_API_DEVICE_INFO_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
@@ -39,6 +40,7 @@ class DeviceInfo {
     kWindows,
     kMacOS
   };
+  enum class SuspendResumeEvent { kSuspend, kResume };
 
   virtual ~DeviceInfo() = default;
 
@@ -69,6 +71,14 @@ class DeviceInfo {
   // Control device sleep
   virtual bool PreventSleep() = 0;
   virtual bool AllowSleep() = 0;
+
+  // Monitor suspend/resume events.
+  // Returns a listener id that can be used to unregister the listener.
+  virtual int64_t RegisterSuspendResumeListener(
+      std::function<void(SuspendResumeEvent)> callback) {
+    return 0;
+  }
+  virtual void UnregisterSuspendResumeListener(int64_t listener_id) {}
 };
 
 template <typename Sink>
