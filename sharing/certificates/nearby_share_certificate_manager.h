@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/observer_list.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -118,6 +119,12 @@ class NearbyShareCertificateManager {
 
   // Sets the vendor ID to generate certificates for.
   virtual void SetVendorId(int32_t vendor_id) = 0;
+
+  // Sets the timestamp of the join binding rpc. This is used to ensure that the
+  // requested public certificates contain the ids of the binding.
+  // `life_time` determines how long this join_binding_time will be used.
+  virtual void SetJoinBindingTime(absl::Time join_binding_time,
+                                  absl::Duration life_time) = 0;
 
   // Dump certificates ID information for troubleshooting.
   virtual std::string Dump() const = 0;

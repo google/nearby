@@ -39,6 +39,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "third_party/gloop/util/time/protoutil.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
 #include "sharing/certificates/constants.h"
@@ -78,6 +79,7 @@ using ::google::nearby::identity::v1::
     QuerySharedCredentialsWithBindingIdsResponse;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::PublicCertificate;
+using ::protobuf_matchers::EqualsProto;
 using ::testing::Not;
 using ::testing::ReturnRef;
 using ::testing::UnorderedElementsAreArray;
@@ -795,6 +797,42 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   Initialize();
   ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
       /*num_pages=*/2, DownloadPublicCertificatesResult::kHttpError));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       QuerySharedCredentialsWithBindingIdsWithJoinTime) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kEnableBackup, true);
+  Initialize();
+  cert_manager_->SetJoinBindingTime(absl::FromUnixSeconds(123456789),
+                                    absl::Seconds(30));
+  ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
+      /*num_pages=*/2, DownloadPublicCertificatesResult::kSuccess));
+  std::vector<QuerySharedCredentialsWithBindingIdsRequest> requests =
+      identity_client_.query_shared_credentials_with_binding_ids_requests();
+  for (const auto& request : requests) {
+    ASSERT_OK_AND_ASSIGN(
+        auto expected_time,
+        util_time::EncodeGoogleApiProto(absl::FromUnixSeconds(123456789)));
+    EXPECT_THAT(request.join_binding_time(), EqualsProto(expected_time));
+  }
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       QuerySharedCredentialsWithBindingIdsWithJoinTimeExpiration) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kEnableBackup, true);
+  Initialize();
+  cert_manager_->SetJoinBindingTime(absl::FromUnixSeconds(123456789),
+                                    absl::Seconds(30));
+  FastForward(absl::Seconds(31));
+  ASSERT_NO_FATAL_FAILURE(QuerySharedCredentialsWithBindingIdsFlow(
+      /*num_pages=*/2, DownloadPublicCertificatesResult::kSuccess));
+  std::vector<QuerySharedCredentialsWithBindingIdsRequest> requests =
+      identity_client_.query_shared_credentials_with_binding_ids_requests();
+  for (const auto& request : requests) {
+    EXPECT_FALSE(request.has_join_binding_time());
+  }
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest, ClearPublicCertificates) {

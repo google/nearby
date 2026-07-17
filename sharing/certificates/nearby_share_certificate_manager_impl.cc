@@ -44,6 +44,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "third_party/gloop/util/time/protoutil.h"
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
@@ -383,6 +384,13 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
   page_number_++;
   QuerySharedCredentialsWithBindingIdsRequest request;
   request.set_name(absl::StrCat("devices/", device_id_));
+  if (join_time_.has_value()) {
+    absl::StatusOr<google::protobuf::Timestamp> join_time =
+        util_time::EncodeGoogleApiProto(*join_time_);
+    if (join_time.ok()) {
+      *request.mutable_join_binding_time() = *join_time;
+    }
+  }
   if (next_page_token_.has_value()) {
     request.set_page_token(*next_page_token_);
   }
@@ -467,10 +475,15 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
     return true;
   }
 
+  // Clear join_time if it is expired.
+  if (join_time_.has_value() &&
+      context_->GetClock()->Now() > join_time_discard_time_) {
+    join_time_.reset();
+  }
   bool download_succeeded = false;
   absl::Notification notification;
   auto context = std::make_unique<CertificateDownloadContext>(
-      nearby_identity_client_, std::move(device_id),
+      nearby_identity_client_, std::move(device_id), join_time_,
       [this, &download_succeeded, &notification](
           absl::StatusOr<std::vector<PublicCertificate>> certificates_status) {
         if (!certificates_status.ok()) {
@@ -743,6 +756,12 @@ void NearbyShareCertificateManagerImpl::SetVendorId(int32_t vendor_id) {
   }
   // Recreate all private certificates to ensure up-to-date metadata.
   RegeneratePrivateCertificates();
+}
+
+void NearbyShareCertificateManagerImpl::SetJoinBindingTime(
+    absl::Time join_binding_time, absl::Duration life_time) {
+  join_time_ = join_binding_time;
+  join_time_discard_time_ = context_->GetClock()->Now() + life_time;
 }
 
 std::string NearbyShareCertificateManagerImpl::Dump() const {
