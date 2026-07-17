@@ -122,15 +122,15 @@
   return serverSocket;
 }
 
-- (void)triggerServiceFound:(NSString *)serviceName
-                 txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+- (void)triggerServiceFound:(nullable NSString *)serviceName
+                 txtRecords:(nullable NSDictionary<NSString *, NSString *> *)txtRecords {
   if (self.serviceFoundHandler) {
     self.serviceFoundHandler(serviceName, txtRecords);
   }
 }
 
-- (void)triggerServiceLost:(NSString *)serviceName
-                txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+- (void)triggerServiceLost:(nullable NSString *)serviceName
+                txtRecords:(nullable NSDictionary<NSString *, NSString *> *)txtRecords {
   if (self.serviceLostHandler) {
     self.serviceLostHandler(serviceName, txtRecords);
   }

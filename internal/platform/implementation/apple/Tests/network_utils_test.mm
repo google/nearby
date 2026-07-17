@@ -157,4 +157,30 @@ static NSString *const kServiceType = @"_test._tcp";
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
 }
 
+- (void)testStartDiscoveryCallbacksWithNilName {
+  XCTestExpectation *foundExpectation = [self expectationWithDescription:@"Service found callback"];
+  XCTestExpectation *lostExpectation = [self expectationWithDescription:@"Service lost callback"];
+
+  nearby::apple::network_utils::NetworkDiscoveredServiceCallback callback;
+  callback.network_service_discovered_cb = [&](const nearby::NsdServiceInfo &service_info) {
+    XCTAssertEqual(service_info.GetServiceName(), std::string(""));
+    XCTAssertEqual(service_info.GetServiceType(), kServiceType.UTF8String);
+    [foundExpectation fulfill];
+  };
+  callback.network_service_lost_cb = [&](const nearby::NsdServiceInfo &service_info) {
+    XCTAssertEqual(service_info.GetServiceName(), std::string(""));
+    XCTAssertEqual(service_info.GetServiceType(), kServiceType.UTF8String);
+    [lostExpectation fulfill];
+  };
+
+  BOOL result = nearby::apple::network_utils::StartDiscovery(
+      _fakeNWFramework, kServiceType.UTF8String, std::move(callback), YES);
+  XCTAssertTrue(result);
+
+  [_fakeNWFramework triggerServiceFound:nil txtRecords:@{}];
+  [_fakeNWFramework triggerServiceLost:nil txtRecords:@{}];
+
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+}
+
 @end

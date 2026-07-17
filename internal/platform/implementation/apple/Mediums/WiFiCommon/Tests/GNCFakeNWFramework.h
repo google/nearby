@@ -53,16 +53,16 @@ NS_ASSUME_NONNULL_BEGIN
  * @param serviceName The name of the service found.
  * @param txtRecords The TXT records of the service found.
  */
-- (void)triggerServiceFound:(NSString*)serviceName
-                 txtRecords:(NSDictionary<NSString*, NSString*>*)txtRecords;
+- (void)triggerServiceFound:(nullable NSString*)serviceName
+                 txtRecords:(nullable NSDictionary<NSString*, NSString*>*)txtRecords;
 /**
  * Triggers the service lost handler with the given service info.
  *
  * @param serviceName The name of the service lost.
  * @param txtRecords The TXT records of the service lost.
  */
-- (void)triggerServiceLost:(NSString*)serviceName
-                txtRecords:(NSDictionary<NSString*, NSString*>*)txtRecords;
+- (void)triggerServiceLost:(nullable NSString*)serviceName
+                txtRecords:(nullable NSDictionary<NSString*, NSString*>*)txtRecords;
 
 @end
 

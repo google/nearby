@@ -67,6 +67,9 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (nullable NSString *)getBonjourServiceNameFromEndpoint:(nw_endpoint_t)endpoint {
+  if (self.returnNilServiceName) {
+    return nil;
+  }
   return self.getBonjourServiceNameFromEndpointResult ?: @"FakeService";
 }
 

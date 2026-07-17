@@ -61,7 +61,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
   _mockConnectionImpl = OCMClassMock([GNCNWConnectionImpl class]);
 }
 
-
 - (void)testGNCNWFrameworkCanBeInstantiated {
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
   XCTAssertNotNil(framework);
@@ -272,6 +271,49 @@ static NSString *const kHostAddress = @"127.0.0.1";
   XCTAssertEqualObjects(foundTXTRecords, @{@"key" : @"value"});
 }
 
+- (void)testStartDiscoveryForServiceTypeNilName API_AVAILABLE(ios(13.0)) {
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWBrowser *fakeBrowser = [[GNCFakeNWBrowser alloc] init];
+  fakeBrowser.createWithDescriptorResult = (nw_browser_t)fakeBrowser;
+  OCMStub([_mockBrowserImpl alloc]).andReturn(fakeBrowser);
+
+  XCTestExpectation *serviceFoundExpectation = [self expectationWithDescription:@"Service found"];
+  serviceFoundExpectation.inverted = YES;
+
+  NSError *error = nil;
+  BOOL result = [framework startDiscoveryForServiceType:kServiceType
+      serviceFoundHandler:^(NSString *serviceName,
+                            NSDictionary<NSString *, NSString *> *txtRecords) {
+        [serviceFoundExpectation fulfill];
+      }
+      serviceLostHandler:^(NSString *serviceName,
+                           NSDictionary<NSString *, NSString *> *txtRecords) {
+      }
+      includePeerToPeer:NO
+      error:&error];
+
+  XCTAssertTrue(result);
+  XCTAssertNil(error);
+
+  // Simulate a service being found with nil name.
+  GNCFakeNWBrowseResult *fakeBrowseResult = [[GNCFakeNWBrowseResult alloc] init];
+  fakeBrowseResult.txtRecord = @{@"key" : @"value"};
+  fakeBrowseResult.getChangesFromResult = nw_browse_result_change_result_added;
+  nw_endpoint_t fakeEndpoint =
+      nw_endpoint_create_host("localhost", [[NSString stringWithFormat:@"%ld", kPort] UTF8String]);
+  fakeBrowseResult.endpointFromResultResult = fakeEndpoint;
+  fakeBrowseResult.returnNilServiceName = YES;
+  OCMStub([_mockBrowseResultImpl sharedInstance]).andReturn(fakeBrowseResult);
+
+  if (fakeBrowser.browseResultsChangedHandler) {
+    GNCFakeNWBrowseResult *oldFakeBrowseResult = [[GNCFakeNWBrowseResult alloc] init];
+    fakeBrowser.browseResultsChangedHandler((nw_browse_result_t)oldFakeBrowseResult,
+                                            (nw_browse_result_t)fakeBrowseResult, true);
+  }
+
+  [self waitForExpectations:@[ serviceFoundExpectation ] timeout:0.1];
+}
+
 - (void)testStartDiscoveryForServiceTypeDuplicate API_AVAILABLE(ios(13.0)) {
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
   GNCFakeNWBrowser *fakeBrowser = [[GNCFakeNWBrowser alloc] init];
@@ -449,12 +491,13 @@ static NSString *const kHostAddress = @"127.0.0.1";
   // TODO: b/377543997 - Migrate to dependency injection and remove mocks.
   OCMStub([_mockBrowserImpl alloc]).andReturn(fakeBrowser);
 
-  __block BOOL serviceFound = NO;
+  XCTestExpectation *serviceFoundExpectation = [self expectationWithDescription:@"Service found"];
+  serviceFoundExpectation.inverted = YES;
   NSError *error = nil;
   [framework startDiscoveryForServiceType:kServiceType
       serviceFoundHandler:^(NSString *serviceName,
                             NSDictionary<NSString *, NSString *> *txtRecords) {
-        serviceFound = YES;
+        [serviceFoundExpectation fulfill];
       }
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
@@ -478,14 +521,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
                                             (nw_browse_result_t)fakeBrowseResult, true);
   }
 
-  // Allow async blocks to run.
-  XCTestExpectation *delay = [[XCTestExpectation alloc] initWithDescription:@"delay"];
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-    [delay fulfill];
-  });
-  [self waitForExpectations:@[ delay ] timeout:0.5];
-
-  XCTAssertFalse(serviceFound);
+  [self waitForExpectations:@[ serviceFoundExpectation ] timeout:0.1];
 }
 
 - (void)testStartDiscoveryIgnoresLoopbackRemove API_AVAILABLE(ios(13.0)) {
@@ -495,7 +531,8 @@ static NSString *const kHostAddress = @"127.0.0.1";
   // TODO: b/377543997 - Migrate to dependency injection and remove mocks.
   OCMStub([_mockBrowserImpl alloc]).andReturn(fakeBrowser);
 
-  __block BOOL serviceLost = NO;
+  XCTestExpectation *serviceLostExpectation = [self expectationWithDescription:@"Service lost"];
+  serviceLostExpectation.inverted = YES;
   NSError *error = nil;
   [framework startDiscoveryForServiceType:kServiceType
       serviceFoundHandler:^(NSString *serviceName,
@@ -503,7 +540,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
       }
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
-        serviceLost = YES;
+        [serviceLostExpectation fulfill];
       }
       includePeerToPeer:NO
       error:&error];
@@ -524,14 +561,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
                                             (nw_browse_result_t)newFakeBrowseResult, true);
   }
 
-  // Allow async blocks to run.
-  XCTestExpectation *delay = [[XCTestExpectation alloc] initWithDescription:@"delay"];
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-    [delay fulfill];
-  });
-  [self waitForExpectations:@[ delay ] timeout:0.5];
-
-  XCTAssertFalse(serviceLost);
+  [self waitForExpectations:@[ serviceLostExpectation ] timeout:0.1];
 }
 
 - (void)testStopDiscoveryForServiceType API_AVAILABLE(ios(13.0)) {
@@ -722,8 +752,8 @@ static NSString *const kHostAddress = @"127.0.0.1";
   GNCNWFrameworkSocket *socket = [framework connectToHost:address
                                                      port:kPort
                                         includePeerToPeer:NO
-                                           cancelSource:nil
-                                                  queue:nil
+                                             cancelSource:nil
+                                                    queue:nil
                                                     error:&error];
 
   XCTAssertNotNil(socket);
@@ -742,8 +772,8 @@ static NSString *const kHostAddress = @"127.0.0.1";
   GNCNWFrameworkSocket *socket = [framework connectToHost:address
                                                      port:kPort
                                         includePeerToPeer:NO
-                                           cancelSource:nil
-                                                  queue:nil
+                                             cancelSource:nil
+                                                    queue:nil
                                                     error:&error];
 
   XCTAssertNil(socket);
