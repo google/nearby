@@ -16,6 +16,8 @@ syntax = "proto2";
 
 package nearby.sharing.service.proto;
 
+import "google/protobuf/timestamp.proto";
+
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "proto/sharing_enums.proto";
 
@@ -266,6 +268,13 @@ message BindingRequest {
   }
   optional string binding_id = 1;
   optional Type type = 2;
+  // A list of public cert ids that can be used to identify the sender.
+  // If binding is successful, the receiver can add the binding ids to these
+  // public certs to ensure that it can immediately identify the sender without
+  // having to download public certs from the BE.
+  // The sender does not need to provide all its future public certs, just the
+  // current ones will be sufficient.
+  repeated bytes cert_ids = 3;
 }
 
 message BindingResponse {
@@ -275,6 +284,10 @@ message BindingResponse {
     FAILURE = 2;  // TODO: b/485307320 - Add more specific error codes.
   }
   optional Status status = 1;
+  optional google.protobuf.Timestamp join_binding_time = 2;
+  // A list of public cert ids that can be used to identify the receiver.
+  // See the comment of cert_ids in BindingRequest for more details.
+  repeated bytes cert_ids = 3;
 }
 
 // A response packet sent by the receiving side. Accepts or rejects the list of

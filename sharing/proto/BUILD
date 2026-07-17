@@ -42,7 +42,10 @@ proto_library(
     name = "wire_format_proto",
     srcs = ["wire_format.proto"],
     visibility = ["//visibility:public"],
-    deps = ["//proto:sharing_enums_proto"],
+    deps = [
+        "//google/protobuf:timestamp",
+        "//proto:sharing_enums_proto",
+    ],
 )
 
 cc_proto_library(
