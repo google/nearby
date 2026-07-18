@@ -636,6 +636,31 @@ TEST_F(NearbyShareCertificateManagerImplTest,
       DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
 }
 
+TEST_F(NearbyShareCertificateManagerImplTest,
+       GetPrivateCertificateIdWithNoCertificates) {
+  Initialize();
+  cert_store_->ReplacePrivateCertificates({});
+  EXPECT_FALSE(cert_manager_->GetPrivateCertificateId(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS).has_value());
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       GetPrivateCertificateIdWithValidCertificate) {
+  Initialize();
+  NearbySharePrivateCertificate private_certificate =
+      GetNearbyShareTestPrivateCertificate(
+          DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+  cert_store_->ReplacePrivateCertificates({private_certificate});
+  FastForward(GetNearbyShareTestNotBefore() +
+              kNearbyShareCertificateValidityPeriod * 0.5 - Now());
+  ASSERT_TRUE(cert_manager_->GetPrivateCertificateId(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS).has_value());
+  EXPECT_EQ(cert_manager_->GetPrivateCertificateId(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS).value(),
+      std::string(private_certificate.id().begin(),
+                  private_certificate.id().end()));
+}
+
 TEST_F(NearbyShareCertificateManagerImplTest, SignWithPrivateCertificate) {
   Initialize();
   NearbySharePrivateCertificate private_certificate =

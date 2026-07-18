@@ -5179,6 +5179,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(frame->v1().bindings().binding_request().binding_id(), kBindingId);
   EXPECT_EQ(frame->v1().bindings().binding_request().type(),
             service::proto::BindingRequest::FILESYNC);
+  EXPECT_EQ(frame->v1().bindings().binding_request().cert_ids_size(), 2);
 
   // BindingResponse frame timeout.
   FastForward(absl::Seconds(60));

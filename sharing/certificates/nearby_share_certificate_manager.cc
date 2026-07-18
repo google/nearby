@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "absl/types/span.h"
@@ -71,6 +72,15 @@ NearbyShareCertificateManager::EncryptPrivateCertificateMetadataKey(
   UpdatePrivateCertificateInStorage(*cert);
 
   return encrypted_key;
+}
+
+std::optional<std::string>
+NearbyShareCertificateManager::GetPrivateCertificateId(
+    DeviceVisibility visibility) {
+  std::optional<NearbySharePrivateCertificate> cert =
+      GetValidPrivateCertificate(visibility);
+  if (!cert) return std::nullopt;
+  return std::string(cert->id().begin(), cert->id().end());
 }
 
 std::optional<std::vector<uint8_t>>

@@ -2761,6 +2761,20 @@ void NearbySharingServiceImpl::BeginOutgoingPairing(
       });
 }
 
+std::vector<std::string> NearbySharingServiceImpl::GetCertIdsForSyncBinding() {
+  std::vector<std::string> cert_ids;
+  cert_ids.reserve(2);
+  if (auto id = certificate_manager_->GetPrivateCertificateId(
+          proto::DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE)) {
+    cert_ids.push_back(*id);
+  }
+  if (auto id = certificate_manager_->GetPrivateCertificateId(
+          proto::DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS)) {
+    cert_ids.push_back(*id);
+  }
+  return cert_ids;
+}
+
 void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
     int64_t share_target_id, absl::StatusOr<std::string> binding_status) {
   RunOnNearbySharingServiceThread(
@@ -2779,7 +2793,7 @@ void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
           LOG(INFO) << __func__
                     << ": Sync binding rpc succeeded: id=" << binding_id;
           session->StartPeerBinding(
-              binding_id, BindingRequest::FILESYNC,
+              binding_id, BindingRequest::FILESYNC, GetCertIdsForSyncBinding(),
               [this, share_target_id,
                binding_id](BindingResponse::Status status) {
                 OnPeerSyncBindingComplete(share_target_id, binding_id, status);

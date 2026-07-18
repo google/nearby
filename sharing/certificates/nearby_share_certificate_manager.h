@@ -81,6 +81,12 @@ class NearbyShareCertificateManager {
   std::optional<NearbyShareEncryptedMetadataKey>
   EncryptPrivateCertificateMetadataKey(proto::DeviceVisibility visibility);
 
+  // Returns the id of the currently valid private certificate with
+  // |visibility|, or absl::nullopt if there is no valid private certificate
+  // with |visibility|.
+  std::optional<std::string> GetPrivateCertificateId(
+      proto::DeviceVisibility visibility);
+
   // Signs the input |payload| using the currently valid private certificate
   // with |visibility|. Returns absl::nullopt if there is no valid private
   // certificate with |visibility| or if the signing was unsuccessful.

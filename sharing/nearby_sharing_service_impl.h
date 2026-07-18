@@ -409,6 +409,7 @@ class NearbySharingServiceImpl
   bool OutgoingSessionAccept(OutgoingShareSession& session);
   void OnIncomingFilesMetadataUpdated(int64_t share_target_id,
                                       TransferMetadata metadata, bool success);
+  std::vector<std::string> GetCertIdsForSyncBinding();
   // Called when InitiateBinding rpc returns.
   void OnInitiateSyncBindingResponse(
       int64_t share_target_id, absl::StatusOr<std::string> binding_status);

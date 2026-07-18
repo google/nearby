@@ -27,6 +27,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/clock.h"
@@ -647,6 +648,7 @@ OutgoingShareSession::ProcessPayloadTransferUpdates() {
 
 void OutgoingShareSession::StartPeerBinding(
     std::string binding_id, BindingRequest::Type binding_type,
+    absl::Span<const std::string> cert_ids,
     absl::AnyInvocable<void(BindingResponse::Status)> callback) {
   Frame frame;
   frame.set_version(Frame::V1);
@@ -656,6 +658,7 @@ void OutgoingShareSession::StartPeerBinding(
       v1_frame->mutable_bindings()->mutable_binding_request();
   binding_request->set_binding_id(binding_id);
   binding_request->set_type(binding_type);
+  binding_request->mutable_cert_ids()->Add(cert_ids.begin(), cert_ids.end());
   WriteFrame(frame);
   LOG(INFO) << "Waiting for bindings response frame from " << share_target().id;
   UpdateTransferMetadata(

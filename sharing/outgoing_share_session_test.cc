@@ -928,6 +928,8 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
                 binding_request {
                   binding_id: "test_binding_id"
                   type: FILESYNC
+                  cert_ids: "cert_id_1"
+                  cert_ids: "cert_id_2"
                 }
               }
             }
@@ -946,11 +948,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
                  HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
-  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
-                            [&binding_response_status](
-                                BindingResponse::Status status) {
-                              binding_response_status = status;
-                            });
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {"cert_id_1", "cert_id_2"},
+      [&binding_response_status](BindingResponse::Status status) {
+        binding_response_status = status;
+      });
 
   Frame frame;
   ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
@@ -1014,11 +1016,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
                  HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
-  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
-                            [&binding_response_status](
-                                BindingResponse::Status status) {
-                              binding_response_status = status;
-                            });
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {},
+      [&binding_response_status](BindingResponse::Status status) {
+        binding_response_status = status;
+      });
 
   Frame frame;
   ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
@@ -1065,11 +1067,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
                  HasUsage(ShareSessionUsage::kPairing))));
 
   BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
-  session_.StartPeerBinding("test_binding_id", BindingRequest::FILESYNC,
-                            [&binding_response_status](
-                                BindingResponse::Status status) {
-                              binding_response_status = status;
-                            });
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {},
+      [&binding_response_status](BindingResponse::Status status) {
+        binding_response_status = status;
+      });
 
   Frame frame;
   ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
