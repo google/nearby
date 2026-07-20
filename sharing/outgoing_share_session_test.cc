@@ -74,6 +74,7 @@ using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::_;
 using ::testing::AllOf;
+using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::InSequence;
@@ -947,11 +948,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
            AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
                  HasUsage(ShareSessionUsage::kPairing))));
 
-  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  BindingResponse binding_response;
   session_.StartPeerBinding(
       "test_binding_id", BindingRequest::FILESYNC, {"cert_id_1", "cert_id_2"},
-      [&binding_response_status](BindingResponse::Status status) {
-        binding_response_status = status;
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
       });
 
   Frame frame;
@@ -969,6 +970,8 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
           bindings {
             binding_response {
               status: SUCCESS
+              cert_ids: "cert_id_3"
+              cert_ids: "cert_id_4"
             }
           }
         }
@@ -980,7 +983,9 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
               IsTrue());
   connection.WriteMessage(std::move(data));
 
-  EXPECT_THAT(binding_response_status, Eq(BindingResponse::SUCCESS));
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::SUCCESS));
+  EXPECT_THAT(binding_response.cert_ids(),
+              ElementsAre("cert_id_3", "cert_id_4"));
 }
 
 TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
@@ -1015,11 +1020,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
            AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
                  HasUsage(ShareSessionUsage::kPairing))));
 
-  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  BindingResponse binding_response;
   session_.StartPeerBinding(
       "test_binding_id", BindingRequest::FILESYNC, {},
-      [&binding_response_status](BindingResponse::Status status) {
-        binding_response_status = status;
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
       });
 
   Frame frame;
@@ -1031,7 +1036,7 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
   fake_clock_.FastForward(absl::Seconds(60));
   fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
-  EXPECT_THAT(binding_response_status, Eq(BindingResponse::FAILURE));
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));
 }
 
 TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
@@ -1066,11 +1071,11 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
            AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
                  HasUsage(ShareSessionUsage::kPairing))));
 
-  BindingResponse::Status binding_response_status = BindingResponse::FAILURE;
+  BindingResponse binding_response;
   session_.StartPeerBinding(
       "test_binding_id", BindingRequest::FILESYNC, {},
-      [&binding_response_status](BindingResponse::Status status) {
-        binding_response_status = status;
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
       });
 
   Frame frame;
@@ -1099,7 +1104,8 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
               IsTrue());
   connection.WriteMessage(std::move(data));
 
-  EXPECT_THAT(binding_response_status, Eq(BindingResponse::FAILURE));
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));
+  EXPECT_THAT(binding_response.cert_ids(), IsEmpty());
 }
 
 }  // namespace

@@ -426,6 +426,7 @@ cc_library(
         "//sharing/proto:share_cc_proto",
         "//sharing/proto:wire_format_cc_proto",
         "//sharing/scheduling",
+        "//third_party/gloop/util/time:protoutil",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",

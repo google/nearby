@@ -649,7 +649,7 @@ OutgoingShareSession::ProcessPayloadTransferUpdates() {
 void OutgoingShareSession::StartPeerBinding(
     std::string binding_id, BindingRequest::Type binding_type,
     absl::Span<const std::string> cert_ids,
-    absl::AnyInvocable<void(BindingResponse::Status)> callback) {
+    absl::AnyInvocable<void(const BindingResponse&)> callback) {
   Frame frame;
   frame.set_version(Frame::V1);
   V1Frame* v1_frame = frame.mutable_v1();
@@ -671,19 +671,19 @@ void OutgoingShareSession::StartPeerBinding(
       nearby::sharing::service::proto::V1Frame::BINDINGS,
       [callback = std::move(callback)](
           bool is_timeout, std::optional<V1Frame> frame) mutable {
+        BindingResponse failure_response;
+        failure_response.set_status(BindingResponse::FAILURE);
         if (!frame.has_value()) {
-          std::move(callback)(BindingResponse::FAILURE);
+          std::move(callback)(failure_response);
           return;
         }
         if (!frame->has_bindings() ||
-            !frame->bindings().has_binding_response() ||
-            frame->bindings().binding_response().status() !=
-                BindingResponse::SUCCESS) {
-          std::move(callback)(BindingResponse::FAILURE);
+            !frame->bindings().has_binding_response()) {
+          std::move(callback)(failure_response);
           return;
         }
         // Peer binding flow completed successfully.
-        std::move(callback)(BindingResponse::SUCCESS);
+        std::move(callback)(frame->bindings().binding_response());
       },
       kReadResponseFrameTimeout);
 }

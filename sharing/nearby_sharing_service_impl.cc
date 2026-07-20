@@ -47,6 +47,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "third_party/gloop/util/time/protoutil.h"
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
@@ -140,6 +141,11 @@ constexpr absl::Duration kProcessNetworkChangeTimerDelay = absl::Seconds(1);
 // suspending again. This delay allows us to ignore those and only resume
 // fully when the system is stable.
 constexpr absl::Duration kResumeDelay = absl::Milliseconds(500);
+
+// The duration to use join binding time when downloading public certificates.
+// The default BE database query staleness is 30s. We extend this t0 40s to
+// ensure that we have some overlap.
+constexpr absl::Duration kJoinBindingTimeLifeTime = absl::Seconds(40);
 
 // The maximum number of certificate downloads that can be performed during a
 // discovery session.
@@ -2794,10 +2800,9 @@ void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
                     << ": Sync binding rpc succeeded: id=" << binding_id;
           session->StartPeerBinding(
               binding_id, BindingRequest::FILESYNC, GetCertIdsForSyncBinding(),
-              [this, share_target_id,
-               binding_id](BindingResponse::Status status) {
-                OnPeerSyncBindingComplete(share_target_id, binding_id, status);
-              });
+              absl::bind_front(
+                  &NearbySharingServiceImpl::OnPeerSyncBindingComplete, this,
+                  share_target_id, binding_id));
         } else {
           LOG(INFO) << __func__ << ": Sync binding rpc failed.";
           session->Abort(TransferMetadata::Status::kFailed);
@@ -2807,7 +2812,7 @@ void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
 
 void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
     int64_t share_target_id, absl::string_view binding_id,
-    BindingResponse::Status status) {
+    const BindingResponse& binding_response) {
   OutgoingShareSession* session =
       outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
@@ -2815,7 +2820,7 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
                  << share_target_id;
     return;
   }
-  if (status != BindingResponse::SUCCESS) {
+  if (binding_response.status() != BindingResponse::SUCCESS) {
     LOG(INFO) << __func__ << ": Sync binding response failed.";
     session->Abort(TransferMetadata::Status::kFailed);
     return;
@@ -2841,7 +2846,20 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
           .set_binding_id(binding_id)
           .set_status(TransferMetadata::Status::kComplete)
           .build());
+  // Update binding id in peer certificates so we can identify the sync peer
+  // immediately without waiting for cert sync from Backend.
+  for  (const auto& cert_id : binding_response.cert_ids()) {
+    certificate_manager_->AddBindingToPublicCertificate(cert_id, binding_id);
+  }
 
+  if (binding_response.has_join_binding_time()) {
+    auto join_binding_time =
+        util_time::DecodeGoogleApiProto(binding_response.join_binding_time());
+    if (join_binding_time.ok()) {
+      certificate_manager_->SetJoinBindingTime(join_binding_time.value(),
+                                               kJoinBindingTimeLifeTime);
+    }
+  }
   // Download public certificates again to update the newly added sync binding.
   certificate_manager_->DownloadPublicCertificates();
 }

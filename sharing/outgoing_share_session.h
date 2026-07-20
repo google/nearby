@@ -174,7 +174,7 @@ class OutgoingShareSession : public ShareSession {
       nearby::sharing::service::proto::BindingRequest::Type binding_type,
       absl::Span<const std::string> cert_ids,
       absl::AnyInvocable<
-          void(nearby::sharing::service::proto::BindingResponse::Status)>
+          void(const nearby::sharing::service::proto::BindingResponse&)>
           callback);
 
  protected:

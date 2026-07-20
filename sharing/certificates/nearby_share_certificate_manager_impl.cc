@@ -34,6 +34,7 @@
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "absl/algorithm/algorithm.h"
+#include "absl/algorithm/container.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
@@ -41,6 +42,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -476,14 +478,19 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
   }
 
   // Clear join_time if it is expired.
-  if (join_time_.has_value() &&
-      context_->GetClock()->Now() > join_time_discard_time_) {
-    join_time_.reset();
+  std::optional<absl::Time> join_time;
+  {
+    absl::MutexLock lock(join_time_mutex_);
+    if (join_time_.has_value() &&
+        context_->GetClock()->Now() > join_time_discard_time_) {
+      join_time_.reset();
+    }
+    join_time = join_time_;
   }
   bool download_succeeded = false;
   absl::Notification notification;
   auto context = std::make_unique<CertificateDownloadContext>(
-      nearby_identity_client_, std::move(device_id), join_time_,
+      nearby_identity_client_, std::move(device_id), join_time,
       [this, &download_succeeded, &notification](
           absl::StatusOr<std::vector<PublicCertificate>> certificates_status) {
         if (!certificates_status.ok()) {
@@ -760,6 +767,7 @@ void NearbyShareCertificateManagerImpl::SetVendorId(int32_t vendor_id) {
 
 void NearbyShareCertificateManagerImpl::SetJoinBindingTime(
     absl::Time join_binding_time, absl::Duration life_time) {
+  absl::MutexLock lock(join_time_mutex_);
   join_time_ = join_binding_time;
   join_time_discard_time_ = context_->GetClock()->Now() + life_time;
 }
@@ -988,9 +996,9 @@ bool NearbyShareCertificateManagerImpl::UpdateAccountInfoInExecutor() {
           get_account_info_succeeded = true;
           const auto& capabilities = response->account_info().capabilities();
           bool has_titanium_capability =
-              (std::find(capabilities.begin(), capabilities.end(),
-                         google::nearby::identity::v1::AccountInfo::
-                             CAPABILITY_TITANIUM) != capabilities.end());
+              (absl::c_find(capabilities,
+                            google::nearby::identity::v1::AccountInfo::
+                                CAPABILITY_TITANIUM) != capabilities.end());
           preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled,
                                          has_titanium_capability);
           LOG(INFO) << "GetAccountInfo succeeded, advanced protection enabled: "

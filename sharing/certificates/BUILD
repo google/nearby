@@ -66,6 +66,8 @@ cc_library(
         "//third_party/gloop/util/time:protoutil",
         "//util/hash:highway_fingerprint",
         "@com_google_absl//absl/algorithm",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",

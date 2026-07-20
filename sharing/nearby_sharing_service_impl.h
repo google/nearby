@@ -37,6 +37,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/platform/clock.h"
@@ -416,7 +417,7 @@ class NearbySharingServiceImpl
   // Called when Bindings response frame is received from the peer.
   void OnPeerSyncBindingComplete(
       int64_t share_target_id, absl::string_view binding_id,
-      service::proto::BindingResponse::Status status);
+      const service::proto::BindingResponse& binding_response);
 
   // Notify all registered send surfaces of share target state changes.
   void NotifyShareTargetDiscovered(const ShareTarget& share_target);
