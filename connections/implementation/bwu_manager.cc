@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
@@ -388,6 +389,20 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
               << endpoint_id << " to medium "
               << location::nearby::proto::connections::Medium_Name(
                      proposed_medium);
+
+    auto transfer = parser::FromBytes(bytes);
+    if (transfer.ok()) {
+      OfflineFrame frame = transfer.result();
+      if (frame.has_v1() && frame.v1().has_bandwidth_upgrade_negotiation()) {
+        const auto& bwu_frame = frame.v1().bandwidth_upgrade_negotiation();
+        if (bwu_frame.has_upgrade_path_info()) {
+          SetLocallyChosenSupportsDisablingEncryption(
+              endpoint_id,
+              bwu_frame.upgrade_path_info().supports_disabling_encryption());
+        }
+      }
+    }
+
     in_progress_upgrades_.emplace(endpoint_id, client);
   });
 }
@@ -448,6 +463,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
     retry_delays_.erase(endpoint_id);
     CancelRetryUpgradeAlarm(endpoint_id);
     successfully_upgraded_endpoints_.erase(endpoint_id);
+    endpoint_id_to_supports_disabling_encryption_.erase(endpoint_id);
 
     // Note(nohle): I'm skeptical of the "<= 1", which seems like it should be
     // "== 0". Luckily, we will enable the flag by default, and it won't matter.
@@ -529,6 +545,21 @@ void BwuManager::SetBwuMediumForEndpoint(const std::string& endpoint_id,
   }
 
   endpoint_id_to_bwu_medium_[endpoint_id] = medium;
+}
+
+bool BwuManager::GetLocallyChosenSupportsDisablingEncryption(
+    absl::string_view endpoint_id) const {
+  auto it = endpoint_id_to_supports_disabling_encryption_.find(endpoint_id);
+  if (it != endpoint_id_to_supports_disabling_encryption_.end()) {
+    return it->second;
+  }
+  return false;
+}
+
+void BwuManager::SetLocallyChosenSupportsDisablingEncryption(
+    absl::string_view endpoint_id, bool supports_disabling_encryption) {
+  endpoint_id_to_supports_disabling_encryption_[endpoint_id] =
+      supports_disabling_encryption;
 }
 
 BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
@@ -715,9 +746,10 @@ void BwuManager::OnIncomingConnection(
 
     // Use the introductory client information sent over to run the upgrade
     // protocol.
+    bool enable_encryption =
+        !GetLocallyChosenSupportsDisablingEncryption(endpoint_id);
     RunUpgradeProtocol(mapped_client, endpoint_id,
-                       std::move(connection->channel),
-                       !introduction.supports_disabling_encryption());
+                       std::move(connection->channel), enable_encryption);
   });
 }
 
@@ -759,6 +791,11 @@ void BwuManager::RunUpgradeProtocol(
         endpoint_id, BandwidthUpgradeResult::CHANNEL_ERROR,
         BandwidthUpgradeErrorStage::PRIOR_ENDPOINT_CHANNEL,
         OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL);
+    return;
+  }
+  if (old_channel->IsPaused()) {
+    LOG(WARNING) << "Refusing duplicate BWU connect for " << endpoint_id;
+    new_channel->Close();
     return;
   }
   channel_manager_->ReplaceChannelForEndpoint(
