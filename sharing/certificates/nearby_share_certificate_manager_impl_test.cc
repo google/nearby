@@ -1173,4 +1173,24 @@ TEST_F(NearbyShareCertificateManagerImplTest,
       PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
 }
 
+TEST_F(NearbyShareCertificateManagerImplTest, AddBindingToPublicCertificate) {
+  Initialize();
+
+  PublicCertificate cert;
+  cert.set_secret_id("test_cert_id");
+  cert.set_binding_id("old_binding_id");
+
+  cert_store_->SetPublicCertificates({cert});
+  cert_store_->SetAddPublicCertificatesResult(true);
+
+  cert_manager_->AddBindingToPublicCertificate("test_cert_id",
+                                               "new_binding_id");
+
+  ASSERT_EQ(cert_store_->add_public_certificates_calls().size(), 1u);
+  const auto& call = cert_store_->add_public_certificates_calls().back();
+  ASSERT_EQ(call.public_certificates.size(), 1u);
+  EXPECT_EQ(call.public_certificates[0].secret_id(), "test_cert_id");
+  EXPECT_EQ(call.public_certificates[0].binding_id(), "new_binding_id");
+}
+
 }  // namespace nearby::sharing

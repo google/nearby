@@ -106,7 +106,16 @@ void FakeNearbyShareCertificateStorage::GetPublicCertificate(
     std::function<
         void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
         callback) {
-  get_public_certificate_callback_ = std::move(callback);
+  get_public_certificate_callback_ = callback;
+  if (is_sync_mode_) {
+    for (const auto& cert : public_certificates_) {
+      if (cert.secret_id() == id) {
+        callback(true, std::make_unique<PublicCertificate>(cert));
+        return;
+      }
+    }
+    callback(false, nullptr);
+  }
 }
 
 std::vector<NearbySharePrivateCertificate>
@@ -135,6 +144,19 @@ void FakeNearbyShareCertificateStorage::AddPublicCertificates(
                                      public_certificates.end()),
       callback);
   if (is_sync_mode_) {
+    for (const auto& cert : public_certificates) {
+      bool found = false;
+      for (auto& existing_cert : public_certificates_) {
+        if (existing_cert.secret_id() == cert.secret_id()) {
+          existing_cert = cert;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        public_certificates_.push_back(cert);
+      }
+    }
     callback(add_public_certificates_result_);
   }
 }
@@ -150,6 +172,12 @@ void FakeNearbyShareCertificateStorage::RemoveExpiredPublicCertificates(
 void FakeNearbyShareCertificateStorage::ClearPublicCertificates(
     ResultCallback callback) {
   clear_public_certificates_callbacks_.push_back(std::move(callback));
+}
+
+void FakeNearbyShareCertificateStorage::SetPublicCertificates(
+    absl::Span<const PublicCertificate> public_certificates) {
+  public_certificates_ = std::vector<PublicCertificate>(
+      public_certificates.begin(), public_certificates.end());
 }
 
 void FakeNearbyShareCertificateStorage::SetPublicCertificateIds(

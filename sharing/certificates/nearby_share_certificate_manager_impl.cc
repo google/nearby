@@ -912,6 +912,32 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
   return true;
 }
 
+void NearbyShareCertificateManagerImpl::AddBindingToPublicCertificate(
+    absl::string_view certificate_id, absl::string_view binding_id) {
+  LOG(INFO) << "Adding binding to public certificate: "
+            << absl::BytesToHexString(certificate_id);
+  absl::Notification notification;
+  certificate_storage_->GetPublicCertificate(
+      certificate_id,
+      [this, id = std::string(binding_id), &notification](
+          bool success, std::unique_ptr<PublicCertificate> certificate) {
+        if (success && certificate != nullptr) {
+          certificate->set_binding_id(id);
+          certificate_storage_->AddPublicCertificates(
+              {*certificate}, [](bool success) {
+                if (!success) {
+                  LOG(WARNING)
+                      << "Failed to add binding to public certificate.";
+                }
+              });
+        } else {
+          LOG(WARNING) << "Failed to add binding to public certificate.";
+        }
+        notification.Notify();
+      });
+  notification.WaitForNotification();
+}
+
 void NearbyShareCertificateManagerImpl::ForceUploadPrivateCertificates() {
   executor_->PostTask([this]() {
     private_certificate_expiration_scheduler_->HandleResult(

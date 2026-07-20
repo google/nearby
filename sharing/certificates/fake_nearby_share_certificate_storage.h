@@ -123,6 +123,9 @@ class FakeNearbyShareCertificateStorage : public NearbyShareCertificateStorage {
   void ClearPublicCertificates(ResultCallback callback) override;
 
   void SetPublicCertificateIds(absl::Span<const absl::string_view> ids);
+  void SetPublicCertificates(
+      absl::Span<const nearby::sharing::proto::PublicCertificate>
+          public_certificates);
   void SetNextPublicCertificateExpirationTime(absl::Time time);
 
   std::vector<PublicCertificateCallback>& get_public_certificates_callbacks() {
@@ -156,6 +159,7 @@ class FakeNearbyShareCertificateStorage : public NearbyShareCertificateStorage {
   absl::Mutex mutex_;
   absl::Time next_public_certificate_expiration_time_ = absl::InfiniteFuture();
   std::vector<std::string> public_certificate_ids_;
+  std::vector<nearby::sharing::proto::PublicCertificate> public_certificates_;
   std::vector<NearbySharePrivateCertificate> private_certificates_
       ABSL_GUARDED_BY(mutex_);
   std::vector<PublicCertificateCallback> get_public_certificates_callbacks_;

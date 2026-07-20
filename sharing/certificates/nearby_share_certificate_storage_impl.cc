@@ -342,7 +342,8 @@ void NearbyShareCertificateStorageImpl::GetPublicCertificate(
         });
     return;
   }
-  VLOG(1) << __func__ << ": Calling LoadCertificate on database, key: " << id;
+  VLOG(1) << __func__ << ": Calling LoadCertificate on database, key: "
+          << absl::BytesToHexString(id);
   public_certificate_database_->LoadCertificate(id, std::move(callback));
 }
 

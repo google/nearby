@@ -28,6 +28,7 @@
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/task_runner.h"
@@ -95,6 +96,8 @@ class NearbyShareCertificateManagerImpl
   void SetJoinBindingTime(absl::Time join_binding_time,
                           absl::Duration life_time) override;
   std::string Dump() const override;
+  void AddBindingToPublicCertificate(
+      absl::string_view certificate_id, absl::string_view binding_id) override;
 
  private:
   // Class for maintaining a single instance of public certificate download
