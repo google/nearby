@@ -295,8 +295,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -321,8 +321,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -380,8 +380,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -408,8 +408,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -445,8 +445,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -478,8 +478,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -645,6 +645,239 @@ static const char *const kTestServiceID = "TestServiceID";
   XCTAssertEqual(server_socket.get(), nullptr);
 }
 
+- (void)testOpenServerSocket_Cleanup_InitialState {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+
+  __block BOOL added = NO;
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        added = YES;
+        completion(nil);
+      });
+
+  __block BOOL removed = NO;
+  OCMStub([mockPeripheralManager removePeripheralServiceManagerForServiceUUID:[OCMArg any]
+                                                  bleServiceRemovedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, CBUUID *serviceUUID,
+               void (^completion)(NSError *error)) {
+        removed = YES;
+        completion(nil);
+      });
+
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
+
+  // Open the server socket.
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+  XCTAssertTrue(added);
+  XCTAssertFalse(removed);
+
+  server_socket->Close();
+}
+
+- (void)testOpenServerSocket_Cleanup_AcceptConnection {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+
+  __block BOOL removed = NO;
+  OCMStub([mockPeripheralManager removePeripheralServiceManagerForServiceUUID:[OCMArg any]
+                                                  bleServiceRemovedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, CBUUID *serviceUUID,
+               void (^completion)(NSError *error)) {
+        removed = YES;
+        completion(nil);
+      });
+
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
+
+  __block BOOL (^capturedHandler)(GNSSocket *) = nil;
+  id mockServiceManagerClass = OCMClassMock([GNSPeripheralServiceManager class]);
+  OCMStub([mockServiceManagerClass alloc]).andReturn(mockServiceManagerClass);
+  OCMStub([mockServiceManagerClass initWithBleServiceUUID:[OCMArg any]
+                                 addPairingCharacteristic:NO
+                                shouldAcceptSocketHandler:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        BOOL (^handler)(GNSSocket *);
+        [invocation getArgument:&handler atIndex:4];
+        capturedHandler = handler;
+      })
+      .andReturn(mockServiceManagerClass);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+  XCTAssertNotNil(capturedHandler);
+
+  // Simulate connection accepted -> client socket is created.
+  GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
+  BOOL result = capturedHandler((GNSSocket *)fakeSocket);
+  XCTAssertTrue(result);
+
+  XCTAssertFalse(removed);  // Accepting socket shouldn't remove service manager.
+
+  server_socket->Close();
+}
+
+- (void)testOpenServerSocket_Cleanup_CloseClientSocket {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+
+  __block BOOL removed = NO;
+  OCMStub([mockPeripheralManager removePeripheralServiceManagerForServiceUUID:[OCMArg any]
+                                                  bleServiceRemovedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, CBUUID *serviceUUID,
+               void (^completion)(NSError *error)) {
+        removed = YES;
+        completion(nil);
+      });
+
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
+
+  __block BOOL (^capturedHandler)(GNSSocket *) = nil;
+  id mockServiceManagerClass = OCMClassMock([GNSPeripheralServiceManager class]);
+  OCMStub([mockServiceManagerClass alloc]).andReturn(mockServiceManagerClass);
+  OCMStub([mockServiceManagerClass initWithBleServiceUUID:[OCMArg any]
+                                 addPairingCharacteristic:NO
+                                shouldAcceptSocketHandler:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        BOOL (^handler)(GNSSocket *);
+        [invocation getArgument:&handler atIndex:4];
+        capturedHandler = handler;
+      })
+      .andReturn(mockServiceManagerClass);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+
+  GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
+  capturedHandler((GNSSocket *)fakeSocket);
+  [fakeSocket simulateSocketDidConnect];
+
+  __block std::unique_ptr<nearby::api::ble::BleSocket> client_socket = nullptr;
+  XCTestExpectation *acceptExpectation = [self expectationWithDescription:@"Accept connection"];
+  nearby::api::ble::BleServerSocket *raw_server_socket = server_socket.get();
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    client_socket = raw_server_socket->Accept();
+    [acceptExpectation fulfill];
+  });
+
+  [self waitForExpectations:@[ acceptExpectation ] timeout:1.0];
+  XCTAssertTrue(client_socket != nullptr);
+
+  // Close the client socket.
+  client_socket->Close();
+
+  // Wait a bit for any async callbacks
+  XCTestExpectation *expectation2 = [self expectationWithDescription:@"Wait after client close"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [expectation2 fulfill];
+                 });
+  [self waitForExpectations:@[ expectation2 ] timeout:1.0];
+
+  XCTAssertFalse(removed);  // Closing client socket shouldn't remove service manager!
+
+  server_socket->Close();
+}
+
+- (void)testOpenServerSocket_Cleanup_CloseServerSocket {
+  id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockFeatureFlags fixBleServerSocketDeadlockEnabled]).andReturn(YES);
+
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+
+  __block BOOL removed = NO;
+  OCMStub([mockPeripheralManager removePeripheralServiceManagerForServiceUUID:[OCMArg any]
+                                                  bleServiceRemovedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, CBUUID *serviceUUID,
+               void (^completion)(NSError *error)) {
+        removed = YES;
+        completion(nil);
+      });
+
+  nearby::apple::BleMediumPeer::SetPeripheralManagerFactory(_medium.get(), ^() {
+    return mockPeripheralManager;
+  });
+
+  __block BOOL (^capturedHandler)(GNSSocket *) = nil;
+  id mockServiceManagerClass = OCMClassMock([GNSPeripheralServiceManager class]);
+  OCMStub([mockServiceManagerClass alloc]).andReturn(mockServiceManagerClass);
+  OCMStub([mockServiceManagerClass initWithBleServiceUUID:[OCMArg any]
+                                 addPairingCharacteristic:NO
+                                shouldAcceptSocketHandler:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        BOOL (^handler)(GNSSocket *);
+        [invocation getArgument:&handler atIndex:4];
+        capturedHandler = handler;
+      })
+      .andReturn(mockServiceManagerClass);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+  XCTAssertNotEqual(server_socket.get(), nullptr);
+
+  GNCFakeSocket *fakeSocket = [[GNCFakeSocket alloc] init];
+  capturedHandler((GNSSocket *)fakeSocket);
+  [fakeSocket simulateSocketDidConnect];
+
+  __block std::unique_ptr<nearby::api::ble::BleSocket> client_socket = nullptr;
+  XCTestExpectation *acceptExpectation = [self expectationWithDescription:@"Accept connection"];
+  nearby::api::ble::BleServerSocket *raw_server_socket = server_socket.get();
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    client_socket = raw_server_socket->Accept();
+    [acceptExpectation fulfill];
+  });
+
+  [self waitForExpectations:@[ acceptExpectation ] timeout:1.0];
+
+  // Close the server socket.
+  server_socket->Close();
+
+  // Wait a bit for any async callbacks
+  XCTestExpectation *expectation3 = [self expectationWithDescription:@"Wait after server close"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [expectation3 fulfill];
+                 });
+  [self waitForExpectations:@[ expectation3 ] timeout:1.0];
+
+  XCTAssertTrue(removed);  // Closing server socket MUST remove service manager!
+}
+
 #pragma mark - Other Tests
 
 - (void)testIsExtendedAdvertisementsAvailable {
@@ -664,8 +897,8 @@ static const char *const kTestServiceID = "TestServiceID";
                         const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -712,8 +945,8 @@ static const char *const kTestServiceID = "TestServiceID";
             [expectation fulfill];
           })};
 
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
 
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
@@ -737,8 +970,8 @@ static const char *const kTestServiceID = "TestServiceID";
             const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation1 fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback1));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback1));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData1);
   }
@@ -761,8 +994,8 @@ static const char *const kTestServiceID = "TestServiceID";
                                   serviceData2[[CBUUID UUIDWithString:kTestServiceUUIDString]]);
             [expectation2 fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback2));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback2));
 
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData2);
@@ -794,8 +1027,8 @@ static const char *const kTestServiceID = "TestServiceID";
               [expectation2 fulfill];
             }
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -821,8 +1054,8 @@ static const char *const kTestServiceID = "TestServiceID";
             const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation1 fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback1));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback1));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
   }
@@ -838,8 +1071,8 @@ static const char *const kTestServiceID = "TestServiceID";
             const nearby::api::ble::BleAdvertisementData &advertisement) {
             [expectation2 fulfill];
           })};
-  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB), nearby::api::ble::TxPowerLevel::kUltraLow,
-                         std::move(callback2));
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback2));
 
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
     _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);

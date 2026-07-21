@@ -549,6 +549,13 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketWithDeadlo
   server_socket->SetCloseNotifier([this]() {
     absl::MutexLock lock(server_socket_mutex_);
     server_socket_ptr_ = nullptr;
+    if (socketPeripheralManager_ != nil && socketPeripheralServiceManager_ != nil) {
+      [socketPeripheralManager_
+          removePeripheralServiceManagerForServiceUUID:socketPeripheralServiceManager_.serviceUUID
+                           bleServiceRemovedCompletion:^(NSError *_Nullable error) {
+                             GNCLoggerInfo(@"Weave service removed from peripheral manager.");
+                           }];
+    }
   });
 
   socketPeripheralServiceManager_ = [[GNSPeripheralServiceManager alloc]
@@ -564,15 +571,6 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketWithDeadlo
                                         callbackQueue:connection_callback_queue_];
 
           auto socket_wrapper = std::make_unique<BleSocket>(connection);
-          socket_wrapper->SetCloseNotifier(
-              [socketPeripheralManager = socketPeripheralManager_,
-               serviceUUID = socketPeripheralServiceManager_.serviceUUID]() {
-                [socketPeripheralManager
-                    removePeripheralServiceManagerForServiceUUID:serviceUUID
-                                     bleServiceRemovedCompletion:^(NSError *_Nullable error) {
-                                       GNCLoggerInfo(@"BleSocket is removed peripheral manager.");
-                                     }];
-              });
 
           connection.connectionHandlers = socket_wrapper->GetInputStream().GetConnectionHandlers();
 
@@ -627,6 +625,16 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketLegacy(
   // Raw pointer for closure capture in the legacy path (risks use-after-free).
   BleServerSocket *server_socket_ptr = server_socket.get();
 
+  server_socket->SetCloseNotifier([this]() {
+    if (socketPeripheralManager_ != nil && socketPeripheralServiceManager_ != nil) {
+      [socketPeripheralManager_
+          removePeripheralServiceManagerForServiceUUID:socketPeripheralServiceManager_.serviceUUID
+                           bleServiceRemovedCompletion:^(NSError *_Nullable error) {
+                             GNCLoggerInfo(@"Weave service removed from peripheral manager.");
+                           }];
+    }
+  });
+
   socketPeripheralServiceManager_ = [[GNSPeripheralServiceManager alloc]
          initWithBleServiceUUID:[CBUUID UUIDWithString:kWeaveServiceUUID]
        addPairingCharacteristic:NO
@@ -642,14 +650,6 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketLegacy(
                                         callbackQueue:connection_callback_queue_];
 
           auto socket = std::make_unique<BleSocket>(connection);
-          socket->SetCloseNotifier([socketPeripheralManager = socketPeripheralManager_,
-                                    serviceUUID = socketPeripheralServiceManager_.serviceUUID]() {
-            [socketPeripheralManager
-                removePeripheralServiceManagerForServiceUUID:serviceUUID
-                                 bleServiceRemovedCompletion:^(NSError *_Nullable error) {
-                                   GNCLoggerInfo(@"BleSocket is removed peripheral manager.");
-                                 }];
-          });
 
           connection.connectionHandlers = socket->GetInputStream().GetConnectionHandlers();
           if (server_socket_ptr) {

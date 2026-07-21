@@ -111,15 +111,17 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
 - (void)addPeripheralServiceManager:(GNSPeripheralServiceManager *)peripheralServiceManager
           bleServiceAddedCompletion:(GNSErrorHandler)completion {
-  [_peripheralServiceManagers setObject:peripheralServiceManager
-                                 forKey:peripheralServiceManager.serviceUUID];
-  [peripheralServiceManager addedToPeripheralManager:self bleServiceAddedCompletion:completion];
-  if (_started) {
-    [self addBleServiceForServiceManager:peripheralServiceManager];
-  }
-  // Update all advertised services to make sure that the right services are advertised in case
-  // all BLE services were already added.
-  [self updateAdvertisedServices];
+  dispatch_async(_queue, ^{
+    [self->_peripheralServiceManagers setObject:peripheralServiceManager
+                                         forKey:peripheralServiceManager.serviceUUID];
+    [peripheralServiceManager addedToPeripheralManager:self bleServiceAddedCompletion:completion];
+    if (self->_started) {
+      [self addBleServiceForServiceManager:peripheralServiceManager];
+    }
+    // Update all advertised services to make sure that the right services are advertised in case
+    // all BLE services were already added.
+    [self updateAdvertisedServices];
+  });
 }
 
 - (void)start {
@@ -211,18 +213,24 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
 - (void)removePeripheralServiceManagerForServiceUUID:(CBUUID *)serviceUUID
                          bleServiceRemovedCompletion:(GNSErrorHandler)completion {
-  GNSPeripheralServiceManager *peripheralServiceManager =
-      [_peripheralServiceManagers objectForKey:serviceUUID];
-  if (peripheralServiceManager == nil) {
-    completion(nil);
-    return;
-  }
-  [_cbPeripheralManager removeService:peripheralServiceManager.cbService];
-  [_peripheralServiceManagers removeObjectForKey:serviceUUID];
-  [peripheralServiceManager didRemoveCBService];
+  dispatch_async(_queue, ^{
+    GNSPeripheralServiceManager *peripheralServiceManager =
+        [self->_peripheralServiceManagers objectForKey:serviceUUID];
+    if (peripheralServiceManager == nil) {
+      if (completion) {
+        completion(nil);
+      }
+      return;
+    }
+    [self->_cbPeripheralManager removeService:peripheralServiceManager.cbService];
+    [self->_peripheralServiceManagers removeObjectForKey:serviceUUID];
+    [peripheralServiceManager didRemoveCBService];
 
-  [self updateAdvertisedServices];
-  completion(nil);
+    [self updateAdvertisedServices];
+    if (completion) {
+      completion(nil);
+    }
+  });
 }
 
 - (void)removeAllBleServices {
