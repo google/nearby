@@ -43,6 +43,7 @@
 #include "internal/platform/mock_input_stream.h"
 #include "internal/platform/mock_output_stream.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/output_stream.h"
 #include "connections/implementation/service_id_constants.h"
 
 
@@ -263,7 +264,7 @@ TEST_F(AwdlBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
     upgrade_path_info->set_medium(
         BandwidthUpgradeNegotiationFrame::UpgradePathInfo::AWDL);
     upgrade_path_info->set_supports_client_introduction_ack(true);
-    upgrade_path_info->set_supports_disabling_encryption(true);
+    upgrade_path_info->set_supports_disabling_encryption(false);
     auto* awdl_credentials = upgrade_path_info->mutable_awdl_credentials();
     awdl_credentials->set_service_name(captured_service_name);
     awdl_credentials->set_service_type(captured_service_type);
