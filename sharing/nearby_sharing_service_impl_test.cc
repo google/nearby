@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "google/protobuf/timestamp.pb.h"
 #include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
 #include "location/nearby/sharing/lib/account/fake_account_manager.h"
 #include "location/nearby/sharing/lib/account/mock_account_observer.h"
@@ -5235,10 +5236,11 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   binding_response_frame.set_version(Frame::V1);
   binding_response_frame.mutable_v1()->set_type(
       service::proto::V1Frame::BINDINGS);
-  binding_response_frame.mutable_v1()
+  auto* binding_response = binding_response_frame.mutable_v1()
       ->mutable_bindings()
-      ->mutable_binding_response()
-      ->set_status(service::proto::BindingResponse::SUCCESS);
+      ->mutable_binding_response();
+  binding_response->set_status(service::proto::BindingResponse::SUCCESS);
+  binding_response->mutable_join_binding_time()->set_seconds(1234567890);
   std::vector<uint8_t> result_bytes(binding_response_frame.ByteSizeLong());
   binding_response_frame.SerializeToArray(result_bytes.data(),
                                           result_bytes.size());

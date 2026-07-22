@@ -657,6 +657,7 @@ cc_test(
         ":transfer_metadata",
         ":transfer_metadata_matchers",
         ":types",
+        "//google/protobuf:timestamp_cc_proto",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",

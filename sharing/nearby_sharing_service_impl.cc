@@ -2860,8 +2860,14 @@ void NearbySharingServiceImpl::OnPeerSyncBindingComplete(
                                                kJoinBindingTimeLifeTime);
     }
   }
-  // Download public certificates again to update the newly added sync binding.
-  certificate_manager_->DownloadPublicCertificates();
+  // TODO: Remove this check after BE supports cert download without join time.
+  // Without join time, the new download can overwrite the bindings we added
+  // from the binding response.
+  if (binding_response.has_join_binding_time()) {
+    // Download public certificates again to update the newly added sync
+    // binding.
+    certificate_manager_->DownloadPublicCertificates();
+  }
 }
 
 void NearbySharingServiceImpl::OnReceivedIntroduction(
