@@ -103,26 +103,22 @@ class BleGattServer : public api::ble::GattServer {
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattReadRequestedEventArgs args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattReadRequestedEventArgs args);
   ::winrt::fire_and_forget Characteristic_WriteRequestedAsync(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattWriteRequestedEventArgs args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattWriteRequestedEventArgs args);
   void Characteristic_SubscribedClientsChanged(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
-      ::winrt::Windows::Foundation::IInspectable const& args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      ::winrt::Windows::Foundation::IInspectable const& args);
 
   void ServiceProvider_AdvertisementStatusChanged(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattServiceProvider const& sender,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattServiceProviderAdvertisementStatusChangedEventArgs const& args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattServiceProviderAdvertisementStatusChangedEventArgs const& args);
 
   absl::Mutex mutex_;
 
