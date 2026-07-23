@@ -102,8 +102,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  private:
   bool StartScanning();
   bool StopScanning();
-  std::shared_ptr<BluetoothServerSocket> StartAdvertising(
-      bool radio_discoverable);
+  std::shared_ptr<BluetoothServerSocket> StartAdvertising();
   bool StopAdvertising();
   bool InitializeServiceSdpAttributes(
       ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
@@ -112,7 +111,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   bool IsWatcherStarted();
   bool IsWatcherRunning();
   void InitializeDeviceWatcher();
-  void OnScanModeChanged(BluetoothAdapter::ScanMode scan_mode);
 
   // This is for a coroutine whose return type is winrt::fire_and_forget, which
   // handles async operations which don't have any dependencies.
@@ -180,8 +178,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
   BluetoothAdapter& bluetooth_adapter_;
 
-  BluetoothAdapter::ScanMode scan_mode_ = BluetoothAdapter::ScanMode::kUnknown;
-
   // Used for advertising.
   ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
       rfcomm_provider_ = nullptr;
@@ -190,7 +186,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // shared_ptr server_socket_.  The lifetime of this pointer is guaranteed by
   // the shared_ptr.
   BluetoothServerSocket* raw_server_socket_ = nullptr;
-  bool is_radio_discoverable_ = false;
   ObserverList<Observer> observers_;
 };
 

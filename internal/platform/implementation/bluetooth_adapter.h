@@ -63,7 +63,6 @@ class BluetoothAdapter {
   // Returns an empty string on error
   virtual std::string GetName() const = 0;
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  virtual bool SetName(absl::string_view name) = 0;
   virtual bool SetName(absl::string_view name, bool persist) = 0;
 
   virtual MacAddress GetMacAddress() const = 0;

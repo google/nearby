@@ -82,7 +82,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string GetName() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool SetName(absl::string_view name, bool persist) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
