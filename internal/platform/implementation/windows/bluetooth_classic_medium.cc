@@ -118,10 +118,6 @@ BluetoothClassicMedium::BluetoothClassicMedium(
     api::BluetoothAdapter& bluetooth_adapter)
     : bluetooth_adapter_(dynamic_cast<BluetoothAdapter&>(bluetooth_adapter)) {
   InitializeDeviceWatcher();
-  bluetooth_adapter_.RestoreRadioNameIfNecessary();
-
-  bluetooth_adapter_.SetOnScanModeChanged(std::bind(
-      &BluetoothClassicMedium::OnScanModeChanged, this, std::placeholders::_1));
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {
@@ -283,21 +279,14 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   service_name_ = service_name;
   service_uuid_ = service_uuid;
 
-  scan_mode_ = bluetooth_adapter_.GetScanMode();
-
-  VLOG(1) << __func__ << ": scan_mode: " << static_cast<int>(scan_mode_);
-  bool radio_discoverable =
-      scan_mode_ == BluetoothAdapter::ScanMode::kConnectableDiscoverable;
-
-  if (rfcomm_provider_ != nullptr &&
-      is_radio_discoverable_ == radio_discoverable) {
+  if (rfcomm_provider_ != nullptr) {
     LOG(WARNING) << __func__
                   << ": Ignore StartAdvertising due to no change to "
                     "current advertising.";
     return server_socket_;
   }
 
-  auto server_socket = StartAdvertising(radio_discoverable);
+  auto server_socket = StartAdvertising();
 
   if (!server_socket) {
     LOG(ERROR) << __func__ << ": Failed to start listening.";
@@ -389,57 +378,6 @@ void BluetoothClassicMedium::InitializeDeviceWatcher() {
                << winrt::to_string(ex.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-  }
-}
-
-void BluetoothClassicMedium::OnScanModeChanged(
-    BluetoothAdapter::ScanMode scan_mode) {
-  LOG(INFO) << __func__ << ": OnScanModeChanged is called with scanMode: "
-            << static_cast<int>(scan_mode);
-
-  if (scan_mode == scan_mode_) {
-    VLOG(1) << __func__ << ": No change of scan mode.";
-    return;
-  }
-
-  scan_mode_ = scan_mode;
-  bool radio_discoverable =
-      scan_mode_ == BluetoothAdapter::ScanMode::kConnectableDiscoverable;
-
-  if (bluetooth_adapter_.GetName().size() >
-      kAndroidDiscoverableBluetoothNameMaxLength) {
-    // If the name longer than the android limitation, always set the value to
-    // false.
-    radio_discoverable = false;
-  }
-
-  if (is_radio_discoverable_ == radio_discoverable) {
-    VLOG(1) << __func__ << ": No change of radio discovery.";
-    return;
-  }
-
-  if (rfcomm_provider_ == nullptr) {
-    LOG(WARNING) << __func__ << ": No advertising.";
-    return;
-  }
-
-  try {
-    rfcomm_provider_.StopAdvertising();
-    rfcomm_provider_.StartAdvertising(
-        raw_server_socket_->stream_socket_listener(), radio_discoverable);
-    is_radio_discoverable_ = radio_discoverable;
-    return;
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-               << ": OnScanModeChanged exception: " << exception.what();
-    return;
-  } catch (const winrt::hresult_error& ex) {
-    LOG(ERROR) << __func__ << ": OnScanModeChanged exception: " << ex.code()
-               << ": " << winrt::to_string(ex.message());
-    return;
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-    return;
   }
 }
 
@@ -850,10 +788,8 @@ bool BluetoothClassicMedium::IsWatcherRunning() {
 }
 
 std::shared_ptr<BluetoothServerSocket>
-BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
-  LOG(INFO) << __func__
-            << ": StartAdvertising is called with radio_discoverable: "
-            << radio_discoverable << ".";
+BluetoothClassicMedium::StartAdvertising() {
+  LOG(INFO) << __func__ << ": StartAdvertising is called.";
 
   std::shared_ptr<BluetoothServerSocket> server_socket;
   try {
@@ -886,8 +822,7 @@ BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
 
     // Start to advertising.
     rfcomm_provider_.StartAdvertising(server_socket->stream_socket_listener(),
-                                      radio_discoverable);
-    is_radio_discoverable_ = radio_discoverable;
+                                      /*is_discoverable=*/false);
 
     LOG(INFO) << ": StartListening completed successfully.";
     return server_socket;

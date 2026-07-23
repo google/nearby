@@ -54,11 +54,6 @@ std::string BluetoothAdapter::GetName() const {
 }
 
 // TODO(b/290385712): Implement.
-bool BluetoothAdapter::SetName(absl::string_view name) {
-  return false;
-}
-
-// TODO(b/290385712): Implement.
 bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
   return false;
 }
