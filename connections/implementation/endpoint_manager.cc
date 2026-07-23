@@ -380,6 +380,18 @@ void EndpointManager::ProcessDisconnectionFrame(
         /* notify_stop_waiting */ false);
     RunOnEndpointManagerThread(
         "safe-to-disconnect", [this, client, endpoint_id]() {
+          // `ClientProxy` is destroyed before `EndpointManager` in
+          // `~NearbyConnections`, which means "safe-to-disconnect" needs to
+          // check if this task is being executed during `~EndpointManager` to
+          // prevent accessing an invalid `ClientProxy` pointer.
+          {
+            MutexLock lock(&mutex_);
+            if (is_shutdown_) {
+              VLOG(1) << "safe-to-disconnect called during destruction, "
+                      << "returning early.";
+              return;
+            }
+          }
           RemoveEndpoint(client, endpoint_id, /*notify=*/true,
                          DisconnectionReason::REMOTE_DISCONNECTION);
         });
