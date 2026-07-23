@@ -119,6 +119,7 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/strings",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -354,9 +355,9 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mac_address",
+        "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
@@ -377,6 +378,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_protobuf//:protobuf",
         "@com_google_protobuf//json",
@@ -560,6 +562,7 @@ cc_test(
     ],
     deps = [
         ":socket_address",
+        "//internal/platform:base",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

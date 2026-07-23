@@ -172,6 +172,93 @@ TEST(SocketAddressTest, IPv4LinkLocalFail) {
   EXPECT_FALSE(address.IsV4LinkLocal());
 }
 
+TEST(SocketAddressTest, IPv4LoopbackSuccess) {
+  SocketAddress address;
+  char bytes[4] = {127, 0, 0, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsLoopback());
+}
+
+TEST(SocketAddressTest, IPv4LoopbackFail) {
+  SocketAddress address;
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsLoopback());
+}
+
+TEST(SocketAddressTest, IPv6LoopbackSuccess) {
+  SocketAddress address;
+  char bytes[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsLoopback());
+}
+
+TEST(SocketAddressTest, IPv6LoopbackFail) {
+  SocketAddress address;
+  char bytes[16] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsLoopback());
+}
+
+TEST(SocketAddressTest, IPv4MulticastSuccess) {
+  SocketAddress address;
+  char bytes[4] = {224, 0, 0, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsMulticast());
+}
+
+TEST(SocketAddressTest, IPv4MulticastFail) {
+  SocketAddress address;
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsMulticast());
+}
+
+TEST(SocketAddressTest, IPv6MulticastSuccess) {
+  SocketAddress address;
+  char bytes[16] = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsMulticast());
+}
+
+TEST(SocketAddressTest, IPv6MulticastFail) {
+  SocketAddress address;
+  char bytes[16] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsMulticast());
+}
+
+TEST(SocketAddressTest, IPv4UnspecifiedSuccess) {
+  SocketAddress address;
+  char bytes[4] = {0, 0, 0, 0};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsUnspecified());
+}
+
+TEST(SocketAddressTest, IPv4UnspecifiedFail) {
+  SocketAddress address;
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsUnspecified());
+}
+
+TEST(SocketAddressTest, IPv6UnspecifiedSuccess) {
+  SocketAddress address;
+  char bytes[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsUnspecified());
+}
+
+TEST(SocketAddressTest, IPv6UnspecifiedFail) {
+  SocketAddress address;
+  char bytes[16] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsUnspecified());
+}
+
 TEST(SocketAddressTest, FromServiceAddressIPv4) {
   SocketAddress address;
   ServiceAddress service_address = {
