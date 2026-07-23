@@ -75,6 +75,11 @@ class Files {
   // determined.
   static std::optional<size_t> GetAvailableDiskSpaceInBytes(
       const FilePath& path);
+
+  // Returns true if the path is an absolute path.
+  // On Posix systems, this is a path that starts with a `/`.
+  // On Windows, this is a path that starts with a drive letter or a UNC path.
+  static bool IsAbsolutePath(const FilePath& path);
 };
 
 }  // namespace nearby

@@ -5231,7 +5231,9 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   EXPECT_EQ(frame->v1().bindings().binding_request().type(),
             service::proto::BindingRequest::FILESYNC);
 
-  preference_manager_.SetString(PrefNames::kCustomSavePath, "Downloads");
+  FilePath custom_save_path = Files::GetTemporaryDirectory();
+  preference_manager_.SetString(PrefNames::kCustomSavePath,
+                                custom_save_path.ToString());
   Frame binding_response_frame;
   binding_response_frame.set_version(Frame::V1);
   binding_response_frame.mutable_v1()->set_type(
@@ -5261,7 +5263,7 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   expected_binding.set_binding_id(kBindingId);
   expected_binding.set_source_name(kDeviceName);
   expected_binding.set_destination_directory(
-      FilePath("Downloads").append(FilePath(kDeviceName)).ToString());
+      FilePath(custom_save_path).append(FilePath(kDeviceName)).ToString());
   expected_binding.set_source_device_type(
       sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
@@ -5336,7 +5338,9 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(frame->v1().bindings().binding_request().type(),
             service::proto::BindingRequest::FILESYNC);
 
-  preference_manager_.SetString(PrefNames::kCustomSavePath, "Downloads");
+  FilePath custom_save_path = Files::GetTemporaryDirectory();
+  preference_manager_.SetString(PrefNames::kCustomSavePath,
+                                custom_save_path.ToString());
   Frame binding_response_frame;
   binding_response_frame.set_version(Frame::V1);
   binding_response_frame.mutable_v1()->set_type(
@@ -5363,7 +5367,7 @@ TEST_F(NearbySharingServiceImplTest,
   expected_binding.set_binding_id(kBindingId);
   expected_binding.set_source_name(kDeviceName);
   expected_binding.set_destination_directory(
-      FilePath("Downloads").append(FilePath(kDeviceName)).ToString());
+      FilePath(custom_save_path).append(FilePath(kDeviceName)).ToString());
   expected_binding.set_source_device_type(
       sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));

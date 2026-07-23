@@ -26,6 +26,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
@@ -184,8 +186,12 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
 }
 
 std::string NearbyShareSettings::GetCustomSavePath() const {
-  return preference_manager_.GetString(
+  std::string custom_save_path = preference_manager_.GetString(
       PrefNames::kCustomSavePath, device_info_.GetDownloadPath().ToString());
+  if (Files::IsAbsolutePath(FilePath(custom_save_path))) {
+    return custom_save_path;
+  }
+  return device_info_.GetDownloadPath().ToString();
 }
 
 SyncBindingPrefs NearbyShareSettings::GetSyncBindingPrefs() const {
@@ -347,6 +353,10 @@ void NearbyShareSettings::SetFallbackVisibility(DeviceVisibility visibility) {
 
 void NearbyShareSettings::SetCustomSavePathAsync(
     absl::string_view save_path, const std::function<void()>& callback) {
+  if (!Files::IsAbsolutePath(FilePath(save_path))) {
+    callback();
+    return;
+  }
   absl::MutexLock lock(mutex_);
   preference_manager_.SetString(PrefNames::kCustomSavePath, save_path);
   callback();
