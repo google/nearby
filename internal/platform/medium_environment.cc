@@ -192,9 +192,6 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       if (enable_notifications_) {
         VLOG(1) << "Notify about new discovered device";
         info.callback.device_discovered_cb(device);
-        for (auto& observer : observers_.GetObservers()) {
-          observer->DeviceAdded(device);
-        }
       }
     }
   } else {
@@ -215,9 +212,6 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
         if (enable_notifications_) {
           VLOG(1) << "Notify about existing discovered device";
           info.callback.device_discovered_cb(device);
-          for (auto& observer : observers_.GetObservers()) {
-            observer->DeviceAdded(device);
-          }
         }
       }
     }
@@ -227,9 +221,6 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       if (enable_notifications_) {
         VLOG(1) << "Notify about removed device";
         info.callback.device_lost_cb(device);
-        for (auto& observer : observers_.GetObservers()) {
-          observer->DeviceRemoved(device);
-        }
       }
       info.devices.erase(item);
     }
@@ -1291,11 +1282,6 @@ bool MediumEnvironment::SetPairingState(api::BluetoothDevice* device,
     latch.CountDown();
   });
   latch.Await();
-  if (enable_notifications_) {
-    for (auto& observer : observers_.GetObservers()) {
-      observer->DevicePairedChanged(*device, true);
-    }
-  }
   return updated;
 }
 
@@ -1359,11 +1345,6 @@ bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
         pairing_context->pairing_error.value());
   } else {
     pairing_context->is_paired = true;
-    if (enable_notifications_) {
-      for (auto& observer : observers_.GetObservers()) {
-        observer->DevicePairedChanged(*device, true);
-      }
-    }
     pairing_context->pairing_callback.on_paired_cb();
   }
   return finshed;
@@ -1407,18 +1388,6 @@ bool MediumEnvironment::IsPaired(api::BluetoothDevice* device) {
 void MediumEnvironment::ClearBluetoothDevicesForPairing() {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([&]() { devices_pairing_contexts_.clear(); });
-}
-
-void MediumEnvironment::AddObserver(
-    api::BluetoothClassicMedium::Observer* observer) {
-  if (!enabled_) return;
-  observers_.AddObserver(observer);
-}
-
-void MediumEnvironment::RemoveObserver(
-    api::BluetoothClassicMedium::Observer* observer) {
-  if (!enabled_) return;
-  observers_.RemoveObserver(observer);
 }
 
 void MediumEnvironment::SetBleExtendedAdvertisementsAvailable(bool enabled) {

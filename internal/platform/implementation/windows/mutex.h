@@ -19,6 +19,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
+#include "internal/platform/condition_variable.h"
 
 namespace nearby {
 namespace windows {

@@ -21,7 +21,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/base/observer_list.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -89,15 +88,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // remote device.
   std::unique_ptr<api::BluetoothPairing> CreatePairing(
       api::BluetoothDevice& remote_device) override;
-
-  void AddObserver(Observer* observer) override {
-    observers_.AddObserver(observer);
-  }
-
-  // Removes an observer. It's OK to remove an unregistered observer.
-  void RemoveObserver(Observer* observer) override {
-    observers_.RemoveObserver(observer);
-  }
 
  private:
   bool StartScanning();
@@ -191,7 +181,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // the shared_ptr.
   BluetoothServerSocket* raw_server_socket_ = nullptr;
   bool is_radio_discoverable_ = false;
-  ObserverList<Observer> observers_;
 };
 
 }  // namespace nearby::windows
