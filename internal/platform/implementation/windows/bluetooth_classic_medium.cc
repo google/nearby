@@ -701,9 +701,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
   if (discovery_callback_.device_discovered_cb != nullptr) {
     discovery_callback_.device_discovered_cb(*device);
   }
-  for (auto& observer : observers_.GetObservers()) {
-    observer->DeviceAdded(*device);
-  }
   return winrt::fire_and_forget();
 }
 
@@ -769,9 +766,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
     LOG(INFO) << __func__
               << ": Notifying device paired changed: " << std::boolalpha
               << new_paired_status;
-    for (auto& observer : observers_.GetObservers()) {
-      observer->DevicePairedChanged(*device, new_paired_status);
-    }
   }
 
   return winrt::fire_and_forget();
@@ -817,10 +811,6 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
             << mac_address.ToString() << ") removed";
   if (discovery_callback_.device_lost_cb != nullptr) {
     discovery_callback_.device_lost_cb(*device);
-  }
-
-  for (auto& observer : observers_.GetObservers()) {
-    observer->DeviceRemoved(*device);
   }
 
   RemoveRemoteDevice(mac_address);

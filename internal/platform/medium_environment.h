@@ -27,7 +27,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/base/observer_list.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
@@ -377,9 +376,6 @@ class MediumEnvironment {
   // Clears the map `devices_pairing_contexts_`.
   void ClearBluetoothDevicesForPairing();
 
-  void AddObserver(api::BluetoothClassicMedium::Observer* observer);
-  void RemoveObserver(api::BluetoothClassicMedium::Observer* observer);
-
   // Sets the availability of BLE extended advertisements. It is false by
   // default.
   void SetBleExtendedAdvertisementsAvailable(bool enabled);
@@ -514,7 +510,6 @@ class MediumEnvironment {
   bool use_valid_peer_connection_ = true;
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
   std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
-  ObserverList<api::BluetoothClassicMedium::Observer> observers_;
   bool ble_extended_advertisements_available_ = false;
 };
 
