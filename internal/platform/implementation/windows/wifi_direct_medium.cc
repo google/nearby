@@ -433,9 +433,11 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
   LOG(INFO) << "Receive connection request from: "
             << winrt::to_string(device_name)
             << "; device ID: " << winrt::to_string(device_id);
+  std::string device_name_str = winrt::to_string(device_name);
   if (!remote_device_name_.empty() &&
-      !absl::EqualsIgnoreCase(remote_device_name_,
-                              winrt::to_string(device_name))) {
+      !absl::EqualsIgnoreCase(
+          std::string_view(remote_device_name_).substr(0, 15),
+          std::string_view(device_name_str).substr(0, 15))) {
     LOG(INFO) << "Ignore the connection request from the unrelated device.";
     return winrt::fire_and_forget();
   }
@@ -762,10 +764,12 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
       return winrt::fire_and_forget();
     }
     std::string device_name_to_match = credentials_gc_.GetDeviceName();
-    if (!absl::EqualsIgnoreCase(device_name_to_match,
-                                winrt::to_string(device_info.Name()))) {
+    std::string device_info_name_str = winrt::to_string(device_info.Name());
+    if (!absl::EqualsIgnoreCase(
+            std::string_view(device_name_to_match).substr(0, 15),
+            std::string_view(device_info_name_str).substr(0, 15))) {
       LOG(INFO) << "We are looking for device: " << device_name_to_match
-                << ", but found: " << winrt::to_string(device_info.Name())
+                << ", but found: " << device_info_name_str
                 << ", skip.";
       return winrt::fire_and_forget();
     }
