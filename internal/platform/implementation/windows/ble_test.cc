@@ -48,7 +48,6 @@ class MockBluetoothAdapter : public BluetoothAdapter {
   MOCK_METHOD(ScanMode, GetScanMode, (), (const, override));
   MOCK_METHOD(bool, SetScanMode, (ScanMode scan_mode), (override));
   MOCK_METHOD(std::string, GetName, (), (const, override));
-  MOCK_METHOD(bool, SetName, (absl::string_view name), (override));
   MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
               (override));
   MOCK_METHOD(MacAddress, GetMacAddress, (), (const, override));

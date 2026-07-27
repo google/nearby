@@ -52,11 +52,6 @@
   XCTAssertEqual(_adapter.GetName(), "");
 }
 
-- (void)testSetName {
-  // Currently hardcoded to return false.
-  XCTAssertFalse(_adapter.SetName("TestName"));
-}
-
 - (void)testSetNameWithPersist {
   // Currently hardcoded to return false.
   XCTAssertFalse(_adapter.SetName("TestName", true));

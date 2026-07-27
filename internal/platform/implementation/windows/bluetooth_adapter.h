@@ -17,12 +17,10 @@
 
 // clang-format off
 #include <windows.h>
-#include <guiddef.h>
 // clang-format on
 
 #include <optional>
 #include <string>
-#include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
@@ -32,8 +30,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/mac_address.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 // Represents a Bluetooth adapter.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothadapter?view=winrt-20348
@@ -54,9 +51,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   BluetoothAdapter();
 
   ~BluetoothAdapter() override = default;
-
-  typedef absl::AnyInvocable<void(api::BluetoothAdapter::ScanMode)>
-      ScanModeCallback;
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
@@ -79,23 +73,10 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string GetName() const override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) override;
   bool SetName(absl::string_view name, bool persist) override;
 
   // Returns BT MAC address assigned to this adapter.
   MacAddress GetMacAddress() const override;
-
-  // Returns bluetooth device name from registry
-  std::string GetNameFromRegistry(PHKEY hKey) const;
-
-  // Returns computer name
-  std::string GetNameFromComputerName() const;
-
-  void SetOnScanModeChanged(ScanModeCallback callback) {
-    if (scan_mode_changed_) {
-      scan_mode_changed_ = std::move(callback);
-    }
-  }
 
   // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
   // Advertising
@@ -110,29 +91,20 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns true if the Bluetooth hardware supports BLE
   bool IsLowEnergySupported() const;
 
-  void RestoreRadioNameIfNecessary();
-
  private:
-  void process_error();
-  void StoreRadioNames(absl::string_view original_radio_name,
-                       absl::string_view nearby_radio_name);
+  // Returns computer name
+  std::string GetNameFromComputerName() const;
 
   WindowsBluetoothAdapter windows_bluetooth_adapter_ = nullptr;
-  std::string registry_bluetooth_adapter_name_;
 
   Radio windows_bluetooth_radio_ = nullptr;
-  std::optional<std::string> GetGenericBluetoothAdapterInstanceID() const;
-  void find_and_replace(char *source, const char *strFind,
-                        const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;
-  ScanModeCallback scan_mode_changed_;
 
   // Used to fake the device name when the device name is longer than android
   // limitation.
   std::optional<std::string> device_name_;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_BLUETOOTH_ADAPTER_H_

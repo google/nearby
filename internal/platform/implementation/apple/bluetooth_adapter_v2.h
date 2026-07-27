@@ -63,15 +63,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns an empty string on error
   std::string GetName() const override;
 
-  // Set and persist the friendly Bluetooth name of the local Bluetooth adapter.
-  //
-  // This name is visible to remote Bluetooth devices.
-  //
-  // Valid Bluetooth names are a maximum of 248 bytes using UTF-8 encoding,
-  // although many remote devices can only display the first 40 characters, and
-  // some may be limited to just 20.
-  bool SetName(absl::string_view name) override;
-
   // Set the friendly Bluetooth name of the local Bluetooth adapter.
   //
   // This name is visible to remote Bluetooth devices.

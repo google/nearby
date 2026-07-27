@@ -107,11 +107,6 @@ std::string BluetoothAdapter::GetName() const {
   return name_;
 }
 
-bool BluetoothAdapter::SetName(absl::string_view name) {
-  return SetName(name,
-                 /* persist= */ true);
-}
-
 bool BluetoothAdapter::SetName(absl::string_view name,
                                bool persist /*unused*/) {
   BluetoothAdapter::ScanMode mode;

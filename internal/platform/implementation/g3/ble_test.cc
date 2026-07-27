@@ -44,7 +44,6 @@ class MockBluetoothAdapter : public BluetoothAdapter {
               (override));
   MOCK_METHOD(bool, IsEnabled, (), (const, override));
   MOCK_METHOD(api::BluetoothAdapter::Status, GetStatus, (), (const));
-  MOCK_METHOD(bool, SetName, (absl::string_view name), (override));
   MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
               (override));
   MOCK_METHOD(std::string, GetName, (), (const, override));
