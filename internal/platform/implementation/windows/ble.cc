@@ -1122,7 +1122,7 @@ void BleMedium::AdvertisementReceivedHandler(
     if (service_uuid16 == service_uuid16_) {
       std::string data;
 
-      uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
+      int unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
       for (int i = 0; i < unconsumed_buffer_length; i++) {
         data.append(1, static_cast<unsigned char>(data_reader.ReadByte()));
       }

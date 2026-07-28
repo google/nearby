@@ -15,11 +15,13 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
+#include <list>
 #include <memory>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -95,7 +97,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::shared_ptr<BluetoothServerSocket> StartAdvertising();
   bool StopAdvertising();
   bool InitializeServiceSdpAttributes(
-      ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
           rfcomm_provider,
       std::string service_name);
   bool IsWatcherStarted();
@@ -106,43 +108,44 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // handles async operations which don't have any dependencies.
   // https://docs.microsoft.com/en-us/uwp/cpp-ref-for-winrt/fire-and-forget
   winrt::fire_and_forget DeviceWatcher_Added(
-      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
-      ::winrt::Windows::Devices::Enumeration::DeviceInformation device_info);
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformation device_info);
 
   winrt::fire_and_forget DeviceWatcher_Updated(
-      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
-      ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
           device_update_info);
 
   winrt::fire_and_forget DeviceWatcher_Removed(
-      ::winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
-      ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
           device_update_info);
 
   // Check to make sure we can connect if we try
-  bool HaveAccess(::winrt::hstring device_id);
+  bool HaveAccess(const std::string& device_id);
 
   // Get the service requested
-  RfcommDeviceService GetRequestedService(BluetoothDevice* device,
-                                          ::winrt::guid service);
+  winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService
+  GetRequestedService(BluetoothDevice* device, ::winrt::guid service);
 
   // Check to see that the device actually handles the requested service
-  bool CheckSdp(RfcommDeviceService requested_service);
+  bool CheckSdp(winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommDeviceService
+                    requested_service);
 
   // Methods to handle bluetooth devices
-  bool HasRemoteDevice(MacAddress mac_address)
+  bool RemoveRemoteDevice(absl::string_view device_id)
       ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
-  bool RemoveRemoteDevice(MacAddress mac_address)
+  BluetoothDevice* AssignRemoteDevice(std::unique_ptr<BluetoothDevice> device)
       ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
-  bool AssignRemoteDevice(MacAddress mac_address,
-                          std::unique_ptr<BluetoothDevice> device)
+  BluetoothDevice* GetRemoteDeviceInternal(absl::string_view device_id)
       ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
-  BluetoothDevice* GetRemoteDeviceInternal(MacAddress mac_address)
+  BluetoothDevice* GetRemoteDeviceFromApiDevice(
+      api::BluetoothDevice* api_device)
       ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
 
   BluetoothClassicMedium::DiscoveryCallback discovery_callback_;
 
-  ::winrt::Windows::Devices::Enumeration::DeviceWatcher device_watcher_ =
+  winrt::Windows::Devices::Enumeration::DeviceWatcher device_watcher_ =
       nullptr;
 
   std::unique_ptr<BluetoothSocket> bluetooth_socket_;
@@ -152,24 +155,22 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
   absl::Mutex devices_map_mutex_;
 
-  // Map MAC address to bluetooth device.
-  absl::flat_hash_map<MacAddress, std::unique_ptr<BluetoothDevice>>
-      mac_address_to_bluetooth_device_map_ ABSL_GUARDED_BY(devices_map_mutex_);
+  // Map device id to bluetooth device.
+  absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
+      device_id_to_bluetooth_device_map_ ABSL_GUARDED_BY(devices_map_mutex_);
 
   // Track removed devices.
-  absl::flat_hash_map<MacAddress, std::unique_ptr<BluetoothDevice>>
-      removed_bluetooth_devices_map_ ABSL_GUARDED_BY(devices_map_mutex_);
-  ;
+  std::list<std::unique_ptr<BluetoothDevice>>
+      removed_bluetooth_devices_ ABSL_GUARDED_BY(devices_map_mutex_);
 
   // The caller may call to create Bluetooth device when scanning is off.
-  absl::flat_hash_map<MacAddress, std::unique_ptr<BluetoothDevice>>
+  absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
       cached_bluetooth_devices_map_ ABSL_GUARDED_BY(devices_map_mutex_);
-  ;
 
   BluetoothAdapter& bluetooth_adapter_;
 
   // Used for advertising.
-  ::winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
+  winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceProvider
       rfcomm_provider_ = nullptr;
   std::shared_ptr<api::BluetoothServerSocket> server_socket_;
   // Raw pointer to the BluetoothServerSocket impl class that is held by the
