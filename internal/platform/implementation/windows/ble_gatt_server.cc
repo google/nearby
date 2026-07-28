@@ -653,7 +653,7 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
     }
 
     for (const auto& subscribed_characteristic :
-         added_subscribed_characteristics) {
+         removed_subscribed_characteristics) {
       gatt_connection_callback_.characteristic_unsubscription_cb(
           subscribed_characteristic);
     }
