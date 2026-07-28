@@ -329,7 +329,7 @@ ErrorOr<bool> Ble::StartLegacyAdvertising(
           {.tx_power_level = TxPowerLevel::kMedium, .is_connectable = true},
           api::ble::BleMedium::AdvertisingCallback{
               .start_advertising_result =
-                  [this, &service_id](absl::Status status) mutable {
+                  [this, service_id](absl::Status status) mutable {
                     AssumeHeld(mutex_);
                     if (status.ok()) {
                       LOG(INFO) << "BLE advertising for legacy device started "
@@ -1647,7 +1647,8 @@ bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
       PowerLevelToTxPowerLevel(power_level),
       api::ble::BleMedium::ScanningCallback{
           .start_scanning_result =
-              [this, &service_id](absl::Status status) mutable {
+              [this, service_id =
+                         std::string(service_id)](absl::Status status) mutable {
                 // The `mutex_` is already held here. Use
                 // `AssumeHeld` to tell the thread
                 // annotation static analysis that
