@@ -305,15 +305,6 @@ class BluetoothClassicMedium {
         impl_->ListenForService(service_name, service_uuid));
   }
 
-  // Return a Bluetooth pairing instance to handle the pairing process with the
-  // remote device.
-  std::unique_ptr<BluetoothPairing> CreatePairing(
-      BluetoothDevice& remote_device) {
-    std::unique_ptr<api::BluetoothPairing> bluetooth_pairing =
-        impl_->CreatePairing(remote_device.GetImpl());
-    return std::make_unique<BluetoothPairing>(std::move(bluetooth_pairing));
-  }
-
   bool IsValid() const { return impl_ != nullptr; }
 
   api::BluetoothClassicMedium& GetImpl() { return *impl_; }

@@ -254,11 +254,6 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
   return socket;
 }
 
-std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
-    api::BluetoothDevice& remote_device) {
-  return std::make_unique<BluetoothPairing>(remote_device);
-}
-
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     MacAddress mac_address) {
   return MediumEnvironment::Instance().FindBluetoothDevice(mac_address);

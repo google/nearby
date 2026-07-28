@@ -335,35 +335,6 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
   return result.first->second.get();
 }
 
-std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
-    api::BluetoothDevice& remote_device) {
-  VLOG(1) << __func__ << ": Start to createPairing with device: "
-          << remote_device.GetMacAddress().ToString();
-  try {
-    winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device =
-        winrt::Windows::Devices::Bluetooth::BluetoothDevice::
-            FromBluetoothAddressAsync(remote_device.GetMacAddress().address())
-                .get();
-    winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing
-        custom_pairing =
-            bluetooth_device.DeviceInformation().Pairing().Custom();
-    if (custom_pairing) {
-      return std::make_unique<BluetoothPairing>(bluetooth_device,
-                                                custom_pairing);
-    }
-    VLOG(1) << __func__ << ": Failed to get DeviceInformationCustomPairing.";
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << " : Failed to create pairing. exception: "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Failed to create pairing. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-  }
-  return nullptr;
-}
-
 void BluetoothClassicMedium::InitializeDeviceWatcher() {
   try {
     // create watcher

@@ -251,14 +251,6 @@ class BluetoothClassicMedium {
   virtual std::shared_ptr<BluetoothServerSocket> ListenForService(
       const std::string& service_name, const std::string& service_uuid) = 0;
 
-  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#createBond()
-  //
-  // Start the bonding (pairing) process with the remote device.
-  // Return a Bluetooth pairing instance to handle the pairing process with the
-  // remote device.
-  virtual std::unique_ptr<BluetoothPairing> CreatePairing(
-      BluetoothDevice& remote_device) = 0;
-
   virtual BluetoothDevice* GetRemoteDevice(MacAddress mac_address) = 0;
 };
 

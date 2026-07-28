@@ -86,11 +86,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
 
   api::BluetoothDevice* GetRemoteDevice(MacAddress mac_address) override;
 
-  // Return a Bluetooth pairing instance to handle the pairing process with the
-  // remote device.
-  std::unique_ptr<api::BluetoothPairing> CreatePairing(
-      api::BluetoothDevice& remote_device) override;
-
  private:
   bool StartScanning();
   bool StopScanning();
