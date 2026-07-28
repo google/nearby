@@ -205,28 +205,35 @@ GUID InspectableReader::ReadGuid(IInspectable inspectable) {
   return property_value.GetGuid();
 }
 
-std::optional<std::wstring> GetDnsHostName() {
+std::optional<std::wstring> GetComputerName(COMPUTER_NAME_FORMAT name_type) {
   DWORD size = 0;
 
   // Get length of the computer name.
-  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
+  if (GetComputerNameExW(name_type, nullptr, &size) == 0) {
     if (GetLastError() != ERROR_MORE_DATA) {
-      LOG(ERROR) << ": Failed to get device dns name size, error:"
+      LOG(ERROR) << ": Failed to get device name size, error: "
                  << GetLastError();
       return std::nullopt;
     }
   }
   std::wstring device_name(size, L' ');
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
-      0) {
+  if (GetComputerNameExW(name_type, device_name.data(), &size) != 0) {
     // On input size includes null termination.
     // On output size excludes null termination.
     device_name.resize(size);
     return device_name;
   }
 
-  LOG(ERROR) << ": Failed to get device dns name, error:" << GetLastError();
+  LOG(ERROR) << ": Failed to get device name, error: " << GetLastError();
   return std::nullopt;
+}
+
+std::optional<std::wstring> GetDnsHostName() {
+  return GetComputerName(ComputerNameDnsHostname);
+}
+
+std::optional<std::wstring> GetNetBiosName() {
+  return GetComputerName(ComputerNamePhysicalNetBIOS);
 }
 
 bool IsIntelWifiAdapter() {

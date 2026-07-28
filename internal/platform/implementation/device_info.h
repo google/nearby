@@ -47,6 +47,12 @@ class DeviceInfo {
   // Gets device name.
   virtual std::optional<std::string> GetOsDeviceName() const = 0;
   virtual DeviceType GetDeviceType() const = 0;
+  // Gets the device name specifically used for WiFi Direct. This name needs to
+  // match the device name sent in WFD P2P connection request and probe response
+  // frames. Defaults to GetOsDeviceName on non-Windows.
+  virtual std::optional<std::string> GetWifiDirectDeviceName() const {
+    return GetOsDeviceName();
+  }
   virtual OsType GetOsType() const = 0;
 
   // Gets known paths of current user.

@@ -57,6 +57,14 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   }
   return std::nullopt;
 }
+// Windows uses the NetBIOS name specifically as the WiFi Direct device name.
+std::optional<std::string> DeviceInfo::GetWifiDirectDeviceName() const {
+  std::optional<std::wstring> device_name = GetNetBiosName();
+  if (device_name.has_value()) {
+    return WideStringToString(*device_name);
+  }
+  return std::nullopt;
+}
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
   return api::DeviceInfo::DeviceType::kLaptop;
