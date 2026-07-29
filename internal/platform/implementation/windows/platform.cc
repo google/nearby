@@ -109,33 +109,6 @@ std::string ImplementationPlatform::GetDownloadPath(
       windows::FilePath::GetDownloadPath(parent, file));
 }
 
-std::string ImplementationPlatform::GetDownloadPath(
-    const std::string& file_name) {
-  std::wstring fake_parent_path;
-  auto file = windows::string_utils::StringToWideString(file_name);
-
-  return windows::string_utils::WideStringToString(
-      windows::FilePath::GetDownloadPath(fake_parent_path, file));
-}
-
-std::string ImplementationPlatform::GetAppDataPath(
-    const std::string& file_name) {
-  PWSTR basePath;
-
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
-                                        nullptr, &basePath);
-  if (result != S_OK) {
-    return file_name;
-  }
-
-  std::wstring app_data_path{basePath};
-  CoTaskMemFree(basePath);
-  std::string app_data_path_utf8 =
-      windows::string_utils::WideStringToString(app_data_path);
-  std::replace(app_data_path_utf8.begin(), app_data_path_utf8.end(), '\\', '/');
-  return absl::StrCat(app_data_path_utf8, "/", kNCRelativePath, "/", file_name);
-}
-
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
@@ -165,25 +138,9 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return std::make_unique<windows::ConditionVariable>(mutex);
 }
 
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id) {
-  std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name));
-}
-
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     const std::string& file_path) {
   return windows::IOFile::CreateInputFile(file_path);
-}
-
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  std::string parent_folder("");
-  std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateOutputFile(
-      GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(

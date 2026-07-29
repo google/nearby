@@ -414,27 +414,27 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
 
       // These are ordered, the output file must be created first otherwise
       // there will be no input file to open.
+#if defined(NEARBY_CHROMIUM)
       // On Chrome the file path should be empty, so use the payload id.
-      if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
-        OutputFile output_file(payload_id);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(payload_id)),
-            std::move(output_file), last_modified_time, total_size)};
-      } else {
-        OutputFile output_file(file_path);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload path is not valid: " << file_path;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path)),
-            std::move(output_file), last_modified_time, total_size)};
+      OutputFile output_file(payload_id);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, InputFile(payload_id)),
+          std::move(output_file), last_modified_time, total_size)};
+#else  // defined(NEARBY_CHROMIUM)
+      OutputFile output_file(file_path);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload path is not valid: " << file_path;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+      }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, parent_folder, file_name,
+                  InputFile(file_path)),
+          std::move(output_file), last_modified_time, total_size)};
+#endif  // defined(NEARBY_CHROMIUM)
     }
     default:
       DCHECK(false);  // This should never happen.

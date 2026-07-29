@@ -22,7 +22,9 @@
 
 namespace nearby {
 
+#if defined(NEARBY_CHROMIUM)
 InputFile::InputFile(PayloadId id) : impl_(Platform::CreateInputFile(id)) {}
+#endif  // defined(NEARBY_CHROMIUM)
 InputFile::InputFile(std::string file_path)
     : impl_(Platform::CreateInputFile(file_path)) {}
 InputFile::~InputFile() = default;
@@ -65,7 +67,9 @@ InputStream& InputFile::GetInputStream() { return *impl_; }
 
 OutputFile::OutputFile(std::string file_path)
     : impl_(Platform::CreateOutputFile(file_path)) {}
+#if defined(NEARBY_CHROMIUM)
 OutputFile::OutputFile(PayloadId id) : impl_(Platform::CreateOutputFile(id)) {}
+#endif  // defined(NEARBY_CHROMIUM)
 OutputFile::~OutputFile() = default;
 OutputFile::OutputFile(OutputFile&&) noexcept = default;
 OutputFile& OutputFile::operator=(OutputFile&&) = default;

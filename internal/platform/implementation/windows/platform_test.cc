@@ -18,7 +18,6 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/output_file.h"
 
 namespace nearby::api {
@@ -29,12 +28,6 @@ TEST(PlatformTest, CreateOutputFileWithUnixPathSeparator) {
       ImplementationPlatform::CreateOutputFile("C:\\tmp\\path1/path2\\x.txt");
   EXPECT_NE(output_file, nullptr);
   EXPECT_TRUE(output_file->Write("test").Ok());
-}
-
-TEST(PlatformTest, GetAppDataPath) {
-  std::string app_data_path =
-      ImplementationPlatform::GetAppDataPath("test.txt");
-  EXPECT_NE(app_data_path, "test.txt");
 }
 
 }  // namespace
