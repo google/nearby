@@ -415,6 +415,7 @@ let package = Package(
         "connections/status_test.cc",
         "connections/payload_test.cc",
         "internal/base/bluetooth_address_test.cc",
+        "internal/base/file_path_sanitize_test.cc",
         "internal/base/file_path_test.cc",
         "internal/base/files_test.cc",
         "internal/base/masker_test.cc",
