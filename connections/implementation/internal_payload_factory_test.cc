@@ -69,6 +69,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
   EXPECT_EQ(payload.AsBytes(), ByteArray());
 }
 
+#if defined(NEARBY_CHROMIUM)
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
   InputFile inputFile(payload_id);
@@ -83,6 +84,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   EXPECT_EQ(payload.AsBytes(), ByteArray());
   EXPECT_EQ(payload.GetId(), payload_id);
 }
+#endif  // !defined(NEARBY_CHROMIUM)
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   PayloadTransferFrame frame;
@@ -251,6 +253,7 @@ TEST(InternalPayloadFactoryTest,
   ASSERT_TRUE(result.has_error());
 }
 
+#if defined(NEARBY_CHROMIUM)
 void CreateFileWithContents(Payload::Id payload_id,
                             absl::string_view contents) {
   OutputFile file(payload_id);
@@ -282,6 +285,7 @@ TEST(InternalPayloadFactoryTest,
       internal_payload->DetachNextChunk(size_after_skip);
   EXPECT_EQ(contents_after_skip, ByteArray("456789"));
 }
+#endif  // defined(NEARBY_CHROMIUM)
 
 TEST(InternalPayloadFactoryTest,
      SkipToOffsetForBytesPayloadFailsIfOffsetIsTooLarge) {

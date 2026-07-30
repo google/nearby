@@ -35,8 +35,6 @@
 #include "absl/base/attributes.h"
 #include "absl/status/statusor.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
-#undef StrCat  // Remove the Windows macro definition
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
@@ -81,15 +79,8 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/os_name.h"
-#include "internal/platform/payload_id.h"
 
 namespace nearby::api {
-
-namespace {
-
-constexpr char kNCRelativePath[] = "Google/Nearby/Connections";
-
-}  // namespace
 
 std::string ImplementationPlatform::GetCustomSavePath(
     const std::string& parent_folder, const std::string& file_name) {
@@ -138,25 +129,9 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
   return std::make_unique<windows::ConditionVariable>(mutex);
 }
 
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id) {
-  std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateInputFile(GetDownloadPath("", file_name));
-}
-
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     const std::string& file_path) {
   return windows::IOFile::CreateInputFile(file_path);
-}
-
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
-    PayloadId payload_id) {
-  std::string parent_folder("");
-  std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateOutputFile(
-      GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(

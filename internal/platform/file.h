@@ -36,7 +36,9 @@ namespace nearby {
 class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
+#if defined(NEARBY_CHROMIUM)
   explicit InputFile(PayloadId payload_id);
+#endif  // defined(NEARBY_CHROMIUM)
   explicit InputFile(std::string file_path);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
@@ -77,7 +79,9 @@ class InputFile final {
 class OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
+#if defined(NEARBY_CHROMIUM)
   explicit OutputFile(PayloadId payload_id);
+#endif  // defined(NEARBY_CHROMIUM)
   explicit OutputFile(std::string file_path);
   ~OutputFile();
   OutputFile(OutputFile&&) noexcept;

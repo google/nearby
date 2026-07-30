@@ -35,7 +35,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/os_name.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 
@@ -45,6 +44,7 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::nearby::api::ImplementationPlatform;
 
 // if custom_save_path is empty, default download path is used
 std::string make_path(const std::string& custom_save_path,
@@ -52,9 +52,9 @@ std::string make_path(const std::string& custom_save_path,
                       const std::string& file_name) {
   if (!custom_save_path.empty()) {
     std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
+    return ImplementationPlatform::GetCustomSavePath(path, file_name);
   }
-  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
+  return ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
 class BytesInternalPayload : public InternalPayload {
@@ -325,9 +325,6 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
-using ::nearby::api::ImplementationPlatform;
-using ::nearby::api::OSName;
-
 ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
@@ -414,27 +411,27 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
 
       // These are ordered, the output file must be created first otherwise
       // there will be no input file to open.
+#if defined(NEARBY_CHROMIUM)
       // On Chrome the file path should be empty, so use the payload id.
-      if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
-        OutputFile output_file(payload_id);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(payload_id)),
-            std::move(output_file), last_modified_time, total_size)};
-      } else {
-        OutputFile output_file(file_path);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload path is not valid: " << file_path;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path)),
-            std::move(output_file), last_modified_time, total_size)};
+      OutputFile output_file(payload_id);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, InputFile(payload_id)),
+          std::move(output_file), last_modified_time, total_size)};
+#else  // defined(NEARBY_CHROMIUM)
+      OutputFile output_file(file_path);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload path is not valid: " << file_path;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+      }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, parent_folder, file_name,
+                  InputFile(file_path)),
+          std::move(output_file), last_modified_time, total_size)};
+#endif  // defined(NEARBY_CHROMIUM)
     }
     default:
       DCHECK(false);  // This should never happen.

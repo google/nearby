@@ -45,6 +45,7 @@ TEST(PayloadTest, SupportsByteArrayType) {
   EXPECT_EQ(payload.AsBytes(), bytes);
 }
 
+#if defined(NEARBY_CHROMIUM)
 TEST(PayloadTest, SupportsFileType) {
   constexpr size_t kOffset = 99;
   const auto payload_id = Payload::GenerateId();
@@ -70,6 +71,7 @@ TEST(PayloadTest, SupportsFileType) {
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
   EXPECT_EQ(payload.GetOffset(), kOffset);
 }
+#endif  // defined(NEARBY_CHROMIUM)
 
 TEST(PayloadTest, SupportsMultiDotNamedFileType) {
   constexpr char expected[] = "this.is.a.multidot.file";

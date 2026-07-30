@@ -97,11 +97,13 @@ class ImplementationPlatform {
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
 
+#if defined(NEARBY_CHROMIUM)
   static std::unique_ptr<InputFile> CreateInputFile(PayloadId);
+  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
+#endif  // defined(NEARBY_CHROMIUM)
 
   static std::unique_ptr<InputFile> CreateInputFile(const std::string&);
 
-  static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
 
   static std::unique_ptr<OutputFile> CreateOutputFile(const std::string&);
 

@@ -325,14 +325,4 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertNotEqual(webrtc_medium.get(), nullptr);
 }
 
-- (void)testCreateInputFileWithPayloadID {
-  auto input_file = nearby::api::ImplementationPlatform::CreateInputFile(1234);
-  XCTAssertEqual(input_file.get(), nullptr);
-}
-
-- (void)testCreateOutputFileWithPayloadID {
-  auto output_file = nearby::api::ImplementationPlatform::CreateOutputFile(1234);
-  XCTAssertEqual(output_file.get(), nullptr);
-}
-
 @end

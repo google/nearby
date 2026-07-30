@@ -133,18 +133,8 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
   return std::make_unique<apple::ConditionVariable>(static_cast<apple::Mutex*>(mutex));
 }
 
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id) {
-  return nullptr;
-}
-
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path) {
   return shared::IOFile::CreateInputFile(file_path);
-}
-
-ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId payload_id) {
-  return nullptr;
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::string& file_path) {
