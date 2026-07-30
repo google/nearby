@@ -816,10 +816,10 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   FileMetadata file2;
   file1.set_id(23432);
   file1.set_payload_id(123);
-  file1.set_size(1);
+  file1.set_size(100);
   file2.set_id(42377);
   file2.set_payload_id(456);
-  file2.set_size(1);
+  file2.set_size(100);
   introduction_frame.mutable_file_metadata()->Add(std::move(file1));
   introduction_frame.mutable_file_metadata()->Add(std::move(file2));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),

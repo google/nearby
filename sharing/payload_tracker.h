@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
+#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
@@ -54,11 +55,15 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
 
  private:
   struct State {
-    explicit State(int64_t attachment_id, int64_t total_size)
-        : attachment_id(attachment_id), total_size(total_size) {}
+    explicit State(int64_t attachment_id, Attachment::Family family,
+                   int64_t total_size)
+        : attachment_id(attachment_id),
+          family(family),
+          total_size(total_size) {}
     ~State() = default;
 
     int64_t attachment_id = 0;
+    Attachment::Family family;
     uint64_t amount_transferred = 0;
     const uint64_t total_size;
     PayloadStatus status = PayloadStatus::kInProgress;

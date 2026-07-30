@@ -303,7 +303,14 @@ class IncomingFileInternalPayload : public InternalPayload {
       Close();
       return {Exception::kSuccess};
     }
-
+    bytes_written_ += chunk.size();
+    if (total_size_ != InternalPayload::kIndeterminateSize &&
+        bytes_written_ > static_cast<uint64_t>(total_size_)) {
+      LOG(WARNING) << "FILE payload " << GetId() << " exceeded declared "
+                   << "total_size (" << bytes_written_ << " > " << total_size_
+                   << "); rejecting.";
+      return {Exception::kIo};
+    }
     return output_file_.Write(chunk);
   }
 
@@ -321,6 +328,7 @@ class IncomingFileInternalPayload : public InternalPayload {
   OutputFile output_file_;
   absl::Time last_modified_time_;
   const std::int64_t total_size_;
+  uint64_t bytes_written_ = 0;
 };
 
 }  // namespace
@@ -422,8 +430,8 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
           return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
         return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(payload_id)),
-            std::move(output_file), last_modified_time, total_size)};
+            Payload(payload_id, InputFile(payload_id)), std::move(output_file),
+            last_modified_time, total_size)};
       } else {
         OutputFile output_file(file_path);
         if (!output_file.IsValid()) {
@@ -431,8 +439,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
           return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
         return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path)),
+            Payload(payload_id, parent_folder, file_name, InputFile(file_path)),
             std::move(output_file), last_modified_time, total_size)};
       }
     }
