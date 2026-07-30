@@ -1056,6 +1056,10 @@ TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
 }
 
 TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start({.use_simulated_clock = true});
   BooleanMediumSelector allowed{
       .bluetooth = true,
@@ -1092,6 +1096,10 @@ TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
 }
 
 TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start();
   std::string service_id{"service"};
   std::string endpoint_id{"ABCD"};
@@ -1696,6 +1704,10 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
 }
 
 TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start();
   BooleanMediumSelector allowed = GetParam();
   if (allowed.Count(true) < 2) {
