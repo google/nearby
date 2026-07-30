@@ -135,16 +135,16 @@ class NoOpAnalyticsRecorder : public AnalyticsRecorder {
 
   void OnConnectionRequestReceived(
       const std::string& remote_endpoint_id) override {}
-  void OnConnectionRequestSent(
-      const std::string& remote_endpoint_id) override {}
+  void OnConnectionRequestSent(const std::string& remote_endpoint_id) override {
+  }
   void OnRemoteEndpointAccepted(
       const std::string& remote_endpoint_id) override {}
-  void OnLocalEndpointAccepted(
-      const std::string& remote_endpoint_id) override {}
+  void OnLocalEndpointAccepted(const std::string& remote_endpoint_id) override {
+  }
   void OnRemoteEndpointRejected(
       const std::string& remote_endpoint_id) override {}
-  void OnLocalEndpointRejected(
-      const std::string& remote_endpoint_id) override {}
+  void OnLocalEndpointRejected(const std::string& remote_endpoint_id) override {
+  }
 
   // Connection attempt
   void OnIncomingConnectionAttempt(
@@ -187,9 +187,10 @@ class NoOpAnalyticsRecorder : public AnalyticsRecorder {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code) override {}
-  void OnOutgoingPayloadStarted(
-      const std::vector<std::string>& endpoint_ids, std::int64_t payload_id,
-      connections::PayloadType type, std::int64_t total_size_bytes) override {}
+  void OnOutgoingPayloadStarted(const std::vector<std::string>& endpoint_ids,
+                                std::int64_t payload_id,
+                                connections::PayloadType type,
+                                std::int64_t total_size_bytes) override {}
   void OnPayloadChunkSent(const std::string& endpoint_id,
                           std::int64_t payload_id,
                           std::int64_t chunk_size_bytes) override {}
@@ -356,8 +357,7 @@ bool ClientProxy::OverrideSavePath(absl::string_view endpoint_id,
   return false;
 }
 
-std::string ClientProxy::GetSavePath(
-    absl::string_view endpoint_id) const {
+std::string ClientProxy::GetSavePath(absl::string_view endpoint_id) const {
   MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
@@ -384,9 +384,9 @@ std::string ClientProxy::GenerateLocalEndpointId() {
   if (!cached_endpoint_id_.empty()) {
     if (stable_endpoint_id_mode_ || HasOngoingConnection()) {
       LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                    "endpoint id due to in stable endpoint id mode or having "
-                    "ongoing connection]: "
-                    "client="
+                   "endpoint id due to in stable endpoint id mode or having "
+                   "ongoing connection]: "
+                   "client="
                 << GetClientId()
                 << "; cached_endpoint_id_=" << cached_endpoint_id_;
       return cached_endpoint_id_;
@@ -1097,6 +1097,27 @@ bool ClientProxy::AutoUpgradeBandwidth() const {
   return result;
 }
 
+Strategy ClientProxy::GetEndpointStrategy(absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  auto it = connections_.find(endpoint_id);
+  if (it != connections_.end()) {
+    Strategy strategy = it->second.first.connection_options.strategy;
+    if (strategy.IsNone()) {
+      if (it->second.first.is_incoming) {
+        if (IsAdvertising()) {
+          strategy = advertising_options_.strategy;
+        } else {
+          strategy = listening_options_.strategy;
+        }
+      } else {
+        strategy = discovery_options_.strategy;
+      }
+    }
+    return strategy;
+  }
+  return Strategy::kNone;
+}
+
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
   MutexLock lock(&mutex_);
   bool result = false;
@@ -1231,7 +1252,6 @@ bool ClientProxy::IsSafeToDisconnectEnabled(absl::string_view endpoint_id) {
               .min_nc_version_supports_safe_to_disconnect);
 }
 
-
 bool ClientProxy::IsPayloadReceivedAckEnabled(absl::string_view endpoint_id) {
   return IsSupportSafeToDisconnect() &&
          GetRemoteSafeToDisconnectVersion(endpoint_id).has_value() &&
@@ -1344,6 +1364,7 @@ void ClientProxy::OnSessionComplete() {
 
 bool ClientProxy::ConnectionStatusesContains(
     const std::string& endpoint_id, Connection::Status status_to_match) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return (item->first.status & status_to_match) != 0;
@@ -1353,6 +1374,7 @@ bool ClientProxy::ConnectionStatusesContains(
 
 void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
                                          Connection::Status status_to_append) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.status =
@@ -1661,6 +1683,7 @@ std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
 }
 
 std::string ClientProxy::Dump() {
+  MutexLock lock(&mutex_);
   std::stringstream sstream;
   sstream << "Nearby Connections State" << std::endl;
   sstream << "  Client ID: " << GetClientId() << std::endl;
