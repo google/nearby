@@ -71,10 +71,6 @@ class ImplementationPlatform {
   static std::string GetDownloadPath(const std::string& parent_folder,
                                      const std::string& file_name);
 
-  static std::string GetDownloadPath(const std::string& file_name);
-
-  static std::string GetAppDataPath(const std::string& file_name);
-
   static OSName GetCurrentOS();
 
   // Atomics:
