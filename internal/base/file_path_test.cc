@@ -104,10 +104,50 @@ TEST(FilePathTest, AppendSuccess) {
 #endif
 }
 
+#if defined(_WIN32)
+TEST(FilePathTest, AppendAbsolutePath) {
+  FilePath path("C:\\Users\\dir1");
+  FilePath sub_path("C:\\Users\\dir2");
+
+  path.append(sub_path);
+  EXPECT_EQ(path.ToString(), "C:\\Users\\dir1");
+}
+
+TEST(FilePathTest, AppendSubPathWithDriveLetter) {
+  FilePath path("C:\\Users\\dir1");
+  FilePath sub_path("D:SomeOtherFolder\\subfolder");
+  path.append(sub_path);
+  EXPECT_EQ(path.ToString(), "C:\\Users\\dir1");
+}
+#else  // defined(_WIN32)
+TEST(FilePathTest, AppendAbsolutePath) {
+  FilePath path("/usr/local/home/奥巴马/Documents");
+  FilePath sub_path("/贝拉克/temp");
+
+  path.append(sub_path);
+  EXPECT_EQ(path.ToWideString(),
+            L"/usr/local/home/奥巴马/Documents");
+}
+#endif  // defined(_WIN32)
+
 TEST(FilePathTest, GetParentPathSuccess) {
   FilePath path("/usr/local/home/奥巴马/Documents");
   EXPECT_EQ(path.GetParentPath().ToString(), "/usr/local/home/奥巴马");
 }
+
+#if defined(_WIN32)
+TEST(FilesPathTest, IsAbsolutePathWindows) {
+  EXPECT_TRUE(FilePath("C:\\Users\\test\\file.txt").IsAbsolute());
+  EXPECT_TRUE(FilePath("\\\\server\\share\\file.txt").IsAbsolute());
+  EXPECT_FALSE(FilePath("file.txt").IsAbsolute());
+  EXPECT_FALSE(FilePath("C:Users\\test\\file.txt").IsAbsolute());
+}
+#else  // defined(_WIN32)
+TEST(FilePathTest, IsAbsolutePathPosix) {
+  EXPECT_TRUE(FilePath("/Users/test/file.txt").IsAbsolute());
+  EXPECT_FALSE(FilePath("file.txt").IsAbsolute());
+}
+#endif
 
 }  // namespace
 }  // namespace nearby

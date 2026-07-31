@@ -53,9 +53,7 @@ TEST(FilesTest, IsAbsolutePathWindows) {
   EXPECT_FALSE(Files::IsAbsolutePath(FilePath("file.txt")));
   EXPECT_FALSE(Files::IsAbsolutePath(FilePath("C:Users\\test\\file.txt")));
 }
-#endif
-
-#if defined(__linux__) || defined(__APPLE__)
+#else  // defined(_WIN32)
 TEST(FilesTest, IsAbsolutePathPosix) {
   EXPECT_TRUE(Files::IsAbsolutePath(FilePath("/Users/test/file.txt")));
   EXPECT_FALSE(Files::IsAbsolutePath(FilePath("file.txt")));

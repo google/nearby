@@ -48,7 +48,10 @@ class FilePath {
   // Returns true if the path is empty.
   bool IsEmpty() const;
 
-  // Appends the given `subpath` to this path using a path separator..
+  // Appends the given `subpath` to this path using a path separator.
+  // If `subpath` is absolute, `subpath` is ignored and the path is not changed.
+  // On Windows if `subpath` contains a drive letter, `subpath` is ignored and
+  // the path is not changed.
   FilePath& append(const FilePath& subpath);
 
   // Returns the last component of this path.
@@ -60,6 +63,11 @@ class FilePath {
 
   // Returns the path of the parent directory of this path.
   FilePath GetParentPath() const;
+
+  // Returns true if the path is absolute.
+  // On Windows, a path is absolute if it has a drive letter and a root
+  // directory.
+  bool IsAbsolute() const { return path_.is_absolute(); }
 
   // TODO: b/418255947  - Remove after migration is complete.
   std::filesystem::path GetPath() const { return path_; }

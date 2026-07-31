@@ -143,7 +143,7 @@ std::optional<size_t> Files::GetAvailableDiskSpaceInBytes(
 }
 
 bool Files::IsAbsolutePath(const FilePath& path) {
-  return path.path_.is_absolute();
+  return path.IsAbsolute();
 }
 
 }  // namespace nearby

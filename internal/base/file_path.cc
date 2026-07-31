@@ -19,6 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/base/compatible_u8_string.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 
@@ -41,6 +42,18 @@ bool FilePath::IsEmpty() const {
 }
 
 FilePath& FilePath::append(const FilePath& subpath) {
+  if (subpath.IsAbsolute()) {
+    LOG(WARNING) << "Attempting to append absolute path: " << subpath.ToString()
+                 << " to path: " << ToString();
+    return *this;
+  }
+  // On Windows, appending a subpath with a drive letter can overwrite the
+  // current path.
+  if (!subpath.path_.root_name().empty()) {
+    LOG(WARNING) << "Attempting to append subpath with drive letter: "
+                 << subpath.ToString() << " to path: " << ToString();
+    return *this;
+  }
   path_ /= subpath.path_;
   return *this;
 }

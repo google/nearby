@@ -76,6 +76,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":compatible_u8_string",
+        "//internal/platform:logging",
         "@com_google_absl//absl/strings",
     ],
 )
