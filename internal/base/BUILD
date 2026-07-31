@@ -84,7 +84,6 @@ cc_library(
     name = "file_path_sanitize",
     srcs = ["file_path_sanitize.cc"],
     hdrs = ["file_path_sanitize.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_absl//absl/strings",

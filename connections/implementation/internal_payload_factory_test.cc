@@ -237,6 +237,26 @@ TEST(InternalPayloadFactoryTest,
 }
 
 TEST(InternalPayloadFactoryTest,
+     VerifyFilePayloadFileNameParentFolderSanitized) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(512);
+  header.set_file_name("bad\\test_file_name");
+  header.set_parent_folder("bad/../../test_parent_folder");
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  EXPECT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetFileName(), "test_file_name");
+  EXPECT_EQ(internal_payload->GetParentFolder(), "bad/test_parent_folder");
+}
+
+TEST(InternalPayloadFactoryTest,
      CreateInternalPayloadFailsIfFileCannotBeCreated) {
   PayloadTransferFrame frame;
   // /dev/null is a special file, no sub directories can be created

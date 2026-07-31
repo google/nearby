@@ -28,6 +28,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/base/file_path_sanitize.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -377,11 +378,12 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
       int64_t total_size = 0;
 
       if (frame.payload_header().has_parent_folder()) {
-        parent_folder = frame.payload_header().parent_folder();
+        parent_folder =
+            SanitizeRelativeFilePath(frame.payload_header().parent_folder());
       }
 
       if (frame.payload_header().has_file_name()) {
-        file_name = frame.payload_header().file_name();
+        file_name = SanitizeFileName(frame.payload_header().file_name());
         // if custom_save_path is empty, default download path is used
         file_path = make_path(custom_save_path, parent_folder, file_name);
       } else {
