@@ -393,6 +393,7 @@ cc_library(
         "//connections/implementation/analytics:analytics_recorder_impl",
         "//internal/base",
         "//internal/base:file_path",
+        "//internal/base:file_path_sanitize",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/network:url",
