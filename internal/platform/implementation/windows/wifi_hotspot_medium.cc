@@ -17,35 +17,28 @@
 #include <optional>
 #include <string>
 
-#include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/base/masker.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/feature_flags.h"
+#include "internal/platform/crypto.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/input_file.h"
-#include "internal/platform/implementation/output_file.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/string_utils.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/prng.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
@@ -193,15 +186,24 @@ bool WifiHotspotMedium::StartWifiHotspot(
     publisher_.Advertisement().IsAutonomousGroupOwnerEnabled(true);
 
     // Using WIFIDirect legacy mode to create a softAP. AP means "access point".
-    Prng prng;
     publisher_.Advertisement().LegacySettings().IsEnabled(true);
-    std::string password = absl::StrFormat("%08x", prng.NextUint32());
+
+    // The passphrase protects user file content on the air; it MUST come from a
+    // cryptographic RNG and carry enough entropy to resist offline PMK brute
+    // force. 16 random bytes → 32 hex chars (well within WPA2's 8..63 limit).
+    std::string password_bytes(16, '\0');
+    nearby::RandBytes(password_bytes.data(), password_bytes.size());
+    std::string password = absl::BytesToHexString(password_bytes);
     hotspot_credentials->SetPassword(password);
     PasswordCredential creds;
     creds.Password(winrt::to_hstring(password));
     publisher_.Advertisement().LegacySettings().Passphrase(creds);
 
-    std::string ssid = "DIRECT-" + std::to_string(prng.NextUint32());
+    // SSID is public; it MUST NOT be correlated with the passphrase RNG state.
+    std::string ssid_bytes(4, '\0');
+    nearby::RandBytes(ssid_bytes.data(), ssid_bytes.size());
+    std::string ssid =
+        absl::StrCat("DIRECT-", absl::BytesToHexString(ssid_bytes));
     hotspot_credentials->SetSSID(ssid);
     publisher_.Advertisement().LegacySettings().Ssid(winrt::to_hstring(ssid));
 
