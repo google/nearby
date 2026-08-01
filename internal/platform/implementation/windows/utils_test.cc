@@ -108,6 +108,16 @@ TEST(UtilsTests, GetDnsHostName) {
              << nearby::windows::string_utils::WideStringToString(*host_name);
 }
 
+TEST(UtilsTests, GetNetBiosName) {
+  std::optional<std::wstring> netbios_name = GetNetBiosName();
+  ASSERT_TRUE(netbios_name.has_value());
+  // NetBIOS computer name cannot exceed 15 characters.
+  EXPECT_LE(netbios_name->length(), 15);
+  LOG(ERROR) << "netbios_name: "
+             << nearby::windows::string_utils::WideStringToString(
+                    *netbios_name);
+}
+
 TEST(UtilsTests, IsIntelWifiAdapter) {
   bool is_intel_wifi_adapter = IsIntelWifiAdapter();
   LOG(ERROR) << "is_intel_wifi_adapter: " << is_intel_wifi_adapter;

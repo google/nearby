@@ -1345,7 +1345,7 @@ TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
   EXPECT_FALSE(client1()
                    ->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
                    .has_value());
-  EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id), "");
+  EXPECT_EQ(client1()->GetRemoteWfdDeviceName(advertising_endpoint.id), "");
 }
 
 TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
@@ -1367,8 +1367,8 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
       client1()->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
       nearby_connections_version);
   std::string device_name = "device_name";
-  client1()->SetRemoteDeviceName(advertising_endpoint.id, device_name);
-  EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id),
+  client1()->SetRemoteWfdDeviceName(advertising_endpoint.id, device_name);
+  EXPECT_EQ(client1()->GetRemoteWfdDeviceName(advertising_endpoint.id),
             device_name);
 }
 

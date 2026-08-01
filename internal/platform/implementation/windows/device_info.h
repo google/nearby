@@ -42,6 +42,7 @@ class DeviceInfo : public api::DeviceInfo {
   ~DeviceInfo() override;
 
   std::optional<std::string> GetOsDeviceName() const override;
+  std::optional<std::string> GetWifiDirectDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
 

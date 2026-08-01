@@ -41,6 +41,9 @@ bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
 // Returns the DNS host name of the computer or std::nullopt if it fails.
 std::optional<std::wstring> GetDnsHostName();
 
+// Returns the NetBIOS computer name or std::nullopt if it fails.
+std::optional<std::wstring> GetNetBiosName();
+
 // Returns true if the system has an Intel Wi-Fi adapter.
 bool IsIntelWifiAdapter();
 

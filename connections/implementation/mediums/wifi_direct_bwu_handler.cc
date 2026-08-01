@@ -54,10 +54,10 @@ WifiDirectBwuHandler::WifiDirectBwuHandler(
 std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
-  auto remote_device_name = client->GetRemoteDeviceName(endpoint_id);
   WifiDirectCredentials* wifi_direct_crendential =
       wifi_direct_medium_.GetCredentials(upgrade_service_id);
-  wifi_direct_crendential->SetRemoteDeviceName(remote_device_name);
+  wifi_direct_crendential->SetRemoteDeviceName(
+      client->GetRemoteWfdDeviceName(endpoint_id));
 
   // Create WifiDirect GO
   if (!wifi_direct_medium_.StartWifiDirect()) {

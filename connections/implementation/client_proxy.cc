@@ -277,8 +277,8 @@ ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
   LoadClientInfoFromPreferences();
 
 #ifndef NEARBY_CHROMIUM
-  local_device_name_ = api::ImplementationPlatform::CreateDeviceInfo()
-                           ->GetOsDeviceName()
+  local_wfd_device_name_ = api::ImplementationPlatform::CreateDeviceInfo()
+                           ->GetWifiDirectDeviceName()
                            .value_or("");
 #endif
 
@@ -1182,22 +1182,22 @@ void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
   }
 }
 
-void ClientProxy::SetRemoteDeviceName(absl::string_view endpoint_id,
-                                      absl::string_view device_name) {
+void ClientProxy::SetRemoteWfdDeviceName(absl::string_view endpoint_id,
+                                      absl::string_view wfd_device_name) {
   MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.device_name = std::string(device_name);
-    LOG(INFO) << "ClientProxy [SetRemoteDeviceName]: " << device_name;
+    item->first.wfd_device_name = std::string(wfd_device_name);
+    LOG(INFO) << "ClientProxy [SetRemoteWfdDeviceName]: " << wfd_device_name;
   }
 }
 
-std::string ClientProxy::GetRemoteDeviceName(
+std::string ClientProxy::GetRemoteWfdDeviceName(
     absl::string_view endpoint_id) const {
   MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.device_name;
+    return item->first.wfd_device_name;
   }
   return "";
 }
@@ -1681,7 +1681,7 @@ std::string ClientProxy::Dump() {
                     ? location::nearby::connections::OsInfo::OsType_Name(
                           it->second.first.os_info->type())
                     : "unknown")
-            << ", (remote device name) " << it->second.first.device_name
+            << ", (remote device name) " << it->second.first.wfd_device_name
             << std::endl;
   }
 

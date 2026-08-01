@@ -34,12 +34,13 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
-#include "internal/platform/implementation/windows/device_info.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
+#include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/utils.h"
 
 namespace nearby::windows {
 
@@ -48,6 +49,18 @@ constexpr absl::Duration kServiceConnectionTimeout = absl::Seconds(60);
 constexpr absl::Duration kWaitingForRePair = absl::Seconds(3);
 constexpr absl::Duration kWaitForGOServerStart = absl::Milliseconds(500);
 constexpr absl::Duration kConnectTimeout = absl::Seconds(30);
+// On Windows, the default Wi-Fi Direct (P2P) Group Owner SSID / device name
+// incorporates the local computer's NetBIOS identity. Under standard Windows
+// configurations, this name is limited to 15 characters.
+// See Microsoft active-directory computer naming requirements:
+// https://learn.microsoft.com/en-us/troubleshoot/windows-server/active-directory/naming-conventions-for-computer-domain-site-ou
+//
+// Our implementation decision to utilize the NetBIOS computer name was based on
+// observing the name published by Windows WiFi Direct APIs on test devices.
+// Because the actual name type resolved to NetBIOS (which limits length to 15
+// characters), we enforce a max prefix length check of 15 characters during the
+// validation of remote incoming Wi-Fi Direct requests to avoid false negatives.
+constexpr int kMaxDeviceNameLength = 15;
 }  // namespace
 
 WifiDirectDeviceDiscovered::WifiDirectDeviceDiscovered(
@@ -279,14 +292,16 @@ bool WifiDirectMedium::StartWifiDirect(
       LOG(INFO) << "Windows WIFI Direct AutoGO started";
       medium_status_ |= kMediumStatusBeaconing;
 
-      std::optional<std::string> computer_name = DeviceInfo().GetOsDeviceName();
-      if (computer_name.has_value()) {
-        std::string device_name = absl::AsciiStrToUpper(computer_name.value());
-        LOG(INFO) << "GO Device Name(Computer Name) is:" << device_name;
+      std::optional<std::wstring> device_name = GetNetBiosName();
+      if (device_name.has_value()) {
+        std::string device_name_str =
+            string_utils::WideStringToString(device_name.value());
+        LOG(INFO) << "GO WifiDirect Device Name (NetBIOS Name) is: "
+                  << device_name_str;
         credentials_go_ = wifi_direct_credentials;
         // Current pairing scheme uses ConfirmOnly, so pin is empty;
         credentials_go_->SetPin("");
-        credentials_go_->SetDeviceName(device_name);
+        credentials_go_->SetDeviceName(device_name_str);
         return true;
       }
       LOG(ERROR) << "Windows WIFI Direct AutoGO failed to get computer name";
@@ -428,15 +443,18 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
     WiFiDirectConnectionListener const& sender,
     WiFiDirectConnectionRequestedEventArgs const& event) {
   WiFiDirectConnectionRequest connection_request = event.GetConnectionRequest();
-  winrt::hstring device_name = connection_request.DeviceInformation().Name();
+  std::string device_name =
+      winrt::to_string(connection_request.DeviceInformation().Name());
   winrt::hstring device_id = connection_request.DeviceInformation().Id();
-  LOG(INFO) << "Receive connection request from: "
-            << winrt::to_string(device_name)
+  LOG(INFO) << "Receive connection request from: " << device_name
             << "; device ID: " << winrt::to_string(device_id);
+
   if (!remote_device_name_.empty() &&
-      !absl::EqualsIgnoreCase(remote_device_name_,
-                              winrt::to_string(device_name))) {
+      !absl::EqualsIgnoreCase(
+          std::string_view(remote_device_name_).substr(0, kMaxDeviceNameLength),
+          std::string_view(device_name).substr(0, kMaxDeviceNameLength))) {
     LOG(INFO) << "Ignore the connection request from the unrelated device.";
+
     return winrt::fire_and_forget();
   }
 
@@ -752,9 +770,10 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
 
 fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     DeviceWatcher sender, DeviceInformation device_info) {
+  std::string device_name = winrt::to_string(device_info.Name());
   LOG(INFO) << "Device found for device ID "
             << winrt::to_string(device_info.Id())
-            << ";   device name: " << winrt::to_string(device_info.Name());
+            << ";   device name: " << device_name;
   winrt::hstring device_id = device_info.Id();
   {
     absl::MutexLock lock(mutex_);
@@ -762,18 +781,18 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
       return winrt::fire_and_forget();
     }
     std::string device_name_to_match = credentials_gc_.GetDeviceName();
-    if (!absl::EqualsIgnoreCase(device_name_to_match,
-                                winrt::to_string(device_info.Name()))) {
+    if (!absl::EqualsIgnoreCase(std::string_view(device_name_to_match)
+                                    .substr(0, kMaxDeviceNameLength),
+                                std::string_view(device_name)
+                                    .substr(0, kMaxDeviceNameLength))) {
       LOG(INFO) << "We are looking for device: " << device_name_to_match
-                << ", but found: " << winrt::to_string(device_info.Name())
-                << ", skip.";
+                << ", but found: " << device_name << ", skip.";
       return winrt::fire_and_forget();
     }
     discovered_devices_by_id_[device_id] =
         std::make_unique<WifiDirectDeviceDiscovered>(device_info);
   }
-  LOG(INFO) << "Connect to device name: "
-            << winrt::to_string(device_info.Name());
+  LOG(INFO) << "Connect to device name: " << device_name;
   DeviceInformationPairing pairing = device_info.Pairing();
   // WiFiDirectConfigurationMethod config_method =
   //     WiFiDirectConfigurationMethod::ProvidePin;
