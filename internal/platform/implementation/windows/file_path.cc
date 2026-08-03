@@ -28,16 +28,14 @@
 
 #include <algorithm>
 #include <cctype>
-#include <fstream>
 #include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "internal/flags/nearby_flags.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
@@ -144,50 +142,8 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
   // Remove any /..'s
   SanitizePath(sanitized_path);
 
-  auto last_delimiter = sanitized_path.find_last_of(kPathDelimiter);
-  std::wstring folder(sanitized_path.substr(0, last_delimiter));
-  std::wstring file_name(sanitized_path.substr(last_delimiter));
-
-  // Locate the last dot
-  auto first = file_name.find_last_of('.');
-
-  if (first == std::string::npos) {
-    first = file_name.size();
-  }
-
-  // Break the string at the dot.
-  auto file_name1 = file_name.substr(0, first);
-  auto file_name2 = file_name.substr(first);
-
-  // Construct the target file name
-  std::wstring target(sanitized_path);
-
-  std::fstream file;
-
-  // Open file as std::wstring
-  file.open(target, std::fstream::binary | std::fstream::in);
-
-  // While we successfully open the file, keep incrementing the count.
-  int count = 0;
-  while (!(file.rdstate() & std::ifstream::failbit)) {
-    file.close();
-
-    target = (folder + file_name1 + L" (" + std::to_wstring(++count) + L")" +
-              file_name2);
-
-    file.clear();
-    file.open(target, std::fstream::binary | std::fstream::in);
-  }
-
-  if (count > 0) {
-    LOG(INFO) << "Renamed " << string_utils::WideStringToString(path) << " to "
-              << string_utils::WideStringToString(target);
-  }
-
-  // The above leaves the file open, so close it.
-  file.close();
-
-  return target;
+  nearby::FilePath file_path(sanitized_path);
+  return Files::CreateUniqueFileName(file_path).ToWideString();
 }
 
 std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {

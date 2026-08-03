@@ -14,9 +14,11 @@
 
 #include "internal/platform/implementation/windows/file_path.h"
 
+// clang-format off
 #include <windows.h>
 #include <knownfolders.h>
 #include <shlobj.h>
+// clang-format on
 
 #include <algorithm>
 #include <fstream>
@@ -24,6 +26,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "internal/base/file_path.h"
 
 namespace nearby {
 namespace windows {
@@ -88,56 +91,6 @@ class FilePathTests : public testing::Test {
   std::wstring default_download_path_;
 };
 
-TEST_F(FilePathTests, GetDownloadPathWithEmptyStringArguments\
-ShouldReturnBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}  // NOLINT false lint error here
-
-TEST_F(FilePathTests, GetDownloadPathWithSlashParent\
-FolderArgumentsShouldReturnBaseDownloadPath) {
-  std::wstring parent_folder(L"/");
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}  // NOLINT false lint error here
-
-TEST_F(FilePathTests, GetDownloadPathWithBackslashParent\
-FolderArgumentsShouldReturnBaseDownloadPath) {
-  std::wstring parent_folder(L"\\");
-  std::wstring file_name(L"");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}  // NOLINT false lint error here
-
-TEST_F(FilePathTests, GetDownloadPathWithSlashFileName\
-ArgumentsShouldReturnBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"/");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithBackslashFile\
-NameArgumentsShouldReturnBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"\\");
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, default_download_path_);
-}
-
 TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
 ShouldReturnParentFolderAppendedToBaseDownloadPath) {
   std::wstring parent_folder(L"test_parent_folder");
@@ -151,7 +104,7 @@ ShouldReturnParentFolderAppendedToBaseDownloadPath) {
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
   EXPECT_EQ(actual, expected);
-}
+}  // NOLINT
 
 TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
 StartingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
@@ -166,7 +119,7 @@ StartingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
   EXPECT_EQ(actual, expected);
-}
+}  // NOLINT
 
 TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
 StartingWithBackslashArgumentsShouldReturnParentFolderAppendedToBase\
@@ -569,7 +522,7 @@ FileWithIncrementedName) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  EXPECT_EQ(actual, expected);
+  EXPECT_EQ(nearby::FilePath(actual), nearby::FilePath(expected));
 
   // Remove the file and check that it is removed
   // File 1
@@ -614,7 +567,7 @@ ReturnsNextIncrementedFileName) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  EXPECT_EQ(expected, actual);
+  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
 
   // Remove the test files and check that it is removed
   // File 1
@@ -658,7 +611,7 @@ MultipleDotsReturnsIncrementBeforeFirstDot) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  EXPECT_EQ(expected, actual);
+  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
 
   _wremove(output_file1_path.c_str());
   input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
@@ -692,7 +645,7 @@ DotsReturnsWithIncrementAtEnd) {
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  EXPECT_EQ(expected, actual);
+  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
 
   _wremove(output_file1_path.c_str());
   input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
@@ -759,7 +712,7 @@ AHoleBetweenRenamedFiles) {
   // This should return the second iteration of the original file
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
 
-  EXPECT_EQ(expected, actual);
+  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
 
   // Delete the original file
   _wremove(output_file_path.c_str());

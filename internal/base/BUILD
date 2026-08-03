@@ -99,6 +99,7 @@ cc_library(
     deps = [
         ":file_path",
         "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
     ],
 )
 

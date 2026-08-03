@@ -60,5 +60,28 @@ TEST(FilesTest, IsAbsolutePathPosix) {
 }
 #endif
 
+TEST(FilesTest, CreateUniqueFileNameReturnsOriginalPathIfItDoesNotExist) {
+  FilePath temp_dir{testing::TempDir()};
+  FilePath file_path = temp_dir;
+  file_path.append(FilePath("file.txt"));
+  Files::RemoveFile(file_path);
+
+  EXPECT_EQ(Files::CreateUniqueFileName(file_path), file_path);
+}
+
+TEST(FilesTest, CreateUniqueFileNameReturnsUniqueFileNameIfPathExists) {
+  FilePath temp_dir{testing::TempDir()};
+  FilePath file_path = temp_dir;
+  file_path.append(FilePath("file.txt"));
+  std::ofstream ofstream(file_path.GetPath(), std::ios::app);
+  ASSERT_EQ(ofstream.rdstate(), std::ios_base::goodbit);
+  ofstream << "Hello world";
+  ofstream.flush();
+
+  EXPECT_EQ(Files::CreateUniqueFileName(file_path),
+            FilePath(temp_dir.append(FilePath("file (1).txt"))));
+  Files::RemoveFile(file_path);
+}
+
 }  // namespace
 }  // namespace nearby

@@ -18,8 +18,10 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
+#include <string>
 #include <system_error>  // NOLINT(build/c++11)
 
+#include "absl/strings/str_cat.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/logging.h"
 
@@ -144,6 +146,28 @@ std::optional<size_t> Files::GetAvailableDiskSpaceInBytes(
 
 bool Files::IsAbsolutePath(const FilePath& path) {
   return path.IsAbsolute();
+}
+
+FilePath Files::CreateUniqueFileName(const FilePath& file_path) {
+  if (!FileExists(file_path) && !DirectoryExists(file_path)) {
+    return file_path;
+  }
+  FilePath parent_path = file_path.GetParentPath();
+  std::string file_name = file_path.GetFileName().ToString();
+  std::string file_extension = file_path.GetExtension().ToString();
+  std::string base_file_name =
+      file_name.substr(0, file_name.size() - file_extension.size());
+  int counter = 1;
+  while (true) {
+    std::string new_file_name =
+        absl::StrCat(base_file_name, " (", counter, ")", file_extension);
+    FilePath new_file_path(parent_path);
+    new_file_path.append(FilePath{new_file_name});
+    if (!FileExists(new_file_path) && !DirectoryExists(new_file_path)) {
+      return new_file_path;
+    }
+    counter++;
+  }
 }
 
 }  // namespace nearby

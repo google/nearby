@@ -80,6 +80,14 @@ class Files {
   // On Posix systems, this is a path that starts with a `/`.
   // On Windows, this is a path that starts with a drive letter or a UNC path.
   static bool IsAbsolutePath(const FilePath& path);
+
+  // If `file_path` does not exist, returns `file_path`.
+  // Otherwise returns a file path that is in the same directory as `file_path`
+  // with a name derived from the file name component of `file_path`.  To create
+  // the unique name, the base file name (the part before the extension) is
+  // appended with " (x)", where x is an incrementing number starting at 1,
+  // until a non-existing file path is found.
+  static FilePath CreateUniqueFileName(const FilePath& file_path);
 };
 
 }  // namespace nearby
