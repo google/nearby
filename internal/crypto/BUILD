@@ -24,9 +24,6 @@ cc_library(
     name = "crypto",
     srcs = ["ed25519.cc"],
     hdrs = ["ed25519.h"],
-    copts = [
-        "-Ithird_party",
-    ],
     deps = [
         "//internal/crypto_cros",
         "//internal/platform:types",
@@ -44,7 +41,6 @@ cc_test(
     srcs = ["ed25519_unittest.cc"],
     copts = [
         "-DUNIT_TEST",
-        "-Ithird_party",
     ],
     deps = [
         ":crypto",

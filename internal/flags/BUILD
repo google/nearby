@@ -40,9 +40,6 @@ cc_library(
     hdrs = [
         "nearby_flags.h",
     ],
-    copts = [
-        "-Ithird_party",
-    ],
     # Flags should not be visible to external users. Only for internal use.
     visibility = [
         "//:__subpackages__",

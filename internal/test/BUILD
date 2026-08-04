@@ -34,9 +34,6 @@ cc_library(
         "fake_task_runner.h",
         "fake_timer.h",
     ],
-    copts = [
-        "-Ithird_party",
-    ],
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base:file_path",
@@ -66,9 +63,6 @@ cc_test(
         "fake_http_client_test.cc",
         "fake_task_runner_test.cc",
         "fake_timer_test.cc",
-    ],
-    copts = [
-        "-Ithird_party",
     ],
     shard_count = 8,
     deps = [
