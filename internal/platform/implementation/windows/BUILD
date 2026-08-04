@@ -406,14 +406,9 @@ cc_library(
 )
 
 cc_library(
-    name = "test_utils",
-    srcs = [
-        "test_utils.cc",
-    ],
-    hdrs = [
-        "test_data.h",
-        "test_utils.h",
-    ],
+    name = "test_data",
+    testonly = True,
+    hdrs = ["test_data.h"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -468,7 +463,7 @@ cc_test(
     deps = [
         ":preferences_manager_test_cc_proto",
         ":string_utils",
-        ":test_utils",
+        ":test_data",
         ":types",
         ":windows",
         "//internal/base:file_path",
