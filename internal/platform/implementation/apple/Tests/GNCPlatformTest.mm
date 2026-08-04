@@ -155,37 +155,40 @@ void GNCEnsureFileAtPath(std::string path) {
 }
 
 - (void)testGetCustomSavePath {
-  NSString *expected = [NSURL fileURLWithPath:@"a/b/c.d"].path;
-  std::string actual = nearby::api::ImplementationPlatform::GetCustomSavePath("a/b", "c.d");
+  NSString *expected = [NSURL fileURLWithPath:@"/tmp/a/b/c.d"].path;
+  std::string actual = nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "c.d");
   XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
 - (void)testGetCustomSavePathWithIllegalCharacters {
-  NSString *expected = [NSURL fileURLWithPath:@"a/b/Fi?le*: Name.ext"].path;
+  NSString *expected = [NSURL fileURLWithPath:@"/tmp/a/b/Fi?le*: Name.ext"].path;
   std::string actual =
-      nearby::api::ImplementationPlatform::GetCustomSavePath("a/b", "Fi?le*/ Name.ext");
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "Fi?le*/ Name.ext");
   XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
 - (void)testGetCustomSavePathWithPathEscapingCharacters {
-  NSString *expected = [NSURL fileURLWithPath:@"a/b/..:c:..:d.e"].path;
+  NSString *expected = [NSURL fileURLWithPath:@"/tmp/a/b/..:c:..:d.e"].path;
   std::string actual =
-      nearby::api::ImplementationPlatform::GetCustomSavePath("a/../../b", "../c/../d.e");
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/../../b", "../c/../d.e");
   XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
 - (void)testGetCustomSavePathDuplicateNames {
-  NSString *expected1 = [NSURL fileURLWithPath:@"a/b/cat.jpg"].path;
-  NSString *expected2 = [NSURL fileURLWithPath:@"a/b/cat 2.jpg"].path;
-  NSString *expected3 = [NSURL fileURLWithPath:@"a/b/cat 3.jpg"].path;
+  NSString *expected1 = [NSURL fileURLWithPath:@"/tmp/a/b/cat.jpg"].path;
+  NSString *expected2 = [NSURL fileURLWithPath:@"/tmp/a/b/cat 2.jpg"].path;
+  NSString *expected3 = [NSURL fileURLWithPath:@"/tmp/a/b/cat 3.jpg"].path;
 
-  std::string actual1 = nearby::api::ImplementationPlatform::GetCustomSavePath("a/b", "cat.jpg");
+  std::string actual1 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat.jpg");
   GNCEnsureFileAtPath(actual1);
 
-  std::string actual2 = nearby::api::ImplementationPlatform::GetCustomSavePath("a/b", "cat.jpg");
+  std::string actual2 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat.jpg");
   GNCEnsureFileAtPath(actual2);
 
-  std::string actual3 = nearby::api::ImplementationPlatform::GetCustomSavePath("a/b", "cat.jpg");
+  std::string actual3 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat.jpg");
 
   // Cleanup created files.
   [NSFileManager.defaultManager removeItemAtPath:@(actual1.c_str()) error:nil];
@@ -194,13 +197,6 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqualObjects(@(actual1.c_str()), expected1);
   XCTAssertEqualObjects(@(actual2.c_str()), expected2);
   XCTAssertEqualObjects(@(actual3.c_str()), expected3);
-}
-
-- (void)testGetDownloadPath {
-  NSString *expected =
-      [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"a/b/c.d"].path;
-  std::string actual = nearby::api::ImplementationPlatform::GetDownloadPath("a/b", "c.d");
-  XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
 - (void)testGetCurrentOS {

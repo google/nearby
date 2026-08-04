@@ -28,7 +28,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -40,14 +39,12 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
-const wchar_t* kUpOneLevel = L"..";
+namespace {
 constexpr wchar_t kDot = L'.';
 constexpr wchar_t kPathDelimiter = L'/';
 constexpr wchar_t kReplacementChar = L'_';
-constexpr wchar_t kForwardSlash = L'/';
 constexpr wchar_t kBackSlash = L'\\';
 
 constexpr std::wstring_view kForbiddenPathNames[] = {
@@ -57,96 +54,38 @@ constexpr std::wstring_view kForbiddenPathNames[] = {
 
 constexpr char kIllegalFileCharacters[] = {':', '*', '?', '\"', '<', '>', '|'};
 
-std::wstring FilePath::GetCustomSavePath(std::wstring parent_folder,
-                                         std::wstring file_name) {
-  std::wstring path;
-  SanitizeFileName(file_name);
-  path += parent_folder + kPathDelimiter + file_name;
-  return CreateOutputFileWithRename(path);
+void ReplaceInvalidCharacters(std::wstring& path) {
+  auto it = path.begin();
+  if (path.size() >= 2 && path[1] == L':') {
+    it += 2;  // Skip the 'C:' or any other drive specifier
+  }
+
+  for (; it != path.end(); it++) {
+    // If 0 < character < 32, it's illegal, replace it
+    if (*it > 0 && *it < 32) {
+      LOG(INFO) << "In path " << string_utils::WideStringToString(path)
+                << " replaced \'" << std::string(1, *it) << "\' with \'"
+                << std::string(1, kReplacementChar);
+      *it = kReplacementChar;
+    }
+    if (*it == 0) {  // character is null
+      LOG(INFO) << "In path " << string_utils::WideStringToString(path)
+                << " replaced \'NULL\' with \'"
+                << std::string(1, kReplacementChar) << "\'";
+      *it = kReplacementChar;
+    }
+    for (auto illegal_character : kIllegalFileCharacters) {
+      if (*it == illegal_character) {
+        LOG(INFO) << "In path " << string_utils::WideStringToString(path)
+                  << " replaced \'" << std::string(1, *it) << "\' with \'"
+                  << std::string(1, kReplacementChar);
+        *it = kReplacementChar;
+      }
+    }
+  }
 }
 
-std::wstring FilePath::GetDownloadPath(std::wstring parent_folder,
-                                       std::wstring file_name) {
-  SanitizeFileName(file_name);
-  return CreateOutputFileWithRename(
-      GetDownloadPathInternal(parent_folder, file_name));
-}
-
-std::wstring FilePath::GetDownloadPathInternal(std::wstring parent_folder,
-                                               std::wstring file_name) {
-  PWSTR basePath;
-
-  // Retrieves the full path of a known folder identified by the folder's
-  // KNOWNFOLDERID.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-  SHGetKnownFolderPath(
-      /*rfid=*/FOLDERID_Downloads,
-      /*dwFlags=*/0,
-      /*hToken=*/nullptr,
-      /*ppszPath=*/&basePath);
-
-  std::wstring wide_path(basePath);
-  std::replace(wide_path.begin(), wide_path.end(), kBackSlash, kForwardSlash);
-
-  // If parent_folder starts with a \\ or /, then strip it
-  while (!parent_folder.empty() && (*parent_folder.begin() == kBackSlash ||
-                                    *parent_folder.begin() == kForwardSlash)) {
-    parent_folder.erase(0, 1);
-  }
-
-  // If parent_folder ends with a \\ or /, then strip it
-  while (!parent_folder.empty() && (*parent_folder.rbegin() == kBackSlash ||
-                                    *parent_folder.rbegin() == kForwardSlash)) {
-    parent_folder.erase(parent_folder.size() - 1, 1);
-  }
-
-  // If file_name starts with a \\, then strip it
-  while (!file_name.empty() && (*file_name.begin() == kBackSlash ||
-                                *file_name.begin() == kForwardSlash)) {
-    file_name.erase(0, 1);
-  }
-
-  // If file_name ends with a \\, then strip it
-  while (!file_name.empty() && (*file_name.rbegin() == kBackSlash ||
-                                *file_name.rbegin() == kForwardSlash)) {
-    file_name.erase(file_name.size() - 1, 1);
-  }
-
-  CoTaskMemFree(basePath);
-
-  std::wstring path;
-
-  if (parent_folder.empty()) {
-    path =
-        file_name.empty() ? wide_path : wide_path + kForwardSlash + file_name;
-  } else {
-    path = file_name.empty() ? wide_path + kForwardSlash + parent_folder
-                             : wide_path + kForwardSlash + parent_folder +
-                                   kForwardSlash + file_name;
-  }
-
-  // Convert to UTF8 format.
-  return path;
-}
-
-// If the file already exists we add " (x)", where x is an incrementing number,
-// starting at 1, using the next non-existing number, to the file name, just
-// before the first dot, or at the end if no dot. The absolute path is returned.
-std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
-  std::wstring sanitized_path(path);
-
-  // Replace any \\ with /
-  std::replace(sanitized_path.begin(), sanitized_path.end(), kBackSlash,
-               kForwardSlash);
-
-  // Remove any /..'s
-  SanitizePath(sanitized_path);
-
-  nearby::FilePath file_path(sanitized_path);
-  return Files::CreateUniqueFileName(file_path).ToWideString();
-}
-
-std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {
+std::wstring MutateForbiddenPathElements(std::wstring& str) {
   std::vector<std::wstring> path_elements;
   std::wstring::iterator pos = str.begin();
   std::wstring::iterator last = str.begin();
@@ -157,14 +96,14 @@ std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {
 
     if (pos != str.end()) {
       std::wstring path_element = std::wstring(last, pos);
-      if (path_element.length() > 0) path_elements.push_back(path_element);
+      if (!path_element.empty()) path_elements.push_back(path_element);
 
       last = ++pos;
     }
   }
 
   std::wstring lastToken = std::wstring(last, pos);
-  if (lastToken.length() > 0) path_elements.push_back(lastToken);
+  if (!lastToken.empty()) path_elements.push_back(lastToken);
 
   std::wstring processed_path;
   absl::Span<const std::wstring_view> forbidden(kForbiddenPathNames);
@@ -203,46 +142,24 @@ std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {
   return processed_path;
 }
 
-void FilePath::SanitizeFileName(std::wstring& file_name) {
-  if (!file_name.empty() && file_name[file_name.size() - 1] == kDot) {
-    // Change the last dot to an underscore.
-    file_name[file_name.size() - 1] = kReplacementChar;
-  }
-}
-
-void FilePath::SanitizePath(std::wstring& path) {
+void SanitizePath(std::wstring& path) {
   path = MutateForbiddenPathElements(path);
   ReplaceInvalidCharacters(path);
 }
 
-void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
-  auto it = path.begin();
-  it += 2;  // Skip the 'C:' or any other drive specifier
+}  // namespace
 
-  for (; it != path.end(); it++) {
-    // If 0 < character < 32, it's illegal, replace it
-    if (*it > 0 && *it < 32) {
-      LOG(INFO) << "In path " << string_utils::WideStringToString(path)
-                << " replaced \'" << std::string(1, *it) << "\' with \'"
-                << std::string(1, kReplacementChar);
-      *it = kReplacementChar;
-    }
-    if (*it == 0) {  // character is null
-      LOG(INFO) << "In path " << string_utils::WideStringToString(path)
-                << " replaced \'NULL\' with \'"
-                << std::string(1, kReplacementChar) << "\'";
-      *it = kReplacementChar;
-    }
-    for (auto illegal_character : kIllegalFileCharacters) {
-      if (*it == illegal_character) {
-        LOG(INFO) << "In path " << string_utils::WideStringToString(path)
-                  << " replaced \'" << std::string(1, *it) << "\' with \'"
-                  << std::string(1, kReplacementChar);
-        *it = kReplacementChar;
-      }
-    }
-  }
+nearby::FilePath FilePath::GetCustomSavePath(nearby::FilePath path) {
+  std::wstring sanitized_path(path.ToWideString());
+
+  // Replace any \\ with /
+  std::replace(sanitized_path.begin(), sanitized_path.end(), kBackSlash,
+               kPathDelimiter);
+
+  // Remove any /..'s
+  SanitizePath(sanitized_path);
+
+  return Files::CreateUniqueFileName(nearby::FilePath(sanitized_path));
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

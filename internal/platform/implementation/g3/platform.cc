@@ -81,13 +81,9 @@ namespace nearby {
 namespace api {
 
 std::string ImplementationPlatform::GetCustomSavePath(
-    const std::string& parent_folder, const std::string& file_name) {
-  return absl::StrCat(parent_folder, "/", file_name);
-}
-
-std::string ImplementationPlatform::GetDownloadPath(
-    const std::string& parent_folder, const std::string& file_name) {
-  return absl::StrCat("/tmp/", file_name);
+    const std::string& save_path, const std::string& parent_folder,
+    const std::string& file_name) {
+  return absl::StrCat(save_path, "/", parent_folder, "/", file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }

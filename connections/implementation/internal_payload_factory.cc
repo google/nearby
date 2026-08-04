@@ -51,11 +51,8 @@ using ::nearby::api::ImplementationPlatform;
 std::string make_path(const std::string& custom_save_path,
                       const std::string& parent_folder,
                       const std::string& file_name) {
-  if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return ImplementationPlatform::GetCustomSavePath(path, file_name);
-  }
-  return ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
+  return ImplementationPlatform::GetCustomSavePath(custom_save_path,
+                                                   parent_folder, file_name);
 }
 
 class BytesInternalPayload : public InternalPayload {

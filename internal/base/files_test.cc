@@ -51,7 +51,16 @@ TEST(FilesTest, IsAbsolutePathWindows) {
   EXPECT_TRUE(Files::IsAbsolutePath(FilePath("C:\\Users\\test\\file.txt")));
   EXPECT_TRUE(Files::IsAbsolutePath(FilePath("\\\\server\\share\\file.txt")));
   EXPECT_FALSE(Files::IsAbsolutePath(FilePath("file.txt")));
+  EXPECT_FALSE(Files::IsAbsolutePath(FilePath("\\Users\\test\\file.txt")));
   EXPECT_FALSE(Files::IsAbsolutePath(FilePath("C:Users\\test\\file.txt")));
+  // Forward slashes are allowed.
+  EXPECT_TRUE(Files::IsAbsolutePath(FilePath("C:/Users/test/file.txt")));
+  EXPECT_FALSE(Files::IsAbsolutePath(FilePath("/Users/test/file.txt")));
+  EXPECT_FALSE(Files::IsAbsolutePath(FilePath("C:Users/test/file.txt")));
+  // Mixed slashes are allowed.
+  EXPECT_TRUE(Files::IsAbsolutePath(FilePath("C:/Users\\test/file.txt")));
+  EXPECT_FALSE(Files::IsAbsolutePath(FilePath("\\Users/test/file.txt")));
+  EXPECT_FALSE(Files::IsAbsolutePath(FilePath("C:Users\\test/file.txt")));
 }
 #else  // defined(_WIN32)
 TEST(FilesTest, IsAbsolutePathPosix) {
@@ -80,6 +89,36 @@ TEST(FilesTest, CreateUniqueFileNameReturnsUniqueFileNameIfPathExists) {
 
   EXPECT_EQ(Files::CreateUniqueFileName(file_path),
             FilePath(temp_dir.append(FilePath("file (1).txt"))));
+  Files::RemoveFile(file_path);
+}
+
+TEST(FilesTest,
+     CreateUniqueFileNameReturnsUniqueMultipleDotsFileNamePathExists) {
+  FilePath temp_dir{testing::TempDir()};
+  FilePath file_path = temp_dir;
+  file_path.append(FilePath("file.some.thing.txt"));
+  std::ofstream ofstream(file_path.GetPath(), std::ios::app);
+  ASSERT_EQ(ofstream.rdstate(), std::ios_base::goodbit);
+  ofstream << "Hello world";
+  ofstream.flush();
+
+  EXPECT_EQ(Files::CreateUniqueFileName(file_path),
+            FilePath(temp_dir.append(FilePath("file.some.thing (1).txt"))));
+  Files::RemoveFile(file_path);
+}
+
+TEST(FilesTest,
+     CreateUniqueFileNameReturnsUniqueNoDotsFileNamePathExists) {
+  FilePath temp_dir{testing::TempDir()};
+  FilePath file_path = temp_dir;
+  file_path.append(FilePath("filenodots"));
+  std::ofstream ofstream(file_path.GetPath(), std::ios::app);
+  ASSERT_EQ(ofstream.rdstate(), std::ios_base::goodbit);
+  ofstream << "Hello world";
+  ofstream.flush();
+
+  EXPECT_EQ(Files::CreateUniqueFileName(file_path),
+            FilePath(temp_dir.append(FilePath("filenodots (1)"))));
   Files::RemoveFile(file_path);
 }
 

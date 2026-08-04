@@ -65,11 +65,16 @@ class ImplementationPlatform {
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
-  static std::string GetCustomSavePath(const std::string& parent_folder,
-                                       const std::string& file_name);
 
-  static std::string GetDownloadPath(const std::string& parent_folder,
-                                     const std::string& file_name);
+  // Returns an absolute path to a file at directory `parent_folder` with a
+  // filename `file_name` under the default download directory.
+  // `save_path` must be an absolute path.
+  // `parent_folder` and `file_name` are assumed to have been sanitized.
+  // If the computed save path already exists, a alternate file name will be
+  // used.
+  static std::string GetCustomSavePath(const std::string& save_path,
+                                       const std::string& parent_folder,
+                                       const std::string& file_name);
 
   static OSName GetCurrentOS();
 

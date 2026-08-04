@@ -15,36 +15,19 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_
 
-#include <string>
+#include "internal/base/file_path.h"
 
-#include "absl/strings/string_view.h"
-
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 class FilePath {
  public:
-  static std::wstring GetCustomSavePath(std::wstring parent_folder,
-                                        std::wstring file_name);
-  static std::wstring GetDownloadPath(std::wstring parent_folder,
-                                      std::wstring file_name);
-
- private:
   // If the file already exists we add " (x)", where x is an incrementing
-  // number, starting at 1, using the next non-existing number, to the
-  // file name, just before the first dot, or at the end if no dot. The
-  // absolute path is returned.
-  static std::wstring CreateOutputFileWithRename(std::wstring path);
-
-  static void ReplaceInvalidCharacters(std::wstring& path);
-  static void SanitizePath(std::wstring& path);
-  static std::wstring MutateForbiddenPathElements(std::wstring& str);
-  static std::wstring GetDownloadPathInternal(std::wstring parent_folder,
-                                              std::wstring file_name);
-  static void SanitizeFileName(std::wstring& file_name);
+  // number, starting at 1, using the next non-existing number, to the file
+  // name, just before the first dot, or at the end if no dot. The absolute path
+  // is returned.
+  static nearby::FilePath GetCustomSavePath(nearby::FilePath path);
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_

@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/files.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
@@ -48,15 +49,17 @@
 namespace nearby {
 namespace api {
 
-std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_folder,
+std::string ImplementationPlatform::GetCustomSavePath(const std::string& save_path,
+                                                      const std::string& parent_folder,
                                                       const std::string& file_name) {
+  std::string absoluteSavePath = absl::StrCat(save_path, "/", parent_folder);
   // Collapse any path escaping characters.
-  NSString* parentFolderRaw = @(parent_folder.c_str());
-  if (parentFolderRaw == nil) {
+  NSString* absoluteSavePathRaw = @(absoluteSavePath.c_str());
+  if (absoluteSavePathRaw == nil) {
     return std::string();
   }
-  NSString* parentFolder = [parentFolderRaw stringByReplacingOccurrencesOfString:@"../"
-                                                                      withString:@""];
+  NSString* parentFolder = [absoluteSavePathRaw stringByReplacingOccurrencesOfString:@"../"
+                                                                          withString:@""];
   NSURL* parentFolderURL = [NSURL fileURLWithPath:parentFolder];
 
   // The only reserved character in a file name on macOS is the forward-slash. It's unclear if iOS
@@ -90,17 +93,6 @@ std::string ImplementationPlatform::GetCustomSavePath(const std::string& parent_
   }
 
   return url.path.UTF8String;
-}
-
-std::string ImplementationPlatform::GetDownloadPath(const std::string& parent_folder,
-                                                    const std::string& file_name) {
-  NSString* parentFolderRaw = @(parent_folder.c_str());
-  if (parentFolderRaw == nil) {
-    return std::string();
-  }
-  NSString* customSavePath =
-      [NSTemporaryDirectory() stringByAppendingPathComponent:parentFolderRaw];
-  return GetCustomSavePath(customSavePath.UTF8String, file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kApple; }

@@ -26,793 +26,129 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 namespace {
-const wchar_t* kIllegalPathNames[] = {
-    L"CON",  L"PRN",  L"AUX",  L"NUL",  L"COM1", L"COM2", L"COM3", L"COM4",
-    L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"LPT1", L"LPT2", L"LPT3",
-    L"LPT4", L"LPT5", L"LPT6", L"LPT7", L"LPT8", L"LPT9"};
+const absl::string_view kIllegalPathNames[] = {
+    "CON",  "PRN",  "AUX",  "NUL",  "COM1", "COM2", "COM3", "COM4",
+    "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
+    "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
 
-const wchar_t* kFileName(L"increment_file_test.txt");
-const wchar_t* kFirstIterationFileName(L"/increment_file_test (1).txt");
-const wchar_t* kSecondIterationFileName(L"/increment_file_test (2).txt");
-const wchar_t* kThirdIterationFileName(L"/increment_file_test (3).txt");
-const wchar_t* kFileNameWithNullReplaced(L"/increment_file_test.txt_.txt");
-const wchar_t* kNoDotsFileName(L"incrementfiletesttxt");
-const wchar_t* kOneIterationNoDotsFileName(L"/incrementfiletesttxt (1)");
-const wchar_t* kMultipleDotsFileName(L"increment.file.test.txt");
-const wchar_t* kOneIterationMultipleDotsFileName(
-    L"/increment.file.test (1).txt");
-const wchar_t* kFileNameWithThreeDots(L"...");
-const wchar_t* kFileNameWithFrontTwoDots(L"..file.name.txt");
+const absl::string_view kFileName("increment_file_test.txt");
+const absl::string_view kFirstIterationFileName("increment_file_test (1).txt");
+const absl::string_view kSecondIterationFileName("increment_file_test (2).txt");
 }  // namespace
 
 // Can't run on google 3, I presume the SHGetKnownFolderPath
 // fails.
-class FilePathTests : public testing::Test {
- protected:
-  // You can define per-test set-up logic as usual.
-  FilePathTests() {
-    PWSTR basePath;
+class FilePathTests : public testing::Test {};
 
-    SHGetKnownFolderPath(
-        FOLDERID_Downloads,  //  rfid: A reference to the KNOWNFOLDERID that
-                             //        identifies the folder.
-        0,                   // dwFlags: Flags that specify special retrieval
-                             //          options.
-        nullptr,             // hToken: An access token that represents a
-                             //         particular user.
-        &basePath);          // ppszPath: When this method returns, contains
-                             //           the address of a pointer to a
-                             //           null-terminated Unicode string that
-                             //           specifies the path of the known
-                             //           folder. The calling process is
-                             //           responsible for freeing this resource
-                             //           once it is no longer needed by
-                             //           calling CoTaskMemFree, whether
-                             //           SHGetKnownFolderPath succeeds or not.
+TEST_F(FilePathTests, GetCustomSavePathUnchanged) {
+  nearby::FilePath path("C:/test_parent_folder/test_file_name.name");
 
-    // size_t bufferSize;
-    // wcstombs_s(&bufferSize, nullptr, 0, basePath, 0);
-    // default_download_path_.resize(bufferSize - 1, '\0');
-    // wcstombs_s(&bufferSize, default_download_path_.data(), bufferSize,
-    // basePath,
-    //            _TRUNCATE);
-    default_download_path_ = basePath;
+  nearby::FilePath actual(FilePath::GetCustomSavePath(path));
 
-    std::replace(default_download_path_.begin(), default_download_path_.end(),
-                 L'\\', L'/');
-  }
-
-  std::wstring default_download_path_;
-};
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-ShouldReturnParentFolderAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder");
-  std::wstring file_name(L"");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}  // NOLINT
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-StartingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"/test_parent_folder");
-  std::wstring file_name(L"");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}  // NOLINT
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-StartingWithBackslashArgumentsShouldReturnParentFolderAppendedToBase\
-DownloadPath) {
-  std::wstring parent_folder(L"\\test_parent_folder");
-  std::wstring file_name(L"");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
+  EXPECT_EQ(actual, path);
 }
 
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-EndingWithSlashArgumentsShouldReturnParentFolderAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder/");
-  std::wstring file_name(L"");
+TEST_F(FilePathTests, GetCustomSavePathIllegalPathComponentReturnsUnderbar) {
+  for (auto illegal_path_name : kIllegalPathNames) {
+    nearby::FilePath parent_folder("C:\\TEMP");
 
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder";
+    nearby::FilePath expected(parent_folder);
+    expected.append(nearby::FilePath(absl::StrCat("_", illegal_path_name))
+                        .append(nearby::FilePath(kFileName)));
 
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-EndingWithBackslashArguments\
-ShouldReturnParentFolderAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder\\");
-  std::wstring file_name(L"");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-BeginningWithSlashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"/test_file_name.name");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-BeginningWithBackslashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"\\test_file_name.name");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_file_name.name";
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, path.str().c_str());
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileNameEnding\
-WithSlashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"test_file_name.name/");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileNameEnding\
-WithBackslashArgumentsShouldReturnFileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(L"test_file_name.name\\");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolderAnd\
-FileNameArgumentsShould\
-ReturnParentFolderAndFileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder");
-  std::wstring file_name(L"test_file_name.name");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder"
-       << "/"
-       << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithParentFolder\
-EndingWithBackslashAndFileNameArgumentsShouldReturnParentFolderAndFileName\
-AppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder\\");
-  std::wstring file_name(L"test_file_name.name");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder"
-       << "/"
-       << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-StartingWithBackslashAndParentFolderArgumentsShouldReturnParentFolderAnd\
-FileNameAppendedToBaseDownloadPath) {
-  std::wstring parent_folder(L"test_parent_folder");
-  std::wstring file_name(L"\\test_file_name.name");
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << "test_parent_folder"
-       << "/"
-       << "test_file_name.name";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalPathComponent\
-ReturnsComponentWithUnderbarPrepended) {
-  for (auto illegal_file_name : kIllegalPathNames) {
-    std::wstring parent_folder(L"");
-
-    std::wstring expected(default_download_path_);
-    expected.append(L"/_" + std::wstring(illegal_file_name) +
-                    std::wstring(L"/") + std::wstring(kFileName));
-
-    auto actual(FilePath::GetDownloadPath(illegal_file_name, kFileName));
+    nearby::FilePath actual(FilePath::GetCustomSavePath(
+        parent_folder.append(nearby::FilePath(illegal_path_name))
+            .append(nearby::FilePath(kFileName))));
 
     EXPECT_EQ(actual, expected);
   }
 }
 
-TEST_F(FilePathTests, GetDownloadPath_IllegalPathComponentInLowerCase\
-ReturnsComponentWithUnderbarPrepended) {
-  for (auto illegal_file_name : kIllegalPathNames) {
-    std::wstring parent_folder(L"");
+TEST_F(FilePathTests,
+       GetCustomSavePathIllegalPathComponentLowerCaseReturnsUnderbar) {
+  for (auto illegal_path_name : kIllegalPathNames) {
+    nearby::FilePath parent_folder("C:\\TEMP");
 
-    std::wstring expected(default_download_path_);
+    nearby::FilePath expected(parent_folder);
+    expected.append(nearby::FilePath(absl::StrCat("_", absl::AsciiStrToLower(
+                                                           illegal_path_name)))
+                        .append(nearby::FilePath(kFileName)));
 
-    expected.append(L"/_" + std::wstring(_wcslwr(
-                                (std::wstring(illegal_file_name)).data())));
-    expected.append(L"/" + std::wstring(kFileName));
-
-    auto actual(FilePath::GetDownloadPath(
-        std::wstring(_wcslwr((std::wstring(illegal_file_name)).data())),
-        kFileName));
-
-    EXPECT_EQ(actual, expected);
-  }
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameInLowerCase\
-ReturnsFileNameWithUnderbarPrepended) {
-  for (auto illegal_file_name : kIllegalPathNames) {
-    std::wstring parent_folder(L"");
-
-    std::wstring expected(default_download_path_);
-    expected.append(L"/_" + std::wstring(_wcslwr(
-                                (std::wstring(illegal_file_name)).data())));
-
-    auto actual(FilePath::GetDownloadPath(
-        parent_folder,
-        std::wstring(_wcslwr((std::wstring(illegal_file_name)).data()))));
+    nearby::FilePath actual(FilePath::GetCustomSavePath(
+        parent_folder
+            .append(nearby::FilePath(absl::AsciiStrToLower(illegal_path_name)))
+            .append(nearby::FilePath(kFileName))));
 
     EXPECT_EQ(actual, expected);
   }
 }
 
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacters\
-ReturnsFileNameWithUnderbarSubstituted) {
+TEST_F(FilePathTests, GetCustomSavePathIllegalCharactersReturnsUnderbar) {
   // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x05,
   // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test\x5Test");
-  std::wstring parent_folder(L"");
+  for (auto illegal_character :
+       {"\x1", "\x1f", "?", "*", "<", ">", "|", ":", "\""}) {
+    nearby::FilePath illegal_character_sequence(
+        absl::StrCat("C:/Test", illegal_character, "Test"));
 
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
+    nearby::FilePath actual(
+        FilePath::GetCustomSavePath(illegal_character_sequence));
 
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
+    EXPECT_EQ(actual, nearby::FilePath("C:/Test_Test"));
+  }
 }
 
-TEST_F(FilePathTests, GetDownloadPath_LowestIllegalFileNameCharacter\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x01,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test\x1Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_HighestIllegalFileNameCharacter\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x1f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test\x1fTest");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterQuestionMark\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test?Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterAsterisk\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test*Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterLessThan\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test<Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterGreaterThan\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test>Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterVerticalBar\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test|Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_IllegalFileNameCharacterColon\
-ReturnsFileNameWithUnderbarSubstituted) {
-  // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2f,
-  // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  auto illegal_character_sequence(L"Test:Test");
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/Test_Test");
-
-  auto actual(FilePath::GetDownloadPath(
-      parent_folder, std::wstring(illegal_character_sequence)));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileDoesntExist\
-ReturnsFileWithPassedName) {
-  std::wstring file_name(kFileName);
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(L"/");
-  expected.append(file_name);
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
-FileWithIncrementedName) {
-  std::wstring file_name(kFileName);
-  std::wstring renamed_file_name(kFirstIterationFileName);
-  std::wstring parent_folder(L"");
-
-  std::wstring output_file_path(default_download_path_);
-  output_file_path.append(L"/");
-  output_file_path.append(file_name);
-
-  std::wstring expected(default_download_path_);
-  expected += renamed_file_name;
-
-  std::wifstream input_file;
+TEST_F(FilePathTests, GetCustomSavePathFileExistsReturnsIncrementedName) {
+  nearby::FilePath temp_path = Files::GetTemporaryDirectory();
+  nearby::FilePath file_name = temp_path;
+  file_name.append(nearby::FilePath(kFileName));
+  nearby::FilePath renamed_file_name = temp_path;
+  renamed_file_name.append(nearby::FilePath(kFirstIterationFileName));
+  Files::RemoveFile(renamed_file_name);
   std::wofstream output_file;
-
-  output_file.open(output_file_path,
+  output_file.open(file_name.GetPath(),
                    std::ofstream::binary | std::ofstream::out);
-
   ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-
   output_file.close();
 
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+  nearby::FilePath actual(FilePath::GetCustomSavePath(file_name));
 
-  EXPECT_EQ(nearby::FilePath(actual), nearby::FilePath(expected));
-
-  // Remove the file and check that it is removed
-  // File 1
-  _wremove(output_file_path.c_str());
-
-  input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
+  EXPECT_EQ(actual, renamed_file_name);
 }
 
-TEST_F(FilePathTests, GetDownloadPath_MultipleFilesExist\
-ReturnsNextIncrementedFileName) {
-  std::ofstream output_file;
-  std::ifstream input_file;
-
-  std::wstring file_name(kFileName);
-  std::wstring first_renamed_file_name(kFirstIterationFileName);
-  std::wstring second_renamed_file_name(kSecondIterationFileName);
-
-  std::wstring parent_folder(L"");
-
-  std::wstring expected(default_download_path_);
-  expected.append(second_renamed_file_name.c_str());
-
-  std::wstring output_file1_path(default_download_path_);
-  output_file1_path.append(L"/" + file_name);
-
-  std::wstring output_file2_path(default_download_path_);
-  output_file2_path.append(first_renamed_file_name);
-
-  // Create the test files
-  output_file.open(output_file1_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-  output_file.clear();
-
-  output_file.open(output_file2_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
-
-  // Remove the test files and check that it is removed
-  // File 1
-  _wremove(output_file1_path.c_str());
-  input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-
-  // File 2
-  _wremove(output_file2_path.c_str());
-
-  input_file.clear();
-  input_file.open(output_file2_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileNameContains\
-MultipleDotsReturnsIncrementBeforeFirstDot) {
-  std::ifstream input_file;
-  std::ofstream output_file;
-
-  std::wstring file_name(kMultipleDotsFileName);
-  std::wstring renamed_file_name(kOneIterationMultipleDotsFileName);
-
-  std::wstring parent_folder(L"");
-
-  std::wstring output_file1_path(default_download_path_);
-  output_file1_path.append(L"/" + file_name);
-
-  std::wstring output_file2_path(default_download_path_);
-  output_file2_path.append(renamed_file_name);
-
-  std::wstring expected(default_download_path_);
-  expected.append(renamed_file_name);
-
-  output_file.open(output_file1_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
-
-  _wremove(output_file1_path.c_str());
-  input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileNameContainsNo\
-DotsReturnsWithIncrementAtEnd) {
-  std::ifstream input_file;
-  std::ofstream output_file;
-
-  std::wstring file_name(kNoDotsFileName);
-  std::wstring renamed_file_name(kOneIterationNoDotsFileName);
-
-  std::wstring parent_folder(L"");
-
-  std::wstring output_file1_path(default_download_path_);
-  output_file1_path.append(L"/" + file_name);
-
-  std::wstring output_file2_path(default_download_path_);
-  output_file2_path.append(L"/" + renamed_file_name);
-
-  std::wstring expected(default_download_path_);
-  expected.append(renamed_file_name);
-
-  output_file.open(output_file1_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
-
-  _wremove(output_file1_path.c_str());
-  input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileNameExistsWith\
-AHoleBetweenRenamedFiles) {
-  std::ifstream input_file;
-  std::ofstream output_file;
-
-  std::wstring file_name(kFileName);
-  std::wstring file_name1(kFirstIterationFileName);
-  std::wstring file_name2(kSecondIterationFileName);
-  std::wstring file_name3(kThirdIterationFileName);
-
-  std::wstring parent_folder(L"");
-
-  // Create the path for the original file name
-  std::wstring output_file_path(default_download_path_);
-  output_file_path.append(
-      L"/" +
-      file_name);  // Original file name example: "increment_file_test.txt"
-
-  // Create the path for the first iteration of the original file name
-  std::wstring output_file1_path(default_download_path_);
-  output_file1_path.append(file_name1);  // First iteration on original file
-                                         // name example:
-                                         // "increment_file_test (1).txt"
-
-  // Create the path for the third iteration of the original file name
-  std::wstring output_file3_path(default_download_path_);
-  output_file3_path.append(
-      file_name3);  // Third iteration on original file
-                    // name example: "increment_file_test (3).txt"
-
-  // Create the expected result which is the second iteration of the original
-  // file name
-  std::wstring expected(default_download_path_);
-  expected.append(file_name2);  // Second iteration on original file name
-                                // example: "increment_file_test (2).txt"
-
-  // Create the original file
-  output_file.open(output_file_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  // Create the first iteration of the original file
-  output_file.clear();
-  output_file.open(output_file1_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  // Create the third iteration of the original file
-  output_file.clear();
-  output_file.open(output_file3_path,
-                   std::ofstream::binary | std::ofstream::out);
-  ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-  output_file.close();
-
-  // This should return the second iteration of the original file
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(nearby::FilePath(expected), nearby::FilePath(actual));
-
-  // Delete the original file
-  _wremove(output_file_path.c_str());
-  input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-
-  // Delete the first iteration of the original file
-  input_file.clear();  // Reset the input_file state
-  _wremove(output_file1_path.c_str());
-  input_file.open(output_file1_path, std::ifstream::binary | std::ifstream::in);
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-
-  // Delete the third iteration of the original file
-  input_file.clear();  // Reset the input_file state
-  _wremove(output_file3_path.c_str());
-  input_file.open(output_file3_path, std::ifstream::binary | std::ifstream::in);
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-FileNameTwoDotsFrontShouldReturnBaseDownloadPathWithFileNameTwoDotsFront) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(kFileNameWithFrontTwoDots);
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/" << file_name;
-
-  std::wstring expected = path.str();
-
-  auto actual = FilePath::GetDownloadPath(parent_folder, file_name);
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-FileNameThreeDotsShouldReturnBaseDownloadPathWithUnderscore) {
-  std::wstring parent_folder(L"");
-  std::wstring file_name(kFileNameWithThreeDots);
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/.._";
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-
-TEST_F(FilePathTests, GetDownloadPath_FileExistsReturns\
-FileWithIncrementedNameWithNull) {
-  std::wstring file_name(kFileName);
-  int size = file_name.size();
-  file_name.append(L"1.txt");
-  file_name[size] = L'\x00';
-  std::wstring renamed_file_name(kFileNameWithNullReplaced);
-  std::wstring parent_folder(L"");
-
-  std::wstring output_file_path(default_download_path_);
-  output_file_path.append(L"/");
-  output_file_path.append(file_name);
-
-  std::wstring expected(default_download_path_);
-  expected += renamed_file_name;
-
-  std::wifstream input_file;
+TEST_F(FilePathTests,
+       GetCustomSavePathMultipleFilesExistReturnsNextIncremented) {
+  nearby::FilePath temp_path = Files::GetTemporaryDirectory();
+  nearby::FilePath file_name = temp_path;
+  file_name.append(nearby::FilePath(kFileName));
+  nearby::FilePath renamed_file_name1 = temp_path;
+  renamed_file_name1.append(nearby::FilePath(kFirstIterationFileName));
+  nearby::FilePath renamed_file_name2 = temp_path;
+  renamed_file_name2.append(nearby::FilePath(kSecondIterationFileName));
+  Files::RemoveFile(renamed_file_name2);
   std::wofstream output_file;
-
-  output_file.open(output_file_path,
+  output_file.open(file_name.GetPath(),
                    std::ofstream::binary | std::ofstream::out);
-
   ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
-
   output_file.close();
+  std::wofstream output_file1;
+  output_file.open(renamed_file_name1.GetPath(),
+                   std::ofstream::binary | std::ofstream::out);
+  ASSERT_TRUE(output_file1.rdstate() == std::ofstream::goodbit);
+  output_file1.close();
 
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
+  nearby::FilePath actual(FilePath::GetCustomSavePath(file_name));
 
-  EXPECT_EQ(actual, expected);
-
-  // Remove the file and check that it is removed
-  // File 1
-  _wremove(output_file_path.c_str());
-
-  input_file.open(output_file_path, std::ifstream::binary | std::ifstream::in);
-
-  ASSERT_FALSE(input_file.rdstate() == std::ifstream::goodbit);
+  EXPECT_EQ(actual, renamed_file_name2);
 }
 
-TEST_F(FilePathTests, GetDownloadPathWithFileName\
-ParentFolderWithADotShouldBeReplaceedWithUnderscore) {
-  std::wstring parent_folder(L"test/./folder/");
-  std::wstring file_name(kFileName);
-
-  std::wstringstream path(L"");
-  path << default_download_path_ << L"/test/_/folder" << L"/" << kFileName;
-
-  std::wstring expected = path.str();
-
-  auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  EXPECT_EQ(actual, expected);
-}
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

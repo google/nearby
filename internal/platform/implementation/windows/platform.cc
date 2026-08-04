@@ -83,21 +83,13 @@
 namespace nearby::api {
 
 std::string ImplementationPlatform::GetCustomSavePath(
-    const std::string& parent_folder, const std::string& file_name) {
-  auto parent = windows::string_utils::StringToWideString(parent_folder);
-  auto file = windows::string_utils::StringToWideString(file_name);
+    const std::string& save_path, const std::string& parent_folder,
+    const std::string& file_name) {
+  FilePath path{save_path};
+  path.append(FilePath{parent_folder});
+  path.append(FilePath{file_name});
 
-  return windows::string_utils::WideStringToString(
-      windows::FilePath::GetCustomSavePath(parent, file));
-}
-
-std::string ImplementationPlatform::GetDownloadPath(
-    const std::string& parent_folder, const std::string& file_name) {
-  auto parent = windows::string_utils::StringToWideString(parent_folder);
-  auto file = windows::string_utils::StringToWideString(file_name);
-
-  return windows::string_utils::WideStringToString(
-      windows::FilePath::GetDownloadPath(parent, file));
+  return windows::FilePath::GetCustomSavePath(path).ToString();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
