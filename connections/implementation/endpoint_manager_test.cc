@@ -79,8 +79,7 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 
 class SetSafeToDisconnect {
  public:
-  SetSafeToDisconnect(bool safe_to_disconnect,
-                      bool payload_received_ack,
+  SetSafeToDisconnect(bool safe_to_disconnect, bool payload_received_ack,
                       std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
@@ -534,6 +533,102 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
   // reference to a destroyed ClientProxy.
   //
   // Expect no crash when "discard-endpoints" is executed during the
+  // destruction.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/true);
+  endpoint_manager.reset();
+}
+
+TEST_F(EndpointManagerTest, ProcessDisconnectionFrameDuringDestruction) {
+  // This test uses a `FakeSingleThreadExecutor` in order to control when
+  // tasks are executed in order to simulate the scenario where
+  // "safe-to-disconnect" is posted to the executor before the EndpointManager
+  // is destructed, and executed during its destruction.
+  std::unique_ptr<SingleThreadExecutor> serial_executor =
+      std::make_unique<FakeSingleThreadExecutor>();
+  FakeSingleThreadExecutor* fake_serial_executor =
+      static_cast<FakeSingleThreadExecutor*>(serial_executor.get());
+  std::unique_ptr<EndpointManager> endpoint_manager =
+      std::make_unique<TestEndpointManager>(&ecm_, std::move(serial_executor));
+
+  CountDownLatch read_latch(1);
+  CountDownLatch write_latch(1);
+  CountDownLatch read_exit_latch(1);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, GetType())
+      .WillRepeatedly(Return(""));
+  EXPECT_CALL(*endpoint_channel, GetMedium())
+      .WillRepeatedly(Return(Medium::BLE));
+  EXPECT_CALL(*endpoint_channel, GetLastReadTimestamp())
+      .WillRepeatedly(Return(start_time_));
+  EXPECT_CALL(*endpoint_channel, GetLastWriteTimestamp())
+      .WillRepeatedly(Return(start_time_));
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce([&read_latch]() {
+        read_latch.Await();
+        return ExceptionOr<ByteArray>(ByteArray(
+            parser::ForDisconnection(/*request_safe_to_disconnect=*/true,
+                                     /*ack_safe_to_disconnect=*/false)));
+      })
+      .WillRepeatedly([&read_exit_latch]() {
+        read_exit_latch.CountDown();
+        return ExceptionOr<ByteArray>(Exception::kIo);
+      });
+  std::string disconnection_ack =
+      parser::ForDisconnection(/*request_safe_to_disconnect=*/true,
+                               /*ack_safe_to_disconnect=*/true);
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(
+          [&write_latch, disconnection_ack](absl::string_view data) {
+            if (data == disconnection_ack) {
+              write_latch.CountDown();
+              return Exception{Exception::kSuccess};
+            }
+            return Exception{Exception::kIo};
+          });
+  EXPECT_CALL(*endpoint_channel, Close(_)).WillRepeatedly(Return());
+
+  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
+
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/true);
+  EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
+  ConnectionOptions connection_options{
+      .keep_alive_interval_millis = 0,
+      .keep_alive_timeout_millis = 0,
+  };
+  endpoint_manager->RegisterEndpoint(
+      client_.get(), endpoint_id_, info_, connection_options,
+      std::move(endpoint_channel), listener_, connection_token_);
+
+  client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 5);
+  ecm_.UpdateSafeToDisconnectForEndpoint(endpoint_id_, true);
+
+  // When ProcessDisconnectionFrame runs on the reader thread, it will post
+  // "safe-to-disconnect" to serial_executor. Because
+  // SetRunExecutablesImmediately is set to false after RegisterEndpoint
+  // completes, the task will remain queued on fake_serial_executor.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/false);
+  read_latch.CountDown();
+
+  // Wait until ProcessDisconnectionFrame has processed the DISCONNECTION frame,
+  // posted "safe-to-disconnect" to fake_serial_executor, and written the ACK.
+  EXPECT_TRUE(write_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(read_exit_latch.Await(absl::Milliseconds(1000)).result());
+  absl::SleepFor(absl::Milliseconds(100));
+
+  // Simulate Core destruction of ClientProxy by destroying `client_`.
+  client_.reset();
+
+  // Simulate ServiceController destruction of EndpointManager by destroying
+  // `endpoint_manager`, and set the `FakeSingleThreadExecutor` to run
+  // executables on calls `Execute`. When `endpoint_manager` is destructed, it
+  // will block on calls to `Execute` to run all pending executables, notably
+  // "safe-to-disconnect" from above. However, "safe-to-disconnect" will have a
+  // reference to a destroyed ClientProxy.
+  //
+  // Expect no crash when "safe-to-disconnect" is executed during the
   // destruction.
   fake_serial_executor->SetRunExecutablesImmediately(
       /*run_executables_immediately=*/true);
