@@ -29,6 +29,9 @@ FilePath GetLogPath();
 // Returns the path to the crash dump directory.
 FilePath GetCrashDumpPath();
 
+// Returns the path to the default downloads directory.
+FilePath GetDownloadsPath();
+
 }  // namespace nearby::platform::windows
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_DEVICE_PATHS_H_
