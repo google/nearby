@@ -29,24 +29,24 @@ constexpr absl::string_view kLogsRelativePath = "Google\\Nearby\\Sharing\\Logs";
 constexpr absl::string_view kCrashDumpsRelativePath =
     "Google\\Nearby\\Sharing\\CrashDumps";
 
-FilePath GetAppDataPath(GUID folder_id, const FilePath& app_path) {
-  FilePath app_data_path;
+FilePath GetSystemPath(GUID folder_id, const FilePath& relative_path) {
+  FilePath result_path;
   PWSTR path = nullptr;
   HRESULT result = SHGetKnownFolderPath(folder_id, KF_FLAG_DEFAULT,
                                         /*hToken=*/nullptr, &path);
   if (result == S_OK) {
-    app_data_path = FilePath(path);
-    app_data_path.append(app_path);
+    result_path = FilePath(path);
+    result_path.append(relative_path);
   } else {
-    app_data_path = Files::GetTemporaryDirectory();
+    result_path = Files::GetTemporaryDirectory();
   }
   CoTaskMemFree(path);
-  return app_data_path;
+  return result_path;
 }
 }  // namespace
 
 FilePath GetLocalAppDataPath(const FilePath& app_path) {
-  return GetAppDataPath(FOLDERID_LocalAppData, app_path);
+  return GetSystemPath(FOLDERID_LocalAppData, app_path);
 }
 
 FilePath GetLogPath() {
@@ -55,6 +55,10 @@ FilePath GetLogPath() {
 
 FilePath GetCrashDumpPath() {
   return GetLocalAppDataPath(FilePath(kCrashDumpsRelativePath));
+}
+
+FilePath GetDownloadsPath() {
+  return GetSystemPath(FOLDERID_Downloads, FilePath(""));
 }
 
 }  // namespace nearby::platform::windows
