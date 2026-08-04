@@ -67,17 +67,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
 }
 
 FilePath DeviceInfo::GetDownloadPath() const {
-  PWSTR path;
-  HRESULT result =
-      SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_DEFAULT, nullptr, &path);
-  if (result == S_OK) {
-    std::wstring download_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(download_path));
-  }
-
-  CoTaskMemFree(path);
-  return Files::GetTemporaryDirectory();
+  return nearby::platform::windows::GetDownloadsPath();
 }
 
 FilePath DeviceInfo::GetLocalAppDataPath(FilePath sub_path) const {
