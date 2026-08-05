@@ -452,6 +452,66 @@ TEST(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
   input_stream->Close();
 }
 
+TEST(InternalPayloadFactoryTest,
+     IncomingFilePayloadExceedingTotalSizeIsTruncated) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  const int64_t total_size = 10;
+  header.set_total_size(total_size);
+  header.set_file_name("test_file_size_exceeded");
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  std::string chunk1 = "123456789012345";  // exceeds 10 bytes: truncate
+  EXPECT_TRUE(internal_payload->AttachNextChunk(chunk1).Ok());
+  std::string chunk2 = "";  // Empty chunk to end payload
+  EXPECT_TRUE(internal_payload->AttachNextChunk(chunk2).Ok());
+
+  // Verify file content.
+  Payload payload = internal_payload->ReleasePayload();
+  InputFile* input_file = payload.AsFile();
+  ASSERT_NE(input_file, nullptr);
+  std::string expected_content_str = "1234567890";
+  ByteArray expected_content(expected_content_str);
+  ExceptionOr<ByteArray> file_content =
+      input_file->Read(expected_content.size());
+  input_file->Close();
+  ASSERT_TRUE(file_content.ok());
+  EXPECT_EQ(file_content.result(), expected_content);
+}
+
+TEST(InternalPayloadFactoryTest,
+     IncomingFilePayloadExceedingTotalSizeIsRejected) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  const int64_t total_size = 10;
+  header.set_total_size(total_size);
+  header.set_file_name("test_file_size_exceeded");
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  std::string chunk1 = "1234567890";  // 10 bytes: allowed
+  EXPECT_TRUE(internal_payload->AttachNextChunk(chunk1).Ok());
+
+  std::string chunk2 = "1";  // Exceeds 10 bytes total_size: rejected
+  EXPECT_TRUE(
+      internal_payload->AttachNextChunk(chunk2).Raised(Exception::kIo));
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

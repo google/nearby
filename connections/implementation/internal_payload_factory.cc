@@ -301,6 +301,22 @@ class IncomingFileInternalPayload : public InternalPayload {
       Close();
       return {Exception::kSuccess};
     }
+    // Truncate 1 incoming chunk to the total size of the payload.
+    // If we receive more chunks after the total size is reached, we will return
+    // an error.
+    // For file payloads, total size must be valid.
+    if (bytes_written_ + chunk.size() > total_size_) {
+      if (total_size_ <= bytes_written_) {
+        Close();
+        return {Exception::kIo};
+      }
+      // TODO(b/511806938): Add metrics to track if this ever happens.  If not,
+      // remove this.
+      chunk = chunk.substr(0, total_size_ - bytes_written_);
+      bytes_written_ = total_size_;
+    } else {
+      bytes_written_ += chunk.size();
+    }
 
     return output_file_.Write(chunk);
   }
@@ -318,7 +334,9 @@ class IncomingFileInternalPayload : public InternalPayload {
  private:
   OutputFile output_file_;
   absl::Time last_modified_time_;
-  const std::int64_t total_size_;
+  const int64_t total_size_;
+  // Bytes written to the output file.
+  int64_t bytes_written_ = 0;
 };
 
 }  // namespace
