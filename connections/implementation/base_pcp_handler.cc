@@ -1407,21 +1407,27 @@ std::string GetEndpointLostByMediumAlarmKey(absl::string_view endpoint_id,
 
 void BasePcpHandler::StartEndpointLostByMediumAlarms(
     ClientProxy* client, location::nearby::proto::connections::Medium medium) {
-  auto discovered_endpoints_medium = GetDiscoveredEndpoints(medium);
-  for (const auto discovered_endpoint : discovered_endpoints_medium) {
-    std::string key = GetEndpointLostByMediumAlarmKey(
-        discovered_endpoint->endpoint_id, medium);
-    StopEndpointLostByMediumAlarm(discovered_endpoint->endpoint_id, medium);
+  std::vector<std::shared_ptr<DiscoveredEndpoint>> eps;
+  {
+    MutexLock lock(&discovered_endpoint_mutex_);
+    for (const auto& item : discovered_endpoints_) {
+      if (item.second->medium == medium) {
+        eps.push_back(item.second);
+      }
+    }
+  }
+  for (const auto& ep : eps) {
+    std::string key = GetEndpointLostByMediumAlarmKey(ep->endpoint_id, medium);
+    StopEndpointLostByMediumAlarm(ep->endpoint_id, medium);
     endpoint_lost_by_medium_alarms_.emplace(
         key, std::make_unique<CancelableAlarm>(
                  absl::StrCat("EndpointLostByMediumAlarm_", key),
-                 [this, discovered_endpoint, key, client]() {
+                 [this, ep, key, client]() {
                    RunOnPcpHandlerThread(
                        "endpoint-lost-by-medium-alarm",
-                       [this, client, discovered_endpoint,
-                        key]() RUN_ON_PCP_HANDLER_THREAD() {
+                       [this, client, ep, key]() RUN_ON_PCP_HANDLER_THREAD() {
                          if (endpoint_lost_by_medium_alarms_.erase(key) != 0) {
-                           OnEndpointLost(client, *discovered_endpoint);
+                           OnEndpointLost(client, *ep);
                          }
                        });
                  },
@@ -1814,6 +1820,9 @@ void BasePcpHandler::OnEndpointFound(
                          endpoint->medium);
         // Report endpoint lost
         client->OnEndpointLost(endpoint->service_id, endpoint->endpoint_id);
+        for (auto it = range.first; it != range.second; ++it) {
+          StopEndpointLostByMediumAlarm(endpoint_id, it->second->medium);
+        }
         // Reset discovered endpoints
         discovered_endpoints_.erase(item->first);
         // Add the endpoint as discovered endpoint.
