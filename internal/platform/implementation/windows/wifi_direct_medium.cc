@@ -41,6 +41,27 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
 
+// We plan to discard the Windows GO implementation for the following reasons:
+// 1. When GC (Android or Windows) connects to GO, repeated testing results in a
+// high connection failure rate (20%-60%).
+// 2. Windows GO fails to start after several rounds of testing.
+// 3. We now plan to implement WPS-PIN for security purposes; however, there is
+// no API available to set the Windows GO pin in advance. We can only obtain the
+// pin after the GC connects, which would require additional frames exchange to
+// allow the GO to notify the GC of the pin in the BWU layer and platform
+// medium layer.
+// Given these challenges, I do not believe Windows GO is a feasible solution.
+// Fortunately, with Dynamic Role Switch, Windows WFD can consistently work with
+// Android, regardless of whether it is acting as the sender or receiver.
+//
+// We have attempted several fixes for these two issues, but the improvements do
+// not meet production standards. In my assessment, this is likely a problem
+// with the Windows WinRT SDK. If Microsoft is interested in debugging this in
+// the future and solve the problem, we can enable the code.
+//
+// The related code is wrapped by ENABLE_WIFI_DIRECT_GO preprocessor macro.
+// TODO: b/535138108
+
 namespace nearby::windows {
 
 namespace {
@@ -175,6 +196,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
 // Advertiser starts to listen on server socket
 std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     int port) {
+#if defined(ENABLE_WIFI_DIRECT_GO)
   LOG(INFO) << __func__
             << " :Start to listen connection from WiFiDirect client.";
 
@@ -247,10 +269,15 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
 
   LOG(INFO) << "Started to listen service on port " << port;
   return server_socket;
+#else
+  LOG(WARNING) << "Windows WFD GO is disabled.";
+  return nullptr;
+#endif  // ENABLE_WIFI_DIRECT_GO
 }
 
 bool WifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
+#if defined(ENABLE_WIFI_DIRECT_GO)
   remote_device_name_ = wifi_direct_credentials->GetRemoteDeviceName();
   LOG(INFO) << __func__ << ": remote_device_name from credentials: "
             << remote_device_name_;
@@ -311,9 +338,14 @@ bool WifiDirectMedium::StartWifiDirect(
   listener_ = nullptr;
   publisher_ = nullptr;
   return false;
+#else
+  LOG(WARNING) << "Windows WFD GO is disabled.";
+  return false;
+#endif  // ENABLE_WIFI_DIRECT_GO
 }
 
 bool WifiDirectMedium::StopWifiDirect() {
+#if defined(ENABLE_WIFI_DIRECT_GO)
   std::vector<std::unique_ptr<WifiDirectDeviceDiscovered>> devices;
   {
     absl::MutexLock lock(mutex_);
@@ -377,8 +409,13 @@ bool WifiDirectMedium::StopWifiDirect() {
     LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
+#else
+  LOG(INFO) << "Windows WFD GO is disabled.";
+  return true;
+#endif  // ENABLE_WIFI_DIRECT_GO
 }
 
+#if defined(ENABLE_WIFI_DIRECT_GO)
 fire_and_forget WifiDirectMedium::OnStatusChanged(
     WiFiDirectAdvertisementPublisher sender,
     WiFiDirectAdvertisementPublisherStatusChangedEventArgs event) {
@@ -581,6 +618,7 @@ bool WifiDirectMedium::IsAepPaired(winrt::hstring device_id) {
   }
   return false;
 }
+#endif  // ENABLE_WIFI_DIRECT_GO
 
 // Returns true once the WifiLan discovery has been initiated.
 bool WifiDirectMedium::ConnectWifiDirect(
@@ -594,10 +632,12 @@ bool WifiDirectMedium::ConnectWifiDirect(
       return false;
     }
 
+#if defined(ENABLE_WIFI_DIRECT_GO)
     if (IsBeaconing()) {
       LOG(WARNING) << "Already acting as GO, skip discovery.";
       return false;
     }
+#endif
 
     if (device_watcher_) {
       LOG(WARNING)
@@ -613,7 +653,6 @@ bool WifiDirectMedium::ConnectWifiDirect(
 
     try {
       discovered_devices_by_id_.clear();
-      connection_requested_devices_by_id_.clear();
       winrt::hstring device_selector = WiFiDirectDevice::GetDeviceSelector(
           WiFiDirectDeviceSelectorType::AssociationEndpoint);
       const winrt::param::iterable<winrt::hstring> requested_properties =

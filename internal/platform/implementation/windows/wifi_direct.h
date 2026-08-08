@@ -271,10 +271,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   bool IsWifiDirectSupported();
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
-  // Advertiser is accepting connection on server socket
-  bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
-  // GO is started and sending beacon
-  bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
   // GC is connecting to the GO
   bool IsConnecting() {
     return (medium_status_ & kMediumStatusConnecting) != 0;
@@ -282,7 +278,13 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   // GC is connected to the GO
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
 
-  // Advertising properties
+#if defined(ENABLE_WIFI_DIRECT_GO)
+  // Advertiser is accepting connection on server socket
+  bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
+  // GO is started and sending beacon
+  bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
+
+  // Advertising properties (GO)
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
   WiFiDirectDevice wifi_direct_device_{nullptr};
@@ -298,6 +300,16 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   event_token connection_requested_token_;
 
   bool IsAepPaired(winrt::hstring device_id);
+
+  absl::flat_hash_map<winrt::hstring,
+                      std::unique_ptr<WifiDirectDeviceDiscovered>>
+      connection_requested_devices_by_id_;
+  WifiDirectCredentials* credentials_go_ = nullptr;
+  absl::CondVar is_ip_address_ready_;
+  std::string remote_device_name_;
+  WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  SubmittableExecutor listener_executor_;
+#endif  // ENABLE_WIFI_DIRECT_GO
 
   // Discovery properties
   DeviceWatcher device_watcher_{nullptr};
@@ -336,20 +348,10 @@ class WifiDirectMedium : public api::WifiDirectMedium {
                       std::unique_ptr<WifiDirectDeviceDiscovered>>
       discovered_devices_by_id_;
 
-  absl::flat_hash_map<winrt::hstring,
-                      std::unique_ptr<WifiDirectDeviceDiscovered>>
-      connection_requested_devices_by_id_;
-
   bool is_interface_valid_ = false;
-  WifiDirectCredentials* credentials_go_ = nullptr;
   WifiDirectCredentials credentials_gc_;
   std::string ip_address_local_;
   std::string ip_address_remote_;
-  absl::CondVar is_ip_address_ready_;
-  std::string remote_device_name_;
-
-  WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  SubmittableExecutor listener_executor_;
 };
 }  // namespace nearby::windows
 
