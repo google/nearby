@@ -31,6 +31,16 @@ TEST(DeviceInfo, GetComputerName) {
   EXPECT_EQ(device_name.size(), std::strlen(device_name.data()));
 }
 
+TEST(DeviceInfo, GetWifiDirectDeviceName) {
+  ASSERT_TRUE(DeviceInfo().GetWifiDirectDeviceName().has_value());
+  std::string device_name = DeviceInfo().GetWifiDirectDeviceName().value();
+  // Makes sure device_name does not include terminating null character.
+  EXPECT_EQ(device_name.size(), std::strlen(device_name.data()));
+  // WiFi Direct name on Windows is mapped to NetBIOS name, which cannot
+  // exceed 15 characters.
+  EXPECT_LE(device_name.size(), 15);
+}
+
 TEST(DeviceInfo, DISABLED_GetDeviceType) {
   EXPECT_EQ(DeviceInfo().GetDeviceType(), api::DeviceInfo::DeviceType::kLaptop);
 }
