@@ -36,7 +36,6 @@
 #include "connections/implementation/mediums/wifi_hotspot_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "connections/strategy.h"
 #include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -143,8 +142,10 @@ std::string WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
                     last_service_address.address.end())));
     credentials.set_port(last_service_address.port);
   }
-  bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  // Never disable NC-layer encryption on the WIFI_HOTSPOT path: the PSK is
+  // generated locally and an RF-proximate attacker who learns/guesses it would
+  // otherwise read user payload bytes in clear.
+  bool disabling_encryption = false;
   return parser::ForBwuWifiHotspotPathAvailable(
       std::move(credentials),
       /* supports_disabling_encryption */ disabling_encryption);
