@@ -106,13 +106,11 @@ class PcpManager {
   void DisconnectFromEndpointManager();
 
  private:
-  bool SetCurrentPcpHandler(Strategy strategy);
   PcpHandler* GetPcpHandler(Pcp pcp) const;
   bool GetWebRtcNonCellular(const std::vector<Medium>& mediums);
 
   AtomicBoolean shutdown_{false};
   absl::flat_hash_map<Pcp, std::unique_ptr<BasePcpHandler>> handlers_;
-  PcpHandler* current_ = nullptr;
 };
 
 }  // namespace connections
