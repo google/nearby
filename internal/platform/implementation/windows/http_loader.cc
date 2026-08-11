@@ -360,6 +360,9 @@ absl::StatusOr<WebResponse> HttpLoader::ProcessResponse() {
 
   status = HTTPCodeToStatus(web_response.status_code, web_response.status_text);
   if (!status.ok()) {
+    NEARBY_LOGS(ERROR)
+        << "Web response completed but had an error, body: "
+        << web_response.body;
     return status;
   }
 
