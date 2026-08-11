@@ -30,6 +30,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
 
+#if defined(ENABLE_WIFI_DIRECT_GO)
 namespace nearby::windows {
 namespace {
 constexpr int kWaitingForServerSocketReadyTimeoutSeconds = 60;  // seconds
@@ -177,3 +178,4 @@ std::string WifiDirectServerSocket::GetWifiDirectIpAddress() const {
 }
 
 }  // namespace nearby::windows
+#endif  // ENABLE_WIFI_DIRECT_GO
