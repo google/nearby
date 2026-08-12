@@ -79,6 +79,7 @@ TEST_F(AttachmentContainerTest, Constructor) {
           .AddTextAttachment(text2_)
           .AddFileAttachment(file1_)
           .AddWifiCredentialsAttachment(wifi1_)
+          .SetDestinationDirectory(FilePath{"/tmp/destination"})
           .Build();
 
   EXPECT_THAT(container->GetTextAttachments(),
@@ -86,6 +87,8 @@ TEST_F(AttachmentContainerTest, Constructor) {
   EXPECT_THAT(container->GetFileAttachments(), UnorderedElementsAre(file1_));
   EXPECT_THAT(container->GetWifiCredentialsAttachments(),
               UnorderedElementsAre(wifi1_));
+  EXPECT_THAT(container->GetDestinationDirectory(),
+              Eq(FilePath{"/tmp/destination"}));
 }
 
 TEST_F(AttachmentContainerTest, AddTextAttachment) {
@@ -97,6 +100,7 @@ TEST_F(AttachmentContainerTest, AddTextAttachment) {
 
   EXPECT_THAT(container->GetTextAttachments(),
               UnorderedElementsAre(text1_, text2_));
+  EXPECT_TRUE(container->GetDestinationDirectory().IsEmpty());
 }
 
 TEST_F(AttachmentContainerTest, AddFileAttachment) {
@@ -104,6 +108,7 @@ TEST_F(AttachmentContainerTest, AddFileAttachment) {
       AttachmentContainer::Builder().AddFileAttachment(file1_).Build();
 
   EXPECT_THAT(container->GetFileAttachments(), UnorderedElementsAre(file1_));
+  EXPECT_TRUE(container->GetDestinationDirectory().IsEmpty());
 }
 
 TEST_F(AttachmentContainerTest, AddWifiCredentialsAttachment) {
@@ -114,6 +119,7 @@ TEST_F(AttachmentContainerTest, AddWifiCredentialsAttachment) {
 
   EXPECT_THAT(container->GetWifiCredentialsAttachments(),
               UnorderedElementsAre(wifi1_));
+  EXPECT_TRUE(container->GetDestinationDirectory().IsEmpty());
 }
 
 TEST_F(AttachmentContainerTest, GetMutableTextAttachment) {

@@ -53,12 +53,15 @@ class IncomingShareSession : public ShareSession {
 
   bool IsIncoming() const override { return true; }
 
+  // `destination_directory` is the root destination directory for all files
+  // received in this session.
   // Returns nullopt on success.
   // On failure, returns the status that should be used to terminate the
   // connection.
   std::optional<TransferMetadata::Status> ProcessIntroduction(
       const nearby::sharing::service::proto::IntroductionFrame&
-          introduction_frame);
+          introduction_frame,
+      FilePath destination_directory);
 
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.
