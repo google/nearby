@@ -1032,8 +1032,8 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
               IsTrue());
   EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
 
-  // Fast forward to the disconnection timeout.
-  fake_clock_.FastForward(absl::Seconds(60));
+  // Fast forward to the binding timeout.
+  fake_clock_.FastForward(absl::Minutes(3));
   fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
   EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));

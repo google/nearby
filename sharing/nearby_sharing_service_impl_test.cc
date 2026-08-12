@@ -5183,7 +5183,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(frame->v1().bindings().binding_request().cert_ids_size(), 2);
 
   // BindingResponse frame timeout.
-  FastForward(absl::Seconds(60));
+  FastForward(absl::Minutes(3));
   // Wait for the transfer updates.
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }

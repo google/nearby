@@ -66,6 +66,8 @@ using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
+constexpr absl::Duration kBindingResponseFrameTimeout = absl::Minutes(3);
+
 ConnectionLayerStatus ConvertToConnectionLayerStatus(Status status) {
   switch (status) {
     case Status::kUnknown:
@@ -685,7 +687,7 @@ void OutgoingShareSession::StartPeerBinding(
         // Peer binding flow completed successfully.
         std::move(callback)(frame->bindings().binding_response());
       },
-      kReadResponseFrameTimeout);
+      kBindingResponseFrameTimeout);
 }
 
 }  // namespace nearby::sharing
