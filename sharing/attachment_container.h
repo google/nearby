@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 #include "absl/container/flat_hash_map.h"
+#include "internal/base/file_path.h"
 #include "sharing/attachment.h"
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
@@ -48,6 +49,9 @@ class AttachmentContainer {
     Builder& AddFileAttachment(FileAttachment file_attachment);
     Builder& AddWifiCredentialsAttachment(
         WifiCredentialsAttachment wifi_credentials_attachment);
+    // `destination_directory` is the root destination directory for all file
+    // attachments in this container.
+    Builder& SetDestinationDirectory(FilePath destination_directory);
 
     bool Empty() const {
       return text_attachments_.empty() && file_attachments_.empty() &&
@@ -60,6 +64,7 @@ class AttachmentContainer {
     std::vector<TextAttachment> text_attachments_;
     std::vector<FileAttachment> file_attachments_;
     std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
+    FilePath destination_directory_;
   };
 
   AttachmentContainer() = default;
@@ -120,11 +125,16 @@ class AttachmentContainer {
   // place.
   void ClearAttachments();
 
+  // For an incoming transfer, returns the destination directory.
+  // Not set for outgoing transfers.
+  FilePath GetDestinationDirectory() const { return destination_directory_; }
+
  private:
   AttachmentContainer(
       std::vector<TextAttachment> text_attachments,
       std::vector<FileAttachment> file_attachments,
-      std::vector<WifiCredentialsAttachment> wifi_credentials_attachments);
+      std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
+      FilePath destination_directory);
   // Build id to attachment index.
   void BuildIndex();
 
@@ -132,6 +142,7 @@ class AttachmentContainer {
   std::vector<FileAttachment> file_attachments_;
   std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
   absl::flat_hash_map<int64_t, const Attachment*> attachment_id_map_;
+  FilePath destination_directory_;
 };
 
 }  // namespace nearby::sharing

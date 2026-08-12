@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 #include "absl/memory/memory.h"
+#include "internal/base/file_path.h"
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
 #include "sharing/wifi_credentials_attachment.h"
@@ -56,19 +57,29 @@ AttachmentContainer::Builder::AddWifiCredentialsAttachment(
   return *this;
 }
 
+AttachmentContainer::Builder&
+AttachmentContainer::Builder::SetDestinationDirectory(
+    FilePath destination_directory) {
+  destination_directory_ = std::move(destination_directory);
+  return *this;
+}
+
 std::unique_ptr<AttachmentContainer> AttachmentContainer::Builder::Build() {
   return absl::WrapUnique(new AttachmentContainer(
       std::move(text_attachments_), std::move(file_attachments_),
-      std::move(wifi_credentials_attachments_)));
+      std::move(wifi_credentials_attachments_),
+      std::move(destination_directory_)));
 }
 
 AttachmentContainer::AttachmentContainer(
     std::vector<TextAttachment> text_attachments,
     std::vector<FileAttachment> file_attachments,
-    std::vector<WifiCredentialsAttachment> wifi_credentials_attachments)
+    std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
+    FilePath destination_directory)
     : text_attachments_(std::move(text_attachments)),
       file_attachments_(std::move(file_attachments)),
-      wifi_credentials_attachments_(std::move(wifi_credentials_attachments)) {
+      wifi_credentials_attachments_(std::move(wifi_credentials_attachments)),
+      destination_directory_(std::move(destination_directory)) {
   BuildIndex();
 }
 
@@ -77,6 +88,7 @@ AttachmentContainer::AttachmentContainer(AttachmentContainer&& other) {
   file_attachments_ = std::move(other.file_attachments_);
   wifi_credentials_attachments_ =
       std::move(other.wifi_credentials_attachments_);
+  destination_directory_ = std::move(other.destination_directory_);
   BuildIndex();
 }
 
@@ -86,6 +98,7 @@ AttachmentContainer& AttachmentContainer::operator=(
   file_attachments_ = std::move(other.file_attachments_);
   wifi_credentials_attachments_ =
       std::move(other.wifi_credentials_attachments_);
+  destination_directory_ = std::move(other.destination_directory_);
   BuildIndex();
   return *this;
 }

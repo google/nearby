@@ -208,7 +208,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {
   session_.OnConnected(&connection_);
   IntroductionFrame frame;
 
-  EXPECT_THAT(session_.ProcessIntroduction(frame),
+  EXPECT_THAT(session_.ProcessIntroduction(frame, FilePath()),
               Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
 }
@@ -217,7 +217,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyFile) {
   session_.OnConnected(&connection_);
   IntroductionFrame frame;
 
-  EXPECT_THAT(session_.ProcessIntroduction(frame),
+  EXPECT_THAT(session_.ProcessIntroduction(frame, FilePath()),
               Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
 }
@@ -232,7 +232,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionFilesTooLarge) {
   frame.mutable_file_metadata()->Add(std::move(file1));
   frame.mutable_file_metadata()->Add(std::move(file2));
 
-  EXPECT_THAT(session_.ProcessIntroduction(frame),
+  EXPECT_THAT(session_.ProcessIntroduction(frame, FilePath()),
               Eq(TransferMetadata::Status::kNotEnoughSpace));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
 }
@@ -241,7 +241,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyText) {
   session_.OnConnected(&connection_);
   IntroductionFrame frame;
 
-  EXPECT_THAT(session_.ProcessIntroduction(frame),
+  EXPECT_THAT(session_.ProcessIntroduction(frame, FilePath()),
               Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
 }
@@ -271,8 +271,10 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
   WifiCredentialsAttachment wifi2(wifimeta2.id(), wifimeta2.ssid(),
                                   wifimeta2.security_type());
 
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
-              Eq(std::nullopt));
+  FilePath destination_directory = FilePath("/tmp/destination");
+  EXPECT_THAT(
+      session_.ProcessIntroduction(introduction_frame_, destination_directory),
+      Eq(std::nullopt));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsTrue());
   EXPECT_THAT(session_.attachment_container().GetFileAttachments(),
               UnorderedElementsAre(file1, file2));
@@ -292,6 +294,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
               Eq(wifimeta1.payload_id()));
   EXPECT_THAT(session_.attachment_payload_map().at(wifimeta2.id()),
               Eq(wifimeta2.payload_id()));
+  EXPECT_THAT(session_.attachment_container().GetDestinationDirectory(),
+              Eq(destination_directory));
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
@@ -321,8 +325,10 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
   int64_t payload_id3 = app_metadata.payload_id(2);
   session_.OnConnected(&connection_);
 
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
-              Eq(std::nullopt));
+  FilePath destination_directory = FilePath("/tmp/destination");
+  EXPECT_THAT(
+      session_.ProcessIntroduction(introduction_frame, destination_directory),
+      Eq(std::nullopt));
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsTrue());
   // Find generated file attachments ids.
   auto it = std::find_if(std::begin(session_.attachment_payload_map()),
@@ -352,6 +358,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
 
   EXPECT_THAT(session_.attachment_container().GetFileAttachments(),
               UnorderedElementsAre(file1, file2, file3));
+  EXPECT_THAT(session_.attachment_container().GetDestinationDirectory(),
+              Eq(destination_directory));
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkLengthMismatch) {
@@ -374,7 +382,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkLengthMismatch) {
                                           &introduction_frame));
   session_.OnConnected(&connection_);
 
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame, FilePath()),
               Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
 }
 
@@ -395,7 +403,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkInvalidSize) {
                                           &introduction_frame));
   session_.OnConnected(&connection_);
 
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame, FilePath()),
               Eq(TransferMetadata::Status::kUnsupportedAttachmentType));
 }
 
@@ -404,7 +412,7 @@ TEST_F(IncomingShareSessionTest,
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   // Set text payload for file attachment.
   connections_manager_.SetIncomingPayload(
@@ -508,7 +516,7 @@ TEST_F(IncomingShareSessionTest,
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -611,7 +619,7 @@ TEST_F(IncomingShareSessionTest,
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -712,7 +720,7 @@ TEST_F(IncomingShareSessionTest,
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -822,7 +830,7 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   file2.set_size(1);
   introduction_frame.mutable_file_metadata()->Add(std::move(file1));
   introduction_frame.mutable_file_metadata()->Add(std::move(file2));
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   int64_t payload_id1 = introduction_frame.file_metadata(0).payload_id();
@@ -871,7 +879,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -970,7 +978,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -1029,7 +1037,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -1067,7 +1075,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -1182,7 +1190,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
@@ -1227,7 +1235,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
 
   EXPECT_THAT(session_.AcceptTransfer([]() {}), IsFalse());
@@ -1237,7 +1245,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   connections_manager_.AcceptConnection(
       /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath()),
               Eq(std::nullopt));
   EXPECT_THAT(
       session_.ReadyForTransfer(
@@ -1318,7 +1326,7 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
                                             )pb",
                                             &introduction_frame));
   session_.OnConnected(&connection_);
-  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame, FilePath()),
               Eq(std::nullopt));
 
   EXPECT_THAT(session_.TryUpgradeBandwidth(), IsTrue());

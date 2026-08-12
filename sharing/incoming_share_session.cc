@@ -85,7 +85,8 @@ void IncomingShareSession::InvokeTransferUpdateCallback(
 
 std::optional<TransferMetadata::Status>
 IncomingShareSession::ProcessIntroduction(
-    const IntroductionFrame& introduction_frame) {
+    const IntroductionFrame& introduction_frame,
+    FilePath destination_directory) {
   session_phase_ = SessionPhase::kTransfer;
   int64_t file_size_sum = 0;
   int app_file_count = 0;
@@ -93,6 +94,7 @@ IncomingShareSession::ProcessIntroduction(
     app_file_count += apk.file_name_size();
   }
   AttachmentContainer::Builder builder;
+  builder.SetDestinationDirectory(std::move(destination_directory));
   builder.ReserveAttachmentsCount(
       introduction_frame.text_metadata_size() + app_file_count,
       introduction_frame.file_metadata_size(),
