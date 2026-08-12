@@ -2438,6 +2438,8 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
             session.attachment_container().GetTextAttachments(),
             session.attachment_container().GetFileAttachments(),
             session.attachment_container().GetWifiCredentialsAttachments())
+            .SetDestinationDirectory(
+                session.attachment_container().GetDestinationDirectory())
             .Build(),
         TransferMetadataBuilder::Clone(metadata)
             .set_is_original(false)
@@ -2878,12 +2880,6 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     IncomingShareSession& session, const IntroductionFrame& frame) {
   LOG(INFO) << __func__ << ": Successfully read the introduction frame.";
 
-  std::optional<TransferMetadata::Status> status =
-      session.ProcessIntroduction(frame);
-  if (status.has_value()) {
-    Fail(session, *status);
-    return;
-  }
   FilePath save_path{settings_->GetCustomSavePath()};
   // If transfer is for file sync, override the save path to the custom save
   // path.
@@ -2906,6 +2902,12 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
     }
     save_path = FilePath(binding->destination_directory());
     session.set_session_usage(ShareSessionUsage::kFileSync);
+  }
+  std::optional<TransferMetadata::Status> status =
+      session.ProcessIntroduction(frame, save_path);
+  if (status.has_value()) {
+    Fail(session, *status);
+    return;
   }
   // Override save path for this connection.
   // This must be called before the transfer is accepted and payloads are being
