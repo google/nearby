@@ -1056,6 +1056,10 @@ TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
 }
 
 TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start({.use_simulated_clock = true});
   BooleanMediumSelector allowed{
       .bluetooth = true,
@@ -1091,7 +1095,49 @@ TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest,
+       PreventCrossMediumRoutingIgnoresNewMediumForSameEndpoint) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      true);
+  env_.Start({.use_simulated_clock = true});
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .ble = true,
+      .wifi_lan = true,
+  };
+
+  auto endpoint = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service", Medium::BLE,
+                              WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+  auto endpoint_bluetooth = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service",
+                              Medium::BLUETOOTH, WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler, allowed);
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call).Times(1);
+  pcp_handler.OnEndpointFound(client_.get(), endpoint);
+  pcp_handler.OnEndpointFound(client_.get(), endpoint_bluetooth);
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 1);
+  EXPECT_CALL(pcp_handler, StopDiscoveryImpl(client_.get())).Times(1);
+  pcp_handler.StopDiscovery(client_.get());
+  bwu.Shutdown();
+  env_.Stop();
+}
+
 TEST_F(BasePcpHandlerTest, WifiMediumFailFallBackToBT) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start();
   std::string service_id{"service"};
   std::string endpoint_id{"ABCD"};
@@ -1696,6 +1742,10 @@ TEST_P(BasePcpHandlerTest, DestructorIsCalledOnProtocolEndpoint) {
 }
 
 TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventCrossMediumRouting,
+      false);
   env_.Start();
   BooleanMediumSelector allowed = GetParam();
   if (allowed.Count(true) < 2) {

@@ -88,6 +88,9 @@ constexpr auto kFilterUnconfirmedEndpointFrames =
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);
+// Prevent cross-medium endpoint injection attacks.
+constexpr auto kPreventCrossMediumRouting =
+    flags::Flag<bool>(kConfigPackage, "45788888", true);
 // Default max transmit packet size for medium.
 constexpr auto kMediumDefaultMaxTransmitPacketSize =
     flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);
