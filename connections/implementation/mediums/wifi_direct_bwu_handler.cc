@@ -150,19 +150,10 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& gateway = upgrade_path_info_credentials.gateway();
   std::int32_t freq = upgrade_path_info_credentials.frequency();
 
-  WifiDirectCredentials wifi_direct_credentials;
-  wifi_direct_credentials.SetSSID(ssid);
-  wifi_direct_credentials.SetPassword(password);
-  wifi_direct_credentials.SetDeviceName(device_name);
-  wifi_direct_credentials.SetPin(pin);
-  wifi_direct_credentials.SetPort(port);
-  wifi_direct_credentials.SetGateway(gateway);
-  wifi_direct_credentials.SetFrequency(freq);
-
   if (ssid.empty()) {
-  LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
-            << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
-            << ",  Gateway: " << gateway << ", Frequency: " << freq;
+    LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
+              << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
+              << ",  Gateway: " << gateway << ", Frequency: " << freq;
   } else {
     LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
               << ",  Password: " << masker::Mask(password)
@@ -172,6 +163,15 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
   }
+
+  WifiDirectCredentials wifi_direct_credentials;
+  wifi_direct_credentials.SetSSID(ssid);
+  wifi_direct_credentials.SetPassword(password);
+  wifi_direct_credentials.SetDeviceName(device_name);
+  wifi_direct_credentials.SetPin(pin);
+  wifi_direct_credentials.SetPort(port);
+  wifi_direct_credentials.SetGateway(gateway);
+  wifi_direct_credentials.SetFrequency(freq);
 
   if (!wifi_direct_medium_.ConnectWifiDirect(wifi_direct_credentials)) {
     LOG(ERROR) << "Connect to WifiDiret GO failed";

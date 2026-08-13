@@ -164,5 +164,38 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
 }
 
+TEST_F(WifiDirectTest,
+       WFDGOBWUInit_GCCreateEndpointChannel_SsidAuthTypeNotSupported) {
+  ClientProxy wifi_direct_gc;
+  Mediums mediums_wfd_gc;
+
+  wifi_direct_gc.AddCancellationFlag(std::string(kEndpointID));
+  std::unique_ptr<BwuHandler> wfd_gc_bwu_handler =
+      std::make_unique<WifiDirectBwuHandler>(&mediums_wfd_gc.GetWifiDirect(),
+                                             nullptr);
+
+  std::string upgrade_path_available_frame =
+      parser::ForBwuWifiDirectPathAvailable(
+          /*ssid=*/"Direct-test-ssid", /*password=*/"12345678", /*port=*/1234,
+          /*frequency=*/2412, /*supports_disabling_encryption=*/false,
+          /*gateway=*/"192.168.49.1", /*device_name=*/"", /*pin=*/"");
+  ExceptionOr<OfflineFrame> upgrade_frame =
+      parser::FromBytes(upgrade_path_available_frame);
+  ASSERT_TRUE(upgrade_frame.ok());
+
+  auto bwu_frame = upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
+      wfd_gc_bwu_handler->CreateUpgradedEndpointChannel(
+          &wifi_direct_gc, std::string(kServiceID), std::string(kEndpointID),
+          bwu_frame.upgrade_path_info());
+
+  EXPECT_FALSE(result.has_value());
+  EXPECT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code(),
+            OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL);
+  EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
+}
+
 }  // namespace connections
 }  // namespace nearby

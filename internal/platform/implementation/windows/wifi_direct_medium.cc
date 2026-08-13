@@ -732,11 +732,12 @@ bool WifiDirectMedium::ConnectWifiDirect(
       return false;
     }
 
-    credentials_gc_ = credentials;
-    if (credentials_gc_.GetDeviceName().empty()) {
-      LOG(ERROR) << "GC: Device name is empty, return false";
+    if (credentials.GetDeviceName().empty() ||
+        credentials.GetPin().empty()) {
+      LOG(ERROR) << "GC: Device name or pin is empty, return false";
       return false;
     }
+    credentials_gc_ = credentials;
 
     try {
       discovered_devices_by_id_.clear();
@@ -904,10 +905,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     LOG(INFO) << "Connect to device name: "
               << winrt::to_string(device_info.Name());
     DeviceInformationPairing pairing = device_info.Pairing();
-    // WiFiDirectConfigurationMethod config_method =
-    //     WiFiDirectConfigurationMethod::ProvidePin;
     WiFiDirectConfigurationMethod config_method =
-        WiFiDirectConfigurationMethod::PushButton;
+        WiFiDirectConfigurationMethod::ProvidePin;
     bool is_paired;
     if (pairing.IsPaired()) {
       LOG(INFO) << "GC Paired, unpair it first to clean up stale state";
@@ -931,9 +930,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
             true;  // Fallback to true if unpair fails, maybe it's still usable.
       }
     } else {
-      LOG(INFO) << "GC Unpair failed, assume it's still paired.";
-      is_paired =
-          true;  // Fallback to true if unpair fails, maybe it's still usable.
+      LOG(INFO) << "GC Not Paired, start to pair";
+      is_paired = RequestPairDeviceAsync(pairing, 1, config_method);
     }
     // Create a WiFiDirectDevice out of this id
     if (!is_paired) {
@@ -1051,11 +1049,11 @@ fire_and_forget WifiDirectMedium::OnPairingRequested(
         event.Accept();
         break;
       case DevicePairingKinds::ProvidePin: {
-        absl::MutexLock lock(mutex_);
         std::string pin;
-        LOG(INFO) << "Enter pin:";
-        std::cin >> pin;
-        LOG(INFO) << "DevicePairingKinds::ProvidePin:" << pin;
+        {
+          absl::MutexLock lock(mutex_);
+          pin = credentials_gc_.GetPin();
+        }
         event.Accept(winrt::to_hstring(pin));
       } break;
       default:
