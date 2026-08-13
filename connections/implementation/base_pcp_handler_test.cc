@@ -2107,6 +2107,97 @@ TEST_F(BasePcpHandlerTest, TestStartEndpointLostByMediumAlarms) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest,
+       TestStartEndpointLostByMediumAlarmsMultipleEndpoints) {
+  env_.Start();
+  std::string service_id{"service"};
+  std::string endpoint_id_1{"ABCD"};
+  std::string endpoint_id_2{"EFGH"};
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+  };
+  DiscoveryOptions discovery_options{
+      {
+          Strategy::kP2pPointToPoint,
+          allowed,
+      },
+      false,  // auto_upgrade_bandwidth;
+      false,  // enforce_topology_constraints;
+  };
+  EXPECT_CALL(pcp_handler, StartDiscoveryImpl)
+      .WillOnce(Return(MockPcpHandler::StartOperationResult{
+          .status = {Status::kSuccess},
+          .mediums = allowed.GetMediums(true),
+      }));
+  EXPECT_EQ(pcp_handler.StartDiscovery(client_.get(), service_id,
+                                       discovery_options, {}),
+            Status{Status::kSuccess});
+  EXPECT_TRUE(client_->IsDiscovering());
+
+  EXPECT_CALL(pcp_handler, InjectEndpointImpl)
+      .WillOnce([&pcp_handler, &endpoint_id_1](
+                    ClientProxy* client, const std::string& service_id,
+                    const OutOfBandConnectionMetadata& metadata) {
+        pcp_handler.OnEndpointFound(
+            client,
+            std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                {
+                    endpoint_id_1,
+                    /*endpoint_info=*/ByteArray{"ABCD"},
+                    service_id,
+                    Medium::BLUETOOTH,
+                    WebRtcState::kUndefined,
+                },
+                MockContext{nullptr},
+            }));
+        return Status{Status::kSuccess};
+      })
+      .WillOnce([&pcp_handler, &endpoint_id_2](
+                    ClientProxy* client, const std::string& service_id,
+                    const OutOfBandConnectionMetadata& metadata) {
+        pcp_handler.OnEndpointFound(
+            client,
+            std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+                {
+                    endpoint_id_2,
+                    /*endpoint_info=*/ByteArray{"EFGH"},
+                    service_id,
+                    Medium::BLUETOOTH,
+                    WebRtcState::kUndefined,
+                },
+                MockContext{nullptr},
+            }));
+        return Status{Status::kSuccess};
+      });
+
+  pcp_handler.InjectEndpoint(
+      client_.get(), service_id,
+      OutOfBandConnectionMetadata{
+          .medium = Medium::BLUETOOTH,
+          .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
+      });
+  pcp_handler.InjectEndpoint(
+      client_.get(), service_id,
+      OutOfBandConnectionMetadata{
+          .medium = Medium::BLUETOOTH,
+          .remote_bluetooth_mac_address = ByteArray(kFakeMacAddress),
+      });
+
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 2);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
+  pcp_handler.StartEndpointLostByMediumAlarms(client_.get(), Medium::BLUETOOTH);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 2);
+  absl::SleepFor(absl::Seconds(11));
+  EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints(Medium::BLUETOOTH).size(), 0);
+  EXPECT_EQ(pcp_handler.GetEndpointLostByMediumAlarmsCount(), 0);
+  env_.Stop();
+}
+
 TEST_F(BasePcpHandlerTest, TestEndpointFoundStopsAlarm) {
   env_.Start();
   std::string service_id{"service"};

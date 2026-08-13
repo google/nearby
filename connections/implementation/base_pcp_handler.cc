@@ -1408,20 +1408,26 @@ std::string GetEndpointLostByMediumAlarmKey(absl::string_view endpoint_id,
 void BasePcpHandler::StartEndpointLostByMediumAlarms(
     ClientProxy* client, location::nearby::proto::connections::Medium medium) {
   auto discovered_endpoints_medium = GetDiscoveredEndpoints(medium);
-  for (const auto discovered_endpoint : discovered_endpoints_medium) {
-    std::string key = GetEndpointLostByMediumAlarmKey(
-        discovered_endpoint->endpoint_id, medium);
-    StopEndpointLostByMediumAlarm(discovered_endpoint->endpoint_id, medium);
+  for (const auto* discovered_endpoint : discovered_endpoints_medium) {
+    std::string endpoint_id = discovered_endpoint->endpoint_id;
+    std::string key = GetEndpointLostByMediumAlarmKey(endpoint_id, medium);
+    StopEndpointLostByMediumAlarm(endpoint_id, medium);
     endpoint_lost_by_medium_alarms_.emplace(
         key, std::make_unique<CancelableAlarm>(
                  absl::StrCat("EndpointLostByMediumAlarm_", key),
-                 [this, discovered_endpoint, key, client]() {
+                 [this, client, endpoint_id, medium, key]() {
                    RunOnPcpHandlerThread(
                        "endpoint-lost-by-medium-alarm",
-                       [this, client, discovered_endpoint,
+                       [this, client, endpoint_id, medium,
                         key]() RUN_ON_PCP_HANDLER_THREAD() {
                          if (endpoint_lost_by_medium_alarms_.erase(key) != 0) {
-                           OnEndpointLost(client, *discovered_endpoint);
+                           for (const auto* endpoint :
+                                GetDiscoveredEndpoints(endpoint_id)) {
+                             if (endpoint->medium == medium) {
+                               OnEndpointLost(client, *endpoint);
+                               break;
+                             }
+                           }
                          }
                        });
                  },
