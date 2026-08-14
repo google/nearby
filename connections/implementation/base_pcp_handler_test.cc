@@ -271,9 +271,8 @@ class MockPcpHandler : public BasePcpHandler {
     BasePcpHandler::OnInstantLost(client, endpoint->endpoint_id,
                                   endpoint->endpoint_info);
   }
-  BasePcpHandler::DiscoveredEndpoint* GetDiscoveredEndpoint(
-      const std::string& endpoint_id) {
-    return BasePcpHandler::GetDiscoveredEndpoint(endpoint_id);
+  bool HasDiscoveredEndpoint(absl::string_view endpoint_id) {
+    return BasePcpHandler::HasDiscoveredEndpoint(endpoint_id);
   }
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
       const std::string& endpoint_id) {
@@ -1045,9 +1044,11 @@ TEST_F(BasePcpHandlerTest, ShouldLostEndpointWhenReportInstantLost) {
   StartDiscovery(client_.get(), &pcp_handler, allowed);
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
   pcp_handler.OnEndpointFound(client_.get(), endpoint);
+  EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 1);
   EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call);
   pcp_handler.OnInstantLost(client_.get(), endpoint);
+  EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 0);
   EXPECT_CALL(pcp_handler, StopDiscoveryImpl(client_.get())).Times(1);
   pcp_handler.StopDiscovery(client_.get());
@@ -1081,10 +1082,60 @@ TEST_F(BasePcpHandlerTest, ShouldLostAllEndpointsWhenReportInstantLost) {
   EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
   pcp_handler.OnEndpointFound(client_.get(), endpoint);
   pcp_handler.OnEndpointFound(client_.get(), endpoint_bluetooth);
+  EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 2);
   EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call);
   pcp_handler.OnInstantLost(client_.get(), endpoint);
+  EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
   EXPECT_EQ(pcp_handler.GetDiscoveredEndpoints("ABCD").size(), 0);
+  EXPECT_CALL(pcp_handler, StopDiscoveryImpl(client_.get())).Times(1);
+  pcp_handler.StopDiscovery(client_.get());
+  bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, HasDiscoveredEndpoint) {
+  env_.Start({.use_simulated_clock = true});
+  BooleanMediumSelector allowed{
+      .bluetooth = true,
+      .ble = true,
+  };
+
+  auto endpoint_ble = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service", Medium::BLE,
+                              WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+  auto endpoint_bt = std::make_shared<MockDiscoveredEndpoint>(
+      MockDiscoveredEndpoint{{"ABCD", ByteArray("1234"), "service",
+                              Medium::BLUETOOTH, WebRtcState::kUndefined},
+                             MockContext{nullptr}});
+
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler, allowed);
+
+  EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
+  EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint("UNKNOWN"));
+
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  pcp_handler.OnEndpointFound(client_.get(), endpoint_ble);
+  EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
+
+  pcp_handler.OnEndpointFound(client_.get(), endpoint_bt);
+  EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
+
+  // Lose BLE endpoint, BT endpoint still exists
+  pcp_handler.OnEndpointLost(client_.get(), *endpoint_ble);
+  EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
+
+  // Lose BT endpoint, no endpoints left
+  EXPECT_CALL(mock_discovery_listener_.endpoint_lost_cb, Call);
+  pcp_handler.OnEndpointLost(client_.get(), *endpoint_bt);
+  EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint("ABCD"));
+
   EXPECT_CALL(pcp_handler, StopDiscoveryImpl(client_.get())).Times(1);
   pcp_handler.StopDiscovery(client_.get());
   bwu.Shutdown();
@@ -1731,14 +1782,15 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
     EXPECT_EQ(pcp_handler.AcceptConnection(client_.get(), endpoint_id, {}),
               Status{Status::kSuccess});
     EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
-    auto endpoint_disc = pcp_handler.GetDiscoveredEndpoint(endpoint_id);
-    pcp_handler.OnEndpointLost(client_.get(), *endpoint_disc);
-    EXPECT_NE(pcp_handler.GetDiscoveredEndpoint(endpoint_id), nullptr);
+    auto discovered_endpoints = pcp_handler.GetDiscoveredEndpoints(endpoint_id);
+    ASSERT_FALSE(discovered_endpoints.empty());
+    pcp_handler.OnEndpointLost(client_.get(), *discovered_endpoints.front());
+    EXPECT_TRUE(pcp_handler.HasDiscoveredEndpoint(endpoint_id));
     for (const auto* endpoint :
          pcp_handler.GetDiscoveredEndpoints(endpoint_id)) {
       pcp_handler.OnEndpointLost(client_.get(), *endpoint);
     }
-    EXPECT_EQ(pcp_handler.GetDiscoveredEndpoint(endpoint_id), nullptr);
+    EXPECT_FALSE(pcp_handler.HasDiscoveredEndpoint(endpoint_id));
     EXPECT_FALSE(client_->IsConnectedToEndpoint(endpoint_id));
     LOG(INFO) << "Closing connection: id=" << endpoint_id;
     channel_b->Close();

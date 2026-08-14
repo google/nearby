@@ -371,8 +371,8 @@ class BasePcpHandler : public PcpHandler,
   virtual location::nearby::proto::connections::Medium
   GetDefaultUpgradeMedium() = 0;
 
-  // Returns the first discovered endpoint for the given endpoint_id.
-  DiscoveredEndpoint* GetDiscoveredEndpoint(const std::string& endpoint_id)
+  // Returns true if an endpoint with endpoint_id has been discovered.
+  bool HasDiscoveredEndpoint(absl::string_view endpoint_id)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Returns a vector of discovered endpoints, sorted in order of decreasing

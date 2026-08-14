@@ -956,8 +956,7 @@ Status BasePcpHandler::RequestConnection(
        result]() RUN_ON_PCP_HANDLER_THREAD() {
         absl::Time start_time = SystemClock::ElapsedRealtime();
 
-        DiscoveredEndpoint* endpoint = GetDiscoveredEndpoint(endpoint_id);
-        if (endpoint == nullptr) {
+        if (!HasDiscoveredEndpoint(endpoint_id)) {
           LOG(INFO) << "Discovered endpoint not found: endpoint_id="
                     << endpoint_id;
           result->Set({Status::kEndpointUnknown});
@@ -980,6 +979,7 @@ Status BasePcpHandler::RequestConnection(
         auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
         std::unique_ptr<EndpointChannel> channel;
         ConnectImplResult connect_impl_result;
+        DiscoveredEndpoint* connected_endpoint = nullptr;
 
         for (auto connect_endpoint : discovered_endpoints) {
           if (!MediumSupportedByClientOptions(connect_endpoint->medium,
@@ -988,13 +988,14 @@ Status BasePcpHandler::RequestConnection(
           connect_impl_result = ConnectImpl(client, connect_endpoint);
           if (connect_impl_result.status.Ok()) {
             channel = std::move(connect_impl_result.endpoint_channel);
+            connected_endpoint = connect_endpoint;
             break;
           }
         }
 
         Medium channel_medium =
             channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
-        if (channel == nullptr) {
+        if (channel == nullptr || connected_endpoint == nullptr) {
           LOG(INFO) << "Endpoint channel not available: endpoint_id="
                     << endpoint_id;
           ProcessPreConnectionInitiationFailure(
@@ -1046,7 +1047,8 @@ Status BasePcpHandler::RequestConnection(
         // fields.
         PendingConnectionInfo pending_connection_info{};
         pending_connection_info.client = client;
-        pending_connection_info.remote_endpoint_info = endpoint->endpoint_info;
+        pending_connection_info.remote_endpoint_info =
+            connected_endpoint->endpoint_info;
         pending_connection_info.nonce = connection_info.nonce;
         pending_connection_info.is_incoming = false;
         pending_connection_info.start_time = start_time;
@@ -1113,8 +1115,7 @@ Status BasePcpHandler::RequestConnectionV3(
           return;
         }
 
-        DiscoveredEndpoint* endpoint = GetDiscoveredEndpoint(endpoint_id);
-        if (endpoint == nullptr) {
+        if (!HasDiscoveredEndpoint(endpoint_id)) {
           LOG(INFO) << "Discovered endpoint not found: endpoint_id="
                     << endpoint_id;
           result->Set({Status::kEndpointUnknown});
@@ -1137,6 +1138,7 @@ Status BasePcpHandler::RequestConnectionV3(
         auto discovered_endpoints = GetDiscoveredEndpoints(endpoint_id);
         std::unique_ptr<EndpointChannel> channel;
         ConnectImplResult connect_impl_result;
+        DiscoveredEndpoint* connected_endpoint = nullptr;
 
         for (auto connect_endpoint : discovered_endpoints) {
           if (!MediumSupportedByClientOptions(connect_endpoint->medium,
@@ -1149,13 +1151,14 @@ Status BasePcpHandler::RequestConnectionV3(
           connect_impl_result = ConnectImpl(client, connect_endpoint);
           if (connect_impl_result.status.Ok()) {
             channel = std::move(connect_impl_result.endpoint_channel);
+            connected_endpoint = connect_endpoint;
             break;
           }
         }
 
         Medium channel_medium =
             channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
-        if (channel == nullptr) {
+        if (channel == nullptr || connected_endpoint == nullptr) {
           LOG(INFO) << "Endpoint channel not available: endpoint_id="
                     << endpoint_id;
           ProcessPreConnectionInitiationFailure(
@@ -1208,7 +1211,8 @@ Status BasePcpHandler::RequestConnectionV3(
         // are supported in the RequestConnectionV3() API.
         PendingConnectionInfo pending_connection_info{};
         pending_connection_info.client = client;
-        pending_connection_info.remote_endpoint_info = endpoint->endpoint_info;
+        pending_connection_info.remote_endpoint_info =
+            connected_endpoint->endpoint_info;
         pending_connection_info.nonce = connection_info.nonce;
         pending_connection_info.is_incoming = false;
         pending_connection_info.start_time = start_time;
@@ -1357,15 +1361,9 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
 }
 
-// Get any single discovered endpoint for a given endpoint_id.
-BasePcpHandler::DiscoveredEndpoint* BasePcpHandler::GetDiscoveredEndpoint(
-    const std::string& endpoint_id) {
+bool BasePcpHandler::HasDiscoveredEndpoint(absl::string_view endpoint_id) {
   MutexLock lock(&discovered_endpoint_mutex_);
-  auto it = discovered_endpoints_.find(endpoint_id);
-  if (it == discovered_endpoints_.end()) {
-    return nullptr;
-  }
-  return it->second.get();
+  return discovered_endpoints_.contains(endpoint_id);
 }
 
 std::vector<BasePcpHandler::DiscoveredEndpoint*>
