@@ -13,7 +13,7 @@ val shareIntent = Intent("com.google.android.gms.SHARE_NEARBY")
         .putExtra(Intent.EXTRA_TEXT, "Hello Nearby");
 
 val packageManager = context.packageManager;
-val activities = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+val activities = packageManager.queryIntentActivities(shareIntent, PackageManager.MATCH_DEFAULT_ONLY);
 // If the activities list is not empty, the intent can be handled and the intent can be called!
 ```
 
