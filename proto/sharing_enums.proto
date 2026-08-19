@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 82
+// Next id: 84
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -335,6 +335,12 @@ enum EventType {
 
   // External provider connection events.
   PROVIDER_CONNECTED = 81;
+
+  // End-to-end outcome of device pairing handshake.
+  DEVICE_PAIRING_COMPLETE = 82;
+
+  // The initiative of syncing files has completed.
+  FILE_SYNC_COMPLETE = 83;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
