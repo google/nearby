@@ -49,9 +49,6 @@ constexpr auto kEnableDynamicRoleSwitch =
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
-// When true, enable multiplexing in NC for Bluetooth.
-constexpr auto kEnableMultiplexBluetooth =
-    flags::Flag<bool>(kConfigPackage, "45676646", false);
 // Enable/Disable preferences for Nearby Connections.
 constexpr auto kEnableNearbyConnectionsPreferences =
     flags::Flag<bool>(kConfigPackage, "45732423", false);
