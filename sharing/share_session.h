@@ -199,6 +199,11 @@ class ShareSession {
   void InitializePayloadTracker(
       absl::AnyInvocable<void()> payload_transfer_updates_callback);
 
+  location::nearby::proto::sharing::SharingUseCase
+  IntroductionUseCaseToLoggingUseCase(
+      nearby::sharing::service::proto::IntroductionFrame::SharingUseCase
+          use_case);
+
  private:
   Clock& clock_;
   TaskRunner& service_thread_;

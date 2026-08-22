@@ -50,6 +50,7 @@ using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
+using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 // Used to hash a token into a 4 digit string.
@@ -315,6 +316,24 @@ void ShareSession::InitializePayloadTracker(
       &clock_, share_target_.id, attachment_container_, attachment_payload_map_,
       std::move(payload_updates_queue));
   payload_updates_queue_->Start(std::move(payload_transfer_updates_callback));
+}
+
+location::nearby::proto::sharing::SharingUseCase
+ShareSession::IntroductionUseCaseToLoggingUseCase(
+    IntroductionFrame::SharingUseCase use_case) {
+  switch (use_case) {
+    case IntroductionFrame::NEARBY_SHARE:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_NEARBY_SHARE;
+    case IntroductionFrame::TAP_TO_SHARE:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_TAP_TO_SHARE;
+    case IntroductionFrame::FILE_SYNC:
+      return location::nearby::proto::sharing::SharingUseCase::
+          USE_CASE_FILE_SYNC;
+   default:
+      return location::nearby::proto::sharing::SharingUseCase::USE_CASE_UNKNOWN;
+  }
 }
 
 }  // namespace nearby::sharing

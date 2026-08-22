@@ -20,13 +20,13 @@
 #include <memory>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/crypto_cros/ec_private_key.h"
 #include "internal/crypto_cros/symmetric_key.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/encrypted_metadata.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
@@ -39,6 +39,8 @@ extern const char kTestMetadataAccountName[];
 
 // Test Bluetooth MAC address in the format "XX:XX:XX:XX:XX:XX".
 extern const char kTestUnparsedBluetoothMacAddress[];
+
+constexpr absl::string_view kCertificateTestBindingId = "cert_test_binding_id";
 
 std::unique_ptr<crypto::ECPrivateKey> GetNearbyShareTestP256KeyPair();
 const std::vector<uint8_t>& GetNearbyShareTestP256PublicKey();
@@ -69,7 +71,7 @@ NearbySharePrivateCertificate GetNearbyShareTestPrivateCertificate(
 nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
     proto::DeviceVisibility visibility,
     absl::Time not_before = GetNearbyShareTestNotBefore(),
-    uint8_t vendor_id = 0);
+    uint8_t vendor_id = 0, absl::string_view binding_id = "");
 
 // Returns a list of |kNearbyShareNumPrivateCertificates| private/public
 // certificates, spanning contiguous validity periods.
@@ -80,6 +82,9 @@ GetNearbyShareTestPublicCertificateList(proto::DeviceVisibility visibility);
 
 const NearbyShareDecryptedPublicCertificate&
 GetNearbyShareTestDecryptedPublicCertificate();
+
+const NearbyShareDecryptedPublicCertificate&
+GetNearbyShareTestDecryptedPublicCertificateWithBindingId();
 
 }  // namespace sharing
 }  // namespace nearby
