@@ -161,6 +161,7 @@ class AnalyticsRecorder {
       int64_t session_id, const ShareTarget& share_target,
       int transfer_position, int concurrent_connections,
       location::nearby::proto::sharing::OSType share_target_os_type,
+      location::nearby::proto::sharing::SharingUseCase sharing_use_case,
       location::nearby::proto::sharing::PowerStatus power_status) = 0;
 
   virtual void NewSetVisibility(

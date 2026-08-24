@@ -420,6 +420,7 @@ bool OutgoingShareSession::SendIntroduction(
   V1Frame* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::INTRODUCTION);
   IntroductionFrame* introduction_frame = v1_frame->mutable_introduction();
+  introduction_frame->set_use_case(IntroductionFrame::NEARBY_SHARE);
   introduction_frame->set_start_transfer(true);
   if (!FillIntroductionFrame(introduction_frame)) {
     return false;
@@ -430,6 +431,7 @@ bool OutgoingShareSession::SendIntroduction(
       session_id(), share_target(),
       /*transfer_position=*/1,
       /*concurrent_connections=*/1, os_type(),
+      IntroductionUseCaseToLoggingUseCase(introduction_frame->use_case()),
       nearby::sharing::cpp::common::GetPowerStatus());
   VLOG(1) << "Successfully wrote the introduction frame";
   ready_for_accept_ = true;
