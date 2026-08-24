@@ -21,9 +21,11 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
@@ -61,7 +63,9 @@ class IncomingShareSession : public ShareSession {
   std::optional<TransferMetadata::Status> ProcessIntroduction(
       const nearby::sharing::service::proto::IntroductionFrame&
           introduction_frame,
-      FilePath destination_directory);
+      FilePath destination_directory,
+      const SyncManager& sync_manager,
+      const nearby::api::DeviceInfo& device_info);
 
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.

@@ -1232,9 +1232,8 @@ class NearbySharingServiceImplTest : public testing::Test {
         sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
   }
 
-  void SetDiskSpace(size_t size) {
-    fake_device_info_.SetAvailableDiskSpaceInBytes(
-        Files::GetTemporaryDirectory(), size);
+  void SetDiskSpace(FilePath path, size_t size) {
+    fake_device_info_.SetAvailableDiskSpaceInBytes(path, size);
   }
 
   void ResetDiskSpace() { fake_device_info_.ResetDiskSpace(); }
@@ -2511,7 +2510,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
-  SetDiskSpace(kFreeDiskSpace);
+  SetDiskSpace(fake_device_info_.GetDownloadPath(), kFreeDiskSpace);
   preference_manager().SetString(
       PrefNames::kCustomSavePath,
       fake_device_info_.GetDownloadPath().ToString());
@@ -5239,8 +5238,8 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   binding_response_frame.mutable_v1()->set_type(
       service::proto::V1Frame::BINDINGS);
   auto* binding_response = binding_response_frame.mutable_v1()
-      ->mutable_bindings()
-      ->mutable_binding_response();
+                               ->mutable_bindings()
+                               ->mutable_binding_response();
   binding_response->set_status(service::proto::BindingResponse::SUCCESS);
   binding_response->mutable_join_binding_time()->set_seconds(1234567890);
   std::vector<uint8_t> result_bytes(binding_response_frame.ByteSizeLong());

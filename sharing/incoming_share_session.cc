@@ -14,6 +14,7 @@
 
 #include "sharing/incoming_share_session.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -24,11 +25,14 @@
 #include <utility>
 #include <vector>
 
+#include "location/nearby/cpp/sharing/clients/cpp/common/nearby_sharing_common.h"
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
@@ -86,15 +90,35 @@ void IncomingShareSession::InvokeTransferUpdateCallback(
 std::optional<TransferMetadata::Status>
 IncomingShareSession::ProcessIntroduction(
     const IntroductionFrame& introduction_frame,
-    FilePath destination_directory) {
+    FilePath destination_directory, const SyncManager& sync_manager,
+    const nearby::api::DeviceInfo& device_info) {
   session_phase_ = SessionPhase::kTransfer;
+  // If transfer is for file sync, override the save path to the custom save
+  // path.
+  if (introduction_frame.use_case() == IntroductionFrame::FILE_SYNC) {
+    if (!certificate().has_value() || certificate()->binding_id().empty()) {
+      LOG(ERROR) << __func__ << ": Binding id is empty for file sync session.";
+      return TransferMetadata::Status::kRejected;
+    }
+    std::optional<sync::SyncBinding> binding =
+        sync_manager.GetSyncBinding(certificate()->binding_id());
+    if (!binding.has_value()) {
+      LOG(ERROR) << __func__ << ": Sync binding not found for binding id: "
+                 << certificate()->binding_id();
+      return TransferMetadata::Status::kRejected;
+    }
+    if (!binding->destination_directory().empty()) {
+      destination_directory = FilePath(binding->destination_directory());
+    }
+    set_session_usage(ShareSessionUsage::kFileSync);
+  }
   int64_t file_size_sum = 0;
   int app_file_count = 0;
   for (const AppMetadata& apk : introduction_frame.app_metadata()) {
     app_file_count += apk.file_name_size();
   }
   AttachmentContainer::Builder builder;
-  builder.SetDestinationDirectory(std::move(destination_directory));
+  builder.SetDestinationDirectory(destination_directory);
   builder.ReserveAttachmentsCount(
       introduction_frame.text_metadata_size() + app_file_count,
       introduction_frame.file_metadata_size(),
@@ -205,6 +229,27 @@ IncomingShareSession::ProcessIntroduction(
     return TransferMetadata::Status::kUnsupportedAttachmentType;
   }
   mutable_attachment_container() = std::move(*builder.Build());
+  // Override save path for this connection.
+  // This must be called before the transfer is accepted and payloads are being
+  // received.
+  connections_manager().OverrideSavePath(endpoint_id(), destination_directory);
+
+  // Log analytics event of receiving introduction.
+  analytics_recorder().NewReceiveIntroduction(
+      session_id(), share_target(),
+      /*referrer_package=*/std::nullopt, os_type(),
+      IntroductionUseCaseToLoggingUseCase(introduction_frame.use_case()),
+      nearby::sharing::cpp::common::GetPowerStatus());
+
+  std::optional<size_t> available_storage =
+      device_info.GetAvailableDiskSpaceInBytes(destination_directory);
+  if (available_storage.has_value() &&
+      *available_storage <= attachment_container().GetStorageSize()) {
+    LOG(WARNING) << __func__
+                 << ": Not enough space on the receiver. We have informed "
+                 << share_target().id;
+    return TransferMetadata::Status::kNotEnoughSpace;
+  }
   return std::nullopt;
 }
 
@@ -399,8 +444,7 @@ bool IncomingShareSession::FinalizePayloads() {
   return true;
 }
 
-std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths()
-    const {
+std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths() const {
   std::vector<FilePath> file_paths;
   const AttachmentContainer& container = attachment_container();
   const absl::flat_hash_map<int64_t, int64_t>& attachment_paylod_map =
