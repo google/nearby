@@ -1083,3 +1083,55 @@ enum PowerStatus {
   POWER_STATUS_AC = 2;
   POWER_STATUS_BATTERY_AND_AC = 3;
 }
+
+// The result of the pairing process.
+enum PairingResultStatus {
+  PAIRING_STATUS_UNKNOWN = 0;
+
+  // Android: Pairing succeeded; binding ID and remote device name saved to
+  // SQLite Room DB.
+  //
+  // Windows: Pairing succeeded; binding ID and certificate bindings saved
+  // to local settings.
+  PAIRING_SUCCESS = 1;
+
+  // Android & Windows: Failed to verify peer identity (e.g. certificate
+  // verification failure, untrusted peer, or missing certificates).
+  PAIRING_PEER_VERIFICATION_FAILED = 2;
+
+  // Windows: InitiateBinding RPC failed (unable to obtain binding_id for
+  // pairing).
+  PAIRING_SERVER_INITIATE_ERROR = 3;
+
+  // Android: No Google (Gaia) account logged in on the device.
+  PAIRING_NO_ACCOUNT = 4;
+
+  // Android: User declined pairing consent.
+  //
+  // Windows: Received rejection from peer.
+  PAIRING_CONSENT_DECLINED = 5;
+
+  // Android: User dismissed or canceled the pairing prompt (e.g. swiped
+  // away, tapped outside, or canceled).
+  //
+  // Windows: User or peer canceled the pairing attempt.
+  PAIRING_CANCELED = 6;
+
+  // Android: Inaction timeout on pairing consent prompt.
+  //
+  // Windows: Peer response timed out.
+  PAIRING_CONSENT_TIMEOUT = 7;
+
+  // Android: JoinBinding RPC failed.
+  PAIRING_SERVER_JOIN_ERROR = 8;
+
+  // Android: SQLite Room DB write failure (failed to save binding ID and
+  // remote device name).
+  //
+  // Windows: Local settings persistence error (failed to save binding ID
+  // and certificate bindings).
+  PAIRING_LOCAL_STORAGE_ERROR = 9;
+
+  // Android & Windows: Nearby connection disconnected during pairing.
+  PAIRING_CONNECTION_LOST = 10;
+}
