@@ -281,7 +281,10 @@ message BindingResponse {
   enum Status {
     UNKNOWN = 0;
     SUCCESS = 1;
-    FAILURE = 2;  // TODO: b/485307320 - Add more specific error codes.
+    // Generic failure on the client.
+    FAILURE = 2;
+    // The binding was declined by the user.
+    DECLINED = 3;
   }
   optional Status status = 1;
   optional google.protobuf.Timestamp join_binding_time = 2;
