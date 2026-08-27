@@ -45,7 +45,7 @@ namespace sharing {
 
 FakeNearbySharingService::FakeNearbySharingService()
     : service_thread_(&clock_, /*count=*/1),
-      analytics_recorder_(/*vendor_id=*/0, /*event_logger=*/nullptr),
+      analytics_recorder_(/*vendor_id=*/0, &mock_event_logger_),
       sync_manager_(std::make_unique<SyncManager>(&identity_rpc_client_,
                                                   &preference_manager_)),
       outgoing_targets_manager_(std::make_unique<OutgoingTargetsManager>(

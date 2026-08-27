@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
 #include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
 #include "location/nearby/sharing/lib/rpc/fake_nearby_share_client.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
@@ -161,6 +162,10 @@ class FakeNearbySharingService : public NearbySharingService {
   analytics::AnalyticsRecorderImpl& analytics_recorder() {
     return analytics_recorder_;
   }
+  FakeClock& fake_clock() { return clock_; }
+  nearby::analytics::MockEventLogger& mock_event_logger() {
+    return mock_event_logger_;
+  }
 
   // Fake methods to support test scenarios.
 
@@ -202,6 +207,7 @@ class FakeNearbySharingService : public NearbySharingService {
   FakeClock clock_;
   FakeTaskRunner service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
+  nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_;
   FakePreferenceManager preference_manager_;
   FakeNearbyIdentityClient identity_rpc_client_;

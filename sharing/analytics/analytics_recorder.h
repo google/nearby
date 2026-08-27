@@ -204,6 +204,10 @@ class AnalyticsRecorder {
                                 RpcDirection direction, int error_code,
                                 absl::Duration latency) = 0;
 
+  virtual void NewPairDevicesStatus(
+      location::nearby::proto::sharing::PairingResultStatus status,
+      absl::Duration duration) = 0;
+
   // Generates a random number for session ID or flow ID.
   virtual int64_t GenerateNextId() = 0;
 };

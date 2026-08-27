@@ -471,6 +471,7 @@ cc_library(
         "//internal/base:file_path",
         "//internal/platform:types",
         "//internal/test",
+        "//location/nearby/analytics/cpp/logging:mock_event_logger",
         "//location/nearby/sharing/lib/analytics",
         "//location/nearby/sharing/lib/rpc:fake_nearby_share_client",
         "//location/nearby/sharing/lib/rpc:sharing_rpc_client",

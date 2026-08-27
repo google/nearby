@@ -5106,6 +5106,7 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingBindingRpcFailed) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kFailed},
                         [&] { notification.Notify(); });
 
@@ -5142,6 +5143,7 @@ TEST_F(NearbySharingServiceImplTest,
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance,
                          TransferMetadata::Status::kFailed},
                         [&] { notification.Notify(); });
@@ -5196,6 +5198,7 @@ TEST_F(NearbySharingServiceImplTest, InitiatePairingSuccess) {
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
                         {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kAwaitingLocalConfirmation,
                          TransferMetadata::Status::kAwaitingRemoteAcceptance,
                          TransferMetadata::Status::kComplete},
                         [&] { notification.Notify(); });
@@ -5287,6 +5290,15 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_EQ(share_target.id, target_id);
         EXPECT_EQ(metadata.status(), TransferMetadata::Status::kConnecting);
         EXPECT_EQ(metadata.usage(), ShareSessionUsage::kUnknown);
+        EXPECT_TRUE(metadata.binding_id().empty());
+      })
+      .WillOnce([&](const ShareTarget& share_target,
+                    const AttachmentContainer& container,
+                    const TransferMetadata& metadata) {
+        EXPECT_EQ(share_target.id, target_id);
+        EXPECT_EQ(metadata.status(),
+                  TransferMetadata::Status::kAwaitingLocalConfirmation);
+        EXPECT_EQ(metadata.usage(), ShareSessionUsage::kPairing);
         EXPECT_TRUE(metadata.binding_id().empty());
       })
       .WillOnce([&](const ShareTarget& share_target,
