@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 83
+// Next id: 84
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -338,6 +338,9 @@ enum EventType {
 
   // End-to-end outcome of device pairing handshake.
   PAIR_DEVICES = 82;
+
+  // The initiative of syncing files.
+  FILE_SYNC = 83;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -853,7 +856,7 @@ enum SharingUseCase {
   // The user was redirected from Bluetooth sharing UI to Nearby Share
   USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE = 8;
   USE_CASE_TAP_TO_SHARE = 9;
-  // Automatic backup use case.
+  // Automatic file sync use case.
   USE_CASE_FILE_SYNC = 10;
 }
 
@@ -1134,4 +1137,62 @@ enum PairingResultStatus {
 
   // Android & Windows: Nearby connection disconnected during pairing.
   PAIRING_CONNECTION_LOST = 10;
+}
+
+// The trigger type that initiated the file sync flow.
+enum FileSyncTriggerType {
+  FILE_SYNC_TRIGGER_TYPE_UNKNOWN = 0;
+  // Background task triggered by the scheduler.
+  FILE_SYNC_TRIGGER_TYPE_SCHEDULED = 1;
+  // User initiated the sync on demand.
+  FILE_SYNC_TRIGGER_TYPE_ON_DEMAND = 2;
+  // Standalone indexing scan.
+  FILE_SYNC_TRIGGER_TYPE_INDEXING = 3;
+}
+
+// The result status of a file sync flow.
+enum FileSyncStatus {
+  FILE_SYNC_STATUS_UNKNOWN = 0;
+
+  // File sync flow completed successfully.
+  FILE_SYNC_STATUS_SUCCESS = 1;
+
+  // No folders are selected/configured.
+  FILE_SYNC_STATUS_NO_FOLDERS_CONFIGURED = 2;
+
+  // No paired device found.
+  FILE_SYNC_STATUS_NO_PAIRED_DEVICE = 3;
+
+  // Storage/media permissions not granted.
+  FILE_SYNC_STATUS_PERMISSION_DENIED = 4;
+
+  // Database error during indexing.
+  FILE_SYNC_STATUS_INDEXING_ERROR = 5;
+
+  // No target device found.
+  FILE_SYNC_STATUS_TARGET_NOT_FOUND = 6;
+
+  // Certificate/identity verification failed.
+  FILE_SYNC_STATUS_PEER_VERIFICATION_FAILED = 7;
+
+  // File sync cancelled by user.
+  FILE_SYNC_STATUS_USER_CANCELED = 8;
+
+  // Disconnected during connection setup or mid-transfer.
+  FILE_SYNC_STATUS_CONNECTION_LOST = 9;
+
+  // Receiver device has insufficient disk space to accept the files
+  FILE_SYNC_STATUS_REMOTE_OUT_OF_SPACE = 10;
+
+  // Payload transfer or remote response timed out
+  FILE_SYNC_STATUS_TRANSFER_TIMEOUT = 11;
+
+  // Other unclassified payload transfer errors.
+  FILE_SYNC_STATUS_OTHER_TRANSFER_ERROR = 12;
+
+  // Local DB write failure (failed to update sequence/file records).
+  FILE_SYNC_STATUS_LOCAL_DB_WRITE_ERROR = 13;
+
+  // Sync is not required.
+  FILE_SYNC_STATUS_NO_SYNC_REQUIRED = 14;
 }
