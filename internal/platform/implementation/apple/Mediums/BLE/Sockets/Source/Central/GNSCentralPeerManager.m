@@ -322,6 +322,10 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   NSAssert(_cbPeripheral.delegate == self, @"Self = %@ should be the delegate of %@", self,
            _cbPeripheral);
 
+  // If there is a pending characteristic write, call the completion.
+  // Mirrors disconnectingWithError:, which already purges on the local path.
+  [self callDataWriteCompletionWithError:GNSErrorWithCode(GNSErrorLostConnection)];
+
   // Clean-up this peer manager.
   [_centralManager centralPeerManagerDidDisconnect:self];
   GNSSocket *currentSocket = _socket;
