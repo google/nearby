@@ -57,14 +57,12 @@ constexpr FeatureFlags kTestCases[] = {
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr int64_t kPeripheralLostTimeoutInMillis = 1000;
-constexpr absl::string_view kServiceIDA =
-    "com.google.location.nearby.apps.test.a";
-constexpr absl::string_view kServiceIDB =
-    "com.google.location.nearby.apps.test.b";
+constexpr char kServiceIDA[] = "com.google.location.nearby.apps.test.a";
+constexpr char kServiceIDB[] = "com.google.location.nearby.apps.test.b";
 constexpr absl::string_view kAdvertisementString = "\x0a\x0b\x0c\x0d";
 constexpr absl::string_view kAdvertisementStringB = "\x01\x02\x03\x04";
-constexpr absl::string_view kLocalEndpointId = "local_endpoint_id";
-constexpr absl::string_view kFastAdvertisementServiceUuid{"\xf3\xfe"};
+constexpr char kLocalEndpointId[] = "local_endpoint_id";
+constexpr char kFastAdvertisementServiceUuid[] = "\xf3\xfe";
 
 class BleTest : public testing::TestWithParam<FeatureFlags> {
  public:
@@ -90,7 +88,7 @@ TEST_P(BleTest, CanConnect) {
   radio_client.Enable();
   radio_server.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
@@ -148,7 +146,7 @@ TEST_P(BleTest, CanConnect2) {
   radio_client.Enable();
   radio_server.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
@@ -209,7 +207,7 @@ TEST_P(BleTest, CanCancelConnect) {
   radio_client.Enable();
   radio_server.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
@@ -277,7 +275,7 @@ TEST_P(BleTest, CanCancelConnect2) {
   radio_client.Enable();
   radio_server.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
@@ -348,7 +346,7 @@ TEST_P(BleTest, DISABLED_CanConnectOverL2capRefactored) {
   radio_client.Enable();
   radio_server.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
@@ -427,9 +425,9 @@ TEST_F(BleTest, CanNotStartAdvertisingWithEmptyAdvertisementBytes) {
   radio_a.Enable();
   ByteArray advertisement_bytes;
 
-  EXPECT_FALSE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_FALSE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                      Ble::AdvertisingType::kRegular,
+                                      advertisement_bytes));
   env_.Stop();
 }
 
@@ -438,11 +436,11 @@ TEST_F(BleTest, CanNotStartAdvertisingWhenRadioNotEnabled) {
   BluetoothRadio radio_a;
   Ble ble_a(radio_a);
   radio_a.Disable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
 
-  EXPECT_FALSE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_FALSE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                      Ble::AdvertisingType::kRegular,
+                                      advertisement_bytes));
   env_.Stop();
 }
 
@@ -451,16 +449,16 @@ TEST_F(BleTest, CanStartAdvertisingWithDifferentPowerLevels) {
   BluetoothRadio radio_a;
   Ble ble_a(radio_a);
   radio_a.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
 
-  EXPECT_TRUE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kLowPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kLowPower,
+                                     Ble::AdvertisingType::kRegular,
+                                     advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kRegular,
+                                     advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
   env_.Stop();
 }
 
@@ -469,16 +467,16 @@ TEST_F(BleTest, CanStartAdvertisingWithDifferentAdvertisingTypes) {
   BluetoothRadio radio_a;
   Ble ble_a(radio_a);
   radio_a.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
 
-  EXPECT_TRUE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
-  EXPECT_TRUE(
-      ble_a.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
-                             Ble::AdvertisingType::kFast, advertisement_bytes));
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kRegular,
+                                     advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kFast,
+                                     advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
   env_.Stop();
 }
 
@@ -490,11 +488,11 @@ TEST_F(BleTest, CanStartFastAdvertising) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
   ble_b.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -507,12 +505,12 @@ TEST_F(BleTest, CanStartFastAdvertising) {
               },
       });
 
-  EXPECT_TRUE(
-      ble_a.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
-                             Ble::AdvertisingType::kFast, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kFast,
+                                     advertisement_bytes));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
-  ble_b.StopScanning(std::string(kServiceIDA));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
+  ble_b.StopScanning(kServiceIDA);
   env_.Stop();
 }
 
@@ -524,14 +522,14 @@ TEST_F(BleTest, CanStartFastScanning) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -545,8 +543,8 @@ TEST_F(BleTest, CanStartFastScanning) {
       }));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(std::string(kServiceIDA));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  ble_b.StopAdvertising(kServiceIDA);
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -558,11 +556,11 @@ TEST_F(BleTest, CanStartAdvertising) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
   ble_b.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -575,12 +573,12 @@ TEST_F(BleTest, CanStartAdvertising) {
               },
       });
 
-  EXPECT_TRUE(ble_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kRegular,
+                                     advertisement_bytes));
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
-  ble_b.StopScanning(std::string(kServiceIDA));
+  EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
+  ble_b.StopScanning(kServiceIDA);
   env_.Stop();
 }
 
@@ -592,14 +590,14 @@ TEST_F(BleTest, CanStartScanning) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -613,8 +611,8 @@ TEST_F(BleTest, CanStartScanning) {
       }));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(std::string(kServiceIDA));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  ble_b.StopAdvertising(kServiceIDA);
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -624,10 +622,10 @@ TEST_F(BleTest, CanNotStartScanningWhenRadioNotEnabled) {
   Ble ble_a(radio_a);
   radio_a.Disable();
 
-  EXPECT_FALSE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
-      /*include_dct_advertisement=*/false,
-      mediums::DiscoveredPeripheralCallback{}));
+  EXPECT_FALSE(ble_a.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
+                                   PowerLevel::kHighPower,
+                                   /*include_dct_advertisement=*/false,
+                                   mediums::DiscoveredPeripheralCallback{}));
   env_.Stop();
 }
 
@@ -638,7 +636,7 @@ TEST_F(BleTest, CanNotStartAcceptingConnectionsWhenRadioNotEnabled) {
   radio_a.Disable();
 
   EXPECT_FALSE(ble_a.StartAcceptingConnections(
-      std::string(kServiceIDA), [&](BleSocket socket, const std::string&) {}));
+      kServiceIDA, [&](BleSocket socket, const std::string&) {}));
   env_.Stop();
 }
 
@@ -648,16 +646,16 @@ TEST_F(BleTest, CanStartScanningWithDifferentPowerLevels) {
   Ble ble_a(radio_a);
   radio_a.Enable();
 
-  EXPECT_TRUE(ble_a.StartScanning(std::string(kServiceIDA),
-                                  Pcp::kP2pPointToPoint, PowerLevel::kLowPower,
+  EXPECT_TRUE(ble_a.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
+                                  PowerLevel::kLowPower,
                                   /*include_dct_advertisement=*/false,
                                   mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble_a.StartScanning(std::string(kServiceIDA),
-                                  Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
+  EXPECT_TRUE(ble_a.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
+                                  PowerLevel::kHighPower,
                                   /*include_dct_advertisement=*/false,
                                   mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -697,22 +695,22 @@ TEST_F(BleTest, CanStartStopMultipleScanningWithDifferentServiceIds) {
   Ble ble(radio);
   radio.Enable();
 
-  EXPECT_TRUE(ble.StartScanning(std::string(kServiceIDA), Pcp::kP2pPointToPoint,
+  EXPECT_TRUE(ble.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
                                 PowerLevel::kHighPower,
                                 /*include_dct_advertisement=*/false,
                                 mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble.StartScanning(std::string(kServiceIDB), Pcp::kP2pPointToPoint,
+  EXPECT_TRUE(ble.StartScanning(kServiceIDB, Pcp::kP2pPointToPoint,
                                 PowerLevel::kHighPower,
                                 /*include_dct_advertisement=*/false,
                                 mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble.StopScanning(kServiceIDA));
 
-  EXPECT_TRUE(ble.StartScanning(std::string(kServiceIDA), Pcp::kP2pPointToPoint,
+  EXPECT_TRUE(ble.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
                                 PowerLevel::kHighPower,
                                 /*include_dct_advertisement=*/false,
                                 mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble.StopScanning(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble.StopScanning(std::string(kServiceIDB)));
+  EXPECT_TRUE(ble.StopScanning(kServiceIDA));
+  EXPECT_TRUE(ble.StopScanning(kServiceIDB));
   env_.Stop();
 }
 
@@ -725,23 +723,23 @@ TEST_F(BleTest, DestructWorksForStartAdvertisingAndScanningWithoutStop) {
 
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
 
   // Device A starts advertising with service IDA and IDB.
-  EXPECT_TRUE(
-      ble_a.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
-                             Ble::AdvertisingType::kFast, advertisement_bytes));
-  EXPECT_TRUE(
-      ble_a.StartAdvertising(std::string(kServiceIDB), PowerLevel::kHighPower,
-                             Ble::AdvertisingType::kFast, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kFast,
+                                     advertisement_bytes));
+  EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDB, PowerLevel::kHighPower,
+                                     Ble::AdvertisingType::kFast,
+                                     advertisement_bytes));
 
   // Device B starts scanning with service IDA and IDB
-  EXPECT_TRUE(ble_b.StartScanning(std::string(kServiceIDA),
-                                  Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+  EXPECT_TRUE(ble_b.StartScanning(kServiceIDA, Pcp::kP2pPointToPoint,
+                                  PowerLevel::kHighPower,
                                   /*include_dct_advertisement=*/false,
                                   mediums::DiscoveredPeripheralCallback{}));
-  EXPECT_TRUE(ble_b.StartScanning(std::string(kServiceIDB),
-                                  Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+  EXPECT_TRUE(ble_b.StartScanning(kServiceIDB, Pcp::kP2pPointToPoint,
+                                  PowerLevel::kHighPower,
                                   /*include_dct_advertisement=*/false,
                                   mediums::DiscoveredPeripheralCallback{}));
   env_.Stop();
@@ -755,15 +753,15 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
 
   ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -783,7 +781,7 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  ble_b.StopAdvertising(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
@@ -791,7 +789,7 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
 
-  ble_a.StopScanning(std::string(kServiceIDA));
+  ble_a.StopScanning(kServiceIDA);
   env_.Stop();
 }
 
@@ -803,15 +801,15 @@ TEST_F(BleTest, StartFastScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
 
   ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -831,8 +829,8 @@ TEST_F(BleTest, StartFastScanningDiscoverButNoPeripheralLostAfterStopScanning) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  ble_b.StopAdvertising(std::string(kServiceIDA));
-  ble_a.StopScanning(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
+  ble_a.StopScanning(kServiceIDA);
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
@@ -849,15 +847,15 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -877,7 +875,7 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  ble_b.StopAdvertising(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
@@ -885,7 +883,7 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
 
-  ble_a.StopScanning(std::string(kServiceIDA));
+  ble_a.StopScanning(kServiceIDA);
   env_.Stop();
 }
 
@@ -897,15 +895,15 @@ TEST_F(BleTest, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -925,8 +923,8 @@ TEST_F(BleTest, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  ble_b.StopAdvertising(std::string(kServiceIDA));
-  ble_a.StopScanning(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
+  ble_a.StopScanning(kServiceIDA);
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
@@ -941,9 +939,8 @@ TEST_F(BleTest, CanStartAndStopLegacyAdvertising) {
   Ble ble_a{radio_a};
   radio_a.Enable();
   std::string service_id(kServiceIDA);
-  EXPECT_TRUE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                           kFastAdvertisementServiceUuid));
   EXPECT_FALSE(ble_a.IsAdvertising(service_id));
   EXPECT_TRUE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
@@ -957,9 +954,8 @@ TEST_F(BleTest, CanNotStartLegacyAdvertisingWhenRadioNotEnabled) {
   Ble ble_a{radio_a};
   radio_a.Disable();
   std::string service_id(kServiceIDA);
-  EXPECT_FALSE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_FALSE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                            kFastAdvertisementServiceUuid));
   EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   env_.Stop();
 }
@@ -972,9 +968,8 @@ TEST_F(BleTest, CanNotStopLegacyAdvertisingForNonExistingServiceId) {
   std::string service_id(kServiceIDA);
   EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   EXPECT_FALSE(ble_a.StopLegacyAdvertising(service_id));
-  EXPECT_TRUE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                           kFastAdvertisementServiceUuid));
   EXPECT_TRUE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
   EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
@@ -987,16 +982,15 @@ TEST_F(BleTest, StartLegacyAdvertisingNotBlockedByRegularAdvertising) {
   Ble ble_a{radio_a};
   radio_a.Enable();
   std::string service_id(kServiceIDA);
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
 
-  ble_a.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
   EXPECT_TRUE(ble_a.IsAdvertising(service_id));
-  EXPECT_TRUE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                           kFastAdvertisementServiceUuid));
   EXPECT_TRUE(ble_a.IsAdvertisingForLegacyDevice(service_id));
-  ble_a.StopAdvertising(std::string(kServiceIDA));
+  ble_a.StopAdvertising(kServiceIDA);
   env_.Stop();
 }
 
@@ -1007,13 +1001,11 @@ TEST_F(BleTest, DuplicateStartLegacyAdvertisingReturnsFalse) {
   radio_a.Enable();
   std::string service_id(kServiceIDA);
   EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
-  EXPECT_TRUE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_TRUE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                           kFastAdvertisementServiceUuid));
   EXPECT_TRUE(ble_a.IsAdvertisingForLegacyDevice(service_id));
-  EXPECT_FALSE(
-      ble_a.StartLegacyAdvertising(service_id, std::string(kLocalEndpointId),
-                                   std::string(kFastAdvertisementServiceUuid)));
+  EXPECT_FALSE(ble_a.StartLegacyAdvertising(service_id, kLocalEndpointId,
+                                            kFastAdvertisementServiceUuid));
   EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
   EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(service_id));
   env_.Stop();
@@ -1029,13 +1021,12 @@ TEST_F(BleTest, HandleLegacyAdvertising) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch legacy_device_found_latch(1);
 
-  ble_b.StartLegacyAdvertising(std::string(kServiceIDA),
-                               std::string(kLocalEndpointId),
-                               std::string(kFastAdvertisementServiceUuid));
-  EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(std::string(kServiceIDA)));
+  ble_b.StartLegacyAdvertising(kServiceIDA, kLocalEndpointId,
+                               kFastAdvertisementServiceUuid);
+  EXPECT_FALSE(ble_a.IsAdvertisingForLegacyDevice(kServiceIDA));
   std::string legacy_service_id("NearbySharing");
   EXPECT_TRUE(ble_a.StartScanning(
       legacy_service_id, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
@@ -1054,7 +1045,7 @@ TEST_F(BleTest, HandleLegacyAdvertising) {
       }));
 
   EXPECT_TRUE(legacy_device_found_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
   EXPECT_TRUE(ble_a.StopScanning(legacy_service_id));
   env_.Stop();
 }
@@ -1068,14 +1059,14 @@ TEST_F(BleTest, CanStartAsyncScanning) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1089,8 +1080,8 @@ TEST_F(BleTest, CanStartAsyncScanning) {
       }));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(std::string(kServiceIDA));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  ble_b.StopAdvertising(kServiceIDA);
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -1103,16 +1094,16 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   // Disable radio a to simulate platform error.
   radio_a.Disable();
   EXPECT_FALSE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1127,7 +1118,7 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
 
   radio_a.Enable();
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1141,12 +1132,12 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
       }));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(std::string(kServiceIDA));
+  ble_b.StopAdvertising(kServiceIDA);
 
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
 
   // Should return false the second time, as we removed service ID from the map.
-  EXPECT_FALSE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_FALSE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -1159,15 +1150,15 @@ TEST_F(BleTest, StartAsyncScanningDiscoverAndLostPeripheral) {
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1186,7 +1177,7 @@ TEST_F(BleTest, StartAsyncScanningDiscoverAndLostPeripheral) {
       }));
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_b.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_b.StopAdvertising(kServiceIDA));
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
@@ -1194,7 +1185,7 @@ TEST_F(BleTest, StartAsyncScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
 
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
 }
 
@@ -1208,15 +1199,15 @@ TEST_F(BleTest,
   Ble ble_b(radio_b);
   radio_a.Enable();
   radio_b.Enable();
-  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+  auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
   CountDownLatch found_latch(1);
   CountDownLatch lost_latch(1);
 
-  ble_b.StartAdvertising(std::string(kServiceIDA), PowerLevel::kHighPower,
+  ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
 
   EXPECT_TRUE(ble_a.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1236,8 +1227,8 @@ TEST_F(BleTest,
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
 
-  EXPECT_TRUE(ble_b.StopAdvertising(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_b.StopAdvertising(kServiceIDA));
+  EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
@@ -1258,20 +1249,20 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
   radio_scanner.Enable();
   radio_advertiser_a.Enable();
   radio_advertiser_b.Enable();
-  ByteArray advertisement_bytes_a((std::string(kAdvertisementString)));
-  ByteArray advertisement_bytes_b((std::string(kAdvertisementStringB)));
+  auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
+  auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
   CountDownLatch found_latch_a(1);
   CountDownLatch found_latch_b(1);
 
-  ble_advertiser_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes_a);
-  ble_advertiser_b.StartAdvertising(
-      std::string(kServiceIDB), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes_b);
+  ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_a);
+  ble_advertiser_b.StartAdvertising(kServiceIDB, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_b);
 
   ble_scanner.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1286,7 +1277,7 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
       });
 
   ble_scanner.StartScanning(
-      std::string(kServiceIDB), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDB, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1302,8 +1293,8 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
 
   EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
   EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDB)));
+  EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDA));
+  EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
   env_.Stop();
 }
 
@@ -1319,22 +1310,22 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   radio_scanner.Enable();
   radio_advertiser_a.Enable();
   radio_advertiser_b.Enable();
-  ByteArray advertisement_bytes_a((std::string(kAdvertisementString)));
-  ByteArray advertisement_bytes_b((std::string(kAdvertisementStringB)));
+  auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
+  auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
   CountDownLatch found_latch_a(1);
   CountDownLatch found_latch_b(1);
   CountDownLatch lost_latch_a(1);
   CountDownLatch lost_latch_b(1);
 
-  ble_advertiser_a.StartAdvertising(
-      std::string(kServiceIDA), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes_a);
-  ble_advertiser_b.StartAdvertising(
-      std::string(kServiceIDB), PowerLevel::kHighPower,
-      Ble::AdvertisingType::kRegular, advertisement_bytes_b);
+  ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_a);
+  ble_advertiser_b.StartAdvertising(kServiceIDB, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_b);
 
   ble_scanner.StartScanning(
-      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1358,7 +1349,7 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
       });
 
   ble_scanner.StartScanning(
-      std::string(kServiceIDB), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      kServiceIDB, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
@@ -1384,7 +1375,7 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
   EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
 
-  EXPECT_TRUE(ble_advertiser_a.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_advertiser_a.StopAdvertising(kServiceIDA));
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
@@ -1392,7 +1383,7 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(lost_latch_a.Await(kWaitDuration).result());
 
-  EXPECT_TRUE(ble_advertiser_b.StopAdvertising(std::string(kServiceIDB)));
+  EXPECT_TRUE(ble_advertiser_b.StopAdvertising(kServiceIDB));
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
@@ -1400,8 +1391,8 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(lost_latch_b.Await(kWaitDuration).result());
 
-  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDA)));
-  EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDB)));
+  EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDA));
+  EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
   env_.Stop();
 }
 
