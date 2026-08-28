@@ -1063,4 +1063,64 @@ static FakeTimer *gTimer;
   XCTAssertEqual(writeError.code, GNSErrorLostConnection);
 }
 
+
+#pragma mark - Data write timeout backstop
+
+// Waits past the 0.5 s deadline that -sendData:socket:completion: gives a write, so the timeout
+// block has run. The deadline uses -dispatch_after and cannot be faked.
+- (void)waitForDataWriteTimeout {
+  XCTestExpectation *elapsed = [self expectationWithDescription:@"data write timeout elapsed"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [elapsed fulfill];
+                 });
+  [self waitForExpectationsWithTimeout:kDefaultTimeout * 2 handler:nil];
+}
+
+// A write can be installed while the socket is already gone, because the caller runs on another
+// queue and does not observe the disconnection until later. The timeout block used to return
+// without completing that write, leaving it orphaned with no deadline left to catch it.
+- (void)testDataWriteTimeoutCompletesWriteInstalledAfterDisconnection {
+  [self simulateConnectedSocketWithPairingChar:NO];
+  GNSSocket *socket = _socket;
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self drainMainQueue];
+  XCTAssertFalse(socket.isConnected);
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSError *writeError = nil;
+  [(id<GNSSocketOwner>)_centralPeerManager sendData:[@"data" dataUsingEncoding:NSUTF8StringEncoding]
+                                             socket:socket
+                                         completion:^(NSError *error) {
+                                           writeError = error;
+                                           [expectation fulfill];
+                                         }];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout * 2 handler:nil];
+  XCTAssertEqual(writeError.code, GNSErrorNoConnection);
+}
+
+// The disconnection purge and the timeout deadline can both target the same write. Whichever runs
+// first wins and the other must find nothing left to complete.
+- (void)testRemoteDisconnectAndDataWriteTimeoutCompleteExactlyOnce {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSUInteger completionCount = 0;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    completionCount++;
+    [expectation fulfill];
+  }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+
+  [self waitForDataWriteTimeout];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+}
+
 @end

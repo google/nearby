@@ -674,7 +674,13 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   __weak __typeof__(self) weakSelf = self;
   dispatch_block_t dataWriteTimeoutBlock = dispatch_block_create(0, ^{
     __typeof__(self) strongSelf = weakSelf;
-    if (!strongSelf || !socket.isConnected) return;
+    if (!strongSelf) return;
+    if (!socket.isConnected) {
+      // The socket died with this write installed (cross-queue window):
+      // complete it with an error instead of leaving it orphaned forever.
+      [strongSelf callDataWriteCompletionWithError:GNSErrorWithCode(GNSErrorNoConnection)];
+      return;
+    }
     GNCLoggerInfo(@"Characteristic data write timed out");
     [strongSelf callDataWriteCompletionWithError:GNSErrorWithCode(GNSErrorConnectionTimedOut)];
   });
