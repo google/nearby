@@ -336,6 +336,7 @@ cc_library(
     ],
     deps = [
         ":crypto",  # build_cleaner: keep
+        ":device_paths",
         ":network_info",
         ":registry",
         ":scoped_wlan_memory",
@@ -461,6 +462,7 @@ cc_test(
     copts = ["-DCORE_ADAPTER_DLL"],
     tags = ["nozapfhahn"],
     deps = [
+        ":device_paths",
         ":preferences_manager_test_cc_proto",
         ":string_utils",
         ":test_data",

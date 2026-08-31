@@ -34,10 +34,10 @@
 
 #include "absl/base/attributes.h"
 #include "absl/status/statusor.h"
-#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
@@ -55,8 +55,8 @@
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi.h"
-#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -64,6 +64,7 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/device_info.h"
+#include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/file_path.h"
 #include "internal/platform/implementation/windows/http_loader.h"
@@ -86,8 +87,17 @@ std::string ImplementationPlatform::GetCustomSavePath(
     const std::string& save_path, const std::string& parent_folder,
     const std::string& file_name) {
   FilePath path{save_path};
-  path.append(FilePath{parent_folder});
-  path.append(FilePath{file_name});
+  if (path.IsEmpty()) {
+    path = nearby::platform::windows::GetDownloadsPath();
+  }
+  FilePath parent_folder_path{parent_folder};
+  if (!parent_folder_path.IsEmpty()) {
+    path.append(parent_folder_path);
+  }
+  FilePath file_path{file_name};
+  if (!file_path.IsEmpty()) {
+    path.append(file_path);
+  }
 
   return windows::FilePath::GetCustomSavePath(path).ToString();
 }
