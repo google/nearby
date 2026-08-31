@@ -858,16 +858,16 @@ void PayloadManager::SendPayloadReceivedAck(ClientProxy* client,
     return;
   }
 
+  Payload::Id payload_id = pending_payload.GetId();
   send_payload_ack_executor_.Execute(
-      "send_payload_ack", [this, &pending_payload, endpoint_id]() {
-        endpoint_manager_->SendPayloadAck(pending_payload.GetId(),
-                                          {endpoint_id});
+      "send_payload_ack", [this, payload_id, endpoint_id]() {
+        endpoint_manager_->SendPayloadAck(payload_id, {endpoint_id});
         VLOG(1) << "[safe-to-disconnect] Send "
                    "PAYLOAD_RECEIVED_ACK frame to: "
                 << endpoint_id << " done";
       });
   // Send the PAYLOAD_RECEIVED_ACK to the remote endpoint for the sender asap.
-  VLOG(1) << "[safe-to-disconnect] " << pending_payload.GetId()
+  VLOG(1) << "[safe-to-disconnect] " << payload_id
           << " isLastChunk, receiver send ack to " << endpoint_id;
 }
 

@@ -84,8 +84,12 @@ class PayloadSimulationUser : public SimulationUser {
  public:
   explicit PayloadSimulationUser(
       absl::string_view name,
-      BooleanMediumSelector allowed = BooleanMediumSelector())
-      : SimulationUser(std::string(name), allowed) {}
+      BooleanMediumSelector allowed = BooleanMediumSelector(),
+      SetSafeToDisconnect set_safe_to_disconnect =
+          SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                              /*payload_received_ack=*/true,
+                              /*safe_to_disconnect_version=*/5))
+      : SimulationUser(std::string(name), allowed, set_safe_to_disconnect) {}
   ~PayloadSimulationUser() override {
     LOG(INFO) << "PayloadSimulationUser: [down] name=" << info_.data();
     // SystemClock::Sleep(kDefaultTimeout);
@@ -401,6 +405,55 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   rx.Close();
   tx->Close();
   LOG(INFO) << "Test completed.";
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest,
+       SendStreamPayload_SendsPayloadReceivedAck_WhenEnabled) {
+  env_.Start();
+  PayloadSimulationUser user_a(
+      kDeviceA, GetParam(),
+      SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                          /*payload_received_ack=*/true,
+                          /*safe_to_disconnect_version=*/6));
+  PayloadSimulationUser user_b(
+      kDeviceB, GetParam(),
+      SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                          /*payload_received_ack=*/true,
+                          /*safe_to_disconnect_version=*/6));
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  auto [input, tx] = CreatePipe();
+  user_a.ExpectPayload(payload_latch_);
+  tx->Write(kMessage);
+
+  user_b.SendPayload(Payload(std::move(input)));
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
+  InputStream& rx = *user_a.GetPayload().AsStream();
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
+      },
+      kProgressTimeout));
+  ByteArray result = rx.Read(kChunkSize).result();
+  EXPECT_EQ(result.AsStringView(), kMessage);
+
+  // Close the write end of the pipe, which sends the last chunk.
+  // With payload_received_ack enabled, this triggers SendPayloadReceivedAck
+  // and concurrent destruction of PendingPayload on the receiver side.
+  rx.Close();
+  tx->Close();
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kSuccess;
+      },
+      kProgressTimeout));
+
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
