@@ -878,4 +878,249 @@ static FakeTimer *gTimer;
   XCTAssertEqual(_socketDelegate.disconnectedError.code, GNSErrorUnexpectedWeaveControlPacket);
 }
 
+
+#pragma mark - Pending data write purged on disconnection
+
+// Starts a write-with-response that the fake peripheral never acknowledges, so the pending data
+// write completion stays installed until something else completes it.
+- (void)startPendingDataWriteWithCompletion:(GNSErrorHandler)completion {
+  [(id<GNSSocketOwner>)_centralPeerManager sendData:[@"data" dataUsingEncoding:NSUTF8StringEncoding]
+                                             socket:_socket
+                                         completion:completion];
+}
+
+// Waits until everything already queued on the main queue has run. The peer manager calls its
+// completions with -dispatch_async on that queue.
+- (void)drainMainQueue {
+  XCTestExpectation *drained = [self expectationWithDescription:@"main queue drained"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [drained fulfill];
+  });
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+}
+
+// A disconnection initiated by the remote peer reaches -bleDisconnected without going through
+// -disconnectingWithError:, which is the path that already purges the pending write. Without the
+// purge in -bleDisconnected the completion is never called and the caller waits forever.
+- (void)testRemoteDisconnectCompletesPendingDataWrite {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSError *writeError = nil;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    writeError = error;
+    [expectation fulfill];
+  }];
+
+  NSError *disconnectError = [NSError errorWithDomain:@"domain" code:-42 userInfo:nil];
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:disconnectError];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertEqual(writeError.code, GNSErrorLostConnection);
+}
+
+// A write callback that lands after the purge must not run the completion a second time.
+- (void)testRemoteDisconnectCompletesPendingDataWriteExactlyOnce {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSUInteger completionCount = 0;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    completionCount++;
+    [expectation fulfill];
+  }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+
+  [_centralPeerManager peripheral:(CBPeripheral *)_peripheral
+      didWriteValueForCharacteristic:(CBCharacteristic *)_toPeripheralCharacteristic
+                               error:nil];
+  [self drainMainQueue];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+}
+
+// The disconnection error may be nil. The write must still fail: passing nil through would be
+// reported to the caller as a successful write.
+- (void)testRemoteDisconnectWithNilErrorStillFailsPendingDataWrite {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSError *writeError = nil;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    writeError = error;
+    [expectation fulfill];
+  }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertNotNil(writeError);
+  XCTAssertEqual(writeError.code, GNSErrorLostConnection);
+}
+
+// Regression: on the local path -disconnectingWithError: purges the write and -bleDisconnected
+// runs right after it. The second purge must find nothing left to complete.
+- (void)testLocalDisconnectCompletesPendingDataWriteExactlyOnce {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSUInteger completionCount = 0;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    completionCount++;
+    [expectation fulfill];
+  }];
+
+  [_socket disconnect];
+  XCTAssertTrue(_centralManager.cancelConnectionCalled);
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  [self drainMainQueue];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+}
+
+// Disconnecting with no write in flight is a no-op for the write completion.
+- (void)testRemoteDisconnectWithoutPendingDataWriteIsNoOp {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self drainMainQueue];
+  XCTAssertTrue(_centralManager.didDisconnectCalled);
+  XCTAssertTrue(_socketDelegate.disconnectedCalled);
+}
+
+// A payload larger than the negotiated packet size is written one packet at a time, each one
+// waiting on the previous write completion. Losing the link mid-payload must fail the send
+// instead of stalling it.
+- (void)testRemoteDisconnectFailsSendSplitAcrossPackets {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"socket send completion"];
+  __block NSError *sendError = nil;
+  [_socket sendData:[NSMutableData dataWithLength:300]
+      progressHandler:^(float progress){
+      }
+           completion:^(NSError *error) {
+             sendError = error;
+             [expectation fulfill];
+           }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertNotNil(sendError);
+}
+
+// After the purge the peer manager is back to NotConnected and accepts a new socket request, so
+// the same peripheral can be reconnected without recreating the process.
+- (void)testPeerManagerAcceptsNewConnectionAfterRemoteDisconnectWithPendingWrite {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    [expectation fulfill];
+  }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+
+  _socket = nil;
+  _centralManager.connectPeripheralCalled = NO;
+  [_centralPeerManager socketWithPairingCharacteristic:NO
+                                            completion:^(GNSSocket *socket, NSError *error){
+                                            }];
+  XCTAssertTrue(_centralManager.connectPeripheralCalled);
+}
+
+// Turning Bluetooth off disconnects the peripheral through the central manager, which is the same
+// remote path. The pending write must not survive it.
+- (void)testBluetoothPoweredOffCompletesPendingDataWrite {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSError *writeError = nil;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    writeError = error;
+    [expectation fulfill];
+  }];
+
+  _centralManager.cbManagerState = CBCentralManagerStatePoweredOff;
+  [_centralPeerManager cbManagerStateDidUpdate];
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertEqual(writeError.code, GNSErrorLostConnection);
+}
+
+
+#pragma mark - Data write timeout backstop
+
+// Waits past the 0.5 s deadline that -sendData:socket:completion: gives a write, so the timeout
+// block has run. The deadline uses -dispatch_after and cannot be faked.
+- (void)waitForDataWriteTimeout {
+  XCTestExpectation *elapsed = [self expectationWithDescription:@"data write timeout elapsed"];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [elapsed fulfill];
+                 });
+  [self waitForExpectationsWithTimeout:kDefaultTimeout * 2 handler:nil];
+}
+
+// A write can be installed while the socket is already gone, because the caller runs on another
+// queue and does not observe the disconnection until later. The timeout block used to return
+// without completing that write, leaving it orphaned with no deadline left to catch it.
+- (void)testDataWriteTimeoutCompletesWriteInstalledAfterDisconnection {
+  [self simulateConnectedSocketWithPairingChar:NO];
+  GNSSocket *socket = _socket;
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self drainMainQueue];
+  XCTAssertFalse(socket.isConnected);
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSError *writeError = nil;
+  [(id<GNSSocketOwner>)_centralPeerManager sendData:[@"data" dataUsingEncoding:NSUTF8StringEncoding]
+                                             socket:socket
+                                         completion:^(NSError *error) {
+                                           writeError = error;
+                                           [expectation fulfill];
+                                         }];
+
+  [self waitForExpectationsWithTimeout:kDefaultTimeout * 2 handler:nil];
+  XCTAssertEqual(writeError.code, GNSErrorNoConnection);
+}
+
+// The disconnection purge and the timeout deadline can both target the same write. Whichever runs
+// first wins and the other must find nothing left to complete.
+- (void)testRemoteDisconnectAndDataWriteTimeoutCompleteExactlyOnce {
+  [self simulateConnectedSocketWithPairingChar:NO];
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"write completion"];
+  __block NSUInteger completionCount = 0;
+  [self startPendingDataWriteWithCompletion:^(NSError *error) {
+    completionCount++;
+    [expectation fulfill];
+  }];
+
+  _peripheral.state = CBPeripheralStateDisconnected;
+  [_centralPeerManager bleDisconnectedWithError:nil];
+  [self waitForExpectationsWithTimeout:kDefaultTimeout handler:nil];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+
+  [self waitForDataWriteTimeout];
+  XCTAssertEqual(completionCount, (NSUInteger)1);
+}
+
 @end
