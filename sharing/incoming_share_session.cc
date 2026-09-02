@@ -349,7 +349,7 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
     const Payload* incoming_payload =
         connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_file()) {
-      LOG(WARNING) << "No payload found for file attachment: " << file.id();
+      VLOG(1) << "No payload found for file attachment: " << file.id();
       result = false;
       continue;
     }
@@ -363,6 +363,7 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
 
 bool IncomingShareSession::UpdatePayloadContents() {
   if (!UpdateFilePayloadPaths()) {
+    LOG(WARNING) << "Failed to update all file payload paths";
     return false;
   }
   AttachmentContainer& container = mutable_attachment_container();
