@@ -2042,7 +2042,9 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
   LOG(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
             << service_id << " : start";
 
-  ErrorOr<int> ble_l2cap_result = 0;
+  // If L2CAP is enabled, this will be overwritten by the actual result.
+  ErrorOr<int> ble_l2cap_result{
+      Error{OperationResultCode::MEDIUM_UNAVAILABLE_L2CAP_NOT_AVAILABLE}};
   if (!ble_medium_.IsAcceptingConnections(service_id)) {
     // TODO(b/380411884): Remove this check since we shouldn't enable radio by
     // NC.
