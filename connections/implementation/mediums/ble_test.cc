@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -45,6 +47,13 @@ namespace connections {
 namespace {
 
 using FeatureFlags = FeatureFlags::Flags;
+using location::nearby::proto::connections::OperationResultCode;
+
+MATCHER_P(HasErrorResultCode, value, "") {
+  return testing::ExplainMatchResult(testing::Optional(value),
+                                     arg.error().operation_result_code(),
+                                     result_listener);
+}
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{
@@ -635,8 +644,31 @@ TEST_F(BleTest, CanNotStartAcceptingConnectionsWhenRadioNotEnabled) {
   Ble ble_a(radio_a);
   radio_a.Disable();
 
-  EXPECT_FALSE(ble_a.StartAcceptingConnections(
-      kServiceIDA, [&](BleSocket socket, const std::string&) {}));
+  EXPECT_THAT(ble_a.StartAcceptingConnections(
+                  kServiceIDA, Ble::AcceptedConnectionCallback()),
+              HasErrorResultCode(
+                  OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL));
+  EXPECT_THAT(ble_a.StartAcceptingConnections(
+                  kServiceIDA, Ble::AcceptedConnectionCallback2()),
+              HasErrorResultCode(
+                  OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL));
+  env_.Stop();
+}
+
+TEST_F(BleTest, CanNotStartAcceptingConnectionsWithEmptyServiceId) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  Ble ble_a(radio_a);
+  radio_a.Enable();
+
+  EXPECT_THAT(
+      ble_a.StartAcceptingConnections("", Ble::AcceptedConnectionCallback()),
+      HasErrorResultCode(
+          OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING));
+  EXPECT_THAT(
+      ble_a.StartAcceptingConnections("", Ble::AcceptedConnectionCallback2()),
+      HasErrorResultCode(
+          OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING));
   env_.Stop();
 }
 
