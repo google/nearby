@@ -16,8 +16,10 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -40,6 +42,8 @@
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/device.h"
+#include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
@@ -48,6 +52,30 @@
 
 namespace nearby::connections {
 namespace {
+
+class FakeNearbyDevice : public NearbyDevice {
+ public:
+  explicit FakeNearbyDevice(absl::string_view endpoint_id)
+      : endpoint_id_(endpoint_id) {}
+  std::string GetEndpointId() const override { return endpoint_id_; }
+  std::vector<ConnectionInfoVariant> GetConnectionInfos() const override {
+    return {};
+  }
+  std::string ToProtoBytes() const override { return ""; }
+
+ private:
+  std::string endpoint_id_;
+};
+
+class FakeNearbyDeviceProvider : public NearbyDeviceProvider {
+ public:
+  explicit FakeNearbyDeviceProvider(absl::string_view endpoint_id)
+      : device_(endpoint_id) {}
+  const NearbyDevice* GetLocalDevice() override { return &device_; }
+
+ private:
+  FakeNearbyDevice device_;
+};
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
@@ -1845,5 +1873,662 @@ TEST_F(P2pClusterPcpHandlerTest, BleConnect_L2cap_NoRefactor) {
   RunCanConnectHelper({.ble = true});
 }
 
+TEST_F(P2pClusterPcpHandlerTest, RejectSpoofedBleAdvertisement) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableAntiSpoofing,
+      true);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string endpoint_name_c{"endpoint_name_c"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Attacker advertiser C
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Legitimate)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on C (Attacker) with SAME endpoint ID but different info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_c},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for C to be discovered. It should NOT be discovered because of
+  // spoofing rejection. So second_discovery_latch should timeout.
+  EXPECT_FALSE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);  // Still 1
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest, RejectSpoofedBluetoothAdvertisement) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableAntiSpoofing,
+      true);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string endpoint_name_c{"endpoint_name_c"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Attacker advertiser C
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Legitimate)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on C (Attacker) with SAME endpoint ID but different info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_c},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for C to be discovered. It should NOT be discovered because of
+  // spoofing rejection. So second_discovery_latch should timeout.
+  EXPECT_FALSE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);  // Still 1
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest, RejectSpoofedWifiLanAdvertisement) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableAntiSpoofing,
+      true);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string endpoint_name_c{"endpoint_name_c"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Attacker advertiser C
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Legitimate)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on C (Attacker) with SAME endpoint ID but different info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_c},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for C to be discovered. It should NOT be discovered because of
+  // spoofing rejection. So second_discovery_latch should timeout.
+  EXPECT_FALSE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);  // Still 1
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest, WifiLanMultiInterfaceDeduplication) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableAntiSpoofing,
+      true);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B (Interface 1, e.g. WLAN)
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Legitimate advertiser B (Interface 2, e.g. Wi-Fi Direct, simulated via
+  // mediums_c)
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Interface 1)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B (Interface 1)
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on B (Interface 2) with SAME endpoint ID and SAME info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for Interface 2 advertisement. It should be gracefully
+  // deduplicated/ignored by the multi-interface check in
+  // WifiLanServiceDiscoveredHandler.
+  EXPECT_FALSE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);  // Still 1
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest, AllowSpoofedBle_FlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableAntiSpoofing,
+      false);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string endpoint_name_c{"endpoint_name_c"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Attacker advertiser C
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Legitimate)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on C (Attacker) with SAME endpoint ID but different info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_c},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for C to be discovered. It should be discovered.
+  EXPECT_TRUE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 2);
+  EXPECT_EQ(discovered_infos[1], endpoint_name_c);
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest, AllowSpoofedBt_FlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableAntiSpoofing,
+      false);
+  env_.Start();
+  std::string endpoint_name_b{"endpoint_name_b"};
+  std::string endpoint_name_c{"endpoint_name_c"};
+  std::string service_id{"service"};
+  std::string shared_endpoint_id{"SHAR"};
+
+  // Legitimate advertiser B
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  FakeNearbyDeviceProvider provider_b(shared_endpoint_id);
+  client_b_.RegisterDeviceProvider(&provider_b);
+
+  // Attacker advertiser C
+  Mediums mediums_c;
+  EndpointChannelManager ecm_c;
+  EndpointManager em_c(&ecm_c);
+  BwuManager bwu_c(mediums_c, em_c, ecm_c, {}, {});
+  InjectedBluetoothDeviceStore ibds_c;
+  P2pClusterPcpHandler handler_c(&mediums_c, &em_c, &ecm_c, &bwu_c, ibds_c);
+  FakeNearbyDeviceProvider provider_c(shared_endpoint_id);
+  client_c_.RegisterDeviceProvider(&provider_c);
+
+  // Discoverer A
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  int discovery_count = 0;
+  std::vector<std::string> discovered_infos;
+  CountDownLatch first_discovery_latch(1);
+  CountDownLatch second_discovery_latch(1);
+
+  DiscoveryOptions discovery_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}},
+  };
+  AdvertisingOptions advertising_options = {
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}},
+  };
+
+  // Start Discovery on A
+  EXPECT_EQ(
+      handler_a.StartDiscovery(
+          &client_a_, service_id, discovery_options,
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    LOG(INFO)
+                        << "Device discovered: id=" << endpoint_id
+                        << ", endpoint_info=" << std::string{endpoint_info};
+                    discovery_count++;
+                    discovered_infos.push_back(std::string(endpoint_info));
+                    if (discovery_count == 1) {
+                      first_discovery_latch.CountDown();
+                    } else if (discovery_count == 2) {
+                      second_discovery_latch.CountDown();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  // Start Advertising on B (Legitimate)
+  EXPECT_EQ(handler_b.StartAdvertising(
+                &client_b_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_b},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for A to discover B
+  EXPECT_TRUE(first_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 1);
+  EXPECT_EQ(discovered_infos[0], endpoint_name_b);
+
+  // Start Advertising on C (Attacker) with SAME endpoint ID but different info
+  EXPECT_EQ(handler_c.StartAdvertising(
+                &client_c_, service_id, advertising_options,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_c},
+                }),
+            Status{Status::kSuccess});
+
+  // Wait for C to be discovered. It should be discovered.
+  EXPECT_TRUE(second_discovery_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(discovery_count, 2);
+  EXPECT_EQ(discovered_infos[1], endpoint_name_c);
+
+  handler_a.StopDiscovery(&client_a_);
+  handler_b.StopAdvertising(&client_b_);
+  handler_c.StopAdvertising(&client_c_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  bwu_c.Shutdown();
+  env_.Stop();
+}
+
+
+
 }  // namespace
 }  // namespace nearby::connections
+

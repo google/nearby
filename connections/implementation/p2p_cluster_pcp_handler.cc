@@ -391,6 +391,33 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
           return;
         }
 
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnableAntiSpoofing)) {
+          std::string endpoint_id = device_name.GetEndpointId();
+          std::vector<BasePcpHandler::DiscoveredEndpoint*> existing_endpoints =
+              GetDiscoveredEndpoints(endpoint_id);
+          for (auto* endpoint : existing_endpoints) {
+            if (endpoint->medium == BLUETOOTH) {
+              BluetoothEndpoint* bt_endpoint =
+                  dynamic_cast<BluetoothEndpoint*>(endpoint);
+              if (bt_endpoint != nullptr) {
+                if (bt_endpoint->bluetooth_device.GetAddress() !=
+                    device.GetAddress()) {
+                  LOG(WARNING)
+                      << "BluetoothDeviceDiscoveredHandler: "
+                      << "MAC address mismatch for endpoint " << endpoint_id
+                      << ". Existing: "
+                      << bt_endpoint->bluetooth_device.GetAddress().ToString()
+                      << ", New: " << device.GetAddress().ToString()
+                      << ". Rejecting device to prevent spoofing.";
+                  return;
+                }
+              }
+            }
+          }
+        }
+
         // Report the discovered endpoint to the client.
         VLOG(1) << "Found BluetoothDeviceName " << device_name_string
                 << " (with endpoint_id=" << device_name.GetEndpointId()
@@ -451,7 +478,10 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
         // Connections.
         for (auto endpoint : GetDiscoveredEndpoints(Medium::BLUETOOTH)) {
           BluetoothEndpoint* bluetoothEndpoint =
-              static_cast<BluetoothEndpoint*>(endpoint);
+              dynamic_cast<BluetoothEndpoint*>(endpoint);
+          if (bluetoothEndpoint == nullptr) {
+            continue;
+          }
           LOG(INFO)
               << "BT discovery handler (CHANGED) [client_id="
               << client->GetClientId() << ", service_id=" << service_id
@@ -606,6 +636,34 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
         if (!IsRecognizedBleEndpoint(service_id, advertisement)) {
           LOG(ERROR) << "IsRecognizedBleEndpoint failed";
           return;
+        }
+
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnableAntiSpoofing)) {
+          std::string endpoint_id = advertisement.GetEndpointId();
+          std::vector<BasePcpHandler::DiscoveredEndpoint*> existing_endpoints =
+              GetDiscoveredEndpoints(endpoint_id);
+          for (auto* endpoint : existing_endpoints) {
+            if (endpoint->medium == BLE) {
+              BleEndpoint* ble_endpoint = dynamic_cast<BleEndpoint*>(endpoint);
+              if (ble_endpoint != nullptr) {
+                if (ble_endpoint->ble_peripheral.GetId() !=
+                    peripheral.GetId()) {
+                  LOG(WARNING)
+                      << "BlePeripheralDiscoveredHandler: "
+                      << "Peripheral ID mismatch for endpoint " << endpoint_id
+                      << ". Existing: "
+                      << absl::BytesToHexString(
+                             ble_endpoint->ble_peripheral.GetId().data())
+                      << ", New: "
+                      << absl::BytesToHexString(peripheral.GetId().data())
+                      << ". Rejecting advertisement to prevent spoofing.";
+                  return;
+                }
+              }
+            }
+          }
         }
 
         // Report the discovered endpoint to the client.
@@ -961,6 +1019,50 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
         if (!IsRecognizedWifiServiceEndpoint(service_id,
                                              wifi_lan_service_info)) {
           return;
+        }
+
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnableAntiSpoofing)) {
+          std::string endpoint_id = wifi_lan_service_info.GetEndpointId();
+          std::vector<BasePcpHandler::DiscoveredEndpoint*> existing_endpoints =
+              GetDiscoveredEndpoints(endpoint_id);
+          for (auto* endpoint : existing_endpoints) {
+            if (endpoint->medium == WIFI_LAN) {
+              WifiLanEndpoint* wifi_lan_endpoint =
+                  dynamic_cast<WifiLanEndpoint*>(endpoint);
+              if (wifi_lan_endpoint != nullptr) {
+                bool ipv4_mismatch =
+                    !wifi_lan_endpoint->service_info.GetIPAddress().empty() &&
+                    !service_info.GetIPAddress().empty() &&
+                    wifi_lan_endpoint->service_info.GetIPAddress() !=
+                        service_info.GetIPAddress();
+                bool ipv6_mismatch =
+                    !wifi_lan_endpoint->service_info.GetIPv6Address().empty() &&
+                    !service_info.GetIPv6Address().empty() &&
+                    wifi_lan_endpoint->service_info.GetIPv6Address() !=
+                        service_info.GetIPv6Address();
+
+                if (ipv4_mismatch || ipv6_mismatch) {
+                  // Note: In multi-interface scenarios (e.g. WLAN vs Wi-Fi
+                  // Direct), mDNS legitimately reports different IPs. Rather
+                  // than rejecting as spoofing, we log an informational message
+                  // and let BasePcpHandler handle deduplication/filtering.
+                  LOG(INFO) << "WifiLanServiceDiscoveredHandler: "
+                            << "IP address mismatch for endpoint "
+                            << endpoint_id << ". Existing IPv4: "
+                            << wifi_lan_endpoint->service_info.GetIPAddress()
+                            << ", New IPv4: " << service_info.GetIPAddress()
+                            << "; Existing IPv6: "
+                            << wifi_lan_endpoint->service_info.GetIPv6Address()
+                            << ", New IPv6: " << service_info.GetIPv6Address()
+                            << ". Delegating multi-interface deduplication to "
+                               "BasePcpHandler.";
+                  return;
+                }
+              }
+            }
+          }
         }
 
         // Report the discovered endpoint to the client.
