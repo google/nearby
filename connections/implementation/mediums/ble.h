@@ -142,10 +142,11 @@ class Ble final {
   //                              the discovery. it is false by default.
   // discovered_peripheral_callback - The callback to invoke for discovery
   //                                  events.
-  ErrorOr<bool> StartScanning(const std::string& service_id, Pcp pcp,
-                              PowerLevel power_level,
-                              bool include_dct_advertisement,
-                              DiscoveredPeripheralCallback callback)
+  // fast_advertisement_service_uuid - The service uuid for fast advertising.
+  ErrorOr<bool> StartScanning(
+      const std::string& service_id, Pcp pcp, PowerLevel power_level,
+      bool include_dct_advertisement, DiscoveredPeripheralCallback callback,
+      absl::string_view fast_advertisement_service_uuid = "")
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE scanning for a service ID.
@@ -321,7 +322,7 @@ class Ble final {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Called by StartScanning when using the async methods.
   bool StartAsyncScanningLocked(absl::string_view service_id,
-                                PowerLevel power_level)
+                                PowerLevel power_level, const Uuid& fast_uuid)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Called by StartScanning when using the async methods.
   bool StopAsyncScanningLocked(absl::string_view service_id)
