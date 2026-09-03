@@ -643,6 +643,7 @@ static const char *const kTestServiceID = "TestServiceID";
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
   XCTAssertEqual(server_socket.get(), nullptr);
+  OCMVerify([mockPeripheralManager stop]);
 }
 
 - (void)testOpenServerSocket_Cleanup_InitialState {
