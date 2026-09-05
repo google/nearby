@@ -193,11 +193,9 @@ cc_library(
         "//internal/data:__subpackages__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
-        "//internal/proto/analytics:__subpackages__",
         "//internal/weave:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":comm",
