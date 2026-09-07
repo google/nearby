@@ -41,6 +41,36 @@ jobs:
     - name: Test
       run: swift test
 
+  test-cocoapods:
+    name: Test CocoaPods (${{ matrix.linkage }})
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        include:
+        - linkage: dynamic frameworks
+          flags: ''
+        - linkage: static frameworks
+          flags: --use-static-frameworks
+        - linkage: static libraries
+          flags: --use-libraries
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+    - name: Install CocoaPods
+      run: gem install cocoapods --version 1.16.2 --no-document
+    - name: Check sources against SwiftPM
+      run: ruby connections/swift/CocoaPods/check_sources.rb
+    - name: Build and test consumer
+      run: >-
+        pod lib lint NearbyConnections.podspec --platforms=ios
+        --include-podspecs=NearbyCoreAdapter.podspec --test-specs=Tests
+        --external-podspecs='{NearbyAbseil,NearbyBoringSSL}.podspec'
+        ${{ matrix.flags }}
+
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
