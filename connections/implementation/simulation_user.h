@@ -102,6 +102,8 @@ class SimulationUser {
         },
         set_safe_to_disconnect_(set_safe_to_disconnect) {}
   virtual ~SimulationUser() { Stop(); }
+  PcpManager& GetPcpManager() { return mgr_; }
+  ClientProxy& GetClientProxy() { return client_; }
   void Stop() {
     pm_.DisconnectFromEndpointManager();
     mgr_.DisconnectFromEndpointManager();

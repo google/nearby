@@ -1229,7 +1229,7 @@ TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
   // Before
   EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
   EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
-  StopDiscovery(client2());                  // No Discovery
+  StopDiscovery(client2());  // No Discovery
   EXPECT_TRUE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // One Connection
 
@@ -1779,7 +1779,7 @@ TEST_F(ClientProxyTest, ResetLocalEndpointId_OngoingConnectionReturnsEarly) {
 
   // Set up an ongoing connection
   OnAdvertisingConnectionInitiated(client1(),
-                                    {ByteArray("EndpointInfo"), "EndA"});
+                                   {ByteArray("EndpointInfo"), "EndA"});
   EXPECT_TRUE(client1()->HasOngoingConnection());
 
   // ResetLocalEndpointId should NOT clear local_endpoint_id
@@ -1817,6 +1817,82 @@ TEST_F(ClientProxyTest, OnSessionComplete_SavesToLastLocalEndpointId) {
   client1()->StoppedAdvertising();
   EXPECT_FALSE(client1()->IsAdvertising());
   EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
+}
+
+TEST_F(ClientProxyTest, GetEndpointStrategy_EPNotFound_ReturnsNone) {
+  EXPECT_EQ(client1()->GetEndpointStrategy("non_existent_ep"), Strategy::kNone);
+}
+
+TEST_F(ClientProxyTest, GetEndpointStrategy_ExplicitStrategy_ReturnsExplicit) {
+  ConnectionOptions options;
+  options.strategy = Strategy::kP2pStar;
+
+  EXPECT_CALL(mock_advertising_connection_.initiated_cb, Call).Times(1);
+
+  client1()->OnConnectionInitiated("endpoint_id", advertising_connection_info_,
+                                   options, advertising_connection_listener_,
+                                   "token");
+
+  EXPECT_EQ(client1()->GetEndpointStrategy("endpoint_id"), Strategy::kP2pStar);
+}
+
+TEST_F(ClientProxyTest,
+       GetEndpointStrategy_StrategyNoneIncomingAdv_ReturnsAdv) {
+  ConnectionOptions options;
+  options.strategy = Strategy::kNone;
+
+  EXPECT_CALL(mock_advertising_connection_.initiated_cb, Call).Times(1);
+
+  client1()->OnConnectionInitiated("endpoint_id", advertising_connection_info_,
+                                   options, advertising_connection_listener_,
+                                   "token");
+
+  AdvertisingOptions advertising_options;
+  advertising_options.strategy = Strategy::kP2pCluster;
+  client1()->StartedAdvertising("service", Strategy::kP2pCluster, {}, {}, {},
+                                advertising_options);
+
+  EXPECT_EQ(client1()->GetEndpointStrategy("endpoint_id"),
+            Strategy::kP2pCluster);
+}
+
+TEST_F(ClientProxyTest,
+       GetEndpointStrategy_StrategyNoneIncomingListen_ReturnsListen) {
+  ConnectionOptions options;
+  options.strategy = Strategy::kNone;
+
+  EXPECT_CALL(mock_advertising_connection_.initiated_cb, Call).Times(1);
+
+  client1()->OnConnectionInitiated("endpoint_id", advertising_connection_info_,
+                                   options, advertising_connection_listener_,
+                                   "token");
+
+  v3::ConnectionListeningOptions listening_options;
+  listening_options.strategy = Strategy::kP2pStar;
+  client1()->StartedListeningForIncomingConnections(
+      "service", Strategy::kP2pStar, {}, listening_options);
+
+  EXPECT_EQ(client1()->GetEndpointStrategy("endpoint_id"), Strategy::kP2pStar);
+}
+
+TEST_F(ClientProxyTest,
+       GetEndpointStrategy_StrategyNoneOutgoing_ReturnsDiscovery) {
+  ConnectionOptions options;
+  options.strategy = Strategy::kNone;
+
+  EXPECT_CALL(mock_discovery_connection_.initiated_cb, Call).Times(1);
+
+  client1()->OnConnectionInitiated("endpoint_id", discovery_connection_info_,
+                                   options, discovery_connection_listener_,
+                                   "token");
+
+  DiscoveryOptions discovery_options;
+  discovery_options.strategy = Strategy::kP2pPointToPoint;
+  client1()->StartedDiscovery("service", Strategy::kP2pPointToPoint, {}, {}, {},
+                              discovery_options);
+
+  EXPECT_EQ(client1()->GetEndpointStrategy("endpoint_id"),
+            Strategy::kP2pPointToPoint);
 }
 
 }  // namespace
