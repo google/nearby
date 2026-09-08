@@ -16,6 +16,9 @@ name: Validate
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: true
 
@@ -25,9 +28,10 @@ jobs:
     runs-on: macOS-latest
     steps:
     - name: sync repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         submodules: true
+        persist-credentials: false
     - name: Build
       run: swift build
 
@@ -35,9 +39,10 @@ jobs:
     name: Test Swift
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         submodules: true
+        persist-credentials: false
     - name: Test
       run: swift test
 
@@ -54,10 +59,11 @@ jobs:
         - linkage: static libraries
           flags: --use-libraries
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
         submodules: true
-    - uses: ruby/setup-ruby@v1
+        persist-credentials: false
+    - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1
       with:
         ruby-version: '3.3'
     - name: Install CocoaPods
@@ -75,6 +81,8 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        persist-credentials: false
     - name: Build Connections
       run: CC=clang-18 CXX=clang-18++ BAZEL_CXXOPTS="-std=c++20" bazel build --@com_google_protobuf//bazel/toolchains:prefer_prebuilt_protoc=true --copt='-DGITHUB_BUILD' //connections:core
