@@ -18,6 +18,7 @@
 load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:java_proto_library.bzl", "java_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@com_google_protobuf//build_defs:kt_jvm_proto_library.bzl", "kt_jvm_lite_proto_library")
 
 licenses(["notice"])
 
@@ -26,6 +27,11 @@ package(default_visibility = ["//visibility:public"])
 proto_library(
     name = "connections_enums_proto",
     srcs = ["connections_enums.proto"],
+)
+
+kt_jvm_lite_proto_library(
+    name = "connections_enums_kt_proto_lite",
+    deps = [":connections_enums_proto"],
 )
 
 java_proto_library(
