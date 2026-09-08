@@ -73,6 +73,8 @@ enum SessionRole {
   UNKNOWN_SESSION_ROLE = 0;
   ADVERTISER = 1;
   DISCOVERER = 2;
+  SERVER = 3;
+  CLIENT = 4;
 }
 
 // LINT.IfChange
