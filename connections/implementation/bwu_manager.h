@@ -22,6 +22,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -122,6 +123,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   // Check if BWU is on going for a specific Endpoint
   bool IsUpgradeOngoing(const std::string& endpoint_id);
+  bool GetLocallyChosenSupportsDisablingEncryption(
+      absl::string_view endpoint_id) const;
+  void SetLocallyChosenSupportsDisablingEncryption(
+      absl::string_view endpoint_id, bool supports_disabling_encryption);
+
   Config GetConfig() const { return config_; }
 
  private:
@@ -246,6 +252,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // upgrade to or is currently using until reverted. Only used if feature flag
   // support_multiple_bwu_mediums is ENABLED.
   absl::flat_hash_map<std::string, Medium> endpoint_id_to_bwu_medium_;
+
+  absl::flat_hash_map<std::string, bool>
+      endpoint_id_to_supports_disabling_encryption_;
 
   Mediums* mediums_;
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers_;
