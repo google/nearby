@@ -30,4 +30,7 @@
 // IWYU pragma: end_exports
 #endif                                               // defined(NEARBY_CHROMIUM)
 
+
+#define TEST_DVLOG(severity) DVLOG(severity)
+
 #endif  // PLATFORM_BASE_LOGGING_H_
