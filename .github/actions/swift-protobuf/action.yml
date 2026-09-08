@@ -21,8 +21,8 @@ runs:
     uses: actions/checkout@v6
     with:
       repository: protocolbuffers/protobuf
-      ref: v33.2
-      path: google-protobuf
+      ref: v33.4
+      path: third_party/protobuf
   - name: install protoc
     run: |
       brew install protobuf
@@ -30,15 +30,19 @@ runs:
     shell: bash
   - name: generate nearby proto bindings
     run: |
-      mkdir protoc_out
-      protoc --cpp_out=protoc_out connections/implementation/proto/offline_wire_formats.proto internal/proto/analytics/connections_log.proto internal/proto/credential.proto internal/proto/local_credential.proto internal/proto/metadata.proto proto/errorcode/error_code_enums.proto proto/mediums/ble_frames.proto proto/mediums/multiplex_frames.proto proto/mediums/nfc_frames.proto proto/mediums/web_rtc_signaling_frames.proto proto/connections_enums.proto proto/sharing_enums.proto sharing/proto/analytics/nearby_sharing_log.proto
-      ls -lR protoc_out
+      rm -rf compiled_proto
+      mkdir compiled_proto
+      protoc --cpp_out=compiled_proto connections/implementation/proto/offline_wire_formats.proto internal/proto/analytics/connections_log.proto internal/proto/credential.proto internal/proto/local_credential.proto internal/proto/metadata.proto proto/errorcode/error_code_enums.proto proto/mediums/ble_frames.proto proto/mediums/multiplex_frames.proto proto/mediums/nfc_frames.proto proto/mediums/web_rtc_signaling_frames.proto proto/connections_enums.proto proto/sharing_enums.proto sharing/proto/analytics/nearby_sharing_log.proto
+      ls -lR compiled_proto
     shell: bash
   - name: generate ukey2 proto bindings
     run: |
-      cd third_party/ukey2/ukey2
-      mkdir protoc_out
-      protoc --cpp_out=protoc_out --proto_path=. --proto_path=src/main/proto src/main/proto/device_to_device_messages.proto
-      protoc --cpp_out=protoc_out src/main/proto/securegcm.proto src/main/proto/securemessage.proto src/main/proto/ukey.proto
-      ls -lR protoc_out
+      cd third_party/ukey2
+      rm -rf compiled_proto
+      mkdir compiled_proto
+      cd ukey2
+      protoc --cpp_out=${GITHUB_WORKSPACE}/third_party/ukey2/compiled_proto --proto_path=. --proto_path=src/main/proto src/main/proto/device_to_device_messages.proto
+      protoc --cpp_out=${GITHUB_WORKSPACE}/third_party/ukey2/compiled_proto src/main/proto/securegcm.proto src/main/proto/securemessage.proto src/main/proto/ukey.proto
+      cd ..
+      ls -lR compiled_proto
     shell: bash
