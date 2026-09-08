@@ -576,6 +576,12 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
       "p2p-ble-peripheral-discovered",
       [this, client, peripheral = std::move(peripheral), service_id,
        advertisement_bytes, fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
+        LOG(INFO)
+            << "BlePeripheralDiscoveredHandler: client="
+            << client->GetClientId() << ", service_id=" << service_id
+            << ", fast_advertisement=" << fast_advertisement
+            << ", client.fast_advertisement_service_uuid="
+            << client->GetDiscoveryOptions().fast_advertisement_service_uuid;
         // Make sure we are still discovering before proceeding.
         if (!client->IsDiscovering() || stop_.Get()) {
           LOG(WARNING) << "Skipping discovery of BleAdvertisement header "
@@ -1032,6 +1038,9 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
     ClientProxy* client, const std::string& service_id,
     const DiscoveryOptions& discovery_options) {
+  LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: service_id="
+            << service_id << ", fast_advertisement_service_uuid="
+            << discovery_options.fast_advertisement_service_uuid;
   // If this is an out-of-band connection, do not start actual discovery, since
   // this connection is intended to be completed via InjectEndpointImpl().
   if (discovery_options.is_out_of_band_connection) {
@@ -2268,7 +2277,8 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleScanning(
               &P2pClusterPcpHandler::BleInstantLostHandler, this, client),
           .legacy_device_discovered_cb = absl::bind_front(
               &P2pClusterPcpHandler::BleLegacyDeviceDiscoveredHandler, this),
-      });
+      },
+      discovery_options.fast_advertisement_service_uuid);
   if (!ble_result.has_error()) {
     LOG(INFO) << "In StartBleScanning(), client=" << client->GetClientId()
               << " started scanning for BLE advertisements for service_id="

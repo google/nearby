@@ -26,7 +26,7 @@ public class Discoverer {
 
   /// The set of all mediums that can be used for discovering and connecting.
   let allMediums: Set<Medium> = [
-    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect, .awdl
+    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect, .awdl,
   ]
 
   lazy var connection: InternalConnection? = {
@@ -56,8 +56,15 @@ public class Discoverer {
   ///
   /// - Parameter completionHandler: Called with `nil` if discovery starts, or an error if
   ///   discovery failed to start.
-  public func startDiscovery(completionHandler: ((Error?) -> Void)? = nil) {
-    startDiscovery(mediums: allMediums, completionHandler: completionHandler)
+  public func startDiscovery(
+    fastAdvertisementServiceUuid: String? = nil,
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
+    startDiscovery(
+      mediums: allMediums,
+      fastAdvertisementServiceUuid: fastAdvertisementServiceUuid,
+      completionHandler: completionHandler
+    )
   }
 
   /// Starts searching for nearby remote endpoints.
@@ -68,10 +75,16 @@ public class Discoverer {
   ///
   /// - Parameters:
   ///   - mediums: The mediums to be used for discovery.
+  ///   - fastAdvertisementServiceUuid: The Fast Advertisement Service UUID.
   ///   - completionHandler: Called with `nil` if discovery starts, or an error if
   ///   discovery failed to start.
-  public func startDiscovery(mediums: Set<Medium>, completionHandler: ((Error?) -> Void)? = nil) {
+  public func startDiscovery(
+    mediums: Set<Medium>,
+    fastAdvertisementServiceUuid: String? = nil,
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
     let options = GNCDiscoveryOptions(strategy: connectionManager.strategy.objc)
+    options.fastAdvertisementServiceUuid = fastAdvertisementServiceUuid
 
     // Update the discovery mediums based on the user selection and set the default values for
     // the mediums that could not be selected by the user

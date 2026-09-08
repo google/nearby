@@ -32,6 +32,12 @@ using ::nearby::connections::DiscoveryOptions;
 
   discovery_options.enforce_topology_constraints = self.enforceTopologyConstraints;
   discovery_options.low_power = self.lowPower;
+  NSLog(@"GNCDiscoveryOptions toCpp: fastAdvertisementServiceUuid = %@",
+        self.fastAdvertisementServiceUuid);
+  if (self.fastAdvertisementServiceUuid) {
+    discovery_options.fast_advertisement_service_uuid =
+        std::string([self.fastAdvertisementServiceUuid UTF8String]);
+  }
 
   return discovery_options;
 }

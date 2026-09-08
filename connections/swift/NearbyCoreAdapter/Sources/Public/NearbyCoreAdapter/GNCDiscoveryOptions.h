@@ -38,6 +38,8 @@ NS_ASSUME_NONNULL_BEGIN
 /** Whether low power should be used. */
 @property(nonatomic) BOOL lowPower;
 
+@property(nonatomic, copy, nullable) NSString* fastAdvertisementServiceUuid;
+
 /** @remark init is not an available initializer. */
 - (instancetype)init NS_UNAVAILABLE;
 
