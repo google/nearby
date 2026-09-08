@@ -77,9 +77,7 @@ proto_library(
 
 cc_proto_library(
     name = "metadata_cc_proto",
-    visibility = [
-        "//:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [":metadata_proto"],
 )
 
