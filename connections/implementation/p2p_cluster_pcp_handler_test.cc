@@ -360,6 +360,35 @@ TEST_F(P2pClusterPcpHandlerTest,
   env_.Stop();
 }
 
+TEST_F(P2pClusterPcpHandlerTest,
+       StartAdvertisingFailsWhenBleAcceptFailsAndL2capDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
+      false);
+  env_.Start();
+  Mediums mediums;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(mediums, em, ecm, {}, {});
+  InjectedBluetoothDeviceStore ibds;
+  P2pClusterPcpHandler handler(&mediums, &em, &ecm, &bwu, ibds);
+  AdvertisingOptions options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}}};
+  options.low_power = true;
+
+  for (bool refactor_ble_l2cap : {true, false}) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+        refactor_ble_l2cap);
+    EXPECT_NE(
+        handler.StartAdvertising(&client_a_, /*service_id=*/"", options,
+                                 {.endpoint_info = ByteArray{"endpoint_name"}}),
+        Status{Status::kSuccess});
+    EXPECT_FALSE(mediums.GetBle().IsAdvertising(""));
+  }
+  env_.Stop();
+}
+
 class P2pClusterPcpHandlerTestWithParam
     : public P2pClusterPcpHandlerTest,
       public ::testing::WithParamInterface</*mediums=*/BooleanMediumSelector> {
