@@ -332,7 +332,6 @@ cc_library(
         "//internal/platform:__subpackages__",
         "//location/nearby:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         ":crypto",  # build_cleaner: keep
