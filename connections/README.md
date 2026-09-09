@@ -49,6 +49,8 @@ CC=clang CXX=clang++ bazel build -s --check_visibility=false //connections:core 
 
 Currently we support building with [Swift Package Manager](https://www.swift.org/package-manager).
 
+For iOS projects using CocoaPods, see the [source installation guide](swift/CocoaPods/README.md).
+
 ### Prerequisites:
 
 1. Xcode. Available from Apple Store.
