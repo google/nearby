@@ -26,6 +26,7 @@
 #include "absl/types/span.h"
 #include "nlohmann/json_fwd.hpp"
 #include "internal/platform/implementation/preferences_manager.h"
+#include "google/protobuf/message.h"
 
 namespace nearby::apple {
 
@@ -89,13 +90,10 @@ class PreferencesManager : public nearby::api::PreferencesManager {
                      absl::Time default_value) const override;
 
   bool SetProtoMessage(absl::string_view key,
-                       const google::protobuf::Message& value) override {
-    return false;
-  }
+                       const google::protobuf::Message& value) override;
+
   bool GetProtoMessage(absl::string_view key,
-                       google::protobuf::Message* value) const override {
-    return false;
-  }
+                       google::protobuf::Message* value) const override;
 
   // Removes preferences
   void Remove(absl::string_view key) override;

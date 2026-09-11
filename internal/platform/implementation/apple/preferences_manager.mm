@@ -248,6 +248,34 @@ absl::Time PreferencesManager::GetTime(absl::string_view key, absl::Time default
   return absl::FromUnixNanos([(NSDate*)value timeIntervalSince1970] * NSEC_PER_SEC);
 }
 
+bool PreferencesManager::SetProtoMessage(absl::string_view key, const google::protobuf::Message& value) {
+  std::string serialized_value;
+  if (!value.SerializeToString(&serialized_value)) {
+    return false;
+  }
+  NSData* data = [NSData dataWithBytes:serialized_value.data() length:serialized_value.length()];
+  [[NSUserDefaults standardUserDefaults] setObject:data forKey:@(std::string(key).c_str())];
+  return true;
+}
+
+bool PreferencesManager::GetProtoMessage(absl::string_view key, google::protobuf::Message* value) const {
+  if (value == nullptr) {
+    return false;
+  }
+  NSString* keyString = @(std::string(key).c_str());
+  id serialized_value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  if (serialized_value == nil) {
+    return false;
+  }
+  NSCAssert([serialized_value isKindOfClass:[NSData class]], @"value for key \"%@\" must be NSData",
+            keyString);
+  if (![serialized_value isKindOfClass:[NSData class]]) {
+    return false;
+  }
+  return value->ParseFromString(absl::string_view((const char*)[(NSData*)serialized_value bytes],
+                                                  [(NSData*)serialized_value length]));
+}
+
 // Removes preferences
 void PreferencesManager::Remove(absl::string_view key) {
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:@(std::string(key).c_str())];
