@@ -26,8 +26,10 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -113,8 +115,7 @@ BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
   DCHECK(adapter_ != nullptr);
 }
 
-std::optional<api::ble::GattCharacteristic>
-BleGattServer::CreateCharacteristic(
+std::optional<api::ble::GattCharacteristic> BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble::GattCharacteristic::Permission permission,
     api::ble::GattCharacteristic::Property property) {
@@ -202,22 +203,68 @@ void BleGattServer::Stop() {
     absl::MutexLock lock(mutex_);
     VLOG(1) << __func__ << ": Start to stop GATT server.";
     if (gatt_service_provider_ != nullptr) {
-      try {
-        if (is_advertising_) {
-          gatt_service_provider_.StopAdvertising();
+      const char* func_name = __func__;
+      auto safe_call = [func_name](absl::string_view action, auto&& func) {
+        try {
+          func();
+        } catch (const winrt::hresult_error& error) {
+          LOG(ERROR) << func_name << ": WinRT exception during " << action
+                     << ": " << error.code() << ": "
+                     << winrt::to_string(error.message());
+        } catch (const std::exception& exception) {
+          LOG(ERROR) << func_name << ": Exception during " << action << ": "
+                     << exception.what();
+        } catch (...) {
+          LOG(ERROR) << func_name << ": Unknown exception during " << action
+                     << ".";
         }
+      };
 
-        gatt_characteristic_datas_.clear();
-        service_uuid_ = Uuid();
-        gatt_service_provider_ = nullptr;
-      } catch (std::exception exception) {
-        LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-      } catch (const winrt::hresult_error& error) {
-        LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-                   << winrt::to_string(error.message());
-      } catch (...) {
-        LOG(ERROR) << __func__ << ": Unknown exception.";
+      auto gatt_service_provider = gatt_service_provider_;
+      if (is_advertising_) {
+        safe_call("StopAdvertising",
+                  [&]() { gatt_service_provider.StopAdvertising(); });
       }
+
+      if (service_provider_advertisement_changed_token_) {
+        safe_call("unregistering AdvertisementStatusChanged", [&]() {
+          gatt_service_provider.AdvertisementStatusChanged(
+              service_provider_advertisement_changed_token_);
+        });
+        service_provider_advertisement_changed_token_ = {};
+      }
+
+      for (auto& characteristic_data : gatt_characteristic_datas_) {
+        if (characteristic_data.local_characteristic != nullptr) {
+          if (characteristic_data.read_token) {
+            safe_call("unregistering ReadRequested", [&]() {
+              characteristic_data.local_characteristic.ReadRequested(
+                  characteristic_data.read_token);
+            });
+            characteristic_data.read_token = {};
+          }
+          if (characteristic_data.write_token) {
+            safe_call("unregistering WriteRequested", [&]() {
+              characteristic_data.local_characteristic.WriteRequested(
+                  characteristic_data.write_token);
+            });
+            characteristic_data.write_token = {};
+          }
+          if (characteristic_data.subscribed_clients_changed_token) {
+            safe_call("unregistering SubscribedClientsChanged", [&]() {
+              characteristic_data.local_characteristic.SubscribedClientsChanged(
+                  characteristic_data.subscribed_clients_changed_token);
+            });
+            characteristic_data.subscribed_clients_changed_token = {};
+          }
+        }
+      }
+
+      gatt_characteristic_datas_.clear();
+      service_uuid_ = Uuid();
+      gatt_service_provider_ = nullptr;
+      is_advertising_ = false;
+      is_gatt_server_inited_ = false;
     } else {
       LOG(WARNING) << __func__ << ": no GATT server is running.";
     }
@@ -486,7 +533,7 @@ bool BleGattServer::StopAdvertisement() {
     }
 
     if (gatt_service_provider_.AdvertisementStatus() ==
-        GattServiceProviderAdvertisementStatus ::Stopped) {
+        GattServiceProviderAdvertisementStatus::Stopped) {
       LOG(WARNING) << __func__ << ": no GATT advertisement is running.";
       is_advertising_ = false;
       return true;
@@ -530,16 +577,21 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   auto deferral = args.GetDeferral();
 
   try {
-    // Find the characteristic value.
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_local_characteristic);
-
-    if (characteristic_data == nullptr) {
-      LOG(ERROR) << __func__ << ": Failed to find characteristic="
-                 << ::winrt::to_string(
-                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
-      deferral.Complete();
-      return {};
+    ByteArray data;
+    {
+      absl::MutexLock lock(mutex_);
+      // Find the characteristic value.
+      if (!WithGattCharacteristicData(
+              gatt_local_characteristic,
+              [&](const GattCharacteristicData& characteristic_data) {
+                data = characteristic_data.data;
+              })) {
+        LOG(ERROR) << __func__ << ": Failed to find characteristic="
+                   << ::winrt::to_string(::winrt::to_hstring(
+                          gatt_local_characteristic.Uuid()));
+        deferral.Complete();
+        return {};
+      }
     }
 
     GattReadRequest request = args.GetRequestAsync().get();
@@ -548,8 +600,6 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
       deferral.Complete();
       return {};
     }
-
-    const ByteArray& data = characteristic_data->data;
 
     Buffer buffer = Buffer(data.size());
     std::memcpy(buffer.data(), data.data(), data.size());
@@ -596,60 +646,69 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
     std::vector<api::ble::GattCharacteristic>
         removed_subscribed_characteristics;
 
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_local_characteristic);
-
-    if (characteristic_data == nullptr) {
-      LOG(ERROR) << __func__ << ": Failed to find characteristic="
-                 << ::winrt::to_string(
-                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
-      return;
-    }
-
     auto current_subscribed_clients =
         gatt_local_characteristic.SubscribedClients();
 
-    for (const auto& current_subscribed_client : current_subscribed_clients) {
-      bool found = false;
-      for (const auto& old_subscribed_client :
-           characteristic_data->subscribed_clients) {
-        if (current_subscribed_client.Session().DeviceId().Id() ==
-            old_subscribed_client.Session().DeviceId().Id()) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        // This is a new subscribed client.
-        added_subscribed_characteristics.push_back(
-            characteristic_data->gatt_characteristic);
+    {
+      absl::MutexLock lock(mutex_);
+      if (!WithGattCharacteristicData(
+              gatt_local_characteristic,
+              [&](GattCharacteristicData& characteristic_data) {
+                for (const auto& current_subscribed_client :
+                     current_subscribed_clients) {
+                  bool found = false;
+                  for (const auto& old_subscribed_client :
+                       characteristic_data.subscribed_clients) {
+                    if (current_subscribed_client.Session().DeviceId().Id() ==
+                        old_subscribed_client.Session().DeviceId().Id()) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (!found) {
+                    // This is a new subscribed client.
+                    added_subscribed_characteristics.push_back(
+                        characteristic_data.gatt_characteristic);
+                  }
+                }
+
+                for (const auto& old_subscribed_client :
+                     characteristic_data.subscribed_clients) {
+                  bool found = false;
+                  for (const auto& current_subscribed_client :
+                       current_subscribed_clients) {
+                    if (current_subscribed_client.Session().DeviceId().Id() ==
+                        old_subscribed_client.Session().DeviceId().Id()) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (!found) {
+                    // This is subscribed client to remove.
+                    removed_subscribed_characteristics.push_back(
+                        characteristic_data.gatt_characteristic);
+                  }
+                }
+
+                characteristic_data.subscribed_clients =
+                    current_subscribed_clients;
+              })) {
+        LOG(ERROR) << __func__ << ": Failed to find characteristic="
+                   << ::winrt::to_string(::winrt::to_hstring(
+                          gatt_local_characteristic.Uuid()));
+        return;
       }
     }
 
-    for (const auto& old_subscribed_client :
-         characteristic_data->subscribed_clients) {
-      bool found = false;
-      for (const auto& current_subscribed_client : current_subscribed_clients) {
-        if (current_subscribed_client.Session().DeviceId().Id() ==
-            old_subscribed_client.Session().DeviceId().Id()) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        // This is subscribed client to remove.
-        removed_subscribed_characteristics.push_back(
-            characteristic_data->gatt_characteristic);
-      }
-    }
-
-    characteristic_data->subscribed_clients = current_subscribed_clients;
     for (const auto& subscribed_characteristic :
          added_subscribed_characteristics) {
       gatt_connection_callback_.characteristic_subscription_cb(
           subscribed_characteristic);
 
-      NotifyValueChanged(subscribed_characteristic);
+      {
+        absl::MutexLock lock(mutex_);
+        NotifyValueChanged(subscribed_characteristic);
+      }
     }
 
     for (const auto& subscribed_characteristic :
@@ -680,28 +739,29 @@ void BleGattServer::ServiceProvider_AdvertisementStatusChanged(
 void BleGattServer::NotifyValueChanged(
     const api::ble::GattCharacteristic& gatt_characteristic) {
   try {
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_characteristic);
-
-    if (characteristic_data == nullptr) {
+    GattLocalCharacteristic local_characteristic = nullptr;
+    ByteArray data;
+    if (!WithGattCharacteristicData(
+            gatt_characteristic,
+            [&](const GattCharacteristicData& characteristic_data) {
+              local_characteristic = characteristic_data.local_characteristic;
+              data = characteristic_data.data;
+            })) {
       LOG(ERROR) << __func__ << ": Failed to find characteristic="
                  << std::string(gatt_characteristic.uuid);
       return;
     }
 
-    if (characteristic_data->local_characteristic == nullptr) {
+    if (local_characteristic == nullptr) {
       return;
     }
-
-    const ByteArray& data = characteristic_data->data;
 
     Buffer buffer = Buffer(data.size());
     std::memcpy(buffer.data(), data.data(), data.size());
     buffer.Length(data.size());
 
     IVectorView<GattClientNotificationResult> results =
-        characteristic_data->local_characteristic.NotifyValueAsync(buffer)
-            .get();
+        local_characteristic.NotifyValueAsync(buffer).get();
 
     for (const auto& result : results) {
       if (result.Status() != GattCommunicationStatus::Success) {
@@ -721,30 +781,32 @@ void BleGattServer::NotifyValueChanged(
   }
 }
 
-BleGattServer::GattCharacteristicData*
-BleGattServer::FindGattCharacteristicData(
-    const GattLocalCharacteristic& gatt_local_characteristic) {
+bool BleGattServer::WithGattCharacteristicData(
+    const GattLocalCharacteristic& gatt_local_characteristic,
+    absl::FunctionRef<void(GattCharacteristicData&)> callback) {
   for (auto& characteristic_data : gatt_characteristic_datas_) {
     if (gatt_local_characteristic.Uuid() ==
         characteristic_data.local_characteristic.Uuid()) {
-      return &characteristic_data;
+      callback(characteristic_data);
+      return true;
     }
   }
 
-  return nullptr;
+  return false;
 }
 
-BleGattServer::GattCharacteristicData*
-BleGattServer::FindGattCharacteristicData(
-    const api::ble::GattCharacteristic& gatt_characteristic) {
+bool BleGattServer::WithGattCharacteristicData(
+    const api::ble::GattCharacteristic& gatt_characteristic,
+    absl::FunctionRef<void(GattCharacteristicData&)> callback) {
   for (auto& characteristic_data : gatt_characteristic_datas_) {
     if (gatt_characteristic.uuid ==
         characteristic_data.gatt_characteristic.uuid) {
-      return &characteristic_data;
+      callback(characteristic_data);
+      return true;
     }
   }
 
-  return nullptr;
+  return false;
 }
 
 }  // namespace nearby::windows
