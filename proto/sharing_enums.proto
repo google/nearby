@@ -1195,7 +1195,4 @@ enum FileSyncStatus {
 
   // Sync is not required.
   FILE_SYNC_STATUS_NO_SYNC_REQUIRED = 14;
-
-  // Local DB read failure.
-  FILE_SYNC_STATUS_LOCAL_DB_READ_ERROR = 15;
 }
