@@ -29,29 +29,29 @@ namespace nearby::apple {
 PreferencesManager::PreferencesManager(absl::string_view file_path) {}
 
 bool PreferencesManager::Set(absl::string_view key, const nlohmann::json& value) {
-  [[NSUserDefaults standardUserDefaults] setObject:@(value.dump().c_str())
+  [NSUserDefaults.standardUserDefaults setObject:@(value.dump().c_str())
                                             forKey:@(std::string(key).c_str())];
   return true;
 }
 
 bool PreferencesManager::SetBoolean(absl::string_view key, bool value) {
-  [[NSUserDefaults standardUserDefaults] setBool:value forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setBool:value forKey:@(std::string(key).c_str())];
   return true;
 }
 
 bool PreferencesManager::SetInteger(absl::string_view key, int value) {
-  [[NSUserDefaults standardUserDefaults] setInteger:value forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setInteger:value forKey:@(std::string(key).c_str())];
   return true;
 }
 
 bool PreferencesManager::SetInt64(absl::string_view key, int64_t value) {
-  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithLongLong:value]
+  [NSUserDefaults.standardUserDefaults setObject:[NSNumber numberWithLongLong:value]
                                             forKey:@(std::string(key).c_str())];
   return true;
 }
 
 bool PreferencesManager::SetString(absl::string_view key, absl::string_view value) {
-  [[NSUserDefaults standardUserDefaults] setObject:@(std::string(value).c_str())
+  [NSUserDefaults.standardUserDefaults setObject:@(std::string(value).c_str())
                                             forKey:@(std::string(key).c_str())];
   return true;
 }
@@ -61,7 +61,7 @@ bool PreferencesManager::SetBooleanArray(absl::string_view key, absl::Span<const
   for (const bool& item : value) {
     [array addObject:@(item)];
   }
-  [[NSUserDefaults standardUserDefaults] setObject:array forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setObject:array forKey:@(std::string(key).c_str())];
   return true;
 }
 
@@ -70,7 +70,7 @@ bool PreferencesManager::SetIntegerArray(absl::string_view key, absl::Span<const
   for (const int& item : value) {
     [array addObject:@(item)];
   }
-  [[NSUserDefaults standardUserDefaults] setObject:array forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setObject:array forKey:@(std::string(key).c_str())];
   return true;
 }
 
@@ -79,7 +79,7 @@ bool PreferencesManager::SetInt64Array(absl::string_view key, absl::Span<const i
   for (const int64_t& item : value) {
     [array addObject:@(item)];
   }
-  [[NSUserDefaults standardUserDefaults] setObject:array forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setObject:array forKey:@(std::string(key).c_str())];
   return true;
 }
 
@@ -89,14 +89,14 @@ bool PreferencesManager::SetStringArray(absl::string_view key,
   for (const std::string& item : value) {
     [array addObject:@(item.c_str())];
   }
-  [[NSUserDefaults standardUserDefaults] setObject:array forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setObject:array forKey:@(std::string(key).c_str())];
   return true;
 }
 
 bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
   int64_t nanos = absl::ToUnixNanos(value);
   NSDate* date = [[NSDate alloc] initWithTimeIntervalSince1970:nanos / NSEC_PER_SEC];
-  [[NSUserDefaults standardUserDefaults] setObject:date forKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults setObject:date forKey:@(std::string(key).c_str())];
   return true;
 }
 
@@ -104,7 +104,7 @@ bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
 nlohmann::json PreferencesManager::Get(absl::string_view key,
                                        const nlohmann::json& default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -116,7 +116,7 @@ nlohmann::json PreferencesManager::Get(absl::string_view key,
 
 bool PreferencesManager::GetBoolean(absl::string_view key, bool default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -127,7 +127,7 @@ bool PreferencesManager::GetBoolean(absl::string_view key, bool default_value) c
 
 int PreferencesManager::GetInteger(absl::string_view key, int default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -137,7 +137,7 @@ int PreferencesManager::GetInteger(absl::string_view key, int default_value) con
 
 int64_t PreferencesManager::GetInt64(absl::string_view key, int64_t default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -149,7 +149,7 @@ int64_t PreferencesManager::GetInt64(absl::string_view key, int64_t default_valu
 std::string PreferencesManager::GetString(absl::string_view key,
                                           const std::string& default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -161,7 +161,7 @@ std::string PreferencesManager::GetString(absl::string_view key,
 std::vector<bool> PreferencesManager::GetBooleanArray(absl::string_view key,
                                                       absl::Span<const bool> default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id array = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id array = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (array == nil) {
     return std::vector<bool>(default_value.begin(), default_value.end());
   }
@@ -181,7 +181,7 @@ std::vector<bool> PreferencesManager::GetBooleanArray(absl::string_view key,
 std::vector<int> PreferencesManager::GetIntegerArray(absl::string_view key,
                                                      absl::Span<const int> default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id array = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id array = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (array == nil) {
     return std::vector<int>(default_value.begin(), default_value.end());
   }
@@ -201,7 +201,7 @@ std::vector<int> PreferencesManager::GetIntegerArray(absl::string_view key,
 std::vector<int64_t> PreferencesManager::GetInt64Array(
     absl::string_view key, absl::Span<const int64_t> default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id array = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id array = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (array == nil) {
     return std::vector<int64_t>(default_value.begin(), default_value.end());
   }
@@ -221,7 +221,7 @@ std::vector<int64_t> PreferencesManager::GetInt64Array(
 std::vector<std::string> PreferencesManager::GetStringArray(
     absl::string_view key, absl::Span<const std::string> default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id array = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id array = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (array == nil) {
     return std::vector<std::string>(default_value.begin(), default_value.end());
   }
@@ -240,7 +240,7 @@ std::vector<std::string> PreferencesManager::GetStringArray(
 
 absl::Time PreferencesManager::GetTime(absl::string_view key, absl::Time default_value) const {
   NSString* keyString = @(std::string(key).c_str());
-  id value = [[NSUserDefaults standardUserDefaults] objectForKey:keyString];
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
   if (value == nil) {
     return default_value;
   }
@@ -248,9 +248,37 @@ absl::Time PreferencesManager::GetTime(absl::string_view key, absl::Time default
   return absl::FromUnixNanos([(NSDate*)value timeIntervalSince1970] * NSEC_PER_SEC);
 }
 
+bool PreferencesManager::SetProtoMessage(absl::string_view key, const google::protobuf::Message& value) {
+  std::string serialized_value;
+  if (!value.SerializeToString(&serialized_value)) {
+    return false;
+  }
+  NSData* data = [NSData dataWithBytes:serialized_value.data() length:serialized_value.length()];
+  [NSUserDefaults.standardUserDefaults setObject:data forKey:@(std::string(key).c_str())];
+  return true;
+}
+
+bool PreferencesManager::GetProtoMessage(absl::string_view key, google::protobuf::Message* value) const {
+  if (value == nullptr) {
+    return false;
+  }
+  NSString* keyString = @(std::string(key).c_str());
+  id serialized_value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
+  if (serialized_value == nil) {
+    return false;
+  }
+  NSCAssert([serialized_value isKindOfClass:[NSData class]], @"value for key \"%@\" must be NSData",
+            keyString);
+  if (![serialized_value isKindOfClass:[NSData class]]) {
+    return false;
+  }
+  return value->ParseFromString(absl::string_view((const char*)[(NSData*)serialized_value bytes],
+                                                  [(NSData*)serialized_value length]));
+}
+
 // Removes preferences
 void PreferencesManager::Remove(absl::string_view key) {
-  [[NSUserDefaults standardUserDefaults] removeObjectForKey:@(std::string(key).c_str())];
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:@(std::string(key).c_str())];
 }
 
 }  // namespace nearby::apple
