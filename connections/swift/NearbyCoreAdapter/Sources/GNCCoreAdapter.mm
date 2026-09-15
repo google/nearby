@@ -197,6 +197,9 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
   std::string service_id = [serviceID cStringUsingEncoding:[NSString defaultCStringEncoding]];
 
   DiscoveryOptions discovery_options = [discoveryOptions toCpp];
+  NSLog(
+      @"GNCCoreAdapter startDiscovery: C++ discovery_options.fast_advertisement_service_uuid = %s",
+      discovery_options.fast_advertisement_service_uuid.c_str());
 
   DiscoveryListener listener;
   listener.endpoint_found_cb = [delegate](const std::string &endpoint_id,
