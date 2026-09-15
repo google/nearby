@@ -221,10 +221,38 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
   return connection_infos;
 }
 
+void BasePcpHandler::CleanUpPendingConnectionsForClientImpl(
+    ClientProxy* client, std::optional<bool> is_incoming_filter) {
+  std::vector<std::string> endpoints_to_erase_immediately;
+  for (auto& item : pending_connections_) {
+    if (item.second.client == client) {
+      if (is_incoming_filter.has_value() &&
+          item.second.is_incoming != is_incoming_filter.value()) {
+        continue;
+      }
+      LOG(INFO) << "Cleaning up pending connection for client "
+                << client->GetClientId() << "; endpoint_id=" << item.first
+                << "; is_incoming=" << item.second.is_incoming;
+      item.second.client = nullptr;
+      if (item.second.channel != nullptr) {
+        item.second.channel->Close();
+      } else {
+        endpoints_to_erase_immediately.push_back(item.first);
+      }
+    }
+  }
+  for (const auto& endpoint_id : endpoints_to_erase_immediately) {
+    pending_connections_.erase(endpoint_id);
+  }
+}
+
 void BasePcpHandler::StopListeningForIncomingConnections(ClientProxy* client) {
+  if (closed_.Get()) return;
   CountDownLatch latch(1);
   RunOnPcpHandlerThread("stop-listening-for-incoming-conn",
                         [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+                          CleanUpPendingConnectionsForClientImpl(
+                              client, /*is_incoming_filter=*/true);
                           StopListeningForIncomingConnectionsImpl(client);
                           client->StoppedListeningForIncomingConnections();
                           latch.CountDown();
@@ -292,11 +320,14 @@ Status BasePcpHandler::StartAdvertising(
 }
 
 void BasePcpHandler::StopAdvertising(ClientProxy* client) {
+  if (closed_.Get()) return;
   LOG(INFO) << "StopAdvertising local_endpoint_id="
             << client->GetLocalEndpointId();
   CountDownLatch latch(1);
   RunOnPcpHandlerThread("stop-advertising",
                         [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+                          CleanUpPendingConnectionsForClientImpl(
+                              client, /*is_incoming_filter=*/true);
                           StopAdvertisingImpl(client);
                           client->StoppedAdvertising();
                           latch.CountDown();
@@ -522,14 +553,16 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
 }
 
 void BasePcpHandler::StopDiscovery(ClientProxy* client) {
+  if (closed_.Get()) return;
   CountDownLatch latch(1);
   RunOnPcpHandlerThread("stop-discovery",
                         [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
+                          CleanUpPendingConnectionsForClientImpl(
+                              client, /*is_incoming_filter=*/false);
                           StopDiscoveryImpl(client);
                           client->StoppedDiscovery();
                           latch.CountDown();
                         });
-
   WaitForLatch("StopDiscovery", &latch);
 }
 
@@ -704,6 +737,17 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   }
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
+
+  if (pending_connection_info.client == nullptr) {
+    LOG(INFO) << "Client destroyed before encryption success; endpoint_id="
+              << remote_device.GetEndpointId();
+    if (pending_connection_info.channel != nullptr) {
+      pending_connection_info.channel->Close();
+    }
+    pending_connections_.erase(it);
+    return;
+  }
+
   // Verify pointer equality to avoid accidental action on superseded
   // channels.
   if (endpoint_channel != pending_connection_info.channel) {
@@ -779,6 +823,16 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
+
+  if (pending_connection_info.client == nullptr) {
+    LOG(INFO) << "Client destroyed before encryption success; endpoint_id="
+              << endpoint_id;
+    if (pending_connection_info.channel != nullptr) {
+      pending_connection_info.channel->Close();
+    }
+    pending_connections_.erase(it);
+    return;
+  }
 
   // Verify pointer equality to avoid accidental action on superseded
   // channels.
@@ -860,6 +914,13 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   }
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
+
+  if (pending_connection_info.client == nullptr) {
+    LOG(INFO) << "Client was already cleaned up for endpoint_id="
+              << endpoint_id;
+    pending_connections_.erase(it);
+    return;
+  }
 
   // Verify pointer equality to avoid accidental action on superseded
   // channels.
@@ -2579,6 +2640,10 @@ void BasePcpHandler::LogConnectionAttemptFailure(
     ClientProxy* client, Medium medium, const std::string& endpoint_id,
     bool is_incoming, absl::Time start_time, EndpointChannel* endpoint_channel,
     OperationResultCode operation_result_code) {
+  if (client == nullptr) {
+    LOG(INFO) << "Client is null in LogConnectionAttemptFailure. Bail out.";
+    return;
+  }
   location::nearby::proto::connections::ConnectionAttemptResult result =
       Cancelled(client, endpoint_id)
           ? location::nearby::proto::connections::RESULT_CANCELLED
@@ -2609,6 +2674,10 @@ void BasePcpHandler::LogConnectionAttemptFailure(
 void BasePcpHandler::LogConnectionAttemptSuccess(
     const std::string& endpoint_id,
     const PendingConnectionInfo& pending_connection_info) {
+  if (pending_connection_info.client == nullptr) {
+    LOG(INFO) << "Client is null in LogConnectionAttemptSuccess. Bail out.";
+    return;
+  }
   std::unique_ptr<ConnectionAttemptMetadataParams>
       connections_attempt_metadata_params;
   if (pending_connection_info.channel != nullptr) {
