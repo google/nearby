@@ -21,6 +21,11 @@
 #include <objbase.h>
 // clang-format on
 
+// Remove LogSeverity macro defined in setupapi.h
+#if defined(LogSeverity)
+#undef LogSeverity
+#endif
+
 #include <cstdint>
 #include <cstring>
 #include <exception>
