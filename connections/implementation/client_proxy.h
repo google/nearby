@@ -75,9 +75,7 @@ class ClientProxy final {
 
   std::string GetLocalEndpointId();
   std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
-  std::string GetLocalDeviceName() {
-    return local_device_name_;
-  }
+  std::string GetLocalDeviceName() { return local_device_name_; }
 
   // Override the base for received file attachments from a specific endpoint.
   // Returns true if the endpoint is found and the path is overridden.
@@ -259,6 +257,9 @@ class ClientProxy final {
   // Returns true if the client should enforce topology constraints.
   bool ShouldEnforceTopologyConstraints() const;
 
+  // Returns the strategy associated with an endpoint connection, if any.
+  Strategy GetEndpointStrategy(absl::string_view endpoint_id) const;
+
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
   bool AutoUpgradeBandwidth() const;
@@ -438,8 +439,10 @@ class ClientProxy final {
   void AppendConnectionStatus(const std::string& endpoint_id,
                               Connection::Status status_to_append);
 
-  const ConnectionPair* LookupConnection(absl::string_view endpoint_id) const;
-  ConnectionPair* LookupConnection(absl::string_view endpoint_id);
+  const ConnectionPair* LookupConnection(absl::string_view endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  ConnectionPair* LookupConnection(absl::string_view endpoint_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool ConnectionStatusMatches(const std::string& endpoint_id,
                                Connection::Status status) const;
   std::vector<std::string> GetMatchingEndpoints(
@@ -499,19 +502,20 @@ class ClientProxy final {
   // Note: this is not cleared when the client stops advertising because it
   // might still be useful downstream of advertising (eg: establishing
   // connections, performing bandwidth upgrades, etc.)
-  AdvertisingOptions advertising_options_;
+  AdvertisingOptions advertising_options_ ABSL_GUARDED_BY(mutex_);
 
   // The active ClientProxy's discovery constraints. Null if the client
   // hasn't started discovering. Note: this is not cleared when the client
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
-  DiscoveryOptions discovery_options_;
+  DiscoveryOptions discovery_options_ ABSL_GUARDED_BY(mutex_);
 
   // The active ClientProxy's listening constraints.
-  v3::ConnectionListeningOptions listening_options_;
+  v3::ConnectionListeningOptions listening_options_ ABSL_GUARDED_BY(mutex_);
 
   // Maps endpoint_id to endpoint connection state.
-  absl::flat_hash_map<std::string, ConnectionPair> connections_;
+  absl::flat_hash_map<std::string, ConnectionPair> connections_
+      ABSL_GUARDED_BY(mutex_);
 
   // Maps endpoint_id to Bluetooth Mac Addresses.
   absl::flat_hash_map<std::string, MacAddress> bluetooth_mac_addresses_;
