@@ -1507,6 +1507,36 @@ TEST_P(BwuManagerTestParam,
   UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
+TEST_F(BwuManagerTest, LocallyChosenSupportsDisablingEncryption) {
+  EXPECT_FALSE(
+      bwu_manager_->GetLocallyChosenSupportsDisablingEncryption(kEndpointId1));
+  bwu_manager_->SetLocallyChosenSupportsDisablingEncryption(kEndpointId1,
+                                                              true);
+  EXPECT_TRUE(
+      bwu_manager_->GetLocallyChosenSupportsDisablingEncryption(kEndpointId1));
+  bwu_manager_->SetLocallyChosenSupportsDisablingEncryption(kEndpointId1,
+                                                              false);
+  EXPECT_FALSE(
+      bwu_manager_->GetLocallyChosenSupportsDisablingEncryption(kEndpointId1));
+}
+
+TEST_F(BwuManagerTest, RefuseDuplicateIncomingConnectionWhenOldChannelPaused) {
+  FakeEndpointChannel* initial_channel = CreateInitialEndpoint(
+      &client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WEB_RTC);
+  initial_channel->Pause();
+
+  FakeEndpointChannel* upgraded_channel =
+      fake_web_rtc_bwu_handler_->NotifyBwuManagerOfIncomingConnection(
+          /*initialize_call_index=*/0u, bwu_manager_.get());
+
+  EXPECT_EQ(initial_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
+  EXPECT_NE(upgraded_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,
                          testing::Bool());
 
