@@ -15,13 +15,11 @@
 #include "connections/implementation/mediums/utils.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <string>
 
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/crypto.h" //NOLINT
-#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {
@@ -31,22 +29,8 @@ constexpr int kDefaultSaltLength = 16;
 }  // namespace
 
 ByteArray Utils::GenerateRandomBytes(size_t length) {
-  Prng prng;
-  std::string data;
-  data.reserve(length);
-
-  // Adds 4 random bytes per iteration.
-  while (length > 0) {
-    std::uint32_t val = prng.NextUint32();
-    for (int i = 0; i < 4; i++) {
-      data += val & 0xFF;
-      val >>= 8;
-      length--;
-
-      if (!length) break;
-    }
-  }
-
+  std::string data(length, '\0');
+  nearby::RandBytes(data.data(), data.size());
   return ByteArray(data);
 }
 

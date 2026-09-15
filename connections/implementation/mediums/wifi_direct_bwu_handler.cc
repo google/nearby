@@ -27,7 +27,6 @@
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
-#include "connections/strategy.h"
 #include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -108,8 +107,10 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
               << ", Frequency: " << freq;
   }
 
-  bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  // Never disable NC-layer encryption on the WIFI_DIRECT path: the PSK is
+  // generated locally and an RF-proximate attacker who learns/guesses it would
+  // otherwise read user payload bytes in clear.
+  bool disabling_encryption = false;
   return parser::ForBwuWifiDirectPathAvailable(
       ssid, password, port, freq,
       /* supports_disabling_encryption */ disabling_encryption, gateway,
