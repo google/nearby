@@ -182,6 +182,9 @@ class BasePcpHandler : public PcpHandler,
   Pcp GetPcp() const override { return pcp_; }
   Strategy GetStrategy() const override { return strategy_; }
   void DisconnectFromEndpointManager();
+  void CleanUpPendingConnectionsForClientImpl(
+      ClientProxy* client,
+      std::optional<bool> is_incoming_filter = std::nullopt);
 
  protected:
   // The result of a call to startAdvertisingImpl() or startDiscoveryImpl().
