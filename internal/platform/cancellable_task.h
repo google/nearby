@@ -17,9 +17,12 @@
 
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -41,33 +44,52 @@ class CancellableTask {
    * running.
    */
   void CancelAndWaitIfStarted() {
-    if (started_or_cancelled_.Set(true)) {
-      if (FeatureFlags::GetInstance()
-              .GetFlags()
-              .cancel_waits_for_running_tasks) {
-        // task could still be running, wait until finish
-        finished_.Get();
+    Future<bool> finished;
+    bool should_wait = false;
+    {
+      MutexLock lock(&mutex_);
+      is_cancelled_ = true;
+      if (is_running_) {
+        should_wait = true;
+        finished = finished_;
+      } else {
+        // mark as finished to support multiple calls to this method
+        finished_.Set(true);
       }
-    } else {
-      // mark as finished to support multiple calls to this method
-      finished_.Set(true);
+    }
+    if (should_wait &&
+        FeatureFlags::GetInstance().GetFlags().cancel_waits_for_running_tasks) {
+      // task could still be running, wait until finish
+      finished.Get();
     }
   }
 
   void operator()() {
-    if (started_or_cancelled_.Set(true)) return;
-    finished_ = Future<bool>();
+    {
+      MutexLock lock(&mutex_);
+      if (is_cancelled_) return;
+      if (!is_repeated_ && was_run_) return;
+      was_run_ = true;
+      is_running_ = true;
+      if (is_repeated_) {
+        finished_ = Future<bool>();
+      }
+    }
     runnable_();
-    finished_.Set(true);
-    if (is_repeated_) {
-      started_or_cancelled_.Set(false);
+    {
+      MutexLock lock(&mutex_);
+      is_running_ = false;
+      finished_.Set(true);
     }
   }
 
  private:
   const bool is_repeated_;
-  AtomicBoolean started_or_cancelled_{false};
-  Future<bool> finished_;
+  Mutex mutex_;
+  bool is_cancelled_ ABSL_GUARDED_BY(mutex_){false};
+  bool was_run_ ABSL_GUARDED_BY(mutex_){false};
+  bool is_running_ ABSL_GUARDED_BY(mutex_){false};
+  Future<bool> finished_ ABSL_GUARDED_BY(mutex_);
   Runnable runnable_;
 };
 
