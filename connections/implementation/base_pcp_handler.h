@@ -537,8 +537,12 @@ class BasePcpHandler : public PcpHandler,
   static Exception WriteConnectionRequestFrame(
       NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
       const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel);
+
+  // This timeout should be at least as long as the Android GMSCore's timeout
+  // for initWifiInfo, which is currently 5 seconds.
+  // https://source.corp.google.com/piper///depot/google3/googledata/experiments/mobile/gmscore/nearby/features/connections_config.gcl;bpv=1;bpt=1;l=1187?gsn=connection_request_read_timeout_millis&gs=KYTHE%3A%2F%2Fkythe%3A%2F%2Fgoogle3%3Flang%3Dgcl%3Fpath%3Dgoogledata%2Fexperiments%2Fmobile%2Fgmscore%2Fnearby%2Ffeatures%2Fconnections_config.gcl%23IDENTIFIER%253AConnectionsConfig.connection_request_read_timeout_millis.
   static constexpr absl::Duration kConnectionRequestReadTimeout =
-      absl::Seconds(2);
+      absl::Seconds(5);
   static constexpr absl::Duration kRejectedConnectionCloseDelay =
       absl::Seconds(2);
   static constexpr int kConnectionTokenLength = 8;
