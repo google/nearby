@@ -96,7 +96,7 @@
 
   std::optional<nearby::api::ble::GattCharacteristic> result = _gattServer->CreateCharacteristic(
       serviceUuid, characteristicUuid, nearby::api::ble::GattCharacteristic::Permission::kRead,
-      nearby::api::ble::GattCharacteristic::Property::kRead);
+      nearby::api::ble::GattCharacteristic::Property::kRead, nearby::ByteArray());
   XCTAssertTrue(result.has_value());
 }
 
@@ -108,7 +108,7 @@
 
   std::optional<nearby::api::ble::GattCharacteristic> result = _gattServer->CreateCharacteristic(
       serviceUuid, characteristicUuid, nearby::api::ble::GattCharacteristic::Permission::kRead,
-      nearby::api::ble::GattCharacteristic::Property::kRead);
+      nearby::api::ble::GattCharacteristic::Property::kRead, nearby::ByteArray());
   XCTAssertFalse(result.has_value());
 }
 

@@ -225,9 +225,10 @@ class GattServer final {
   std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       const api::ble::GattCharacteristic::Permission permission,
-      const api::ble::GattCharacteristic::Property property) {
+      const api::ble::GattCharacteristic::Property property,
+      const ByteArray& initial_value) {
     return impl_->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                       permission, property);
+                                       permission, property, initial_value);
   }
 
   bool UpdateCharacteristic(const api::ble::GattCharacteristic& characteristic,

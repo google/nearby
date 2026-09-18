@@ -46,7 +46,7 @@ class GattServer : public api::ble::GattServer {
   std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
       const Uuid &service_uuid, const Uuid &characteristic_uuid,
       api::ble::GattCharacteristic::Permission permission,
-      api::ble::GattCharacteristic::Property property) override;
+      api::ble::GattCharacteristic::Property property, const ByteArray &initial_value) override;
 
   // Updates a local characteristic with the provided value.
   //

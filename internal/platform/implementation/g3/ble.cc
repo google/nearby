@@ -387,11 +387,12 @@ std::optional<api::ble::GattCharacteristic>
 BleMedium::GattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble::GattCharacteristic::Permission permission,
-    api::ble::GattCharacteristic::Property property) {
+    api::ble::GattCharacteristic::Property property,
+    const ByteArray& initial_value) {
   absl::MutexLock lock(mutex_);
   api::ble::GattCharacteristic characteristic = {.uuid = characteristic_uuid,
                                                  .service_uuid = service_uuid};
-  characteristics_[characteristic] = absl::NotFoundError("value not set");
+  characteristics_[characteristic] = initial_value;
   return characteristic;
 }
 

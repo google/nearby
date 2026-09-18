@@ -77,7 +77,8 @@ TEST(BleV2GattServer, DISABLED_CreateCharacteristic) {
 
   EXPECT_TRUE(ble_gatt_server
                   .CreateCharacteristic(service_uuid, characteristic_uuid,
-                                        permissions, properties)
+                                        permissions, properties,
+                                        ByteArray("any"))
                   .has_value());
 }
 
@@ -93,7 +94,7 @@ TEST(BleV2GattServer, DISABLED_UpdateCharacteristic) {
       api::ble::GattCharacteristic::Property::kNone;
 
   auto gatt_characteristic = ble_gatt_server.CreateCharacteristic(
-      service_uuid, characteristic_uuid, permissions, properties);
+      service_uuid, characteristic_uuid, permissions, properties, ByteArray());
   ByteArray value;
 
   EXPECT_TRUE(

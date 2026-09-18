@@ -275,7 +275,8 @@ class GattServer {
   virtual std::optional<GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       GattCharacteristic::Permission permission,
-      GattCharacteristic::Property property) = 0;
+      GattCharacteristic::Property property,
+      const ByteArray& initial_value) = 0;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic.html#setValue(byte[])
   //

@@ -1250,15 +1250,10 @@ bool Ble::GenerateAdvertisementCharacteristic(
   absl::optional<GattCharacteristic> gatt_characteristic =
       gatt_server.CreateCharacteristic(
           mediums::bleutils::kCopresenceServiceUuid, *advertiement_uuid,
-          permission, property);
+          permission, property, gatt_advertisement);
   if (!gatt_characteristic.has_value()) {
     LOG(INFO) << "Unable to create and add a characterstic to the gatt "
                  "server for the advertisement.";
-    return false;
-  }
-  if (!gatt_server.UpdateCharacteristic(gatt_characteristic.value(),
-                                        gatt_advertisement)) {
-    LOG(INFO) << "Unable to write a value to the GATT characteristic.";
     return false;
   }
   hosted_gatt_characteristics_.insert(gatt_characteristic.value());

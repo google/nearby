@@ -113,5 +113,81 @@ TEST(UtilsTests, IsIntelWifiAdapter) {
   LOG(ERROR) << "is_intel_wifi_adapter: " << is_intel_wifi_adapter;
 }
 
+namespace {
+
+struct FakeRevoker {
+  bool* revoked = nullptr;
+  int exception_type = 0;  // 0 = none, 1 = hresult, 2 = std::exception, 3 = int
+
+  explicit FakeRevoker(bool* revoked, int exception_type = 0)
+      : revoked(revoked), exception_type(exception_type) {}
+
+  FakeRevoker(const FakeRevoker&) = delete;
+  FakeRevoker& operator=(const FakeRevoker&) = delete;
+
+  FakeRevoker(FakeRevoker&& other) noexcept
+      : revoked(other.revoked), exception_type(other.exception_type) {
+    other.revoked = nullptr;
+  }
+
+  ~FakeRevoker() {
+    if (*this) {
+      revoke();
+    }
+  }
+
+  void revoke() {
+    if (revoked != nullptr) {
+      *revoked = true;
+      revoked = nullptr;
+    }
+    if (exception_type == 1) {
+      throw winrt::hresult_error(E_FAIL, L"Simulated WinRT error");
+    } else if (exception_type == 2) {
+      throw std::runtime_error("Simulated std::exception");
+    } else if (exception_type == 3) {
+      throw 42;
+    }
+  }
+
+  explicit operator bool() const noexcept { return revoked != nullptr; }
+};
+
+}  // namespace
+
+TEST(UtilsTests, SafeAutoRevoker_RevokesOnDestruction) {
+  bool revoked = false;
+  {
+    SafeAutoRevoker<FakeRevoker> safe_revoker{FakeRevoker(&revoked)};
+    EXPECT_FALSE(revoked);
+  }
+  EXPECT_TRUE(revoked);
+}
+
+TEST(UtilsTests, SafeAutoRevoker_DoesNotRevokeWhenEmpty) {
+  EXPECT_NO_THROW(
+      { SafeAutoRevoker<FakeRevoker> safe_revoker{FakeRevoker(nullptr, 1)}; });
+}
+
+TEST(UtilsTests, SafeAutoRevoker_IgnoresExceptions) {
+  bool revoked1 = false;
+  bool revoked2 = false;
+  bool revoked3 = false;
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker1{FakeRevoker(&revoked1, 1)};
+  });
+  EXPECT_TRUE(revoked1);
+
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker2{FakeRevoker(&revoked2, 2)};
+  });
+  EXPECT_TRUE(revoked2);
+
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker3{FakeRevoker(&revoked3, 3)};
+  });
+  EXPECT_TRUE(revoked3);
+}
+
 }  // namespace windows
 }  // namespace nearby

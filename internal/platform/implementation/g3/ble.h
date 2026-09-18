@@ -205,7 +205,8 @@ class BleMedium : public api::ble::BleMedium {
     std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid,
         api::ble::GattCharacteristic::Permission permission,
-        api::ble::GattCharacteristic::Property property) override;
+        api::ble::GattCharacteristic::Property property,
+        const ByteArray& initial_value) override;
 
     bool UpdateCharacteristic(
         const api::ble::GattCharacteristic& characteristic,

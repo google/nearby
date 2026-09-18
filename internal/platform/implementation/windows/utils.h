@@ -19,16 +19,49 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/base.h"
 
 namespace nearby {
 namespace windows {
+
+// Wrapper around C++/WinRT event revokers (e.g., returned by passing
+// `winrt::auto_revoke` to event registration methods) that catches and logs
+// any exceptions during event revocation.
+template <typename Revoker>
+class SafeAutoRevoker {
+ public:
+  explicit SafeAutoRevoker(Revoker&& revoker) : revoker_(std::move(revoker)) {}
+
+  SafeAutoRevoker(const SafeAutoRevoker&) = delete;
+  SafeAutoRevoker& operator=(const SafeAutoRevoker&) = delete;
+
+  ~SafeAutoRevoker() {
+    try {
+      if (revoker_) {
+        revoker_.revoke();
+      }
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << "WinRT exception during event revocation: " << error.code()
+                 << ": " << winrt::to_string(error.message());
+    } catch (const std::exception& exception) {
+      LOG(ERROR) << "Exception during event revocation: " << exception.what();
+    } catch (...) {
+      LOG(ERROR) << "Unknown exception during event revocation.";
+    }
+  }
+
+ private:
+  Revoker revoker_;
+};
 
 // Help methods to convert between Uuid and winrt::guid
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid);

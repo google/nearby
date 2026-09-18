@@ -32,7 +32,7 @@ GattServer::GattServer(GNCBLEGATTServer *gatt_server) : gatt_server_(gatt_server
 std::optional<api::ble::GattCharacteristic> GattServer::CreateCharacteristic(
     const Uuid &service_uuid, const Uuid &characteristic_uuid,
     api::ble::GattCharacteristic::Permission permission,
-    api::ble::GattCharacteristic::Property property) {
+    api::ble::GattCharacteristic::Property property, const ByteArray &initial_value) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   CBUUID *characteristicUUID = CBUUID128FromCPP(characteristic_uuid);
   CBAttributePermissions permissions = CBAttributePermissionsFromCPP(permission);
@@ -60,7 +60,12 @@ std::optional<api::ble::GattCharacteristic> GattServer::CreateCharacteristic(
   if (blockCharacteristic == nil) {
     return std::nullopt;
   }
-  return CPPGATTCharacteristicFromObjC(blockCharacteristic);
+  api::ble::GattCharacteristic cppCharacteristic =
+      CPPGATTCharacteristicFromObjC(blockCharacteristic);
+  if (!UpdateCharacteristic(cppCharacteristic, initial_value)) {
+    return std::nullopt;
+  }
+  return cppCharacteristic;
 }
 
 bool GattServer::UpdateCharacteristic(const api::ble::GattCharacteristic &characteristic,

@@ -578,7 +578,7 @@ TEST_F(BleMediumTest, CanStartGattServer) {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   std::optional<GattCharacteristic> gatt_characteristic =
       gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                        permission, property);
+                                        permission, property, ByteArray());
 
   ASSERT_TRUE(gatt_characteristic.has_value());
 
@@ -611,14 +611,12 @@ TEST_F(BleMediumTest, GattClientConnectToGattServerWorks) {
       GattCharacteristic::Permission::kRead;
   GattCharacteristic::Property properties = GattCharacteristic::Property::kRead;
   // Add characteristic and its value.
+  ByteArray server_value("any");
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   std::optional<GattCharacteristic> server_characteristic =
       gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                        permissions, properties);
+                                        permissions, properties, server_value);
   ASSERT_TRUE(server_characteristic.has_value());
-  ByteArray server_value("any");
-  EXPECT_TRUE(
-      gatt_server->UpdateCharacteristic(*server_characteristic, server_value));
 
   // Start GattClient
   MacAddress mac_address = adapter_a.GetAddress();
@@ -731,13 +729,11 @@ TEST_F(BleMediumTest, GattClientOperatiosOnCharacteristic) {
   GattCharacteristic::Permission permissions =
       GattCharacteristic::Permission::kRead;
   GattCharacteristic::Property properties = GattCharacteristic::Property::kRead;
+  ByteArray server_value("any");
   std::optional<GattCharacteristic> server_characteristic =
       gatt_server->CreateCharacteristic(service_uuid, characteristic_uuid,
-                                        permissions, properties);
+                                        permissions, properties, server_value);
   ASSERT_TRUE(server_characteristic.has_value());
-  ByteArray server_value("any");
-  EXPECT_TRUE(
-      gatt_server->UpdateCharacteristic(*server_characteristic, server_value));
 
   // Can discover service and characteristics.
   EXPECT_TRUE(gatt_client->DiscoverServiceAndCharacteristics(
