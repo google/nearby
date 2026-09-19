@@ -122,8 +122,8 @@ struct User {
       : channel(std::make_shared<FakeEndpointChannel>(reader, writer)) {}
 
   std::shared_ptr<FakeEndpointChannel> channel;
-  EncryptionRunner crypto;
   ClientProxy client;
+  EncryptionRunner crypto;
 };
 
 struct Response {
@@ -233,7 +233,7 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
               /*writer=*/from_a_to_b.second.get());
   User user_b(/*reader=*/from_a_to_b.first.get(),
               /*writer=*/from_b_to_a.second.get());
-  Response response(1);
+  Response response(2);
 
   // Close client's input stream, so server can't write to it.
   from_a_to_b.first->Close();
@@ -259,17 +259,24 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
   user_b.crypto.StartClient(
       &user_b.client, "endpoint_id", user_b.channel,
       {
-          .on_success_cb = [](const std::string& endpoint_id,
-                              std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                              const std::string& auth_token,
-                              const ByteArray& raw_auth_token) {},
+          .on_success_cb =
+              [&response](const std::string& endpoint_id,
+                          std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                          const std::string& auth_token,
+                          const ByteArray& raw_auth_token) {
+                response.client_status = Response::Status::kDone;
+                response.latch.CountDown();
+              },
           .on_failure_cb =
-              [&user_b](const std::string& endpoint_id) {
+              [&response, &user_b](const std::string& endpoint_id) {
                 user_b.channel->Close();
+                response.client_status = Response::Status::kFailed;
+                response.latch.CountDown();
               },
       });
   EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.server_status, Response::Status::kFailed);
+  EXPECT_EQ(response.client_status, Response::Status::kFailed);
 }
 
 TEST(EncryptionRunnerTest, ClientSendsGarbageMessage1) {
