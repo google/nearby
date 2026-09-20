@@ -223,6 +223,7 @@ cc_library(
         "//connections:__pkg__",
         "//connections:partners",
         "//connections/implementation/fuzzers:__pkg__",
+        "//location/nearby/testing/nearby_native/client_windows/connections:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [
