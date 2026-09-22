@@ -12,6 +12,75 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if defined(__APPLE__)
+
+#include "connections/implementation/mediums/wifi_direct.h"
+
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_direct.h"
+
+namespace nearby {
+namespace connections {
+
+WifiDirect::WifiDirect() = default;
+WifiDirect::~WifiDirect() = default;
+
+bool WifiDirect::IsGOAvailable() const { return false; }
+bool WifiDirect::IsGCAvailable() const { return false; }
+bool WifiDirect::IsGOStarted() { return false; }
+bool WifiDirect::StartWifiDirect() { return false; }
+bool WifiDirect::StopWifiDirect() { return false; }
+bool WifiDirect::IsConnectedToGO() { return false; }
+bool WifiDirect::ConnectWifiDirect(
+    const WifiDirectCredentials& wifi_direct_credentials) {
+  return false;
+}
+bool WifiDirect::DisconnectWifiDirect() { return false; }
+bool WifiDirect::StartAcceptingConnections(
+    const std::string& service_id, AcceptedConnectionCallback callback) {
+  return false;
+}
+bool WifiDirect::StopAcceptingConnections(const std::string& service_id) {
+  return false;
+}
+bool WifiDirect::IsAcceptingConnections(const std::string& service_id) {
+  return false;
+}
+
+ErrorOr<WifiDirectSocket> WifiDirect::Connect(
+    const std::string& service_id, const std::string& ip_address, int port,
+    CancellationFlag* cancellation_flag) {
+  return WifiDirectSocket();
+}
+
+WifiDirectCredentials* WifiDirect::GetCredentials(
+    absl::string_view service_id) {
+  return nullptr;
+}
+
+bool WifiDirect::SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) {
+  return false;
+}
+
+std::unique_ptr<BwuHandler> WifiDirect::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  return nullptr;
+}
+
+}  // namespace connections
+}  // namespace nearby
+
+#else
+
 #include "connections/implementation/mediums/wifi_direct.h"
 
 #include <memory>
@@ -319,3 +388,5 @@ std::unique_ptr<BwuHandler> WifiDirect::CreateBwuHandler(
 
 }  // namespace connections
 }  // namespace nearby
+
+#endif  // defined(__APPLE__)

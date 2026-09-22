@@ -12,6 +12,96 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if defined(__APPLE__)
+
+#include "connections/implementation/mediums/bluetooth_classic.h"
+
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/mac_address.h"
+
+namespace nearby {
+namespace connections {
+
+BluetoothClassic::BluetoothClassic(BluetoothRadio& radio)
+    : radio_(radio), adapter_(radio_.GetBluetoothAdapter()), medium_(nullptr) {}
+
+BluetoothClassic::BluetoothClassic(
+    BluetoothRadio& radio, std::unique_ptr<BluetoothClassicMedium> medium)
+    : radio_(radio),
+      adapter_(radio_.GetBluetoothAdapter()),
+      medium_(std::move(medium)) {}
+
+BluetoothClassic::~BluetoothClassic() = default;
+
+bool BluetoothClassic::IsAvailable() const { return false; }
+bool BluetoothClassic::IsAvailableLocked() const { return false; }
+
+ErrorOr<bool> BluetoothClassic::TurnOnDiscoverability(
+    const std::string& device_name) {
+  return false;
+}
+
+bool BluetoothClassic::TurnOffDiscoverability() { return false; }
+
+ErrorOr<bool> BluetoothClassic::StartDiscovery(
+    const std::string& serviceId, DiscoveredDeviceCallback callback) {
+  return false;
+}
+
+bool BluetoothClassic::StopDiscovery(const std::string& serviceId) {
+  return false;
+}
+
+void BluetoothClassic::StopAllDiscovery() {}
+
+ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
+    const std::string& service_id, AcceptedConnectionCallback callback) {
+  return false;
+}
+
+bool BluetoothClassic::IsAcceptingConnections(const std::string& service_id) {
+  return false;
+}
+
+bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
+  return false;
+}
+
+ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
+    BluetoothDevice& bluetooth_device, const std::string& service_id,
+    CancellationFlag* cancellation_flag) {
+  return BluetoothSocket();
+}
+
+MacAddress BluetoothClassic::GetAddress() const { return MacAddress(); }
+
+BluetoothDevice BluetoothClassic::GetRemoteDevice(MacAddress mac_address) {
+  return BluetoothDevice();
+}
+
+bool BluetoothClassic::IsDiscovering(const std::string& serviceId) const {
+  return false;
+}
+
+std::unique_ptr<BwuHandler> BluetoothClassic::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  return nullptr;
+}
+
+}  // namespace connections
+}  // namespace nearby
+
+#else
+
 #include "connections/implementation/mediums/bluetooth_classic.h"
 
 #include <memory>
@@ -576,3 +666,5 @@ std::unique_ptr<BwuHandler> BluetoothClassic::CreateBwuHandler(
 
 }  // namespace connections
 }  // namespace nearby
+
+#endif  // defined(__APPLE__)

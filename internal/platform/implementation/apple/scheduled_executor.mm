@@ -98,6 +98,7 @@ namespace {
 
 void ExecuteRunnable(Runnable &runnable) {
   @try {
+#if defined(__cpp_exceptions)
     try {
       runnable();
     } catch (const std::exception &e) {
@@ -105,6 +106,9 @@ void ExecuteRunnable(Runnable &runnable) {
     } catch (...) {
       GNCLoggerError(@"Runnable threw unknown C++ exception");
     }
+#else
+    runnable();
+#endif
   } @catch (NSException *e) {
     GNCLoggerError(@"Runnable threw ObjC exception: %@: %@", e.name, e.reason);
   }

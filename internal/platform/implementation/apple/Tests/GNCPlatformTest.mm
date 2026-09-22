@@ -18,6 +18,13 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
+#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/implementation/mediums/wifi_direct.h"
+#include "connections/implementation/mediums/wifi_hotspot.h"
+#include "internal/platform/mac_address.h"
+#include "proto/connections_enums.pb.h"
+
 // A custom NSURLProtocol to intercept and fake network requests for testing.
 @interface GNCFakeURLProtocol : NSURLProtocol
 + (void)setFakeResponseData:(NSData *)data;
@@ -374,6 +381,76 @@ void GNCEnsureFileAtPath(std::string path) {
 - (void)testCreateWebRtcMedium {
   auto webrtc_medium = nearby::api::WebRtcImplementationPlatform::CreateWebRtcMedium();
   XCTAssertNotEqual(webrtc_medium.get(), nullptr);
+}
+
+- (void)testBluetoothClassicIsStubbedOnApple {
+  nearby::connections::BluetoothRadio radio;
+  nearby::connections::BluetoothClassic bluetooth(radio);
+
+  XCTAssertFalse(bluetooth.IsAvailable());
+  XCTAssertFalse(bluetooth.IsMediumValid());
+  XCTAssertFalse(bluetooth.TurnOffDiscoverability());
+  XCTAssertFalse(bluetooth.StopDiscovery("service_id"));
+  bluetooth.StopAllDiscovery();
+  XCTAssertFalse(bluetooth.IsDiscovering("service_id"));
+  XCTAssertFalse(bluetooth.IsAcceptingConnections("service_id"));
+  XCTAssertFalse(bluetooth.StopAcceptingConnections("service_id"));
+  XCTAssertFalse(bluetooth.GetAddress().IsSet());
+  XCTAssertTrue(bluetooth.CreateBwuHandler(nullptr) == nullptr);
+
+  auto discoverability = bluetooth.TurnOnDiscoverability("test_device");
+  XCTAssertTrue(discoverability.has_value());
+  XCTAssertFalse(discoverability.value());
+
+  auto discovery = bluetooth.StartDiscovery("service_id", {});
+  XCTAssertTrue(discovery.has_value());
+  XCTAssertFalse(discovery.value());
+
+  auto accepting = bluetooth.StartAcceptingConnections("service_id", {});
+  XCTAssertTrue(accepting.has_value());
+  XCTAssertFalse(accepting.value());
+}
+
+- (void)testWifiDirectIsStubbedOnApple {
+  nearby::connections::WifiDirect wifi_direct;
+
+  XCTAssertFalse(wifi_direct.IsGOAvailable());
+  XCTAssertFalse(wifi_direct.IsGCAvailable());
+  XCTAssertFalse(wifi_direct.IsGOStarted());
+  XCTAssertFalse(wifi_direct.StartWifiDirect());
+  XCTAssertFalse(wifi_direct.StopWifiDirect());
+  XCTAssertFalse(wifi_direct.IsConnectedToGO());
+  XCTAssertFalse(wifi_direct.ConnectWifiDirect({}));
+  XCTAssertFalse(wifi_direct.DisconnectWifiDirect());
+  XCTAssertFalse(wifi_direct.StartAcceptingConnections("service_id", {}));
+  XCTAssertFalse(wifi_direct.StopAcceptingConnections("service_id"));
+  XCTAssertFalse(wifi_direct.IsAcceptingConnections("service_id"));
+  XCTAssertTrue(wifi_direct.GetCredentials("service_id") == nullptr);
+  XCTAssertFalse(wifi_direct.SetPreferredWifiDirectAuthType(
+      location::nearby::proto::connections::WIFI_DIRECT_TYPE_UNKNOWN));
+  XCTAssertTrue(wifi_direct.CreateBwuHandler(nullptr) == nullptr);
+}
+
+- (void)testWifiHotspotSupportsClientOnlyOnApple {
+  nearby::connections::WifiHotspot wifi_hotspot;
+
+  // Apple platforms do not support hosting a SoftAP (AP mode), but iOS supports
+  // joining a peer's hotspot as a client (STA mode) for bandwidth upgrades.
+  XCTAssertFalse(wifi_hotspot.IsAPAvailable());
+#if TARGET_OS_IOS
+  XCTAssertTrue(wifi_hotspot.IsClientAvailable());
+#else
+  XCTAssertFalse(wifi_hotspot.IsClientAvailable());
+#endif
+  XCTAssertFalse(wifi_hotspot.IsHotspotStarted());
+  XCTAssertFalse(wifi_hotspot.StartWifiHotspot());
+  XCTAssertTrue(wifi_hotspot.StopWifiHotspot());
+  XCTAssertFalse(wifi_hotspot.IsConnectedToHotspot());
+  XCTAssertTrue(wifi_hotspot.DisconnectWifiHotspot());
+  XCTAssertFalse(wifi_hotspot.StartAcceptingConnections("service_id", {}));
+  XCTAssertFalse(wifi_hotspot.StopAcceptingConnections("service_id"));
+  XCTAssertFalse(wifi_hotspot.IsAcceptingConnections("service_id"));
+  XCTAssertTrue(wifi_hotspot.CreateBwuHandler(nullptr) != nullptr);
 }
 
 @end

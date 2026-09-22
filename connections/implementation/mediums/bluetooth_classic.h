@@ -100,7 +100,7 @@ class BluetoothClassic {
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
-    return medium_->IsValid();
+    return medium_ != nullptr && medium_->IsValid();
   }
 
   // Returns true if this object has a valid BluetoothAdapter reference.

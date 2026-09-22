@@ -56,6 +56,19 @@
 namespace nearby {
 namespace connections {
 namespace {
+#if defined(__clang__) && !defined(GITHUB_BUILD) && defined(__cpp_exceptions)
+static_assert(false,
+              "Nearby Connections internal must be compiled with "
+              "-fno-exceptions");
+#endif
+
+#if defined(__clang__) && defined(NEARBY_OPTIMIZED_MODE) && \
+    !defined(__OPTIMIZE_SIZE__)
+static_assert(false,
+              "Optimized builds of Nearby Connections internal must be "
+              "compiled with -Oz (__OPTIMIZE_SIZE__)");
+#endif
+
 // Length of a MAC address, which consists of 6 bytes uniquely identifying a
 // hardware interface.
 const std::size_t kMacAddressLength = 6u;
