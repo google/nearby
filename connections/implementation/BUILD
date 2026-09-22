@@ -218,7 +218,12 @@ cc_library(
         "service_controller_router.h",
         "wifi_lan_service_info.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
+    copts = [
+        "-DCORE_ADAPTER_DLL",
+    ] + select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["-fno-exceptions"],
+    }),
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__pkg__",
