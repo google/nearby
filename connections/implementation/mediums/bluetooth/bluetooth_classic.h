@@ -24,6 +24,7 @@
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -36,7 +37,7 @@
 namespace nearby {
 namespace connections {
 
-class BluetoothClassic {
+class BluetoothClassic : public BluetoothClassicInterface {
  public:
   using DiscoveredDeviceCallback = BluetoothClassicMedium::DiscoveryCallback;
   using ScanMode = BluetoothAdapter::ScanMode;
@@ -45,17 +46,19 @@ class BluetoothClassic {
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
       const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
+  using BluetoothClassicInterface::StartAcceptingConnections;
+
   explicit BluetoothClassic(BluetoothRadio& radio);
-  ~BluetoothClassic();
+  ~BluetoothClassic() override;
 
   // Returns true, if BT communications are supported by a platform.
-  bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Sets custom device name, and then enables BT discoverable mode.
   // Returns true, if name and scan mode are successfully set, and false
   // otherwise.
   // Called by server.
-  ErrorOr<bool> TurnOnDiscoverability(const std::string& device_name)
+  ErrorOr<bool> TurnOnDiscoverability(const std::string& device_name) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BT discoverability, and restores scan mode and device name to
@@ -63,21 +66,22 @@ class BluetoothClassic {
   // Returns false if no successful call TurnOnDiscoverability() was previously
   // made, otherwise returns true.
   // Called by server.
-  bool TurnOffDiscoverability() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool TurnOffDiscoverability() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enables BT discovery for serviceId. If it is the first call to start
   // discovery, will enable BT discovery mode.
   // Returns true, if discovery enabled for serviceId, false otherwise.
   ErrorOr<bool> StartDiscovery(const std::string& serviceId,
-                               DiscoveredDeviceCallback callback)
+                               DiscoveredDeviceCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BT discovery for serviceId.
   // if it is the last call to stop discovery, will disable BT discovery mode.
-  bool StopDiscovery(const std::string& serviceId) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopDiscovery(const std::string& serviceId) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops BT discovery for all services.
-  void StopAllDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+  void StopAllDiscovery() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a BT server socket, associates it with a
   // service ID; in a worker thread repeatedly calls ServerSocket::Accept().
@@ -86,27 +90,27 @@ class BluetoothClassic {
   // Called by server.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
                                           AcceptedConnectionCallback callback,
-                                          bool for_upgrade = false)
+                                          bool for_upgrade) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true, if object is currently running a Accept() loop.
-  bool IsAcceptingConnections(const std::string& service_id)
+  bool IsAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes server socket corresponding to a service ID. This automatically
   // terminates Accept() loop, if it were running.
   // Called by server.
-  bool StopAcceptingConnections(const std::string& service_id)
+  bool StopAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if this object owns a valid platform implementation.
-  bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
+  bool IsMediumValid() const override ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     return medium_->IsValid();
   }
 
   // Returns true if this object has a valid BluetoothAdapter reference.
-  bool IsAdapterValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
+  bool IsAdapterValid() const override ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     return adapter_.IsValid();
   }
@@ -119,19 +123,19 @@ class BluetoothClassic {
   ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
       BluetoothDevice& bluetooth_device, const std::string& service_id,
       const std::string& local_service_id, const std::string& channel_name,
-      CancellationFlag* cancellation_flag)
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  MacAddress GetAddress() const override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  BluetoothDevice GetRemoteDevice(MacAddress mac_address) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  MacAddress GetAddress() const ABSL_LOCKS_EXCLUDED(mutex_);
-
-  BluetoothDevice GetRemoteDevice(MacAddress mac_address)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  bool IsDiscovering(const std::string& serviceId) const
+  bool IsDiscovering(const std::string& serviceId) const override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<BwuHandler> CreateBwuHandler(
-      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback)
+      override;
 
  protected:
   // Use for unit tests only to inject a BluetoothClassicMedium.

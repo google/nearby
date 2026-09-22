@@ -19,12 +19,22 @@
 
 #include "connections/implementation/mediums/awdl/awdl.h"
 #include "connections/implementation/mediums/ble.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
+#if defined(__APPLE__)
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_stub.h"
+#else
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
+#endif
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
+#if defined(__APPLE__)
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_stub.h"
+#else
 #include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
+#endif
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 
@@ -41,7 +51,7 @@ class Mediums {
   BluetoothRadio& GetBluetoothRadio();
 
   // Returns a handle to the Bluetooth Classic medium.
-  BluetoothClassic& GetBluetoothClassic();
+  BluetoothClassicInterface& GetBluetoothClassic();
 
   // Returns a handle to the Ble medium.
   Ble& GetBle();
@@ -59,7 +69,7 @@ class Mediums {
   WifiHotspot& GetWifiHotspot();
 
   // Returns a handle to the Wifi-Direct medium.
-  WifiDirect& GetWifiDirect();
+  WifiDirectInterface& GetWifiDirect();
 
   // Returns a handle to the WebRtc medium.
   mediums::WebRtc& GetWebRtc();
@@ -77,13 +87,21 @@ class Mediums {
   // 2) Destruction: The individual mediums should be shut down before the
   // corresponding radio.
   BluetoothRadio bluetooth_radio_;
+#if defined(__APPLE__)
+  BluetoothClassicStub bluetooth_classic_{bluetooth_radio_};
+#else
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
+#endif
   Ble ble_{bluetooth_radio_};
   Wifi wifi_;
   WifiLan wifi_lan_;
   WifiAware wifi_aware_;
   WifiHotspot wifi_hotspot_;
+#if defined(__APPLE__)
+  WifiDirectStub wifi_direct_;
+#else
   WifiDirect wifi_direct_;
+#endif
   std::unique_ptr<mediums::WebRtc> webrtc_;
   Awdl awdl_;
 };

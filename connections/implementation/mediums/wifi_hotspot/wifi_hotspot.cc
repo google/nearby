@@ -31,8 +31,10 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
@@ -65,6 +67,11 @@ bool WifiHotspot::IsAPAvailable() const {
 }
 
 bool WifiHotspot::IsAPAvailableLocked() const {
+  if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kApple) {
+    // Apple platforms only support joining a remote Wi-Fi Hotspot as a client
+    // (STA) and do not support hosting a SoftAP server.
+    return false;
+  }
   if (medium_.IsValid()) return medium_.IsInterfaceValid();
   return false;
 }
@@ -90,6 +97,10 @@ bool WifiHotspot::StartWifiHotspot() {
   if (is_hotspot_started_) {
     LOG(INFO) << "No need to start Hotspot because it is already started.";
     return true;
+  }
+  if (!IsAPAvailableLocked()) {
+    LOG(INFO) << "Cannot start WifiHotspot because AP is not available.";
+    return false;
   }
   is_hotspot_started_ = medium_.StartWifiHotspot();
   return is_hotspot_started_;
