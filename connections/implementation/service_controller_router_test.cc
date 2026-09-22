@@ -1449,6 +1449,26 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
                                  /*awdl=*/false));
 }
 
+TEST_F(ServiceControllerRouterTest, CompiledWithoutCppExceptions) {
+#if defined(__cpp_exceptions)
+  constexpr bool kCppExceptionsEnabled = true;
+#else
+  constexpr bool kCppExceptionsEnabled = false;
+#endif
+  EXPECT_FALSE(kCppExceptionsEnabled);
+}
+
+TEST_F(ServiceControllerRouterTest, OptimizedBuildUsesSizeOptimization) {
+#if defined(NEARBY_OPTIMIZED_MODE)
+#if defined(__OPTIMIZE_SIZE__)
+  constexpr bool kOptimizeSizeEnabled = true;
+#else
+  constexpr bool kOptimizeSizeEnabled = false;
+#endif
+  EXPECT_TRUE(kOptimizeSizeEnabled);
+#endif
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
