@@ -1323,6 +1323,8 @@ enum OperationResultCode {
   // Outgoing AWDL channel creation failure (IOException on
   // socket#getInputStream and socket#getOutputStream)
   NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612;
+  // Null pointer exception when writing connection response
+  NEARBY_CONNECTION_RESPONSE_NULL_POINTER_EXCEPTION = 4613;
 
   // Section of CATEGORY_DCT_ERROR, from 5000
   // BLE is disabled
