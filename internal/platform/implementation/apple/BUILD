@@ -38,6 +38,7 @@ objc_library(
         "scheduled_executor.h",
         "single_thread_executor.h",
     ],
+    copts = ["-fno-exceptions"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -56,6 +57,7 @@ objc_library(
     srcs = [
         "webrtc_platform.mm",
     ],
+    copts = ["-fno-exceptions"],
     deps = [
         "//connections/implementation/mediums/webrtc:webrtc_medium_impl",
         "//internal/platform/implementation:webrtc_platform",
@@ -89,6 +91,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     features = ["-layering_check"],
     deps = [
         ":GNCDevicePaths",
@@ -113,6 +116,7 @@ objc_library(
         "//third_party/apple_frameworks:Network",
         "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:CoreGraphics",
+        "//third_party/apple_frameworks:UIKit",
         "@nlohmann_json//:json",
         "//internal/base:file_path",
         "//internal/base:files",
@@ -133,6 +137,7 @@ objc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform:cancellation_flag",
+        "@com_google_protobuf//:protobuf",
     ] + select({
         "@platforms//os:platform_ios": [
             "//internal/platform/implementation/apple/Mediums/Aware:WiFiAwareMedium",
@@ -159,6 +164,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     deps = [
         ":GNCNotificationCenter",
         "//internal/platform:base",
@@ -202,6 +208,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     deps = [
         ":Shared",
         ":bluetooth_adapter_v2",
@@ -235,6 +242,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     deps = [
         "//internal/platform:mac_address",
         "//internal/platform/implementation:comm",
@@ -251,6 +259,7 @@ objc_library(
     hdrs = [
         "GNCUtils.h",
     ],
+    copts = ["-fno-exceptions"],
     deps = [
         "//third_party/apple_frameworks:Foundation",
         "@aappleby_smhasher//:libmurmur3",
@@ -265,6 +274,7 @@ objc_library(
     hdrs = [
         "network_utils.h",
     ],
+    copts = ["-fno-exceptions"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -285,6 +295,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     deps = [
         "//third_party/apple_frameworks:os",
         "@com_google_absl//absl/log:log_entry",
@@ -303,6 +314,7 @@ objc_library(
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
+    copts = ["-fno-exceptions"],
     deps = [
         ":os_log_sink",
         "@com_google_absl//absl/log:log_sink_registry",
@@ -313,6 +325,7 @@ objc_library(
     name = "GNCDevicePaths",
     srcs = ["GNCDevicePaths.m"],
     hdrs = ["GNCDevicePaths.h"],
+    copts = ["-fno-exceptions"],
     deps = [
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
@@ -333,6 +346,7 @@ cc_library(
         "count_down_latch.h",
         "mutex.h",
     ],
+    copts = ["-fno-exceptions"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:platform",

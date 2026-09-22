@@ -96,8 +96,14 @@ namespace nearby {
 namespace apple {
 namespace {
 
+#if defined(__APPLE__) && !defined(GITHUB_BUILD) && defined(__cpp_exceptions)
+static_assert(false, "Nearby Apple platform implementation must be compiled with "
+                     "-fno-exceptions");
+#endif
+
 void ExecuteRunnable(Runnable &runnable) {
   @try {
+#if defined(__cpp_exceptions)
     try {
       runnable();
     } catch (const std::exception &e) {
@@ -105,6 +111,9 @@ void ExecuteRunnable(Runnable &runnable) {
     } catch (...) {
       GNCLoggerError(@"Runnable threw unknown C++ exception");
     }
+#else
+    runnable();
+#endif
   } @catch (NSException *e) {
     GNCLoggerError(@"Runnable threw ObjC exception: %@: %@", e.name, e.reason);
   }

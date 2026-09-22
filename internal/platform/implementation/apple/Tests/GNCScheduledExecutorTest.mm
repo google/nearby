@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if defined(__APPLE__) && !defined(__clang_analyzer__) && __has_include(<XCTest/XCTest.h>)
 #import <XCTest/XCTest.h>
 
+#include <atomic>
+#include <memory>
 #include <utility>
 
 #include "absl/time/time.h"
@@ -40,7 +43,7 @@ using ::nearby::api::ScheduledExecutor;
   return executor;
 }
 
-// Tests that the executor schedules operation at the specified time.
+// Verifies that the executor runs scheduled tasks in order after their specified delays.
 - (void)testScheduling {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
 
@@ -73,38 +76,42 @@ using ::nearby::api::ScheduledExecutor;
   [self waitForExpectationsWithTimeout:1.2 handler:nil];
 }
 
-// Tests that fails to schedule when the executor is shut down.
+// Verifies that scheduling or executing a task after Shutdown returns a null cancelable and does
+// not run the task.
 - (void)testFailtoScheduleAfterShutdown {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
 
   executor->Shutdown();
 
-  dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0);
-  XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
-
-  const NSTimeInterval delay = 0.1;
-  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay));
-
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * 2 * NSEC_PER_SEC)), queue, ^{
-    XCTAssertEqual(self.counter, 0);
-    [expectation fulfill];
-  });
-
-  [self waitForExpectationsWithTimeout:delay * 5 handler:nil];
+  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Seconds(0.1));
+  XCTAssert(cancelable.get() == nullptr);
+  executor->Execute([self]() { self.counter++; });
+  XCTAssertEqual(self.counter, 0);
 }
 
-// Tests that fails to cancel when the executor is shut down.
+// Verifies that Cancel returns false after a scheduled task has already executed and the executor
+// is shut down.
 - (void)testFailToCancelAfterShutdown {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
+  XCTestExpectation *executed = [self expectationWithDescription:@"task executed"];
 
+  auto cancelable = executor->Schedule(
+      [self, executed]() {
+        self.counter++;
+        [executed fulfill];
+      },
+      absl::ZeroDuration());
+  XCTAssert(cancelable.get() != nullptr);
+
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
   executor->Shutdown();
 
-  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Seconds(0.1));
-
-  XCTAssert(cancelable.get() == nullptr);
+  XCTAssertFalse(cancelable->Cancel());
+  XCTAssertEqual(self.counter, 1);
 }
 
-// Tests that shutting down an existing task fails to complete.
+// Verifies that calling Shutdown before a scheduled task's delay expires prevents the task from
+// executing.
 - (void)testShutdownToFailExistingTask {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
 
@@ -112,7 +119,7 @@ using ::nearby::api::ScheduledExecutor;
   XCTestExpectation *expectation = [self expectationWithDescription:@"finished"];
 
   const NSTimeInterval delay = 0.1;
-  executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(delay));
+  executor->Schedule([self]() { self.counter++; }, absl::Seconds(delay));
 
   executor->Shutdown();
 
@@ -124,22 +131,58 @@ using ::nearby::api::ScheduledExecutor;
   [self waitForExpectationsWithTimeout:delay * 5 handler:nil];
 }
 
-// Tests that a canceled runnable doesn't run.
+// Verifies that canceling a scheduled runnable before its delay expires prevents it from firing
+// while a subsequent sentinel task still executes.
 - (void)testCancelable {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
+  XCTestExpectation *sentinelExpectation = [self expectationWithDescription:@"sentinel executed"];
+  auto canceledTaskFired = std::make_shared<std::atomic<bool>>(false);
 
-  // This runnable should run but not increment the counter because it sleeps for longer than the
-  // cancel below.
-  const NSTimeInterval delay = 0.1;
-  auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Seconds(delay));
+  const NSTimeInterval delay = 0.05;
+  auto cancelable = executor->Schedule(
+      [self, canceledTaskFired]() {
+        canceledTaskFired->store(true);
+        self.counter++;
+      },
+      absl::Seconds(delay));
   XCTAssert(cancelable.get() != nullptr);
 
-  // Cancel the runnable.
-  cancelable->Cancel();
+  // Cancel the first task before it fires, then schedule a sentinel task after the first task's
+  // delay to deterministically observe completion without relying on a wall-clock sleep.
+  XCTAssertTrue(cancelable->Cancel());
+  executor->Schedule(
+      [self, sentinelExpectation]() {
+        self.counter++;
+        [sentinelExpectation fulfill];
+      },
+      absl::Seconds(delay * 2));
 
-  // Wait for the time interval to pass and verify that it didn't run.
-  [NSThread sleepForTimeInterval:delay * 1.1];
-  XCTAssertEqual(self.counter, 0);
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
+  XCTAssertFalse(canceledTaskFired->load());
+  XCTAssertEqual(self.counter, 1);
+}
+
+// Verifies that an Objective-C NSException thrown inside a runnable is caught by
+// ScheduledExecutor when compiled with -fno-exceptions and subsequent tasks still execute.
+- (void)testScheduleRecoversFromObjCException {
+  std::unique_ptr<ScheduledExecutor> executor([self executor]);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"recovered after exception"];
+
+  executor->Execute([]() {
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException
+                                   reason:@"Simulated ObjC exception in scheduled task"
+                                 userInfo:nil];
+  });
+
+  executor->Execute([self, expectation]() {
+    self.counter++;
+    [expectation fulfill];
+  });
+
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
+  XCTAssertEqual(self.counter, 1);
 }
 
 @end
+#endif  // defined(__APPLE__) && !defined(__clang_analyzer__) &&
+        // __has_include(<XCTest/XCTest.h>)
