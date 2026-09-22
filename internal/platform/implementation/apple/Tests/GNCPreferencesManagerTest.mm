@@ -16,6 +16,7 @@
 
 #import <XCTest/XCTest.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -37,11 +38,13 @@
 }
 
 - (void)tearDown {
-  // Clear the user defaults for the test path.
-  [[NSUserDefaults.standardUserDefaults persistentDomainForName:@(_path.c_str())]
-      enumerateKeysAndObjectsUsingBlock:^(NSString* key, id obj, BOOL* stop) {
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:key];
-      }];
+  for (NSString* key in @[
+         @"test_key", @"non_existent_key", @"nested_key", @"types_key", @"array_of_objects_key",
+         @"empty_obj_key", @"empty_arr_key", @"corrupted_json_key", @"wrong_type_key",
+         @"binary_key", @"invalid_number_key"
+       ]) {
+    [NSUserDefaults.standardUserDefaults removeObjectForKey:key];
+  }
   _preferencesManager.reset();
   [super tearDown];
 }
@@ -180,6 +183,96 @@
   std::string key = "non_existent_key";
   nlohmann::json defaultValue = {{"key3", "value3"}, {"key4", 4}};
   XCTAssertEqual(_preferencesManager->Get(key, defaultValue), defaultValue);
+}
+
+- (void)testSaveAndGetJsonDataTypes {
+  std::string key = "types_key";
+  nlohmann::json value = {
+      {"bool_true", true}, {"bool_false", false},       {"int", 12345},
+      {"double", 3.14159}, {"string", "sample string"}, {"null_val", nullptr},
+  };
+  _preferencesManager->Set(key, value);
+  nlohmann::json result = _preferencesManager->Get(key, nlohmann::json());
+  XCTAssertEqual(result["bool_true"], true);
+  XCTAssertEqual(result["bool_false"], false);
+  XCTAssertEqual(result["int"], 12345);
+  XCTAssertEqualWithAccuracy(result["double"].get<double>(), 3.14159, 0.0001);
+  XCTAssertEqual(result["string"], "sample string");
+  XCTAssertTrue(result["null_val"].is_null());
+  _preferencesManager->Remove(key);
+}
+
+- (void)testSaveAndGetJsonNestedObject {
+  std::string key = "nested_key";
+  nlohmann::json value = {
+      {"outer", {{"inner_str", "hello"}, {"inner_num", 42}}},
+      {"list", nlohmann::json::array({1, 2, 3})},
+  };
+  _preferencesManager->Set(key, value);
+  XCTAssertEqual(_preferencesManager->Get(key, nlohmann::json()), value);
+  _preferencesManager->Remove(key);
+}
+
+- (void)testSaveAndGetJsonArrayOfObjects {
+  std::string key = "array_of_objects_key";
+  nlohmann::json value = nlohmann::json::array({
+      {{"id", 1}, {"name", "first"}},
+      {{"id", 2}, {"name", "second"}},
+  });
+  _preferencesManager->Set(key, value);
+  XCTAssertEqual(_preferencesManager->Get(key, nlohmann::json()), value);
+  _preferencesManager->Remove(key);
+}
+
+- (void)testSaveAndGetJsonEmptyContainers {
+  std::string empty_obj_key = "empty_obj_key";
+  nlohmann::json empty_obj = nlohmann::json::object();
+  _preferencesManager->Set(empty_obj_key, empty_obj);
+  XCTAssertEqual(_preferencesManager->Get(empty_obj_key, nlohmann::json()), empty_obj);
+  _preferencesManager->Remove(empty_obj_key);
+
+  std::string empty_arr_key = "empty_arr_key";
+  nlohmann::json empty_arr = nlohmann::json::array();
+  _preferencesManager->Set(empty_arr_key, empty_arr);
+  XCTAssertEqual(_preferencesManager->Get(empty_arr_key, nlohmann::json()), empty_arr);
+  _preferencesManager->Remove(empty_arr_key);
+}
+
+- (void)testGetJsonInvalidDataFallback {
+  std::string key = "corrupted_json_key";
+  [NSUserDefaults.standardUserDefaults setObject:@"{not valid json..." forKey:@(key.c_str())];
+  nlohmann::json defaultValue = {{"fallback", true}};
+  XCTAssertEqual(_preferencesManager->Get(key, defaultValue), defaultValue);
+  _preferencesManager->Remove(key);
+}
+
+- (void)testGetJsonWrongTypeFallback {
+  std::string key = "wrong_type_key";
+  [NSUserDefaults.standardUserDefaults setObject:@(12345) forKey:@(key.c_str())];
+  nlohmann::json defaultValue = {{"fallback", 123}};
+  XCTAssertEqual(_preferencesManager->Get(key, defaultValue), defaultValue);
+  _preferencesManager->Remove(key);
+}
+
+- (void)testSaveAndGetJsonBinary {
+  std::string key = "binary_key";
+  std::vector<uint8_t> bytes = {0x00, 0x01, 0x02, 0xFF, 0xFE};
+  nlohmann::json value = nlohmann::json::binary(bytes);
+  XCTAssertTrue(_preferencesManager->Set(key, value));
+  nlohmann::json result = _preferencesManager->Get(key, nlohmann::json());
+  XCTAssertTrue(result.is_binary());
+  const auto& result_binary = result.get_binary();
+  XCTAssertEqual(std::vector<uint8_t>(result_binary.begin(), result_binary.end()), bytes);
+  _preferencesManager->Remove(key);
+}
+
+- (void)testSetJsonNaNOrInfinityGracefulFailure {
+  std::string key = "invalid_number_key";
+  nlohmann::json nan_val = std::numeric_limits<double>::quiet_NaN();
+  XCTAssertFalse(_preferencesManager->Set(key, nan_val));
+  nlohmann::json inf_val = std::numeric_limits<double>::infinity();
+  XCTAssertFalse(_preferencesManager->Set(key, inf_val));
+  _preferencesManager->Remove(key);
 }
 
 @end
