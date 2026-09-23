@@ -86,6 +86,7 @@ message ConnectionRequestFrame {
     USB = 11;
     WEB_RTC_NON_CELLULAR = 12;
     AWDL = 13;
+    WIFI_AWARE_R4 = 14;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
@@ -260,6 +261,7 @@ message BandwidthUpgradeNegotiationFrame {
       USB = 11;
       WEB_RTC_NON_CELLULAR = 12;
       AWDL = 13;
+      WIFI_AWARE_R4 = 14;
     }
 
     // Accompanies Medium.WIFI_HOTSPOT.
@@ -361,6 +363,17 @@ message BandwidthUpgradeNegotiationFrame {
           /* type = ST_ACCOUNT_CREDENTIAL */;
     }
 
+    // Accompanies Medium.WIFI_AWARE_R4.
+    message WifiAwareR4Credentials {
+      optional string service_id = 1;
+      optional bytes service_info = 2;
+      optional bytes pmk = 3 /* type = ST_ACCOUNT_CREDENTIAL */;
+      optional string advertised_name = 4;
+      optional bytes ipv6_address = 5;
+      optional int32 port = 6;
+      optional int32 pairing_flags = 7;
+    }
+
     message UpgradePathRequest {
       // Supported mediums on the advertiser device.
       repeated Medium mediums = 1 [packed = true];
@@ -377,6 +390,7 @@ message BandwidthUpgradeNegotiationFrame {
     optional WifiDirectCredentials wifi_direct_credentials = 6;
     optional WebRtcCredentials web_rtc_credentials = 8;
     optional AwdlCredentials awdl_credentials = 11;
+    optional WifiAwareR4Credentials wifi_aware_r4_credentials = 12;
 
     // Disable Encryption for this upgrade medium to improve throughput.
     optional bool supports_disabling_encryption = 7;
@@ -429,6 +443,7 @@ message BandwidthUpgradeRetryFrame {
     USB = 11;
     WEB_RTC_NON_CELLULAR = 12;
     AWDL = 13;
+    WIFI_AWARE_R4 = 14;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
