@@ -55,6 +55,7 @@
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_aware.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
@@ -196,6 +197,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 }
 
 std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
+  return nullptr;
+}
+
+std::unique_ptr<WifiAwareMedium>
+ImplementationPlatform::CreateWifiAwareMedium() {
   return nullptr;
 }
 

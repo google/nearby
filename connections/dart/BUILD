@@ -61,6 +61,7 @@ objc_library(
         "nc_adapter_types.h",
         "nearby_connections_client_state.h",
     ],
+    target_compatible_with = ["//third_party/bazel_rules/apple_support/constraints:apple"],
     deps = [
         "//connections/c:nc",
         "//connections/c:nc_types",

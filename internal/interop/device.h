@@ -18,10 +18,10 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
@@ -30,7 +30,7 @@ namespace nearby {
 // connection info data element.
 using ConnectionInfoVariant =
     absl::variant<absl::monostate, BleConnectionInfo, BluetoothConnectionInfo,
-                  WifiLanConnectionInfo>;
+                  WifiLanConnectionInfo, WifiAwareConnectionInfo>;
 
 class NearbyDevice {
  public:

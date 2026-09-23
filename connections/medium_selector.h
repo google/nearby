@@ -29,21 +29,22 @@ struct BooleanMediumSelector {
   bool web_rtc_no_cellular = false;
   bool web_rtc = false;
   bool wifi_lan = false;
+  bool wifi_aware = false;
   bool wifi_hotspot = false;
   bool wifi_direct = false;
   bool awdl = false;
 
   constexpr bool Any(bool value) const {
     return bluetooth == value || ble == value || web_rtc_no_cellular == value ||
-           web_rtc == value || wifi_lan == value || wifi_hotspot == value ||
-           wifi_direct == value || awdl == value;
+           web_rtc == value || wifi_lan == value || wifi_aware == value ||
+           wifi_hotspot == value || wifi_direct == value || awdl == value;
   }
 
   constexpr bool All(bool value) const {
     return bluetooth == value && ble == value &&
            (web_rtc == value || web_rtc_no_cellular == value) &&
-           awdl == value && wifi_lan == value && wifi_hotspot == value &&
-           wifi_direct == value;
+           awdl == value && wifi_lan == value && wifi_aware == value &&
+           wifi_hotspot == value && wifi_direct == value;
   }
 
   constexpr int Count(bool value) const {
@@ -52,6 +53,7 @@ struct BooleanMediumSelector {
     if (bluetooth == value) count++;
     if (ble == value) count++;
     if (wifi_lan == value) count++;
+    if (wifi_aware == value) count++;
     if (wifi_hotspot == value) count++;
     if (wifi_direct == value) count++;
     if (web_rtc == value || web_rtc_no_cellular == value) count++;
@@ -63,6 +65,7 @@ struct BooleanMediumSelector {
     ble = value;
     web_rtc = value;
     wifi_lan = value;
+    wifi_aware = value;
     wifi_hotspot = value;
     wifi_direct = value;
     awdl = value;
@@ -77,6 +80,7 @@ struct BooleanMediumSelector {
     // to other medium connections.
     if (awdl == value) mediums.push_back(Medium::AWDL);
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
+    if (wifi_aware == value) mediums.push_back(Medium::WIFI_AWARE);
     if (wifi_direct == value) mediums.push_back(Medium::WIFI_DIRECT);
     if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
     // if both web_rtc and web_rtc_no_cellular are true/false, we only add one

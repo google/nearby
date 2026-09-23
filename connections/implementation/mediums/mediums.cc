@@ -25,6 +25,7 @@
 #endif
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
+#include "connections/implementation/mediums/wifi_aware.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
@@ -49,6 +50,8 @@ Ble& Mediums::GetBle() { return ble_; }
 Wifi& Mediums::GetWifi() { return wifi_; }
 
 WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
+
+WifiAware& Mediums::GetWifiAware() { return wifi_aware_; }
 
 WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 

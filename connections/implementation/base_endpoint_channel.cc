@@ -147,15 +147,19 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         result = {};
         auto parsed = parser::FromBytes(input);
         if (parsed.ok()) {
-          if (parser::GetFrameType(parsed.result()) ==
-              location::nearby::connections::V1Frame::KEEP_ALIVE) {
-            LOG(INFO) << __func__
-                      << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
+          location::nearby::connections::V1Frame::FrameType frame_type =
+              parser::GetFrameType(parsed.result());
+          if (frame_type ==
+                  location::nearby::connections::V1Frame::KEEP_ALIVE ||
+              frame_type ==
+                  location::nearby::connections::V1Frame::DISCONNECTION) {
+            LOG(INFO) << __func__ << ": Read unencrypted frame of type "
+                      << frame_type << " on encrypted channel.";
             result = ByteArray(input);
           } else {
             LOG(WARNING) << __func__
                          << ": Read unexpected unencrypted frame of type "
-                         << parser::GetFrameType(parsed.result());
+                         << frame_type;
           }
         } else {
           message_exception.value = parsed.exception();

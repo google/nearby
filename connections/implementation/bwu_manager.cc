@@ -36,9 +36,10 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "connections/implementation/wifi_aware_bwu_handler.h"
+#include "connections/medium_selector.h"
 #include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
-#include "connections/medium_selector.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
@@ -100,6 +101,11 @@ BwuManager::BwuManager(
                 kEnableWifiDirect)) {
       config_.allow_upgrade_to.wifi_direct = true;
     }
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableWifiAware)) {
+      config_.allow_upgrade_to.wifi_aware = true;
+    }
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
     if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -126,10 +132,9 @@ BwuManager::~BwuManager() {
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
   if (config_.allow_upgrade_to.awdl) {
-    handlers_.emplace(
-        Medium::AWDL,
-        mediums_->GetAwdl().CreateBwuHandler(
-            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
+    handlers_.emplace(Medium::AWDL,
+                      mediums_->GetAwdl().CreateBwuHandler(absl::bind_front(
+                          &BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_hotspot) {
     handlers_.emplace(
@@ -144,16 +149,24 @@ void BwuManager::InitBwuHandlers() {
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.wifi_lan) {
+    handlers_.emplace(Medium::WIFI_LAN,
+                      mediums_->GetWifiLan().CreateBwuHandler(absl::bind_front(
+                          &BwuManager::OnIncomingConnection, this)));
+  }
+  if (config_.allow_upgrade_to.wifi_aware &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
     handlers_.emplace(
-        Medium::WIFI_LAN,
-        mediums_->GetWifiLan().CreateBwuHandler(
+        Medium::WIFI_AWARE,
+        std::make_unique<WifiAwareBwuHandler>(
+            *mediums_,
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.web_rtc) {
-    handlers_.emplace(
-        Medium::WEB_RTC,
-        mediums_->GetWebRtc().CreateBwuHandler(
-            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
+    handlers_.emplace(Medium::WEB_RTC,
+                      mediums_->GetWebRtc().CreateBwuHandler(absl::bind_front(
+                          &BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.bluetooth) {
     handlers_.emplace(
@@ -226,13 +239,15 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
               << location::nearby::proto::connections::Medium_Name(
                      proposed_medium);
 
-    if (channel_manager_->isWifiLanConnected() &&
+    if ((channel_manager_->isWifiLanConnected() ||
+         channel_manager_->isWifiAwareConnected()) &&
         (proposed_medium == Medium::WIFI_HOTSPOT)) {
       LOG(INFO)
-          << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
+          << "Some endpoint is using WIFI_LAN or WIFI_AWARE and proposed "
+             "upgrade medium is "
              "WIFI_HOTSPOT. Don't do the BWU because STA connecting to "
-             "WIFI_HOTSPOT will destroy WIFI_LAN which will lead BWU fail and "
-             "other endpoint connection fail";
+             "WIFI_HOTSPOT will destroy WIFI_LAN or WIFI_AWARE which will lead "
+             "BWU fail and other endpoint connection fail";
       return;
     }
 
@@ -495,6 +510,10 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
   // Hotspot, then it can restore the previous AP connection right away.
   if (!IsInitiatorUpgradeServiceId(service_id)) {
     if (medium == Medium::WIFI_HOTSPOT || medium == Medium::WIFI_DIRECT) {
+      handler->RevertResponderState(service_id);
+    } else if (medium == Medium::WIFI_AWARE) {
+      handler->RevertInitiatorState(WrapInitiatorUpgradeServiceId(service_id),
+                                    endpoint_id);
       handler->RevertResponderState(service_id);
     }
     return;
@@ -809,16 +828,19 @@ void BwuManager::ProcessBwuPathAvailableEvent(
             << location::nearby::proto::connections::Medium_Name(
                    upgrade_medium);
 
-  if (channel_manager_->isWifiLanConnected() &&
+  if ((channel_manager_->isWifiLanConnected() ||
+       channel_manager_->isWifiAwareConnected()) &&
       ((upgrade_medium == Medium::WIFI_HOTSPOT) ||
        ((upgrade_medium == Medium::WIFI_DIRECT) &&
         (client->GetLocalOsInfo().type() ==
          location::nearby::connections::OsInfo::WINDOWS)))) {
-    LOG(INFO)
-        << "Some endpoint is using WIFI_LAN and proposed upgrade medium is "
-        << location::nearby::proto::connections::Medium_Name(upgrade_medium)
-        << ". Don't do the BWU because this will destroy WIFI_LAN which will "
-           "lead BWU fail and other endpoint connection fail";
+    LOG(INFO) << "Some endpoint is using WIFI_LAN or WIFI_AWARE and proposed "
+                 "upgrade medium is "
+              << location::nearby::proto::connections::Medium_Name(
+                     upgrade_medium)
+              << ". Don't do the BWU because this will destroy WIFI_LAN or "
+                 "WIFI_AWARE which will lead BWU fail and other endpoint "
+                 "connection fail";
     RunUpgradeFailedProtocol(client, endpoint_id, upgrade_path_info);
     return;
   }
@@ -1278,12 +1300,6 @@ void BwuManager::ProcessLastWriteToPriorChannelEvent(
     return;
   }
 
-  LOG(INFO) << "ProcessLastWriteToPriorChannelEvent: service_id="
-            << previous_endpoint_channel->GetServiceId()
-            << ", endpoint_id=" << endpoint_id << ", medium="
-            << location::nearby::proto::connections::Medium_Name(
-                   previous_endpoint_channel->GetMedium());
-
   if (!previous_endpoint_channel->Write(parser::ForBwuSafeToClose()).Ok()) {
     previous_endpoint_channel->Close(DisconnectionReason::IO_ERROR);
     // Remove this prior EndpointChannel from previous_endpoint_channels to
@@ -1379,6 +1395,10 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
       client->GetConnectionToken(endpoint_id));
   // ...and the success of the upgrade itself.
   client->GetAnalyticsRecorder().OnBandwidthUpgradeSuccess(endpoint_id);
+  LOG(INFO) << "BwuManager upgrade protocol completed successfully. "
+            << "Prior channel shut down cleanly. Endpoint upgraded to "
+            << location::nearby::proto::connections::Medium_Name(
+                   GetBwuMediumForEndpoint(endpoint_id));
 
   // Now that the old channel has been drained, we can unpause the new channel
   std::shared_ptr<EndpointChannel> channel =
@@ -1530,6 +1550,9 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
         case Medium::WIFI_LAN:
           available = mediums_->GetWifiLan().IsAvailable();
           break;
+        case Medium::WIFI_AWARE:
+          available = mediums_->GetWifiAware().IsAvailable();
+          break;
         case Medium::WIFI_DIRECT:
           available = mediums_->GetWifiDirect().IsGOAvailable();
           break;
@@ -1680,7 +1703,7 @@ bool BwuManager::NeedToSwitchRole(
   // For testing on Windows as a receiver device to request dynamic role switch.
   // No need for final check in.
   if (GetLocalOsInfo(client).type() == OsInfo::WINDOWS &&
-     remote_os_info.type() == OsInfo::ANDROID) {
+      remote_os_info.type() == OsInfo::ANDROID) {
     LOG(INFO) << "Local: Windows OS, Remote: Android device detected. "
                  "WifiDirect NeedToSwitchRole and let Android be GO. "
                  "medium_role.support_wifi_direct_group_owner(): "

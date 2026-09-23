@@ -41,6 +41,9 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableSharedPeripheralManager,
       false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      false);
 
   [super tearDown];
 }
@@ -113,6 +116,19 @@
           kEnableSharedPeripheralManager,
       NO);
   XCTAssertFalse([GNCFeatureFlags sharedPeripheralManagerEnabled]);
+}
+
+- (void)testWifiAwareEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags wifiAwareEnabled]);
+}
+
+- (void)testWifiAwareEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware, NO);
+  XCTAssertFalse([GNCFeatureFlags wifiAwareEnabled]);
 }
 
 @end

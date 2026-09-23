@@ -195,6 +195,8 @@ cc_library(
         "payload_manager.cc",
         "pcp_manager.cc",
         "service_controller_router.cc",
+        "wifi_aware_bwu_handler.cc",
+        "wifi_aware_endpoint_channel.cc",
         "wifi_lan_service_info.cc",
     ],
     hdrs = [
@@ -215,6 +217,8 @@ cc_library(
         "pcp_manager.h",
         "service_controller.h",
         "service_controller_router.h",
+        "wifi_aware_bwu_handler.h",
+        "wifi_aware_endpoint_channel.h",
         "wifi_lan_service_info.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],

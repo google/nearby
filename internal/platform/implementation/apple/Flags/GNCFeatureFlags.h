@@ -38,4 +38,7 @@
 /** Checks whether BLE server socket deadlock is fixed in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL fixBleServerSocketDeadlockEnabled;
 
+/** Checks whether Wi-Fi Aware is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL wifiAwareEnabled;
+
 @end
