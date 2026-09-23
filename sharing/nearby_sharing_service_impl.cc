@@ -36,6 +36,7 @@
 #include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/random/random.h"
@@ -417,6 +418,7 @@ void NearbySharingServiceImpl::Cleanup() {
   absl::flat_hash_map<int64_t, IncomingShareSession> tmp_incoming_session_map;
   tmp_incoming_session_map.swap(incoming_share_session_map_);
   tmp_incoming_session_map.clear();
+  DeleteUnknownFilePaths();
 
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
@@ -2444,10 +2446,7 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
       // up.
       RemoveIncomingPayloads(session);
     } else {
-      if (!nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete()
-               .empty()) {
-        LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
-      }
+      DeleteUnknownFilePaths();
     }
     // If backup session, update last backup time in preference.
     if (session.session_usage() == ShareSessionUsage::kFileSync) {
@@ -2488,6 +2487,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
     session.SendAttachmentsCompleted(metadata);
     is_connecting_ = false;
     OnTransferComplete();
+    DeleteUnknownFilePaths();
   } else if (metadata.status() ==
              TransferMetadata::Status::kAwaitingLocalConfirmation) {
     is_connecting_ = false;
@@ -3164,6 +3164,19 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
 }
 
+void NearbySharingServiceImpl::DeleteUnknownFilePaths() {
+  absl::flat_hash_set<FilePath> file_paths_to_delete =
+      nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
+  if (file_paths_to_delete.empty()) {
+    return;
+  }
+  LOG(WARNING) << __func__ << ": Deleting " << file_paths_to_delete.size()
+               << " unknown file(s).";
+  std::vector<FilePath> files_for_deletion(file_paths_to_delete.begin(),
+                                           file_paths_to_delete.end());
+  file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
+}
+
 IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
@@ -3205,6 +3218,7 @@ IncomingShareSession* NearbySharingServiceImpl::GetIncomingShareSession(
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
   LOG(INFO) << __func__ << ": Unregister share target " << share_target_id;
+  DeleteUnknownFilePaths();
 
   // If share target ID is found in incoming_share_session_map_, then it's an
   // incoming share target.

@@ -85,6 +85,7 @@ namespace nearby::sharing {
 namespace NearbySharingServiceUnitTests {
 class NearbySharingServiceImplTest_CreateShareTarget_Test;
 class NearbySharingServiceImplTest_RemoveIncomingPayloads_Test;
+class NearbySharingServiceImplTest_DeletesUnknownFilePaths_Test;
 };  // namespace NearbySharingServiceUnitTests
 
 // All methods should be called from the same sequence that created the service.
@@ -101,6 +102,8 @@ class NearbySharingServiceImpl
               CreateShareTarget);
   FRIEND_TEST(NearbySharingServiceUnitTests::NearbySharingServiceImplTest,
               RemoveIncomingPayloads);
+  FRIEND_TEST(NearbySharingServiceUnitTests::NearbySharingServiceImplTest,
+              DeletesUnknownFilePaths);
 
  public:
   NearbySharingServiceImpl(
@@ -221,8 +224,7 @@ class NearbySharingServiceImpl
   // Handle the state changes of screen lock.
   void OnLockStateChanged(bool locked);
 
-  void OnSuspendResumeEvent(
-      nearby::api::DeviceInfo::SuspendResumeEvent event);
+  void OnSuspendResumeEvent(nearby::api::DeviceInfo::SuspendResumeEvent event);
 
   // Handle the state changes of bluetooth adapter.
   void AdapterPresentChanged(sharing::api::BluetoothAdapter* adapter,
@@ -329,8 +331,7 @@ class NearbySharingServiceImpl
   void BeginOutgoingTransfer(OutgoingShareSession& session);
   void BeginOutgoingPairing(OutgoingShareSession& session);
   void OnIncomingSessionFrameRead(
-      int64_t share_target_id,
-      bool is_timeout,
+      int64_t share_target_id, bool is_timeout,
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void OnReceivedIntroduction(
       IncomingShareSession& session,
@@ -357,6 +358,7 @@ class NearbySharingServiceImpl
   void OnOutgoingPayloadTransferUpdates(int64_t share_target_id);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
+  void DeleteUnknownFilePaths();
 
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
