@@ -122,12 +122,11 @@ struct User {
       : channel(std::make_shared<FakeEndpointChannel>(reader, writer)) {}
 
   std::shared_ptr<FakeEndpointChannel> channel;
-  EncryptionRunner crypto;
   ClientProxy client;
+  EncryptionRunner crypto;
 };
 
 struct Response {
-  Response() : latch(2) {}
   explicit Response(int count) : latch(count) {}
   enum class Status {
     kUnknown = 0,
@@ -149,7 +148,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
               /*writer=*/from_a_to_b.second.get());
   User user_b(/*reader=*/from_a_to_b.first.get(),
               /*writer=*/from_b_to_a.second.get());
-  Response response;
+  Response response(2);
 
   user_a.crypto.StartServer(
       &user_a.client, "endpoint_id", user_a.channel,
@@ -187,7 +186,7 @@ TEST(EncryptionRunnerTest, ReadWrite) {
                 response.latch.CountDown();
               },
       });
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.server_status, Response::Status::kDone);
   EXPECT_EQ(response.client_status, Response::Status::kDone);
 }
@@ -222,7 +221,7 @@ TEST(EncryptionRunnerTest, ClientWriteFails) {
                 response.latch.CountDown();
               },
       });
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.client_status, Response::Status::kFailed);
 }
 
@@ -233,7 +232,7 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
               /*writer=*/from_a_to_b.second.get());
   User user_b(/*reader=*/from_a_to_b.first.get(),
               /*writer=*/from_b_to_a.second.get());
-  Response response(1);
+  Response response(2);
 
   // Close client's input stream, so server can't write to it.
   from_a_to_b.first->Close();
@@ -259,17 +258,24 @@ TEST(EncryptionRunnerTest, ServerWriteFails) {
   user_b.crypto.StartClient(
       &user_b.client, "endpoint_id", user_b.channel,
       {
-          .on_success_cb = [](const std::string& endpoint_id,
-                              std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-                              const std::string& auth_token,
-                              const ByteArray& raw_auth_token) {},
+          .on_success_cb =
+              [&response](const std::string& endpoint_id,
+                          std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                          const std::string& auth_token,
+                          const ByteArray& raw_auth_token) {
+                response.client_status = Response::Status::kDone;
+                response.latch.CountDown();
+              },
           .on_failure_cb =
-              [&user_b](const std::string& endpoint_id) {
+              [&response, &user_b](const std::string& endpoint_id) {
                 user_b.channel->Close();
+                response.client_status = Response::Status::kFailed;
+                response.latch.CountDown();
               },
       });
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.server_status, Response::Status::kFailed);
+  EXPECT_EQ(response.client_status, Response::Status::kFailed);
 }
 
 TEST(EncryptionRunnerTest, ClientSendsGarbageMessage1) {
@@ -301,7 +307,7 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage1) {
   // Client writes garbage instead of message 1
   from_client_to_server.second->Write("Garbage");
 
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.server_status, Response::Status::kFailed);
 
   // Check if server sent alert message.
@@ -344,7 +350,7 @@ TEST(EncryptionRunnerTest, ServerSendsGarbageMessage2) {
   // Server writes garbage instead of message 2.
   from_server_to_client.second->Write("Garbage");
 
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.client_status, Response::Status::kFailed);
 
   // Check if client sent alert message.
@@ -401,7 +407,7 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage3) {
   // Client sends garbage instead of message 3
   from_client_to_server.second->Write("Garbage");
 
-  EXPECT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
+  ASSERT_TRUE(response.latch.Await(absl::Milliseconds(5000)).result());
   EXPECT_EQ(response.server_status, Response::Status::kFailed);
 
   // Check if server sent alert message.
