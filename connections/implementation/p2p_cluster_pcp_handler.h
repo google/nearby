@@ -41,6 +41,7 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/webrtc.h"
+#include "connections/implementation/mediums/wifi_aware.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
@@ -60,6 +61,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_aware.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -274,6 +276,29 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   ErrorOr<location::nearby::proto::connections::Medium> StartAwdlDiscovery(
       ClientProxy* client, const std::string& service_id);
 
+  // WifiAware
+  void WifiAwareServiceDiscoveredHandler(ClientProxy* client,
+                                         NsdServiceInfo service_info,
+                                         const std::string& service_id);
+  void WifiAwareServiceLostHandler(ClientProxy* client,
+                                   NsdServiceInfo service_info,
+                                   const std::string& service_id);
+  void WifiAwareConnectionAcceptedHandler(ClientProxy* client,
+                                          const std::string& local_endpoint_id,
+                                          const ByteArray& local_endpoint_info,
+                                          NearbyDevice::Type device_type,
+                                          const std::string& service_id,
+                                          WifiAwareSocket socket);
+  ErrorOr<location::nearby::proto::connections::Medium>
+  StartWifiAwareAdvertising(ClientProxy* client, const std::string& service_id,
+                            const std::string& local_endpoint_id,
+                            const ByteArray& local_endpoint_info,
+                            WebRtcState web_rtc_state);
+  ErrorOr<location::nearby::proto::connections::Medium> StartWifiAwareDiscovery(
+      ClientProxy* client, const std::string& service_id);
+  BasePcpHandler::ConnectImplResult WifiAwareConnectImpl(
+      ClientProxy* client, WifiAwareEndpoint* endpoint);
+
   // WifiLan
   bool IsRecognizedWifiServiceEndpoint(
       const std::string& service_id,
@@ -310,6 +335,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BluetoothClassic& bluetooth_medium_;
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
+  WifiAware& wifi_aware_medium_;
   WifiHotspot& wifi_hotspot_medium_;
   WifiDirect& wifi_direct_medium_;
   mediums::WebRtc& webrtc_medium_;

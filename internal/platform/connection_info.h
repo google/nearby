@@ -29,16 +29,18 @@ inline constexpr uint8_t kDataElementFieldType = 0x14;
 inline constexpr uint8_t kBluetoothMediumType = 0x00;
 inline constexpr uint8_t kBleGattMediumType = 0x01;
 inline constexpr uint8_t kWifiLanMediumType = 0x03;
+inline constexpr uint8_t kWifiAwareMediumType = 0x04;
 inline constexpr int kMacAddressLength = 6;
 inline constexpr int kConnectionInfoMinimumLength = 2;
 
 class BleConnectionInfo;
 class BluetoothConnectionInfo;
 class WifiLanConnectionInfo;
+class WifiAwareConnectionInfo;
 
 using ConnectionInfoVariant =
     absl::variant<absl::monostate, BleConnectionInfo, BluetoothConnectionInfo,
-                  WifiLanConnectionInfo>;
+                  WifiLanConnectionInfo, WifiAwareConnectionInfo>;
 
 class ConnectionInfo {
  public:

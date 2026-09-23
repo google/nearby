@@ -85,6 +85,7 @@
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby::connections {
@@ -216,6 +217,9 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
           std::string(ip_address.begin(), ip_address.end()),
           absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "", {});
       connection_infos.push_back(info);
+    } else if (medium == location::nearby::proto::connections::WIFI_AWARE) {
+      WifiAwareConnectionInfo info("_qs-aware._tcp", {});
+      connection_infos.push_back(info);
     }
   }
   return connection_infos;
@@ -339,6 +343,11 @@ void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
   }
   if (allowed.web_rtc) {
     result << location::nearby::proto::connections::Medium_Name(Medium::WEB_RTC)
+           << " ";
+  }
+  if (allowed.wifi_aware) {
+    result << location::nearby::proto::connections::Medium_Name(
+                  Medium::WIFI_AWARE)
            << " ";
   }
   if (allowed.wifi_lan) {
@@ -475,6 +484,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   mediumSelector.bluetooth = intersection.contains(Medium::BLUETOOTH);
   mediumSelector.ble = intersection.contains(Medium::BLE);
   mediumSelector.web_rtc = intersection.contains(Medium::WEB_RTC);
+  mediumSelector.wifi_aware = intersection.contains(Medium::WIFI_AWARE);
   mediumSelector.wifi_lan = intersection.contains(Medium::WIFI_LAN);
   mediumSelector.wifi_hotspot = intersection.contains(Medium::WIFI_HOTSPOT);
   mediumSelector.wifi_direct = intersection.contains(Medium::WIFI_DIRECT);
@@ -1302,6 +1312,9 @@ void BasePcpHandler::StripOutUnavailableMediums(
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
   }
+  if (allowed.wifi_aware) {
+    allowed.wifi_aware = mediums_->GetWifiAware().IsAvailable();
+  }
   if (allowed.wifi_lan) {
     allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
   }
@@ -1347,6 +1360,9 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
+  }
+  if (allowed.wifi_aware) {
+    allowed.wifi_aware = mediums_->GetWifiAware().IsAvailable();
   }
   if (allowed.wifi_lan) {
     allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
@@ -1453,15 +1469,16 @@ mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
 
 void BasePcpHandler::StripOutWifiHotspotMedium(
     ConnectionInfo& connection_info) {
-  bool has_wifi_lan = false;
+  bool has_wifi_lan_or_wifi_aware = false;
   for (auto medium : connection_info.supported_mediums) {
-    if (medium == location::nearby::proto::connections::WIFI_LAN) {
-      has_wifi_lan = true;
+    if (medium == location::nearby::proto::connections::WIFI_LAN ||
+        medium == location::nearby::proto::connections::WIFI_AWARE) {
+      has_wifi_lan_or_wifi_aware = true;
       break;
     }
   }
 
-  if (has_wifi_lan) {
+  if (has_wifi_lan_or_wifi_aware) {
     connection_info.supported_mediums.erase(
         std::remove(connection_info.supported_mediums.begin(),
                     connection_info.supported_mediums.end(),

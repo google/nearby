@@ -15,6 +15,7 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_cc//cc:objc_library.bzl", "objc_library")
+load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
 
@@ -73,6 +74,8 @@ objc_library(
         "preferences_manager.mm",
         "scheduled_executor.mm",
         "timer.mm",
+        "wifi_aware.mm",
+        "wifi_aware_server_socket.mm",
         "wifi_hotspot.mm",
         "wifi_lan.mm",
     ],
@@ -82,6 +85,8 @@ objc_library(
         "preferences_manager.h",
         "timer.h",
         "wifi.h",
+        "wifi_aware.h",
+        "wifi_aware_server_socket.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
@@ -106,8 +111,11 @@ objc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/types:span",
         "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Dispatch",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",
+        "//third_party/apple_frameworks:CoreFoundation",
+        "//third_party/apple_frameworks:CoreGraphics",
         "@nlohmann_json//:json",
         "//internal/base:file_path",
         "//internal/base:files",
@@ -130,7 +138,7 @@ objc_library(
         "//internal/platform:cancellation_flag",
     ] + select({
         "@platforms//os:platform_ios": [
-            "//third_party/apple_frameworks:UIKit",
+            ":WiFiAwareSwiftWrapper",
         ],
         "//conditions:default": [],
     }),
@@ -359,4 +367,24 @@ cc_test(
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
+)
+
+swift_library(
+    name = "WiFiAwareSwiftWrapper",
+    srcs = ["WiFiAwareSwiftWrapper.swift"],
+    generates_header = True,
+    target_compatible_with = ["//third_party/bazel_platforms/os:ios"],
+    deps = [
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
+        # Private Frameworks - Use with caution!
+        "//third_party/apple_frameworks:DeviceDiscoveryUI",
+        "//third_party/apple_frameworks:WiFiAware",
+        "//third_party/apple_frameworks:os",
+    ] + select({
+        "@platforms//os:platform_ios": [
+            "//third_party/apple_frameworks:UIKit",
+        ],
+        "//conditions:default": [],
+    }),
 )

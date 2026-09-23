@@ -19,6 +19,7 @@ public enum Medium {
   case ble
   case webRTC
   case wifiLAN
+  case wifiAware
   case wifiHotspot
   case wifiDirect
   case awdl

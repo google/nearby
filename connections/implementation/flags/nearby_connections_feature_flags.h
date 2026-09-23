@@ -71,6 +71,9 @@ constexpr auto kEnableSingleCopy =
 // Stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
 constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
+// Enable/Disable Wi-Fi Aware in Nearby connections SDK.
+constexpr auto kEnableWifiAware =
+    flags::Flag<bool>(kConfigPackage, "45833001", false);
 // Enable/Disable Wi-Fi Direct in Nearby connections SDK.
 constexpr auto kEnableWifiDirect =
     flags::Flag<bool>(kConfigPackage, "45741157", false);

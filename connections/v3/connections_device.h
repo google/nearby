@@ -19,8 +19,12 @@
 #include <vector>
 
 #include "internal/interop/device.h"
+#include "internal/platform/ble_connection_info.h"
+#include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/crypto.h"
+#include "internal/platform/wifi_aware_connection_info.h"
+#include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
 namespace connections {
@@ -35,7 +39,7 @@ class ConnectionsDevice : public nearby::NearbyDevice {
                     const std::vector<ConnectionInfoVariant> connection_infos)
       : endpoint_id_(endpoint_id),
         endpoint_info_(endpoint_info),
-        connection_infos_(connection_infos) {
+        connection_infos_(absl::move(connection_infos)) {
     if (endpoint_id.length() != kEndpointIdLength) {
       endpoint_id_ = GenerateRandomEndpointId();
     }

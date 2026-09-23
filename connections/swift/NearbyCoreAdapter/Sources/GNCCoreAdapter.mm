@@ -93,6 +93,8 @@ GNCStatus GNCStatusFromCppStatus(Status status) {
       return GNCStatusTimeout;
     case Status::kUnknown:
       return GNCStatusUnknown;
+    case Status::kWifiAwareError:
+      return GNCStatusWifiAwareError;
     case Status::kNextValue:
       return GNCStatusUnknown;
   }

@@ -259,6 +259,14 @@ class BasePcpHandler : public PcpHandler,
     NsdServiceInfo service_info;
   };
 
+  struct WifiAwareEndpoint : public DiscoveredEndpoint {
+    WifiAwareEndpoint(DiscoveredEndpoint endpoint,
+                      const NsdServiceInfo& service_info)
+        : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
+
+    NsdServiceInfo service_info;
+  };
+
   struct WebRtcEndpoint : public DiscoveredEndpoint {
     WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::WebrtcPeerId peer_id)
         : DiscoveredEndpoint(std::move(endpoint)),

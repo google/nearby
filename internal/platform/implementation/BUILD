@@ -121,6 +121,7 @@ cc_library(
         "psk_info.h",
         "upgrade_address_info.h",
         "wifi.h",
+        "wifi_aware.h",
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
