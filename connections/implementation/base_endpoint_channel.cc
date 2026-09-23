@@ -139,23 +139,29 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         result = ByteArray(std::move(*decrypted_data));
       } else {
         // It could be a protocol race, where remote party sends a KEEP_ALIVE
-        // before encryption is setup on their side, and we receive it after
-        // we switched to encryption mode.
-        // In this case, we verify that message is indeed a valid KEEP_ALIVE,
-        // and let it through if it is, otherwise message is erased.
+        // or DISCONNECTION before encryption is setup on their side, and we
+        // receive it after we switched to encryption mode (e.g. if the peer
+        // aborts/tears down during negotiation).
+        // In this case, we verify that message is indeed a valid KEEP_ALIVE
+        // or DISCONNECTION frame, and let it through if it is, otherwise
+        // message is erased.
         // TODO(apolyudov): verify this happens at most once per session.
         result = {};
         auto parsed = parser::FromBytes(input);
         if (parsed.ok()) {
-          if (parser::GetFrameType(parsed.result()) ==
-              location::nearby::connections::V1Frame::KEEP_ALIVE) {
-            LOG(INFO) << __func__
-                      << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
+          location::nearby::connections::V1Frame::FrameType frame_type =
+              parser::GetFrameType(parsed.result());
+          if (frame_type ==
+                  location::nearby::connections::V1Frame::KEEP_ALIVE ||
+              frame_type ==
+                  location::nearby::connections::V1Frame::DISCONNECTION) {
+            LOG(INFO) << __func__ << ": Read unencrypted frame of type "
+                      << frame_type << " on encrypted channel.";
             result = ByteArray(input);
           } else {
             LOG(WARNING) << __func__
                          << ": Read unexpected unencrypted frame of type "
-                         << parser::GetFrameType(parsed.result());
+                         << frame_type;
           }
         } else {
           message_exception.value = parsed.exception();

@@ -57,6 +57,8 @@ std::string Status::ToString() const {
       return "kReset";
     case Status::kTimeout:
       return "kTimeout";
+    case Status::kWifiAwareError:
+      return "kWifiAwareError";
     case Status::kUnknown:
       // fall through
     default:

@@ -32,6 +32,7 @@ struct ConnectionListeningOptions {
   bool enable_ble_listening = false;
   bool enable_bluetooth_listening = true;
   bool enable_wlan_listening = true;
+  bool enable_wifi_aware_listening = true;
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints = true;
   std::vector<location::nearby::proto::connections::Medium> upgrade_mediums;

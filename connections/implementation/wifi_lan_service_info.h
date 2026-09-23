@@ -22,6 +22,7 @@
 #include "connections/implementation/pcp.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -51,6 +52,9 @@ class WifiLanServiceInfo {
 
   // Constructs WifiLanServiceInfo through NsdServiceInfo.
   explicit WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info);
+  // Constructs WifiLanServiceInfo through WifiAwareServiceInfo.
+  explicit WifiLanServiceInfo(
+      const WifiAwareServiceInfo& wifi_aware_service_info);
   WifiLanServiceInfo(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo& operator=(const WifiLanServiceInfo&) = default;
   WifiLanServiceInfo(WifiLanServiceInfo&&) = default;
@@ -58,6 +62,7 @@ class WifiLanServiceInfo {
   ~WifiLanServiceInfo() = default;
 
   explicit operator NsdServiceInfo() const;
+  explicit operator WifiAwareServiceInfo() const;
 
   bool IsValid() const { return !endpoint_id_.empty(); }
   Version GetVersion() const { return version_; }

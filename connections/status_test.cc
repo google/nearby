@@ -82,6 +82,11 @@ std::vector<StatusToStringData> GetTestData() {
       {Status{.value = Status::kBleError}, "kBleError"},
       {Status{.value = Status::kWifiLanError}, "kWifiLanError"},
       {Status{.value = Status::kPayloadUnknown}, "kPayloadUnknown"},
+      {Status{.value = Status::kReset}, "kReset"},
+      {Status{.value = Status::kTimeout}, "kTimeout"},
+      {Status{.value = Status::kUnknown}, "Unknown"},
+      {Status{.value = Status::kWifiAwareError}, "kWifiAwareError"},
+      {Status{.value = Status::kNextValue}, "Unknown"},
   };
 }
 

@@ -64,7 +64,9 @@ std::string NearbyConnectionsManager::ConnectionsStatusToString(
     case ConnectionsStatus::kTimeout:
       return "kTimeout";
     case ConnectionsStatus::kUnknown:
-      // fall through
+      return "Unknown";
+    case ConnectionsStatus::kWifiAwareError:
+      return "kWifiAwareError";
     default:
       return "Unknown";
   }
