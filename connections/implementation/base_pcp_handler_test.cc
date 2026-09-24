@@ -15,6 +15,7 @@
 #include "connections/implementation/base_pcp_handler.h"
 
 #include <array>
+#include <cstdint>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -62,6 +63,7 @@
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
@@ -3158,6 +3160,261 @@ TEST_P(BasePcpHandlerTest,
       config_package_nearby::nearby_connections_feature::
           kEnableDynamicRoleSwitch,
       false);
+}
+
+std::string CreateConnectionRequestFrame(absl::string_view endpoint_id,
+                                         std::int32_t nonce) {
+  std::string serialized = parser::ForConnectionRequestConnections(
+      {}, {
+              .local_endpoint_id = std::string(endpoint_id),
+              .local_endpoint_info = ByteArray("remote_endpoint_name"),
+              .nonce = nonce,
+          });
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(serialized);
+  frame.mutable_v1()
+      ->mutable_connection_request()
+      ->mutable_connections_device()
+     ->set_endpoint_id(endpoint_id);
+  frame.mutable_v1()->mutable_connection_request()->set_nonce(nonce);
+  return frame.SerializeAsString();
+}
+
+TEST_F(BasePcpHandlerTest,
+       BreakTieWithSameNonceAfterChannelMovedClosesBothWithoutCrash) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  BooleanMediumSelector allowed{.bluetooth = true};
+  StartAdvertising(client_.get(), &pcp_handler, allowed);
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  constexpr absl::string_view kEndpointId = "ABCD";
+  constexpr std::int32_t kSameNonce = 12345;
+
+  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_1 =
+      std::move(channel_pair_1.first);
+  auto& server_channel_1 = channel_pair_1.second;
+
+  CountDownLatch initiated_latch(1);
+  EXPECT_CALL(mock_connection_listener_.initiated_cb,
+              Call(std::string(kEndpointId), _))
+      .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
+        initiated_latch.CountDown();
+      });
+
+  client_channel_1->Write("");
+  client_channel_1->Write(
+      CreateConnectionRequestFrame(kEndpointId, kSameNonce));
+
+  auto remote_client_1 = std::make_unique<ClientProxy>();
+  EncryptionRunner remote_crypto_1;
+  remote_crypto_1.StartClient(remote_client_1.get(), std::string(kEndpointId),
+                              client_channel_1, {});
+
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_1), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  EXPECT_TRUE(initiated_latch.Await(absl::Seconds(5)).result());
+
+  // Send incoming Connection #2 with the same endpoint_id and same nonce
+  // after Connection #1's channel has been moved to EndpointManager.
+  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_2 =
+      std::move(channel_pair_2.first);
+  auto& server_channel_2 = channel_pair_2.second;
+
+  client_channel_2->Write("");
+  client_channel_2->Write(
+      CreateConnectionRequestFrame(kEndpointId, kSameNonce));
+
+  EXPECT_CALL(*server_channel_2, CloseImpl()).Times(AtLeast(1));
+  EXPECT_CALL(mock_connection_listener_.rejected_cb,
+              Call(std::string(kEndpointId), Status{Status::kError}))
+      .Times(AtLeast(1));
+
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_2), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  client_channel_1->Close();
+  client_channel_2->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(
+    BasePcpHandlerTest,
+    BreakTieWithHigherNonceAbortsPreviousPendingConnectionWithoutCrash) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  BooleanMediumSelector allowed{.bluetooth = true};
+  StartAdvertising(client_.get(), &pcp_handler, allowed);
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  constexpr absl::string_view kEndpointId = "ABCD";
+  constexpr std::int32_t kLowerNonce = 100;
+  constexpr std::int32_t kHigherNonce = 200;
+
+  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_1 =
+      std::move(channel_pair_1.first);
+  auto& server_channel_1 = channel_pair_1.second;
+
+  CountDownLatch initiated_latch_1(1);
+  EXPECT_CALL(mock_connection_listener_.initiated_cb,
+              Call(std::string(kEndpointId), _))
+      .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
+        initiated_latch_1.CountDown();
+      })
+      .WillRepeatedly(Return());
+
+  client_channel_1->Write("");
+  client_channel_1->Write(
+      CreateConnectionRequestFrame(kEndpointId, kLowerNonce));
+
+  auto remote_client_1 = std::make_unique<ClientProxy>();
+  EncryptionRunner remote_crypto_1;
+  remote_crypto_1.StartClient(remote_client_1.get(), std::string(kEndpointId),
+                              client_channel_1, {});
+
+  ASSERT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_1), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  ASSERT_TRUE(initiated_latch_1.Await(absl::Seconds(5)).result());
+
+  // ProcessTieBreakLoss() synchronously calls ProcessPreConnectionResultFailure
+  // which invokes rejected_cb for the superseded post-encryption pending
+  // connection (where pending_connection_info.channel is nullptr).
+  CountDownLatch rejected_latch(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb,
+              Call(std::string(kEndpointId), Status{Status::kError}))
+      .Times(AtLeast(1))
+      .WillRepeatedly([&](const std::string&, const Status&) {
+        rejected_latch.CountDown();
+      });
+
+  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_2 =
+      std::move(channel_pair_2.first);
+  auto& server_channel_2 = channel_pair_2.second;
+
+  client_channel_2->Write("");
+  client_channel_2->Write(
+      CreateConnectionRequestFrame(kEndpointId, kHigherNonce));
+
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_2), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  EXPECT_TRUE(rejected_latch.Await(absl::Seconds(5)).result());
+
+  client_channel_1->Close();
+  client_channel_2->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest,
+       BreakTieWithLowerIncomingNonceAfterChannelMovedKeepsExistingConnection) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  BooleanMediumSelector allowed{.bluetooth = true};
+  StartAdvertising(client_.get(), &pcp_handler, allowed);
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  constexpr absl::string_view kEndpointId = "ABCD";
+  constexpr std::int32_t kHigherNonce = 200;
+  constexpr std::int32_t kLowerNonce = 100;
+
+  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_1 =
+      std::move(channel_pair_1.first);
+  auto& server_channel_1 = channel_pair_1.second;
+
+  CountDownLatch initiated_latch(1);
+  EXPECT_CALL(mock_connection_listener_.initiated_cb,
+              Call(std::string(kEndpointId), _))
+      .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
+        initiated_latch.CountDown();
+      });
+
+  client_channel_1->Write("");
+  client_channel_1->Write(
+      CreateConnectionRequestFrame(kEndpointId, kHigherNonce));
+
+  auto remote_client_1 = std::make_unique<ClientProxy>();
+  EncryptionRunner remote_crypto_1;
+  remote_crypto_1.StartClient(remote_client_1.get(), std::string(kEndpointId),
+                              client_channel_1, {});
+
+  ASSERT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_1), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  ASSERT_TRUE(initiated_latch.Await(absl::Seconds(5)).result());
+
+  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  std::shared_ptr<MockEndpointChannel> client_channel_2 =
+      std::move(channel_pair_2.first);
+  auto& server_channel_2 = channel_pair_2.second;
+
+  client_channel_2->Write("");
+  client_channel_2->Write(
+      CreateConnectionRequestFrame(kEndpointId, kLowerNonce));
+
+  EXPECT_CALL(*server_channel_2, CloseImpl()).Times(AtLeast(1));
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(0);
+
+  EXPECT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel_2), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+
+  EXPECT_EQ(
+      pcp_handler.AcceptConnection(client_.get(), std::string(kEndpointId), {}),
+      Status{Status::kSuccess});
+
+  client_channel_1->Close();
+  client_channel_2->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
 }
 
 }  // namespace
