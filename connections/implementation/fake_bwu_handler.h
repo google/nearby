@@ -189,6 +189,7 @@ class FakeBwuHandler : public BaseBwuHandler {
       case location::nearby::proto::connections::BLE_L2CAP:
       case location::nearby::proto::connections::USB:
       case location::nearby::proto::connections::AWDL:
+      case location::nearby::proto::connections::WIFI_AWARE_R4:
         return {};
     }
   }
