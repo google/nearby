@@ -1198,4 +1198,8 @@ enum FileSyncStatus {
 
   // Local DB read failure.
   FILE_SYNC_STATUS_LOCAL_DB_READ_ERROR = 15;
+
+  // File sync is skipped due to policy, e.g. before
+  // min_duration_between_scheduled_sync expires.
+  FILE_SYNC_STATUS_SKIPPED = 16;
 }
