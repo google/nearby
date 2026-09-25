@@ -356,7 +356,7 @@ class Ble final {
   absl::flat_hash_map<std::string,
                       std::unique_ptr<api::ble::BleMedium::AdvertisingSession>>
       service_ids_to_advertising_sessions_ ABSL_GUARDED_BY(mutex_);
-  std::unique_ptr<CancelableAlarm> lost_alarm_;
+  std::unique_ptr<CancelableAlarm> lost_alarm_ ABSL_GUARDED_BY(mutex_);
   mediums::DiscoveredPeripheralTracker discovered_peripheral_tracker_
       ABSL_GUARDED_BY(mutex_){medium_.IsExtendedAdvertisementsAvailable()};
 

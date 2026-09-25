@@ -530,33 +530,44 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
 }
 
 bool Ble::StopScanning(const std::string& service_id) {
-  MutexLock lock(&mutex_);
-  if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
-    return StopAsyncScanningLocked(service_id);
+  std::unique_ptr<CancelableAlarm> alarm_to_cancel;
+  bool medium_stopped = true;
+  {
+    MutexLock lock(&mutex_);
+    if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
+      if (!StopAsyncScanningLocked(service_id)) {
+        return false;
+      }
+      if (service_ids_to_scanning_sessions_.empty()) {
+        alarm_to_cancel = std::move(lost_alarm_);
+      }
+    } else {
+      if (!IsScanningLocked(service_id)) {
+        LOG(INFO) << "Can't turn off BLE scanning because we never "
+                     "started scanning.";
+        return false;
+      }
+
+      discovered_peripheral_tracker_.StopTracking(service_id);
+      LOG(INFO) << "Turned off BLE scanning with service id=" << service_id;
+
+      scanned_service_ids_.erase(service_id);
+
+      // If still has scanner, don't stop the client scanning.
+      if (!scanned_service_ids_.empty()) {
+        return true;
+      }
+
+      // If no more scanning activities, then stop client scanning.
+      LOG(INFO) << "Turned off BLE client scanning";
+      alarm_to_cancel = std::move(lost_alarm_);
+      medium_stopped = medium_.StopScanning();
+    }
   }
-
-  if (!IsScanningLocked(service_id)) {
-    LOG(INFO) << "Can't turn off BLE scanning because we never "
-                 "started scanning.";
-    return false;
+  if (alarm_to_cancel != nullptr) {
+    alarm_to_cancel->Cancel();
   }
-
-  discovered_peripheral_tracker_.StopTracking(service_id);
-  LOG(INFO) << "Turned off BLE scanning with service id=" << service_id;
-
-  scanned_service_ids_.erase(service_id);
-
-  // If still has scanner, don't stop the client scanning.
-  if (!scanned_service_ids_.empty()) {
-    return true;
-  }
-
-  // If no more scanning activities, then stop client scanning.
-  LOG(INFO) << "Turned off BLE client scanning";
-  if (lost_alarm_->IsValid()) {
-    lost_alarm_->Cancel();
-  }
-  return medium_.StopScanning();
+  return medium_stopped;
 }
 
 bool Ble::PauseMediumScanning() {
@@ -1719,9 +1730,6 @@ bool Ble::StopAsyncScanningLocked(absl::string_view service_id) {
   service_ids_to_scanning_sessions_.erase(scanning_session);
 
   LOG(INFO) << "Turned off BLE client scanning";
-  if (lost_alarm_->IsValid()) {
-    lost_alarm_->Cancel();
-  }
   return true;
 }
 

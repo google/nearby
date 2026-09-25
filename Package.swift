@@ -436,6 +436,7 @@ let package = Package(
         "internal/platform/feature_flags_test.cc",
         "internal/platform/file_test.cc",
         "internal/platform/cancelable_alarm_test.cc",
+        "internal/platform/cancellable_task_test.cc",
         "internal/platform/crypto_test.cc",
         "internal/platform/byte_array_test.cc",
         "internal/platform/credential_storage_impl_test.cc",

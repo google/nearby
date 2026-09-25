@@ -1428,6 +1428,78 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   env_.Stop();
 }
 
+TEST_F(BleTest,
+       StopOneAsyncScanningSessionDoesNotCancelLostAlarmForOtherSessions) {
+  env_.SetFeatureFlags({FeatureFlags{.enable_ble_v2_async_scanning = true}});
+  env_.Start();
+  BluetoothRadio radio_scanner;
+  BluetoothRadio radio_advertiser_a;
+  BluetoothRadio radio_advertiser_b;
+  Ble ble_scanner(radio_scanner);
+  Ble ble_advertiser_a(radio_advertiser_a);
+  Ble ble_advertiser_b(radio_advertiser_b);
+  radio_scanner.Enable();
+  radio_advertiser_a.Enable();
+  radio_advertiser_b.Enable();
+  auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
+  auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
+  CountDownLatch found_latch_a(1);
+  CountDownLatch found_latch_b(1);
+  CountDownLatch lost_latch_b(1);
+
+  ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_a);
+  ble_advertiser_b.StartAdvertising(kServiceIDB, PowerLevel::kHighPower,
+                                    Ble::AdvertisingType::kRegular,
+                                    advertisement_bytes_b);
+
+  ble_scanner.StartScanning(
+      kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      /*include_dct_advertisement=*/false,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_a](
+                  BlePeripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { found_latch_a.CountDown(); },
+      });
+
+  ble_scanner.StartScanning(
+      kServiceIDB, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      /*include_dct_advertisement=*/false,
+      mediums::DiscoveredPeripheralCallback{
+          .peripheral_discovered_cb =
+              [&found_latch_b](
+                  BlePeripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { found_latch_b.CountDown(); },
+          .peripheral_lost_cb =
+              [&lost_latch_b](
+                  BlePeripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) { lost_latch_b.CountDown(); },
+      });
+
+  ASSERT_TRUE(found_latch_a.Await(kWaitDuration).result());
+  ASSERT_TRUE(found_latch_b.Await(kWaitDuration).result());
+
+  // Stop scanning for service A only.
+  ASSERT_TRUE(ble_scanner.StopScanning(kServiceIDA));
+
+  // Stop advertiser B. Lost alarm must remain active for service B.
+  ASSERT_TRUE(ble_advertiser_b.StopAdvertising(kServiceIDB));
+
+  // Wait to allow the recurring lost alarm to process lost advertisements.
+  SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
+
+  // Service B should still receive the peripheral lost callback.
+  EXPECT_TRUE(lost_latch_b.Await(kWaitDuration).result());
+
+  EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
+  env_.Stop();
+}
+
 TEST_F(BleTest, RetrieveBlePeripheralIdFromNativeId) {
   env_.Start();
   BluetoothRadio radio;
