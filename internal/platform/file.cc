@@ -16,8 +16,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/payload_id.h"
 
 namespace nearby {
@@ -66,7 +73,8 @@ Exception InputFile::Close() { return impl_->Close(); }
 InputStream& InputFile::GetInputStream() { return *impl_; }
 
 OutputFile::OutputFile(std::string file_path)
-    : impl_(Platform::CreateOutputFile(file_path)) {}
+    : impl_(Platform::CreateOutputFile(file_path)),
+      file_path_(std::move(file_path)) {}
 #if defined(NEARBY_CHROMIUM)
 OutputFile::OutputFile(PayloadId id) : impl_(Platform::CreateOutputFile(id)) {}
 #endif  // defined(NEARBY_CHROMIUM)
@@ -84,6 +92,18 @@ Exception OutputFile::Write(absl::string_view data) {
 // Disallows further writes to the file and frees system resources,
 // associated with it.
 Exception OutputFile::Close() { return impl_->Close(); }
+
+bool OutputFile::Delete() {
+  if (impl_ == nullptr) {
+    return false;
+  }
+  impl_->Close();
+  if (file_path_.empty()) {
+    return false;
+  }
+  std::string file_path = std::exchange(file_path_, "");
+  return Files::RemoveFile(FilePath(file_path));
+}
 
 // Returns a handle to the underlying  output stream.
 //
