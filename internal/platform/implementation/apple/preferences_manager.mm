@@ -26,12 +26,130 @@
 
 namespace nearby::apple {
 
+namespace {
+
+id JsonToObjc(const nlohmann::json& j) {
+  switch (j.type()) {
+    case nlohmann::json::value_t::null:
+    case nlohmann::json::value_t::discarded:
+      return [NSNull null];
+    case nlohmann::json::value_t::boolean:
+      return @(j.get<bool>());
+    case nlohmann::json::value_t::number_integer:
+      return @(j.get<int64_t>());
+    case nlohmann::json::value_t::number_unsigned:
+      return @(j.get<uint64_t>());
+    case nlohmann::json::value_t::number_float:
+      return @(j.get<double>());
+    case nlohmann::json::value_t::string:
+      return @(j.get<std::string>().c_str());
+    case nlohmann::json::value_t::binary: {
+      const auto& binary = j.get_binary();
+      NSData* data = [NSData dataWithBytes:binary.data() length:binary.size()];
+      NSString* base64 = [data base64EncodedStringWithOptions:0];
+      if (binary.has_subtype()) {
+        return @{
+          @"__nearby_binary__" : base64,
+          @"__subtype__" : @(binary.subtype()),
+        };
+      }
+      return @{
+        @"__nearby_binary__" : base64,
+      };
+    }
+    case nlohmann::json::value_t::array: {
+      NSMutableArray* arr = [NSMutableArray arrayWithCapacity:j.size()];
+      for (const auto& item : j) {
+        [arr addObject:JsonToObjc(item)];
+      }
+      return arr;
+    }
+    case nlohmann::json::value_t::object: {
+      NSMutableDictionary* dict = [NSMutableDictionary dictionaryWithCapacity:j.size()];
+      for (auto it = j.begin(); it != j.end(); ++it) {
+        dict[@(it.key().c_str())] = JsonToObjc(it.value());
+      }
+      return dict;
+    }
+  }
+  return [NSNull null];
+}
+
+nlohmann::json ObjcToJson(id obj) {
+  if (!obj || [obj isKindOfClass:[NSNull class]]) {
+    return nullptr;
+  }
+  if ([obj isKindOfClass:[NSNumber class]]) {
+    NSNumber* num = (NSNumber*)obj;
+    if (CFGetTypeID((__bridge CFTypeRef)num) == CFBooleanGetTypeID()) {
+      return (bool)[num boolValue];
+    }
+    const char* objCType = [num objCType];
+    if (strcmp(objCType, @encode(float)) == 0 || strcmp(objCType, @encode(double)) == 0) {
+      return [num doubleValue];
+    }
+    return [num longLongValue];
+  }
+  if ([obj isKindOfClass:[NSString class]]) {
+    return std::string([(NSString*)obj UTF8String]);
+  }
+  if ([obj isKindOfClass:[NSData class]]) {
+    NSData* d = (NSData*)obj;
+    const uint8_t* bytes = (const uint8_t*)d.bytes;
+    return nlohmann::json::binary(std::vector<uint8_t>(bytes, bytes + d.length));
+  }
+  if ([obj isKindOfClass:[NSArray class]]) {
+    nlohmann::json arr = nlohmann::json::array();
+    for (id item in (NSArray*)obj) {
+      arr.push_back(ObjcToJson(item));
+    }
+    return arr;
+  }
+  if ([obj isKindOfClass:[NSDictionary class]]) {
+    NSDictionary* dict = (NSDictionary*)obj;
+    if (dict[@"__nearby_binary__"] != nil &&
+        [dict[@"__nearby_binary__"] isKindOfClass:[NSString class]]) {
+      NSString* base64 = dict[@"__nearby_binary__"];
+      NSData* data = [[NSData alloc] initWithBase64EncodedString:base64 options:0];
+      if (data != nil) {
+        const uint8_t* bytes = (const uint8_t*)data.bytes;
+        std::vector<uint8_t> vec(bytes, bytes + data.length);
+        if (dict[@"__subtype__"] != nil && [dict[@"__subtype__"] isKindOfClass:[NSNumber class]]) {
+          return nlohmann::json::binary(std::move(vec),
+                                        [(NSNumber*)dict[@"__subtype__"] unsignedIntValue]);
+        }
+        return nlohmann::json::binary(std::move(vec));
+      }
+    }
+    nlohmann::json jsonDict = nlohmann::json::object();
+    for (id key in dict) {
+      jsonDict[[(NSString*)key UTF8String]] = ObjcToJson([dict objectForKey:key]);
+    }
+    return jsonDict;
+  }
+  return nullptr;
+}
+
+}  // namespace
+
 PreferencesManager::PreferencesManager(absl::string_view file_path) {}
 
 bool PreferencesManager::Set(absl::string_view key, const nlohmann::json& value) {
-  [NSUserDefaults.standardUserDefaults setObject:@(value.dump().c_str())
-                                            forKey:@(std::string(key).c_str())];
-  return true;
+  @try {
+    id objcValue = JsonToObjc(value);
+    NSError* error = nil;
+    NSData* data = [NSJSONSerialization dataWithJSONObject:objcValue
+                                                   options:NSJSONWritingFragmentsAllowed
+                                                     error:&error];
+    if (error != nil || data == nil) {
+      return false;
+    }
+    NSString* jsonString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    [NSUserDefaults.standardUserDefaults setObject:jsonString forKey:@(std::string(key).c_str())];
+    return true;
+  } @catch (NSException* exception) {
+    return false;
+  }
 }
 
 bool PreferencesManager::SetBoolean(absl::string_view key, bool value) {
@@ -103,15 +221,30 @@ bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
 // Get JSON value.
 nlohmann::json PreferencesManager::Get(absl::string_view key,
                                        const nlohmann::json& default_value) const {
-  NSString* keyString = @(std::string(key).c_str());
-  id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
-  if (value == nil) {
+  @try {
+    NSString* keyString = @(std::string(key).c_str());
+    id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
+    if (value == nil) {
+      return default_value;
+    }
+    if (![value isKindOfClass:[NSString class]]) {
+      return default_value;
+    }
+    NSData* data = [(NSString*)value dataUsingEncoding:NSUTF8StringEncoding];
+    if (data == nil) {
+      return default_value;
+    }
+    NSError* error = nil;
+    id jsonObj = [NSJSONSerialization JSONObjectWithData:data
+                                                 options:NSJSONReadingFragmentsAllowed
+                                                   error:&error];
+    if (error != nil || jsonObj == nil) {
+      return default_value;
+    }
+    return ObjcToJson(jsonObj);
+  } @catch (NSException* exception) {
     return default_value;
   }
-  // We store JSON as a serialized string, so retrieve it as a string and deserialize.
-  NSCAssert([value isKindOfClass:[NSString class]], @"value for key \"%@\" must be JSON",
-            keyString);
-  return nlohmann::json::parse([(NSString*)value UTF8String]);
 }
 
 bool PreferencesManager::GetBoolean(absl::string_view key, bool default_value) const {
