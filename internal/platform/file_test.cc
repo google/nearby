@@ -217,5 +217,30 @@ TEST_F(FileTest, WriteLargeFile) {
   EXPECT_TRUE(input_file.Close().Ok());
 }
 
+TEST_F(FileTest, DeleteOpenFile) {
+  FilePath file_path = GetTempFilePath("delete_open_file.txt");
+  OutputFile output_file(file_path.ToString());
+  ASSERT_TRUE(output_file.IsValid());
+  EXPECT_TRUE(output_file.Write("test data").Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_TRUE(output_file.Delete());
+  EXPECT_FALSE(Files::FileExists(file_path));
+  EXPECT_FALSE(output_file.Delete());
+}
+
+TEST_F(FileTest, DeleteClosedFile) {
+  FilePath file_path = GetTempFilePath("delete_closed_file.txt");
+  OutputFile output_file(file_path.ToString());
+  ASSERT_TRUE(output_file.IsValid());
+  EXPECT_TRUE(output_file.Write("test data").Ok());
+  EXPECT_TRUE(output_file.Close().Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_TRUE(output_file.Delete());
+  EXPECT_FALSE(Files::FileExists(file_path));
+  EXPECT_FALSE(output_file.Delete());
+}
+
 }  // namespace
 }  // namespace nearby

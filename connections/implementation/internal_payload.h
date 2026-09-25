@@ -73,34 +73,6 @@ class InternalPayload {
   // dealing with streaming data).
   virtual std::int64_t GetTotalSize() const = 0;
 
-  // Breaks off the next chunk from the Payload to which this object is bound.
-  //
-  // <p>Used when we have a complete Payload that we want to break into smaller
-  // byte blobs for sending across a hard boundary (like the other side of
-  // a Binder, or another device altogether).
-  //
-  // @param chunk_size The preferred size of the next chunk. Depending on
-  // payload type, the provided size may be ignored.
-  // @return The next chunk from the Payload, or null if we've reached the end.
-  virtual ByteArray DetachNextChunk(int chunk_size) = 0;
-
-  // Adds the next chunk that comprises the Payload to which this object is
-  // bound.
-  //
-  // Used when we are trying to reconstruct a Payload that lives on the
-  // other side of a hard boundary (like another device), one chunk at a time.
-  //
-  // `chunk` is the next chunk.
-  virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
-
-  // Skips current stream pointer to the offset.
-  //
-  // Used when this is a resume outgoing transfer, so we want to skip
-  // some data until the offset position.
-  //
-  // @return the offset really skipped
-  virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
-
   // Cleans up any resources used by this Payload. Called when we're stopping
   // early, e.g. after being cancelled or having no more recipients left.
   // Implementations must be idempotent (safe to call multiple times) and safe
@@ -113,6 +85,59 @@ class InternalPayload {
   // released to another owner during the lifetime of an incoming
   // InternalPayload.
   Payload::Id payload_id_;
+};
+
+// Defines the operations layered atop an incoming Payload, for use inside the
+// OfflineServiceController.
+//
+// <p>Implementations are thread-compatible (go/thread-compatible), except that
+// Close() and Cancel() may be called from another thread.
+class IncomingInternalPayload : public InternalPayload {
+ public:
+  using InternalPayload::InternalPayload;
+  ~IncomingInternalPayload() override = default;
+
+  // Adds the next chunk that comprises the Payload to which this object is
+  // bound.
+  //
+  // Used when we are trying to reconstruct a Payload that lives on the
+  // other side of a hard boundary (like another device), one chunk at a time.
+  //
+  // `chunk` is the next chunk.
+  virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
+
+  // Cancels this Payload and removes any persisted artifacts (such as an
+  // incoming file on disk, even if all chunks were already received).
+  // Implementations must be idempotent (safe to call multiple times) and safe
+  // to call from another thread.
+  virtual void Cancel() { Close(); }
+};
+
+// Defines the operations layered atop an outgoing Payload, for use inside the
+// OfflineServiceController.
+class OutgoingInternalPayload : public InternalPayload {
+ public:
+  using InternalPayload::InternalPayload;
+  ~OutgoingInternalPayload() override = default;
+
+  // Breaks off the next chunk from the Payload to which this object is bound.
+  //
+  // <p>Used when we have a complete Payload that we want to break into smaller
+  // byte blobs for sending across a hard boundary (like the other side of
+  // a Binder, or another device altogether).
+  //
+  // @param chunk_size The preferred size of the next chunk. Depending on
+  // payload type, the provided size may be ignored.
+  // @return The next chunk from the Payload, or null if we've reached the end.
+  virtual ByteArray DetachNextChunk(int chunk_size) = 0;
+
+  // Skips current stream pointer to the offset.
+  //
+  // Used when this is a resume outgoing transfer, so we want to skip
+  // some data until the offset position.
+  //
+  // @return the offset really skipped
+  virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
 };
 
 }  // namespace connections
