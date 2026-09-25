@@ -308,6 +308,7 @@ let package = Package(
         "internal/platform/implementation/g3",
         "internal/platform/implementation/apple/Flags/Tests",
         "internal/platform/implementation/apple/Log/Tests",
+        "internal/platform/implementation/apple/Mediums/Aware",
         "internal/platform/implementation/apple/Mediums/BLE/Tests",
         "internal/platform/implementation/apple/Mediums/BLE/Sockets/Tests",
         "internal/platform/implementation/apple/Mediums/CoreLocation/CLLocationManager/Fake/",

@@ -40,6 +40,7 @@
 #include "internal/platform/implementation/apple/timer.h"
 #import "internal/platform/implementation/apple/utils.h"
 #include "internal/platform/implementation/apple/wifi.h"
+#include "internal/platform/implementation/apple/wifi_aware.h"
 #include "internal/platform/implementation/apple/wifi_hotspot.h"
 #include "internal/platform/implementation/apple/wifi_lan.h"
 #include "internal/platform/implementation/mutex.h"
@@ -52,15 +53,25 @@ namespace api {
 std::string ImplementationPlatform::GetCustomSavePath(const std::string& save_path,
                                                       const std::string& parent_folder,
                                                       const std::string& file_name) {
-  std::string absoluteSavePath = absl::StrCat(save_path, "/", parent_folder);
-  // Collapse any path escaping characters.
-  NSString* absoluteSavePathRaw = @(absoluteSavePath.c_str());
-  if (absoluteSavePathRaw == nil) {
+  NSString* baseSavePath = save_path.empty() ? NSTemporaryDirectory() : @(save_path.c_str());
+  if (baseSavePath == nil) {
     return std::string();
   }
-  NSString* parentFolder = [absoluteSavePathRaw stringByReplacingOccurrencesOfString:@"../"
-                                                                          withString:@""];
+  if (!parent_folder.empty()) {
+    NSString* parentFolderSegment = @(parent_folder.c_str());
+    if (parentFolderSegment == nil) {
+      return std::string();
+    }
+    baseSavePath = [baseSavePath stringByAppendingPathComponent:parentFolderSegment];
+  }
+  // Collapse any path escaping characters.
+  NSString* parentFolder = [baseSavePath stringByReplacingOccurrencesOfString:@"../"
+                                                                   withString:@""];
   NSURL* parentFolderURL = [NSURL fileURLWithPath:parentFolder];
+
+  if (file_name.empty()) {
+    return parentFolderURL.path.UTF8String;
+  }
 
   // The only reserved character in a file name on macOS is the forward-slash. It's unclear if iOS
   // has any additional restrictions.
@@ -85,12 +96,19 @@ std::string ImplementationPlatform::GetCustomSavePath(const std::string& save_pa
   NSURL* url = [parentFolderURL URLByAppendingPathComponent:fileName];
 
   NSInteger index = 1;
-  while ([NSFileManager.defaultManager fileExistsAtPath:url.path]) {
+  NSFileManager* fileManager = [NSFileManager defaultManager];
+  while ([fileManager fileExistsAtPath:url.path]) {
     index++;
-    NSString* fileName =
-        [NSString stringWithFormat:@"%@ %@.%@", baseName, [@(index) stringValue], extension];
-    url = [parentFolderURL URLByAppendingPathComponent:fileName];
+    NSString* duplicateFileName =
+        extension.length > 0
+            ? [NSString stringWithFormat:@"%@ %@.%@", baseName, [@(index) stringValue], extension]
+            : [NSString stringWithFormat:@"%@ %@", baseName, [@(index) stringValue]];
+    url = [parentFolderURL URLByAppendingPathComponent:duplicateFileName];
   }
+
+  GNCLoggerInfo(@"ImplementationPlatform::GetCustomSavePath: save_path='%@', parent_folder='%@', "
+                @"file_name='%@' -> '%@'",
+                @(save_path.c_str()), @(parent_folder.c_str()), @(file_name.c_str()), url.path);
 
   return url.path.UTF8String;
 }
@@ -179,8 +197,13 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<apple::WifiLanMedium>();
 }
 
-std::unique_ptr<WifiAwareMedium> ImplementationPlatform::CreateWifiAwareMedium() { return nullptr; }
-
+std::unique_ptr<WifiAwareMedium> ImplementationPlatform::CreateWifiAwareMedium() {
+#if TARGET_OS_IOS && !defined(GITHUB_BUILD)
+  return std::make_unique<apple::WifiAwareMedium>();
+#else
+  return nullptr;
+#endif
+}
 std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
   return std::make_unique<apple::AwdlMedium>();
 }

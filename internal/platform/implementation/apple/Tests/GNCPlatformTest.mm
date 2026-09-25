@@ -160,6 +160,27 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
+- (void)testGetCustomSavePathWithEmptySavePath {
+  NSString *expected =
+      [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"a/b/c.d"]]
+          .path;
+  std::string actual = nearby::api::ImplementationPlatform::GetCustomSavePath("", "a/b", "c.d");
+  XCTAssertEqualObjects(@(actual.c_str()), expected);
+}
+
+- (void)testGetCustomSavePathWithEmptySavePathAndParentFolder {
+  NSString *expected =
+      [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"c.d"]].path;
+  std::string actual = nearby::api::ImplementationPlatform::GetCustomSavePath("", "", "c.d");
+  XCTAssertEqualObjects(@(actual.c_str()), expected);
+}
+
+- (void)testGetCustomSavePathWithEmptyFileName {
+  NSString *expected = [NSURL fileURLWithPath:@"/tmp/a/b"].path;
+  std::string actual = nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "");
+  XCTAssertEqualObjects(@(actual.c_str()), expected);
+}
+
 - (void)testGetCustomSavePathWithIllegalCharacters {
   NSString *expected = [NSURL fileURLWithPath:@"/tmp/a/b/Fi?le*: Name.ext"].path;
   std::string actual =
@@ -193,6 +214,31 @@ void GNCEnsureFileAtPath(std::string path) {
   // Cleanup created files.
   [NSFileManager.defaultManager removeItemAtPath:@(actual1.c_str()) error:nil];
   [NSFileManager.defaultManager removeItemAtPath:@(actual2.c_str()) error:nil];
+
+  XCTAssertEqualObjects(@(actual1.c_str()), expected1);
+  XCTAssertEqualObjects(@(actual2.c_str()), expected2);
+  XCTAssertEqualObjects(@(actual3.c_str()), expected3);
+}
+
+- (void)testGetCustomSavePathDuplicateNamesWithoutExtension {
+  NSString *expected1 = [NSURL fileURLWithPath:@"/tmp/a/b/cat"].path;
+  NSString *expected2 = [NSURL fileURLWithPath:@"/tmp/a/b/cat 2"].path;
+  NSString *expected3 = [NSURL fileURLWithPath:@"/tmp/a/b/cat 3"].path;
+
+  std::string actual1 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat");
+  GNCEnsureFileAtPath(actual1);
+
+  std::string actual2 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat");
+  GNCEnsureFileAtPath(actual2);
+
+  std::string actual3 =
+      nearby::api::ImplementationPlatform::GetCustomSavePath("/tmp", "a/b", "cat");
+
+  // Cleanup created files.
+  [[NSFileManager defaultManager] removeItemAtPath:@(actual1.c_str()) error:nil];
+  [[NSFileManager defaultManager] removeItemAtPath:@(actual2.c_str()) error:nil];
 
   XCTAssertEqualObjects(@(actual1.c_str()), expected1);
   XCTAssertEqualObjects(@(actual2.c_str()), expected2);
@@ -281,6 +327,15 @@ void GNCEnsureFileAtPath(std::string path) {
 - (void)testCreateWifiHotspotMedium {
   auto wifi_hotspot_medium = nearby::api::ImplementationPlatform::CreateWifiHotspotMedium();
   XCTAssertNotEqual(wifi_hotspot_medium.get(), nullptr);
+}
+
+- (void)testCreateWifiAwareMedium {
+  auto wifi_aware_medium = nearby::api::ImplementationPlatform::CreateWifiAwareMedium();
+#if TARGET_OS_IOS && !defined(GITHUB_BUILD)
+  XCTAssertNotEqual(wifi_aware_medium.get(), nullptr);
+#else
+  XCTAssertEqual(wifi_aware_medium.get(), nullptr);
+#endif
 }
 
 - (void)testCreateTimer {
