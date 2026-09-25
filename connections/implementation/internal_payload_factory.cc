@@ -20,7 +20,7 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -238,7 +238,8 @@ class OutgoingFileInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingFileInternalPayload(Payload payload)
       : OutgoingInternalPayload(std::move(payload)),
-        total_size_{payload_.AsFile()->GetTotalSize()} {}
+        total_size_{payload_.AsFile()->GetTotalSize()},
+        file_path_{payload_.AsFile()->GetFilePath()} {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -248,6 +249,8 @@ class OutgoingFileInternalPayload : public OutgoingInternalPayload {
   }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
+
+  std::string GetFilePath() const override { return file_path_; }
 
   ByteArray DetachNextChunk(int chunk_size) override {
     InputFile* file = payload_.AsFile();
@@ -301,6 +304,7 @@ class OutgoingFileInternalPayload : public OutgoingInternalPayload {
  private:
   AtomicBoolean is_closed_{false};
   std::int64_t total_size_;
+  const std::string file_path_;
 };
 
 class IncomingFileInternalPayload : public IncomingInternalPayload {
@@ -322,10 +326,21 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
 
   std::int64_t GetTotalSize() const override { return total_size_; }
 
+  std::string GetFilePath() const override {
+    return output_file_.GetFilePath();
+  }
+
   Exception AttachNextChunk(absl::string_view chunk) override {
+    if (is_closed_.Get()) {
+      return {Exception::kIo};
+    }
     if (chunk.empty()) {
       // Received null last chunk for incoming payload.
-      Close();
+      if (is_closed_.Set(true)) {
+        return {Exception::kIo};
+      }
+      output_file_.SetLastModifiedTime(last_modified_time_);
+      output_file_.Close();
       return {Exception::kSuccess};
     }
     // Truncate 1 incoming chunk to the total size of the payload.
@@ -345,13 +360,16 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
       bytes_written_ += chunk.size();
     }
 
-    return output_file_.Write(chunk);
+    Exception write_result = output_file_.Write(chunk);
+    if (!write_result.Ok()) {
+      Close();
+    }
+    return write_result;
   }
 
   void Close() override {
     if (is_closed_.Set(true)) return;
-    output_file_.SetLastModifiedTime(last_modified_time_);
-    output_file_.Close();
+    output_file_.Delete();
   }
 
  private:
@@ -389,7 +407,8 @@ ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
 
 ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
-    const std::string& custom_save_path) {
+    const std::string& custom_save_path,
+    absl::AnyInvocable<bool(absl::string_view)> is_file_path_in_use) {
   if (frame.packet_type() !=
       location::nearby::connections::PayloadTransferFrame::DATA) {
     return {Error(
@@ -464,6 +483,11 @@ ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
           Payload(payload_id, InputFile(payload_id)),
           std::move(output_file), last_modified_time, total_size)};
 #else  // defined(NEARBY_CHROMIUM)
+      if (is_file_path_in_use && is_file_path_in_use(file_path)) {
+        LOG(WARNING) << "Output file payload path is already in use: "
+                     << file_path;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+      }
       OutputFile output_file(file_path);
       if (!output_file.IsValid()) {
         LOG(ERROR) << "Output file payload path is not valid: " << file_path;

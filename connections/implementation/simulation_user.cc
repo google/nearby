@@ -48,6 +48,10 @@ void SimulationUser::OnConnectionRejected(const std::string& endpoint_id,
   if (reject_latch_) reject_latch_->CountDown();
 }
 
+void SimulationUser::OnEndpointDisconnected(const std::string& endpoint_id) {
+  if (disconnect_latch_) disconnect_latch_->CountDown();
+}
+
 void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
                                      const ByteArray& endpoint_info,
                                      const std::string& service_id) {
@@ -107,6 +111,8 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
           absl::bind_front(&SimulationUser::OnConnectionAccepted, this),
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
+      .disconnected_cb =
+          absl::bind_front(&SimulationUser::OnEndpointDisconnected, this),
   };
   EXPECT_TRUE(mgr_.StartAdvertising(&client_, service_id_, advertising_options_,
                                     {
@@ -152,6 +158,8 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
           absl::bind_front(&SimulationUser::OnConnectionAccepted, this),
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
+      .disconnected_cb =
+          absl::bind_front(&SimulationUser::OnEndpointDisconnected, this),
   };
   client_.AddCancellationFlag(discovered_.endpoint_id);
   EXPECT_TRUE(
@@ -175,6 +183,8 @@ void SimulationUser::RequestConnectionV3(CountDownLatch* latch,
           absl::bind_front(&SimulationUser::OnConnectionAccepted, this),
       .rejected_cb =
           absl::bind_front(&SimulationUser::OnConnectionRejected, this),
+      .disconnected_cb =
+          absl::bind_front(&SimulationUser::OnEndpointDisconnected, this),
   };
   client_.AddCancellationFlag(remote_device.GetEndpointId());
   EXPECT_TRUE(

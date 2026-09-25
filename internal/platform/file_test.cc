@@ -19,6 +19,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/byte_array.h"
@@ -215,6 +216,35 @@ TEST_F(FileTest, WriteLargeFile) {
   EXPECT_EQ(read_data.result().size(), large_data.size());
   EXPECT_EQ(std::string(read_data.result()), large_data);
   EXPECT_TRUE(input_file.Close().Ok());
+}
+
+TEST_F(FileTest, DeleteOpenFile) {
+  FilePath file_path = GetTempFilePath("delete_open_file.txt");
+  OutputFile output_file(file_path.ToString());
+  ASSERT_TRUE(output_file.IsValid());
+  EXPECT_TRUE(output_file.Write("test data").Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_TRUE(output_file.Delete());
+  EXPECT_FALSE(output_file.IsValid());
+  EXPECT_FALSE(Files::FileExists(file_path));
+  EXPECT_FALSE(output_file.Delete());
+  EXPECT_FALSE(output_file.Write("more data").Ok());
+  EXPECT_TRUE(output_file.Close().Ok());
+  output_file.SetLastModifiedTime(absl::UnixEpoch());
+}
+
+TEST_F(FileTest, DeleteClosedFile) {
+  FilePath file_path = GetTempFilePath("delete_closed_file.txt");
+  OutputFile output_file(file_path.ToString());
+  ASSERT_TRUE(output_file.IsValid());
+  EXPECT_TRUE(output_file.Write("test data").Ok());
+  EXPECT_TRUE(output_file.Close().Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_TRUE(output_file.Delete());
+  EXPECT_FALSE(Files::FileExists(file_path));
+  EXPECT_FALSE(output_file.Delete());
 }
 
 }  // namespace

@@ -18,6 +18,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/payload.h"
 #include "internal/platform/expected.h"
@@ -30,10 +32,13 @@ ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
     Payload payload);
 
 // Creates an IncomingInternalPayload representing an incoming Payload from a
-// remote endpoint.
+// remote endpoint. If `is_file_path_in_use` is provided and returns true for
+// the resolved file path of a FILE payload, creation fails with
+// IO_FILE_OPENING_ERROR before opening the output file.
 ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
-    const std::string& custom_save_path);
+    const std::string& custom_save_path,
+    absl::AnyInvocable<bool(absl::string_view)> is_file_path_in_use = nullptr);
 
 }  // namespace connections
 }  // namespace nearby
