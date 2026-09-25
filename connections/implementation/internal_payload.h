@@ -100,6 +100,7 @@ class InternalPayload {
 
   // Cleans up any resources used by this Payload. Called when we're stopping
   // early, e.g. after being cancelled or having no more recipients left.
+  // Implementations must be idempotent (safe to call multiple times).
   virtual void Close() {}
 
  protected:

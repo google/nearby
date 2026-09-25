@@ -494,8 +494,13 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
     return {Status::kPayloadUnknown};
   }
 
-  // Mark the payload as canceled.
+  // Mark the payload as canceled. For incoming payloads, also close the
+  // underlying file/stream handle immediately so callers can delete the
+  // partially written file even if the remote sender sends no further chunks.
   canceled_payload->MarkLocallyCanceled();
+  if (canceled_payload->IsIncoming()) {
+    canceled_payload->Close();
+  }
   VLOG(1) << "Cancelling "
           << (canceled_payload->IsIncoming() ? "incoming" : "outgoing")
           << " payload_id=" << payload_id << " at request of client.";
@@ -1632,8 +1637,6 @@ void PayloadManager::PendingPayload::SetOffsetForEndpoint(
 }
 
 void PayloadManager::PendingPayload::Close() {
-  bool was_closed = is_closed_.Set(true);
-  if (was_closed) return;
   if (internal_payload_) internal_payload_->Close();
 }
 
