@@ -15,6 +15,7 @@
 #include "sharing/incoming_share_session.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -347,6 +348,37 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionFileSyncSuccess) {
               Eq(wifimeta2.payload_id()));
   EXPECT_THAT(session_.attachment_container().GetDestinationDirectory(),
               Eq(FilePath("/tmp/sync_destination")));
+}
+
+TEST_F(IncomingShareSessionTest, ProcessIntroductionDuplicateRejected) {
+  session_.OnConnected(&connection_);
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_,
+                                           FilePath("/tmp/destination"),
+                                           sync_manager_, device_info_),
+              Eq(std::nullopt));
+  EXPECT_THAT(session_.attachment_container().HasAttachments(), IsTrue());
+  const size_t initial_payload_map_size =
+      session_.attachment_payload_map().size();
+
+  // A second IntroductionFrame with a different attachment and payload_id must
+  // be rejected without overwriting the container or accumulating payload_ids.
+  IntroductionFrame duplicate_frame;
+  FileMetadata* extra_file = duplicate_frame.add_file_metadata();
+  extra_file->set_id(99999);
+  extra_file->set_payload_id(88888);
+  extra_file->set_name("extra.apk");
+  extra_file->set_size(1024);
+  extra_file->set_type(FileMetadata::UNKNOWN);
+
+  EXPECT_THAT(session_.ProcessIntroduction(duplicate_frame,
+                                           FilePath("/tmp/destination"),
+                                           sync_manager_, device_info_),
+              Eq(TransferMetadata::Status::kRejected));
+  EXPECT_THAT(session_.attachment_payload_map().size(),
+              Eq(initial_payload_map_size));
+  EXPECT_THAT(session_.attachment_payload_map().contains(99999), IsFalse());
+  EXPECT_THAT(session_.attachment_container().GetFileAttachments().size(),
+              Eq(2u));
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {

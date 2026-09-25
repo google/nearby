@@ -2667,6 +2667,56 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest,
+       IncomingConnectionDuplicateIntroductionFrameClosesConnection) {
+  NiceMock<MockTransferUpdateCallback> callback;
+  absl::Notification notification;
+  ScopedReceiveSurface r(service_.get(), &callback);
+  SetUpIncomingConnection(callback);
+
+  // A second INTRODUCTION frame must reject the transfer instead of being
+  // ignored.
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce([&notification](const ShareTarget& share_target,
+                                const AttachmentContainer& container,
+                                TransferMetadata metadata) {
+        EXPECT_TRUE(metadata.is_final_status());
+        EXPECT_EQ(metadata.usage(), ShareSessionUsage::kSharing);
+        EXPECT_EQ(metadata.status(), TransferMetadata::Status::kRejected);
+        notification.Notify();
+      });
+
+  // Send a second INTRODUCTION frame with an extra payload_id before Accept.
+  Frame duplicate_frame;
+  duplicate_frame.set_version(Frame::V1);
+  V1Frame* v1_frame = duplicate_frame.mutable_v1();
+  v1_frame->set_type(V1Frame::INTRODUCTION);
+  IntroductionFrame* intro = v1_frame->mutable_introduction();
+  nearby::sharing::service::proto::FileMetadata* file_meta =
+      intro->add_file_metadata();
+  file_meta->set_name("extra.apk");
+  file_meta->set_type(nearby::sharing::service::proto::FileMetadata::UNKNOWN);
+  file_meta->set_payload_id(99999);
+  file_meta->set_size(100);
+  file_meta->set_mime_type("application/vnd.android.package-archive");
+  file_meta->set_id(77777);
+  std::vector<uint8_t> bytes(duplicate_frame.ByteSizeLong());
+  duplicate_frame.SerializeToArray(bytes.data(), bytes.size());
+  ReceiveMessageFromConnection(std::move(bytes));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  // Check data written to connection_.
+  EXPECT_TRUE(ExpectPairedKeyEncryptionFrame());
+  EXPECT_TRUE(ExpectPairedKeyResultFrame());
+  EXPECT_TRUE(ExpectConnectionResponseFrame(ConnectionResponseFrame::REJECT));
+
+  // Waits for delay to close connection.
+  FastForward(kIncomingRejectionDelay + kDelta);
+  EXPECT_FALSE(
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
+}
+
+TEST_F(NearbySharingServiceImplTest,
        IncomingConnectionValidIntroductionFrameValidCertificateFileSync) {
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
