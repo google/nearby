@@ -15,7 +15,6 @@
 #ifndef PLATFORM_API_PLATFORM_H_
 #define PLATFORM_API_PLATFORM_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -44,11 +43,14 @@
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_aware.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/os_name.h"
+#if defined(NEARBY_CHROMIUM)
 #include "internal/platform/payload_id.h"
+#endif
 
 namespace nearby {
 namespace api {
@@ -131,6 +133,7 @@ class ImplementationPlatform {
   static std::unique_ptr<api::CredentialStorage> CreateCredentialStorage();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
+  static std::unique_ptr<WifiAwareMedium> CreateWifiAwareMedium();
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();
   static std::unique_ptr<WifiDirectMedium> CreateWifiDirectMedium();
   static std::unique_ptr<Timer> CreateTimer();

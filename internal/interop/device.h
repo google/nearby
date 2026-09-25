@@ -16,21 +16,21 @@
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_DEVICE_H_
 
 #include <string>
+#include <variant>
 #include <vector>
 
-#include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
 
-// We need absl::monostate here to represent the case that we get an invalid
+// We need std::monostate here to represent the case that we get an invalid
 // connection info data element.
 using ConnectionInfoVariant =
-    absl::variant<absl::monostate, BleConnectionInfo, BluetoothConnectionInfo,
-                  WifiLanConnectionInfo>;
+    std::variant<std::monostate, BleConnectionInfo, BluetoothConnectionInfo,
+                 WifiLanConnectionInfo, WifiAwareConnectionInfo>;
 
 class NearbyDevice {
  public:

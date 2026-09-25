@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -39,25 +38,9 @@
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/g3/awdl.h"
-#include "internal/platform/implementation/http_loader.h"
-#include "internal/platform/implementation/input_file.h"
-#include "internal/platform/implementation/log_message.h"
-#include "internal/platform/implementation/mutex.h"
-#include "internal/platform/implementation/output_file.h"
-#include "internal/platform/implementation/preferences_manager.h"
-#include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
-#include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/implementation/timer.h"
-#include "internal/platform/implementation/wifi_direct.h"
-#include "internal/platform/implementation/wifi_hotspot.h"
-#include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/logging.h"
-#include "internal/platform/os_name.h"
-#include "internal/platform/payload_id.h"
 #include "internal/platform/implementation/g3/atomic_boolean.h"
 #include "internal/platform/implementation/g3/atomic_reference.h"
+#include "internal/platform/implementation/g3/awdl.h"
 #include "internal/platform/implementation/g3/ble.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
@@ -74,8 +57,24 @@
 #include "internal/platform/implementation/g3/wifi_direct.h"
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
 #include "internal/platform/implementation/g3/wifi_lan.h"
+#include "internal/platform/implementation/http_loader.h"
+#include "internal/platform/implementation/input_file.h"
+#include "internal/platform/implementation/log_message.h"
+#include "internal/platform/implementation/mutex.h"
+#include "internal/platform/implementation/output_file.h"
+#include "internal/platform/implementation/preferences_manager.h"
+#include "internal/platform/implementation/scheduled_executor.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/implementation/submittable_executor.h"
+#include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_aware.h"
+#include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/os_name.h"
 
 namespace nearby {
 namespace api {
@@ -175,6 +174,11 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<g3::WifiLanMedium>();
+}
+
+std::unique_ptr<WifiAwareMedium>
+ImplementationPlatform::CreateWifiAwareMedium() {
+  return nullptr;
 }
 
 std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {

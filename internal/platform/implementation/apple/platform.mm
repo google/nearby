@@ -179,6 +179,8 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<apple::WifiLanMedium>();
 }
 
+std::unique_ptr<WifiAwareMedium> ImplementationPlatform::CreateWifiAwareMedium() { return nullptr; }
+
 std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
   return std::make_unique<apple::AwdlMedium>();
 }

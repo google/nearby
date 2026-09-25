@@ -14,15 +14,22 @@
 
 #include "internal/platform/connection_info.h"
 
+#include <cstdint>
+#include <variant>
+
 #include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
 ConnectionInfoVariant ConnectionInfo::FromDataElementBytes(
     absl::string_view data_element_bytes) {
+  if (data_element_bytes.size() < 3 ||
+      static_cast<uint8_t>(data_element_bytes[0]) != kDataElementFieldType) {
+    return std::monostate();
+  }
   uint8_t type = data_element_bytes[2];
   if (type == kBluetoothMediumType) {
     auto result =
@@ -38,6 +45,12 @@ ConnectionInfoVariant ConnectionInfo::FromDataElementBytes(
   } else if (type == kWifiLanMediumType) {
     auto result =
         WifiLanConnectionInfo::FromDataElementBytes(data_element_bytes);
+    if (result.ok()) {
+      return result.value();
+    }
+  } else if (type == kWifiAwareMediumType) {
+    auto result =
+        WifiAwareConnectionInfo::FromDataElementBytes(data_element_bytes);
     if (result.ok()) {
       return result.value();
     }

@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -28,6 +29,7 @@
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
@@ -47,6 +49,8 @@ constexpr absl::string_view kBluetoothUuid{"test"};
 constexpr absl::string_view kIpv4Addr = "\x4C\x8B\x1D\xCE";
 constexpr absl::string_view kPort = "\x12\x34";
 constexpr absl::string_view kBssid = "\x0A\x1B\x2C\x34\x58\x7E";
+// Wi-Fi Aware
+constexpr absl::string_view kServiceId = "test_service_id";
 
 std::vector<uint8_t> GetDefaultActions() {
   return {kFirstAction, kSecondAction};
@@ -87,6 +91,61 @@ TEST(ConnectionInfoTest, TestRestoreMdns) {
   EXPECT_EQ(wlan_connection_info, info);
 }
 
+TEST(ConnectionInfoTest, TestRestoreWifiAware) {
+  WifiAwareConnectionInfo info(kServiceId, GetDefaultActions());
+  auto serialized = info.ToDataElementBytes();
+  auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
+  ASSERT_TRUE(
+      absl::holds_alternative<WifiAwareConnectionInfo>(connection_info));
+  auto wifi_aware_connection_info =
+      absl::get<WifiAwareConnectionInfo>(connection_info);
+  EXPECT_EQ(wifi_aware_connection_info, info);
+}
+
+TEST(ConnectionInfoTest, TestRestoreWifiAwareShortBytes) {
+  // Empty
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(""),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  // 1 byte
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes("\x14"),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  // 2 bytes with 0 length
+  std::string two_bytes = {'\x14', '\x00'};
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(two_bytes),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  // 3 bytes
+  std::string three_bytes = {'\x14', '\x01', '\x04'};
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(three_bytes),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  // 4 bytes
+  std::string four_bytes = {'\x14', '\x02', '\x04', '\x10'};
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(four_bytes),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(ConnectionInfoTest, TestRestoreWifiAwareInvalidMask) {
+  // Field type (0x14), length 4, medium type (0x04), invalid mask (0x20
+  // instead of 0x10), len 1, "a".
+  std::string invalid_mask = {'\x14', '\x04', '\x04', '\x20', '\x01', 'a'};
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(invalid_mask),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(ConnectionInfoTest, TestWifiAwareLongServiceId) {
+  std::string long_id(256, 'a');
+  WifiAwareConnectionInfo info(long_id, GetDefaultActions());
+  EXPECT_TRUE(info.ToDataElementBytes().empty());
+}
+
+TEST(ConnectionInfoTest, TestWifiAwareLongTotalPayload) {
+  // Service ID is 250 bytes (<= 255), but with header (3 B) and actions (10 B)
+  // the total payload is 263 bytes (> 255 bytes).
+  std::string service_id(250, 'a');
+  std::vector<uint8_t> actions(10, 0x01);
+  WifiAwareConnectionInfo info(service_id, actions);
+  EXPECT_TRUE(info.ToDataElementBytes().empty());
+}
+
 TEST(ConnectionInfoTest, TestMonostate) {
   MacAddress mac_address;
   MacAddress::FromBytes(
@@ -99,13 +158,32 @@ TEST(ConnectionInfoTest, TestMonostate) {
                                   GetDefaultActions());
   BleConnectionInfo ble_info(kMacAddr, kGattCharacteristic, kPsm,
                              GetDefaultActions());
-  std::vector<ConnectionInfo*> infos = {&bt_info, &ble_info, &wifi_info};
+  WifiAwareConnectionInfo wifi_aware_info(kServiceId, GetDefaultActions());
+  std::vector<ConnectionInfo*> infos = {&bt_info, &ble_info, &wifi_info,
+                                        &wifi_aware_info};
   for (auto info : infos) {
     auto serialized = info->ToDataElementBytes();
     auto connection_info =
         ConnectionInfo::FromDataElementBytes(serialized.substr(0, 10));
-    EXPECT_TRUE(absl::holds_alternative<std::monostate>(connection_info));
+    EXPECT_TRUE(std::holds_alternative<std::monostate>(connection_info));
   }
+}
+
+TEST(ConnectionInfoTest, TestFromDataElementBytesInvalidOrShort) {
+  // Empty
+  EXPECT_TRUE(std::holds_alternative<std::monostate>(
+      ConnectionInfo::FromDataElementBytes("")));
+  // 1 byte
+  EXPECT_TRUE(std::holds_alternative<std::monostate>(
+      ConnectionInfo::FromDataElementBytes("\x14")));
+  // 2 bytes
+  std::string two_bytes = {'\x14', '\x00'};
+  EXPECT_TRUE(std::holds_alternative<std::monostate>(
+      ConnectionInfo::FromDataElementBytes(two_bytes)));
+  // Wrong data element field type
+  std::string bad_type = {'\x15', '\x05', '\x04'};
+  EXPECT_TRUE(std::holds_alternative<std::monostate>(
+      ConnectionInfo::FromDataElementBytes(bad_type)));
 }
 
 TEST(ConnectionInfoTest, TestCannotRestoreAsOtherInfos) {
@@ -120,6 +198,7 @@ TEST(ConnectionInfoTest, TestCannotRestoreAsOtherInfos) {
                                   GetDefaultActions());
   BleConnectionInfo ble_info(kMacAddr, kGattCharacteristic, kPsm,
                              GetDefaultActions());
+  WifiAwareConnectionInfo wifi_aware_info(kServiceId, GetDefaultActions());
   EXPECT_THAT(
       BleConnectionInfo::FromDataElementBytes(wifi_info.ToDataElementBytes()),
       testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
@@ -138,6 +217,12 @@ TEST(ConnectionInfoTest, TestCannotRestoreAsOtherInfos) {
   EXPECT_THAT(
       WifiLanConnectionInfo::FromDataElementBytes(bt_info.ToDataElementBytes()),
       testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(WifiAwareConnectionInfo::FromDataElementBytes(
+                  ble_info.ToDataElementBytes()),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(
+                  wifi_aware_info.ToDataElementBytes()),
+              testing::status::StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 }  // namespace
