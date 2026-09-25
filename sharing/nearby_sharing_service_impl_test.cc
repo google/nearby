@@ -529,7 +529,8 @@ class NearbySharingServiceImplTest : public testing::Test {
   void ReceiveMessageFromConnection(std::vector<uint8_t> bytes) {
     sharing_service_task_runner_->PostTask(
         [this, bytes]() { connection_->WriteMessage(bytes); });
-    EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kWaitTimeout));
+    EXPECT_TRUE(
+        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   }
 
   void FastForward(absl::Duration duration) {
@@ -1077,7 +1078,8 @@ class NearbySharingServiceImplTest : public testing::Test {
     if (auto listener = info.listener.lock()) {
       listener->OnStatusUpdate(std::move(payload_transfer_update));
     }
-    EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kWaitTimeout));
+    EXPECT_TRUE(
+        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   }
 
   std::unique_ptr<Advertisement> GetCurrentAdvertisement() {
@@ -1229,7 +1231,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   void FlushTesting() {
     absl::SleepFor(absl::Milliseconds(200));
     EXPECT_TRUE(
-        sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
+        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   }
 
   void SetDiskSpace(FilePath path, size_t size) {
@@ -2953,8 +2955,7 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
-  EXPECT_TRUE(
-      sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
@@ -3000,8 +3001,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
-  EXPECT_TRUE(
-      sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
@@ -3042,8 +3042,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
-  EXPECT_TRUE(
-      sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest, RejectInvalidShareTarget) {
@@ -3211,8 +3210,7 @@ TEST_F(NearbySharingServiceImplTest,
 
   // Ensure that the messages sent by ProcessLatestPublicCertificateDecryption
   // are processed prior to checking if connection is closed.
-  EXPECT_TRUE(
-      sharing_service_task_runner_->SyncWithTimeout(absl::Milliseconds(200)));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   EXPECT_FALSE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
           .has_value());
