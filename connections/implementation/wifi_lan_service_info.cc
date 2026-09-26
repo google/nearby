@@ -27,6 +27,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/stream_reader.h"
+#include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -168,6 +169,11 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   }
 }
 
+WifiLanServiceInfo::WifiLanServiceInfo(
+    const WifiAwareServiceInfo& wifi_aware_service_info)
+    : WifiLanServiceInfo(static_cast<NsdServiceInfo>(wifi_aware_service_info)) {
+}
+
 WifiLanServiceInfo::operator NsdServiceInfo() const {
   if (!IsValid()) {
     return {};
@@ -209,6 +215,10 @@ WifiLanServiceInfo::operator NsdServiceInfo() const {
   nsd_service_info.SetTxtRecord(std::string(kKeyEndpointInfo),
                                 Base64Utils::Encode(endpoint_info_));
   return nsd_service_info;
+}
+
+WifiLanServiceInfo::operator WifiAwareServiceInfo() const {
+  return WifiAwareServiceInfo(static_cast<NsdServiceInfo>(*this));
 }
 
 }  // namespace connections

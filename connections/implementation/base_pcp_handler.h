@@ -69,6 +69,7 @@
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -257,6 +258,14 @@ class BasePcpHandler : public PcpHandler,
         : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
 
     NsdServiceInfo service_info;
+  };
+
+  struct WifiAwareEndpoint : public DiscoveredEndpoint {
+    WifiAwareEndpoint(DiscoveredEndpoint endpoint,
+                      const WifiAwareServiceInfo& service_info)
+        : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
+
+    WifiAwareServiceInfo service_info;
   };
 
   struct WebRtcEndpoint : public DiscoveredEndpoint {

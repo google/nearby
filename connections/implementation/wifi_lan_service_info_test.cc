@@ -23,6 +23,7 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -280,6 +281,54 @@ TEST(WifiLanServiceInfoTest, ConstructionBadFields) {
   nsd_service_info_3.SetServiceName(Base64Utils::Encode(service_name));
   WifiLanServiceInfo wifi_lan_service_info_3{nsd_service_info_3};
   EXPECT_FALSE(wifi_lan_service_info_3.IsValid());
+}
+
+TEST(WifiLanServiceInfoTest, ConstructionFromWifiAwareServiceInfoWorks) {
+  ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
+  ByteArray endpoint_info{std::string(kEndPointName)};
+  ByteArray uwb_address{std::string(kUwbAddressBytes)};
+  WifiLanServiceInfo org_wifi_lan_service_info{
+      kVersion,      kPcp,        kEndPointID, service_id_hash,
+      endpoint_info, uwb_address, kWebRtcState};
+  WifiAwareServiceInfo wifi_aware_service_info{
+      static_cast<WifiAwareServiceInfo>(org_wifi_lan_service_info)};
+
+  WifiLanServiceInfo wifi_lan_service_info{wifi_aware_service_info};
+
+  EXPECT_TRUE(wifi_lan_service_info.IsValid());
+  EXPECT_EQ(kPcp, wifi_lan_service_info.GetPcp());
+  EXPECT_EQ(kVersion, wifi_lan_service_info.GetVersion());
+  EXPECT_EQ(kEndPointID, wifi_lan_service_info.GetEndpointId());
+  EXPECT_EQ(service_id_hash, wifi_lan_service_info.GetServiceIdHash());
+  EXPECT_EQ(endpoint_info, wifi_lan_service_info.GetEndpointInfo());
+  EXPECT_EQ(uwb_address, wifi_lan_service_info.GetUwbAddress());
+  EXPECT_EQ(kWebRtcState, wifi_lan_service_info.GetWebRtcState());
+}
+
+TEST(WifiLanServiceInfoTest, ConstructionFromInvalidWifiAwareServiceInfoFails) {
+  // 1. Default-constructed / empty WifiAwareServiceInfo.
+  WifiAwareServiceInfo empty_aware_info;
+  EXPECT_FALSE(empty_aware_info.IsValid());
+  WifiLanServiceInfo wifi_lan_from_empty{empty_aware_info};
+  EXPECT_FALSE(wifi_lan_from_empty.IsValid());
+
+  // 2. Invalid WifiLanServiceInfo converted to WifiAwareServiceInfo should
+  // produce invalid WifiAwareServiceInfo.
+  WifiLanServiceInfo invalid_wifi_lan;
+  EXPECT_FALSE(invalid_wifi_lan.IsValid());
+  WifiAwareServiceInfo aware_from_invalid{
+      static_cast<WifiAwareServiceInfo>(invalid_wifi_lan)};
+  EXPECT_FALSE(aware_from_invalid.IsValid());
+  WifiLanServiceInfo wifi_lan_roundtrip{aware_from_invalid};
+  EXPECT_FALSE(wifi_lan_roundtrip.IsValid());
+
+  // 3. WifiAwareServiceInfo with corrupted non-Base64 service name.
+  WifiAwareServiceInfo corrupted_aware_info;
+  corrupted_aware_info.SetServiceName("!@#$%^&*()");
+  corrupted_aware_info.SetTxtRecord(
+      std::string(WifiLanServiceInfo::kKeyEndpointInfo), "valid_info");
+  WifiLanServiceInfo wifi_lan_from_corrupted{corrupted_aware_info};
+  EXPECT_FALSE(wifi_lan_from_corrupted.IsValid());
 }
 
 }  // namespace

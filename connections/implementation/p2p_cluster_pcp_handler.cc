@@ -51,6 +51,7 @@
 #include "connections/implementation/mediums/bluetooth_endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
@@ -76,6 +77,8 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/types.h"
+#include "internal/platform/wifi_aware.h"
+#include "internal/platform/wifi_aware_service_info.h"
 #include "internal/platform/wifi_lan.h"
 #include "proto/connections_enums.pb.h"
 
@@ -89,6 +92,7 @@ using ::location::nearby::proto::connections::Medium::BLE;
 using ::location::nearby::proto::connections::Medium::BLUETOOTH;
 using ::location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM;
 using ::location::nearby::proto::connections::Medium::WEB_RTC;
+using ::location::nearby::proto::connections::Medium::WIFI_AWARE;
 using ::location::nearby::proto::connections::Medium::WIFI_LAN;
 using ::nearby::analytics::OperationResultWithMedium;
 
@@ -120,6 +124,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
+      wifi_aware_medium_(mediums->GetWifiAware()),
       wifi_hotspot_medium_(mediums->GetWifiHotspot()),
       wifi_direct_medium_(mediums->GetWifiDirect()),
       webrtc_medium_(mediums->GetWebRtc()),
@@ -138,6 +143,12 @@ std::vector<Medium> P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   if (wifi_lan_medium_.IsAvailable()) {
     mediums.push_back(WIFI_LAN);
   }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware) &&
+      wifi_aware_medium_.IsAvailable()) {
+    mediums.push_back(WIFI_AWARE);
+  }
   if (webrtc_medium_.IsAvailable()) {
     mediums.push_back(WEB_RTC);
   }
@@ -147,7 +158,6 @@ std::vector<Medium> P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   if (ble_medium_.IsAvailable()) {
     mediums.push_back(BLE);
   }
-
   return mediums;
 }
 
@@ -204,6 +214,30 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
             client, WIFI_LAN, /*update_index=*/0,
             wifi_lan_result.has_error()
                 ? wifi_lan_result.error().operation_result_code().value()
+                : OperationResultCode::DETAIL_SUCCESS));
+  }
+
+  // WifiAware
+  if (advertising_options.allowed.wifi_aware &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    ErrorOr<Medium> wifi_aware_result =
+        StartWifiAwareAdvertising(client, service_id, local_endpoint_id,
+                                  local_endpoint_info, web_rtc_state);
+    Medium wifi_aware_medium = UNKNOWN_MEDIUM;
+    if (wifi_aware_result.has_value()) {
+      wifi_aware_medium = wifi_aware_result.value();
+    }
+    if (wifi_aware_medium != UNKNOWN_MEDIUM) {
+      VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: WifiAware added";
+      mediums_started_successfully.push_back(wifi_aware_medium);
+    }
+    operation_result_with_mediums.push_back(
+        GetOperationResultWithMediumByResultCode(
+            client, WIFI_AWARE, /*update_index=*/0,
+            wifi_aware_result.has_error()
+                ? wifi_aware_result.error().operation_result_code().value()
                 : OperationResultCode::DETAIL_SUCCESS));
   }
 
@@ -316,6 +350,14 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableBleL2cap)) {
     ble_medium_.StopAcceptingL2capConnections(
+        client->GetAdvertisingServiceId());
+  }
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    wifi_aware_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+    wifi_aware_medium_.StopAcceptingConnections(
         client->GetAdvertisingServiceId());
   }
 
@@ -1085,6 +1127,30 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
                 : OperationResultCode::DETAIL_SUCCESS));
   }
 
+  // WifiAware
+  if (discovery_options.allowed.wifi_aware &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    ErrorOr<Medium> wifi_aware_result =
+        StartWifiAwareDiscovery(client, service_id);
+    Medium wifi_aware_medium = UNKNOWN_MEDIUM;
+    if (wifi_aware_result.has_value()) {
+      wifi_aware_medium = wifi_aware_result.value();
+    }
+    if (wifi_aware_medium != UNKNOWN_MEDIUM) {
+      LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: WifiAware added";
+      mediums_started_successfully.push_back(wifi_aware_medium);
+    }
+    operation_result_with_mediums.push_back(
+        GetOperationResultWithMediumByResultCode(
+            client, WIFI_AWARE,
+            /*update_index=*/0,
+            wifi_aware_result.has_error()
+                ? wifi_aware_result.error().operation_result_code().value()
+                : OperationResultCode::DETAIL_SUCCESS));
+  }
+
   if (discovery_options.allowed.ble) {
     ErrorOr<Medium> ble_result = {Error(OperationResultCode::DETAIL_UNKNOWN)};
     ble_result = StartBleScanning(client, service_id, discovery_options);
@@ -1134,6 +1200,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
 Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
   wifi_lan_medium_.StopDiscovery(client->GetDiscoveryServiceId());
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    wifi_aware_medium_.StopDiscovery(client->GetDiscoveryServiceId());
+  }
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
     awdl_medium_.StopDiscovery(client->GetDiscoveryServiceId());
@@ -1198,6 +1269,13 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       auto* wifi_lan_endpoint = down_cast<WifiLanEndpoint*>(endpoint);
       if (wifi_lan_endpoint) {
         return WifiLanConnectImpl(client, wifi_lan_endpoint);
+      }
+      break;
+    }
+    case WIFI_AWARE: {
+      auto* wifi_aware_endpoint = down_cast<WifiAwareEndpoint*>(endpoint);
+      if (wifi_aware_endpoint) {
+        return WifiAwareConnectImpl(client, wifi_aware_endpoint);
       }
       break;
     }
@@ -1337,6 +1415,30 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
                 ? wifi_lan_result.error().operation_result_code().value()
                 : OperationResultCode::DETAIL_SUCCESS));
   }
+
+  // wifi aware
+  if (options.enable_wifi_aware_listening &&
+      !wifi_aware_medium_.IsAcceptingConnections(std::string(service_id))) {
+    ErrorOr<bool> wifi_aware_result =
+        wifi_aware_medium_.StartAcceptingConnections(
+            std::string(service_id),
+            absl::bind_front(
+                &P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler, this,
+                client_proxy, std::string(local_endpoint_id), ByteArray{},
+                options.listening_endpoint_type));
+    if (wifi_aware_result.has_error()) {
+      LOG(WARNING) << "Failed to start listening for incoming connections on "
+                      "wifi_aware";
+    } else {
+      started_mediums.push_back(WIFI_AWARE);
+    }
+    operation_result_with_mediums.push_back(
+        GetOperationResultWithMediumByResultCode(
+            client_proxy, WIFI_AWARE, update_index,
+            wifi_aware_result.has_error()
+                ? wifi_aware_result.error().operation_result_code().value()
+                : OperationResultCode::DETAIL_SUCCESS));
+  }
   if (started_mediums.empty()) {
     LOG(WARNING) << absl::StrFormat(
         "Failed StartListeningForIncomingConnectionsImpl() for client %d for "
@@ -1362,6 +1464,13 @@ void P2pClusterPcpHandler::StopListeningForIncomingConnectionsImpl(
     if (!wifi_lan_medium_.StopAcceptingConnections(
             client->GetListeningForIncomingConnectionsServiceId())) {
       LOG(WARNING) << "Unable to stop wifi lan from accepting connections.";
+    }
+  }
+  if (wifi_aware_medium_.IsAcceptingConnections(
+          client->GetListeningForIncomingConnectionsServiceId())) {
+    if (!wifi_aware_medium_.StopAcceptingConnections(
+            client->GetListeningForIncomingConnectionsServiceId())) {
+      LOG(WARNING) << "Unable to stop wifi aware from accepting connections.";
     }
   }
   if (bluetooth_medium_.IsAcceptingConnections(
@@ -1410,6 +1519,16 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       needs_restart) {
     mediums_->GetWifiLan().StopAdvertising(std::string(service_id));
     mediums_->GetWifiLan().StopAcceptingConnections(std::string(service_id));
+  }
+  // wifi aware
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware) &&
+      (NeedsToTurnOffAdvertisingMedium(WIFI_AWARE, old_options,
+                                       advertising_options) ||
+       needs_restart)) {
+    mediums_->GetWifiAware().StopAdvertising(std::string(service_id));
+    mediums_->GetWifiAware().StopAcceptingConnections(std::string(service_id));
   }
   // Bluetooth classic
   if (NeedsToTurnOffAdvertisingMedium(BLUETOOTH, old_options,
@@ -1516,6 +1635,35 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
                   : OperationResultCode::DETAIL_SUCCESS));
     }
   }
+  // wifi aware
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware) &&
+      new_mediums.wifi_aware && !advertising_options.low_power) {
+    if (old_mediums.wifi_aware && !needs_restart) {
+      restarted_mediums.push_back(WIFI_AWARE);
+      operation_result_with_mediums.push_back(
+          GetOperationResultWithMediumByResultCode(
+              client, WIFI_AWARE, update_index,
+              OperationResultCode::DETAIL_SUCCESS));
+    } else {
+      ErrorOr<Medium> wifi_aware_result = StartWifiAwareAdvertising(
+          client, service_id, local_endpoint_id,
+          ByteArray(std::string(local_endpoint_info)), web_rtc_state);
+      if (wifi_aware_result.has_value() &&
+          wifi_aware_result.value() != UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(WIFI_AWARE);
+      } else {
+        status = {Status::kWifiAwareError};
+      }
+      operation_result_with_mediums.push_back(
+          GetOperationResultWithMediumByResultCode(
+              client, WIFI_AWARE, update_index,
+              wifi_aware_result.has_error()
+                  ? wifi_aware_result.error().operation_result_code().value()
+                  : OperationResultCode::DETAIL_SUCCESS));
+    }
+  }
   // bluetooth classic
   if (new_mediums.bluetooth && !advertising_options.low_power) {
     if (old_mediums.bluetooth && !needs_restart) {
@@ -1615,6 +1763,16 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
       needs_restart) {
     mediums_->GetWifiLan().StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, WIFI_LAN);
+  }
+  // wifi aware
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware) &&
+      (NeedsToTurnOffDiscoveryMedium(WIFI_AWARE, old_options,
+                                     discovery_options) ||
+       needs_restart)) {
+    mediums_->GetWifiAware().StopDiscovery(std::string(service_id));
+    StartEndpointLostByMediumAlarms(client, WIFI_AWARE);
   }
   // restart
   std::vector<Medium> restarted_mediums;
@@ -1716,6 +1874,35 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
               client, WIFI_LAN, update_index,
               wifi_lan_result.has_error()
                   ? wifi_lan_result.error().operation_result_code().value()
+                  : OperationResultCode::DETAIL_SUCCESS));
+    }
+  }
+  // wifi aware
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware) &&
+      new_mediums.wifi_aware && !discovery_options.low_power) {
+    should_start_discovery = true;
+    if (!needs_restart && old_mediums.wifi_aware) {
+      restarted_mediums.push_back(WIFI_AWARE);
+      operation_result_with_mediums.push_back(
+          GetOperationResultWithMediumByResultCode(
+              client, WIFI_AWARE, update_index,
+              OperationResultCode::DETAIL_SUCCESS));
+    } else {
+      ErrorOr<Medium> wifi_aware_result =
+          StartWifiAwareDiscovery(client, service_id);
+      if (wifi_aware_result.has_value()) {
+        restarted_mediums.push_back(WIFI_AWARE);
+      } else {
+        LOG(WARNING) << "UpdateDiscoveryOptionsImpl: unable to restart "
+                        "wifi aware scanning";
+      }
+      operation_result_with_mediums.push_back(
+          GetOperationResultWithMediumByResultCode(
+              client, WIFI_AWARE, update_index,
+              wifi_aware_result.has_error()
+                  ? wifi_aware_result.error().operation_result_code().value()
                   : OperationResultCode::DETAIL_SUCCESS));
     }
   }
@@ -2202,7 +2389,10 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
     LOG(WARNING) << "In StartBleAdvertising("
                  << absl::BytesToHexString(local_endpoint_info.data())
                  << "), client=" << client->GetClientId()
-                 << " failed to create an advertisement.";
+                 << " failed to create an advertisement (fast_advertisement="
+                 << fast_advertisement
+                 << ", local_endpoint_info size=" << local_endpoint_info.size()
+                 << ").";
     ble_medium_.StopAcceptingConnections(service_id);
     return {Error(OperationResultCode::NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE)};
   }
@@ -2653,6 +2843,236 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::AwdlConnectImpl(
             << endpoint->endpoint_id << ").";
   return BasePcpHandler::ConnectImplResult{
       .medium = AWDL,
+      .status = {Status::kSuccess},
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+      .endpoint_channel = std::move(channel),
+  };
+}
+
+void P2pClusterPcpHandler::WifiAwareServiceDiscoveredHandler(
+    ClientProxy* client, WifiAwareServiceInfo service_info,
+    absl::string_view service_id) {
+  RunOnPcpHandlerThread(
+      "p2p-wifi-aware-service-discovered",
+      [this, client, service_id = std::string(service_id),
+       service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!wifi_aware_medium_.IsDiscovering(service_id)) {
+          LOG(WARNING) << "Skipping discovered WifiAware service due to no "
+                          "longer discovering.";
+          return;
+        }
+
+        // Parse the WifiAwareServiceInfo.
+        WifiLanServiceInfo wifi_aware_service_info(service_info);
+
+        // Make sure the WifiAwareServiceInfo points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiServiceEndpoint(service_id,
+                                             wifi_aware_service_info)) {
+          LOG(INFO) << "Found unrecognized WifiAwareServiceInfo "
+                    << service_info.GetServiceName();
+          return;
+        }
+
+        // Report the discovered endpoint to the client.
+        VLOG(1) << "Found WifiAwareServiceInfo "
+                << service_info.GetServiceName() << " (with endpoint_id="
+                << wifi_aware_service_info.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(
+                       wifi_aware_service_info.GetEndpointInfo().data())
+                << ").";
+        StopEndpointLostByMediumAlarm(wifi_aware_service_info.GetEndpointId(),
+                                      WIFI_AWARE);
+        OnEndpointFound(
+            client, std::make_shared<WifiAwareEndpoint>(WifiAwareEndpoint{
+                        {wifi_aware_service_info.GetEndpointId(),
+                         wifi_aware_service_info.GetEndpointInfo(), service_id,
+                         WIFI_AWARE, wifi_aware_service_info.GetWebRtcState()},
+                        service_info,
+                    }));
+      });
+}
+
+void P2pClusterPcpHandler::WifiAwareServiceLostHandler(
+    ClientProxy* client, WifiAwareServiceInfo service_info,
+    absl::string_view service_id) {
+  RunOnPcpHandlerThread(
+      "p2p-wifi-aware-service-lost",
+      [this, client, service_info, service_id = std::string(service_id)]()
+          RUN_ON_PCP_HANDLER_THREAD() {
+            // Make sure we are still discovering before proceeding.
+            if (!wifi_aware_medium_.IsDiscovering(service_id)) {
+              LOG(WARNING) << "Ignoring lost WifiAware service due to no "
+                              "longer discovering.";
+              return;
+            }
+
+            // Parse the WifiAwareServiceInfo.
+            WifiLanServiceInfo wifi_aware_service_info(service_info);
+
+            // Make sure the WifiAwareServiceInfo points to a valid
+            // endpoint we're discovering.
+            if (!IsRecognizedWifiServiceEndpoint(service_id,
+                                                 wifi_aware_service_info))
+              return;
+
+            // Report the WifiAwareEndpoint as lost to the client.
+            VLOG(1) << "Processing lost WifiAwareServiceInfo "
+                    << service_info.GetServiceName();
+            OnEndpointLost(
+                client, DiscoveredEndpoint{
+                            wifi_aware_service_info.GetEndpointId(),
+                            wifi_aware_service_info.GetEndpointInfo(),
+                            service_id, WIFI_AWARE, WebRtcState::kUndefined});
+          });
+}
+
+void P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_id,
+    const ByteArray& local_endpoint_info, NearbyDevice::Type device_type,
+    absl::string_view service_id, WifiAwareSocket socket) {
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Invalid socket in accept callback("
+                 << absl::BytesToHexString(local_endpoint_info.AsStringView())
+                 << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-wifi-aware-on-incoming-connection",
+      [this, client, local_endpoint_id = std::string(local_endpoint_id),
+       service_id = std::string(service_id), device_type,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        auto channel = std::make_unique<WifiAwareEndpointChannel>(
+            service_id, /*channel_name=*/local_endpoint_id, socket);
+        ByteArray remote_service_name_byte{local_endpoint_id};
+
+        OnIncomingConnection(client, remote_service_name_byte,
+                             std::move(channel), WIFI_AWARE, device_type);
+      });
+}
+
+ErrorOr<Medium> P2pClusterPcpHandler::StartWifiAwareAdvertising(
+    ClientProxy* client, absl::string_view service_id,
+    absl::string_view local_endpoint_id, const ByteArray& local_endpoint_info,
+    WebRtcState web_rtc_state) {
+  // Start listening for connections before advertising in case a connection
+  // request comes in very quickly.
+  LOG(INFO) << "P2pClusterPcpHandler::StartWifiAwareAdvertising: service="
+            << service_id << ": start";
+  // Generate a WifiLanServiceInfo with which to become WifiAware discoverable.
+  const ByteArray service_id_hash = GenerateHash(
+      std::string(service_id), WifiLanServiceInfo::kServiceIdHashLength);
+  WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
+                                  GetPcp(),
+                                  std::string(local_endpoint_id),
+                                  service_id_hash,
+                                  local_endpoint_info,
+                                  ByteArray{},
+                                  web_rtc_state};
+  WifiAwareServiceInfo wifi_aware_service_info(service_info);
+  if (!wifi_aware_service_info.IsValid()) {
+    LOG(WARNING) << "In StartWifiAwareAdvertising("
+                 << absl::BytesToHexString(local_endpoint_info.data())
+                 << "), client=" << client->GetClientId()
+                 << " failed to generate WifiAwareServiceInfo {version="
+                 << static_cast<int>(kWifiLanServiceInfoVersion)
+                 << ", pcp=" << PcpToStrategy(GetPcp()).GetName()
+                 << ", endpoint_id=" << local_endpoint_id
+                 << ", service_id_hash="
+                 << absl::BytesToHexString(service_id_hash.data())
+                 << ", endpoint_info="
+                 << absl::BytesToHexString(local_endpoint_info.data()) << "}.";
+    return {Error(
+        OperationResultCode::NEARBY_WIFI_AWARE_ADVERTISE_TO_BYTES_FAILURE)};
+  }
+  LOG(INFO) << "In StartWifiAwareAdvertising("
+            << absl::BytesToHexString(local_endpoint_info.data())
+            << "), client=" << client->GetClientId()
+            << " generated WifiAwareServiceInfo "
+            << wifi_aware_service_info.GetServiceName()
+            << " with service_id=" << service_id;
+
+  ErrorOr<bool> wifi_aware_result = wifi_aware_medium_.StartAdvertising(
+      std::string(service_id), wifi_aware_service_info,
+      absl::bind_front(
+          &P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler, this,
+          client, std::string(local_endpoint_id), local_endpoint_info,
+          NearbyDevice::Type::kConnectionsDevice));
+  if (wifi_aware_result.has_error()) {
+    LOG(WARNING) << "In StartWifiAwareAdvertising("
+                 << absl::BytesToHexString(local_endpoint_info.data())
+                 << "), client=" << client->GetClientId()
+                 << " couldn't advertise with WifiAwareServiceInfo "
+                 << wifi_aware_service_info.GetServiceName();
+    return {Error(wifi_aware_result.error().operation_result_code().value())};
+  }
+  VLOG(1) << "In StartWifiAwareAdvertising("
+          << absl::BytesToHexString(local_endpoint_info.data())
+          << "), client=" << client->GetClientId()
+          << " advertised with WifiAwareServiceInfo "
+          << wifi_aware_service_info.GetServiceName();
+  return {WIFI_AWARE};
+}
+
+ErrorOr<Medium> P2pClusterPcpHandler::StartWifiAwareDiscovery(
+    ClientProxy* client, absl::string_view service_id) {
+  ErrorOr<bool> result = wifi_aware_medium_.StartDiscovery(
+      std::string(service_id),
+      WifiAwareMedium::DiscoveredServiceCallback{
+          .service_discovered_cb = absl::bind_front(
+              &P2pClusterPcpHandler::WifiAwareServiceDiscoveredHandler, this,
+              client),
+          .service_lost_cb = absl::bind_front(
+              &P2pClusterPcpHandler::WifiAwareServiceLostHandler, this, client),
+      });
+
+  if (!result.has_error()) {
+    LOG(INFO) << "In StartWifiAwareDiscovery(), client="
+              << client->GetClientId()
+              << " started scanning for Wifi devices for service_id="
+              << service_id;
+    return {WIFI_AWARE};
+  } else {
+    LOG(INFO) << "In StartWifiAwareDiscovery(), client="
+              << client->GetClientId()
+              << " couldn't start scanning on Wifi for service_id="
+              << service_id;
+    return {Error(result.error().operation_result_code().value())};
+  }
+}
+
+BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiAwareConnectImpl(
+    ClientProxy* client, WifiAwareEndpoint* endpoint) {
+  LOG(INFO) << "Client " << client->GetClientId()
+            << " is attempting to connect to endpoint(id="
+            << endpoint->endpoint_id << ") over WifiAware.";
+  ErrorOr<WifiAwareSocket> socket_result = wifi_aware_medium_.Connect(
+      endpoint->service_id, endpoint->service_info,
+      client->GetCancellationFlag(endpoint->endpoint_id).get());
+  if (socket_result.has_error()) {
+    LOG(ERROR) << "In WifiAwareConnectImpl(), failed to connect to service "
+               << endpoint->service_info.GetServiceName()
+               << " for endpoint(id=" << endpoint->endpoint_id << ").";
+    return BasePcpHandler::ConnectImplResult{
+        .status = {Status::kWifiAwareError},
+        .operation_result_code =
+            socket_result.error().operation_result_code().value(),
+    };
+  }
+  LOG(INFO) << "In WifiAwareConnectImpl(), connect to service "
+            << " socket=" << socket_result.value().GetImpl().get()
+            << " for endpoint(id=" << endpoint->endpoint_id << ").";
+
+  auto channel = std::make_unique<WifiAwareEndpointChannel>(
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      socket_result.value());
+  LOG(INFO) << "Client " << client->GetClientId()
+            << " created WifiAware endpoint channel to endpoint(id="
+            << endpoint->endpoint_id << ").";
+  return BasePcpHandler::ConnectImplResult{
+      .medium = WIFI_AWARE,
       .status = {Status::kSuccess},
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel),

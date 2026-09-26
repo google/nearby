@@ -44,6 +44,13 @@ P2pStarPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetWifiLan().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    if (mediums_->GetWifiAware().IsAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::WIFI_AWARE);
+    }
+  }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_HOTSPOT);
