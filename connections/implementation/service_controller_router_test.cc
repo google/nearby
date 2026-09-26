@@ -1449,6 +1449,15 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
                                  /*awdl=*/false));
 }
 
+TEST_F(ServiceControllerRouterTest, CompiledWithoutCppExceptions) {
+#if defined(__cpp_exceptions)
+  constexpr bool kCppExceptionsEnabled = true;
+#else
+  constexpr bool kCppExceptionsEnabled = false;
+#endif
+  EXPECT_FALSE(kCppExceptionsEnabled);
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
