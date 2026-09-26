@@ -234,7 +234,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
   Medium proposed_medium =
       new_medium == Medium::UNKNOWN_MEDIUM
           ? ChooseBestUpgradeMedium(
-                endpoint_id,
+                client, endpoint_id,
                 client->GetUpgradeMediums(endpoint_id).GetMediums(true))
           : new_medium;
 
@@ -257,7 +257,6 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       return;
     }
 
-    SetBwuMediumForEndpoint(endpoint_id, proposed_medium);
     BwuHandler* handler = GetHandlerForMedium(proposed_medium);
     if (!handler) {
       LOG(ERROR)
@@ -316,44 +315,38 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       return;
     }
 
-    if (is_dynamic_role_switch_enabled_ &&
-        client->GetMediumRole(endpoint_id).has_value()) {
-      MediumRole medium_role = client->GetMediumRole(endpoint_id).value();
-      auto remote_os_info = client->GetRemoteOsInfo(endpoint_id);
+    if (CanSwitchRoleForMedium(client, endpoint_id, proposed_medium)) {
+      SetBwuMediumForEndpoint(endpoint_id, Medium::UNKNOWN_MEDIUM);
+      if (!channel
+               ->Write(parser::ForBwuPathRequest(
+                   proposed_medium,
+                   client->GetUpgradeMediums(endpoint_id).GetMediums(true),
+                   GetLocalMediumRole(client),
+                   mediums_->GetWifi().GetCapability().supports_5_ghz))
+               .Ok()) {
+        LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
+                   << endpoint_id << " to medium "
+                   << location::nearby::proto::connections::Medium_Name(
+                          proposed_medium)
+                   << " because it failed to write the "
+                      "BWU_NEGOTIATION.UPGRADE_PATH_REQUEST OfflineFrame.";
 
-      if (NeedToSwitchRole(client, endpoint_id, proposed_medium, medium_role,
-                           remote_os_info.value_or(OsInfo()))) {
-        if (!channel
-                 ->Write(parser::ForBwuPathRequest(
-                     proposed_medium,
-                     client->GetUpgradeMediums(endpoint_id).GetMediums(true),
-                     medium_role,
-                     mediums_->GetWifi().GetCapability().supports_5_ghz))
-                 .Ok()) {
-          LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
-                     << endpoint_id << " to medium "
-                     << location::nearby::proto::connections::Medium_Name(
-                            proposed_medium)
-                     << " because it failed to write the "
-                        "BWU_NEGOTIATION.UPGRADE_PATH_REQUEST OfflineFrame.";
-
-          client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-              endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
-              BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-              OperationResultCode::
-                  CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-          return;
-        }
-        LOG(INFO) << "BwuManager successfully wrote the "
-                     "BANDWIDTH_UPGRADE_NEGOTIATION.UPGRADE_PATH_REQUEST "
-                     "OfflineFrame while upgrading endpoint "
-                  << endpoint_id << " to medium "
-                  << location::nearby::proto::connections::Medium_Name(
-                         proposed_medium);
+        client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+            endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+            BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+            OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
         return;
       }
+      LOG(INFO) << "BwuManager successfully wrote the "
+                   "BANDWIDTH_UPGRADE_NEGOTIATION.UPGRADE_PATH_REQUEST "
+                   "OfflineFrame while upgrading endpoint "
+                << endpoint_id << " to medium "
+                << location::nearby::proto::connections::Medium_Name(
+                       proposed_medium);
+      return;
     }
 
+    SetBwuMediumForEndpoint(endpoint_id, proposed_medium);
     std::string service_id = channel->GetServiceId();
     std::string bytes = handler->InitializeUpgradedMediumForEndpoint(
         client, service_id, endpoint_id);
@@ -845,25 +838,8 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
-  bool abort_bwu = false;
-  if (client->IsIncomingConnection(endpoint_id)) {
-    if (!is_dynamic_role_switch_enabled_) {
-      abort_bwu = true;
-    } else {
-      auto medium_role = client->GetMediumRole(endpoint_id);
-      auto remote_os_info = client->GetRemoteOsInfo(endpoint_id);
-      // Without a MediumRole from the peer we cannot decide to switch roles, so
-      // keep the default behaviour of dropping the frame. Otherwise the mere
-      // act of enabling dynamic role switch would let an advertiser accept
-      // upgrades it used to ignore.
-      if (!medium_role.has_value() ||
-          !NeedToSwitchRole(client, endpoint_id, upgrade_medium,
-                            medium_role.value(),
-                            remote_os_info.value_or(OsInfo()))) {
-        abort_bwu = true;
-      }
-    }
-  }
+  bool abort_bwu = client->IsIncomingConnection(endpoint_id) &&
+                   !CanSwitchRoleForMedium(client, endpoint_id, upgrade_medium);
   if (abort_bwu) {
     LOG(INFO)
         << "ProcessBandwidthUpgradePathAvailableEvent ignored by Advertiser";
@@ -1509,7 +1485,8 @@ void BwuManager::ProcessUpgradeFailureEvent(
 void BwuManager::TryNextBestUpgradeMediums(
     ClientProxy* client, const std::string& endpoint_id,
     std::vector<Medium> upgrade_mediums) {
-  Medium next_medium = ChooseBestUpgradeMedium(endpoint_id, upgrade_mediums);
+  Medium next_medium =
+      ChooseBestUpgradeMedium(client, endpoint_id, upgrade_mediums);
   LOG(INFO) << "Try Next Best Medium for endpoint " << endpoint_id
             << " after ChooseBestUpgradeMedium: "
             << location::nearby::proto::connections::Medium_Name(next_medium);
@@ -1569,7 +1546,9 @@ std::vector<Medium> BwuManager::StripOutDisallowedUpgradeMediums(
 }
 
 std::vector<Medium> BwuManager::StripOutUnavailableMediums(
+    ClientProxy* client, const std::string& endpoint_id,
     const std::vector<Medium>& mediums) const {
+  const MediumRole local_medium_role = GetLocalMediumRole(client);
   std::vector<Medium> available_mediums;
   for (Medium m : mediums) {
     bool available = false;
@@ -1583,14 +1562,32 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
           break;
         case Medium::WIFI_AWARE:
         case Medium::WIFI_AWARE_R4:
-          available = mediums_->GetWifiAware().IsAvailable();
+          available = mediums_->GetWifiAware().IsAvailable() ||
+                      CanSwitchRoleForMedium(client, endpoint_id, m);
           break;
-        case Medium::WIFI_DIRECT:
-          available = mediums_->GetWifiDirect().IsGOAvailable();
+        case Medium::WIFI_DIRECT: {
+          bool can_host_go =
+              mediums_->GetWifiDirect().IsGOAvailable() &&
+              (!is_dynamic_role_switch_enabled_ ||
+               local_medium_role.support_wifi_direct_group_owner());
+          bool can_switch_role =
+              mediums_->GetWifiDirect().IsGCAvailable() &&
+              local_medium_role.support_wifi_direct_group_client() &&
+              CanSwitchRoleForMedium(client, endpoint_id, Medium::WIFI_DIRECT);
+          available = can_host_go || can_switch_role;
           break;
-        case Medium::WIFI_HOTSPOT:
-          available = mediums_->GetWifiHotspot().IsAPAvailable();
+        }
+        case Medium::WIFI_HOTSPOT: {
+          bool can_host_ap = mediums_->GetWifiHotspot().IsAPAvailable() &&
+                             (!is_dynamic_role_switch_enabled_ ||
+                              local_medium_role.support_wifi_hotspot_host());
+          bool can_switch_role =
+              mediums_->GetWifiHotspot().IsClientAvailable() &&
+              local_medium_role.support_wifi_hotspot_client() &&
+              CanSwitchRoleForMedium(client, endpoint_id, Medium::WIFI_HOTSPOT);
+          available = can_host_ap || can_switch_role;
           break;
+        }
         case Medium::WEB_RTC:
           available = mediums_->GetWebRtc().IsAvailable();
           break;
@@ -1619,8 +1616,10 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
 // connections (although it's suboptimal for bandwidth throughput). When all
 // endpoints disconnect, we reset the bandwidth upgrade medium.
 Medium BwuManager::ChooseBestUpgradeMedium(
-    const std::string& endpoint_id, const std::vector<Medium>& mediums) const {
-  auto available_mediums = StripOutUnavailableMediums(mediums);
+    ClientProxy* client, const std::string& endpoint_id,
+    const std::vector<Medium>& mediums) const {
+  auto available_mediums =
+      StripOutUnavailableMediums(client, endpoint_id, mediums);
   Medium current_medium = GetBwuMediumForEndpoint(endpoint_id);
   if (current_medium == Medium::UNKNOWN_MEDIUM) {
     if (!available_mediums.empty()) {
@@ -1718,7 +1717,7 @@ void BwuManager::AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
 bool BwuManager::NeedToSwitchRole(
     ClientProxy* client, const std::string& endpoint_id, Medium medium,
     const location::nearby::connections::MediumRole& medium_role,
-    const location::nearby::connections::OsInfo& remote_os_info) {
+    const location::nearby::connections::OsInfo& remote_os_info) const {
   if (!is_dynamic_role_switch_enabled_) {
     return false;
   }
@@ -1728,6 +1727,7 @@ bool BwuManager::NeedToSwitchRole(
     switch (medium) {
       case Medium::WIFI_HOTSPOT:
         return medium_role.support_wifi_hotspot_host();
+      case Medium::WIFI_AWARE:
       case Medium::WIFI_AWARE_R4: {
         // Apple can only take the Wi-Fi Aware R4 subscriber role: its publisher
         // path advertises a bootstrapping method set (PIN_CODE_DISPLAY only)
@@ -1773,6 +1773,22 @@ bool BwuManager::NeedToSwitchRole(
 
   return false;
 }
+
+bool BwuManager::CanSwitchRoleForMedium(ClientProxy* client,
+                                        const std::string& endpoint_id,
+                                        Medium medium) const {
+  if (!is_dynamic_role_switch_enabled_) {
+    return false;
+  }
+  auto medium_role = client->GetMediumRole(endpoint_id);
+  if (!medium_role.has_value()) {
+    return false;
+  }
+  auto remote_os_info = client->GetRemoteOsInfo(endpoint_id);
+  return NeedToSwitchRole(client, endpoint_id, medium, medium_role.value(),
+                          remote_os_info.value_or(OsInfo()));
+}
+
 // This feature currently is only used by Android as receiver device to request
 // a dynamic role switch to Windows as Wi-Fi Direct GO. So WIFI_DIRECT is the
 // preferred medium to upgrade to.
@@ -1788,49 +1804,68 @@ void BwuManager::ProcessUpgradePathRequest(
             << endpoint_id;
 
   const auto& request = upgrade_path_info.upgrade_path_request();
+  const location::nearby::connections::MediumRole& medium_role =
+      request.medium_meta_data().medium_role();
+  LOG(INFO) << "BwuManager: medium_role: " << medium_role.DebugString();
+
+  const location::nearby::connections::MediumRole local_medium_role =
+      GetLocalMediumRole(client);
   std::vector<Medium> upgrade_mediums;
   upgrade_mediums.reserve(request.mediums_size());
-  bool has_wifi_direct = false;
   for (auto m : request.mediums()) {
     Medium medium = parser::UpgradePathInfoMediumToMedium(
         static_cast<BandwidthUpgradeNegotiationFrame::UpgradePathInfo::Medium>(
             m));
     LOG(INFO) << "BwuManager: UpgradePathRequest medium: "
               << location::nearby::proto::connections::Medium_Name(medium);
-    upgrade_mediums.push_back(medium);
+    if (!CanHost(local_medium_role, medium_role, medium) ||
+        CanSwitchRoleForMedium(client, endpoint_id, medium)) {
+      continue;
+    }
     if (medium == Medium::WIFI_DIRECT) {
-      has_wifi_direct = true;
+      upgrade_mediums.insert(upgrade_mediums.begin(), medium);
+    } else {
+      upgrade_mediums.push_back(medium);
     }
   }
 
-  const location::nearby::connections::MediumRole& medium_role =
-      request.medium_meta_data().medium_role();
-  LOG(INFO) << "BwuManager: medium_role: " << medium_role.DebugString();
-
-  if (CanHost(client, medium_role)) {
-    Medium medium = ChooseBestUpgradeMedium(endpoint_id, upgrade_mediums);
-    if (has_wifi_direct) {
-      medium = Medium::WIFI_DIRECT;
-    }
+  Medium medium = ChooseBestUpgradeMedium(client, endpoint_id, upgrade_mediums);
+  if (medium != Medium::UNKNOWN_MEDIUM) {
     LOG(INFO) << "BwuManager: Initiating BWU for endpoint " << endpoint_id
               << " with medium "
               << location::nearby::proto::connections::Medium_Name(medium);
     InitiateBwuForEndpoint(client, endpoint_id, medium);
-  } else {
-    ProcessUpgradeFailureEvent(
-        client, endpoint_id, upgrade_path_info,
-        BandwidthUpgradeResult::REMOTE_CONNECTION_ERROR,
-        /* record_analytic= */ true,
-        OperationResultCode::NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE);
+    return;
   }
+  ProcessUpgradeFailureEvent(
+      client, endpoint_id, upgrade_path_info,
+      BandwidthUpgradeResult::REMOTE_CONNECTION_ERROR,
+      /* record_analytic= */ true,
+      OperationResultCode::NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE);
 }
 
 bool BwuManager::CanHost(
-    ClientProxy* client,
-    const location::nearby::connections::MediumRole& medium_role) {
-  if (!is_dynamic_role_switch_enabled_) {
-    return false;
+    const location::nearby::connections::MediumRole& local_medium_role,
+    const location::nearby::connections::MediumRole& remote_medium_role,
+    Medium medium) const {
+  switch (medium) {
+    case Medium::WIFI_DIRECT:
+      return local_medium_role.support_wifi_direct_group_owner() &&
+             remote_medium_role.support_wifi_direct_group_client();
+    case Medium::WIFI_HOTSPOT:
+      return local_medium_role.support_wifi_hotspot_host() &&
+             remote_medium_role.support_wifi_hotspot_client();
+    case Medium::WIFI_AWARE:
+    case Medium::WIFI_AWARE_R4:
+      return local_medium_role.support_wifi_aware_publisher() &&
+             remote_medium_role.support_wifi_aware_subscriber();
+    default:
+      return false;
   }
+}
+
+location::nearby::connections::MediumRole BwuManager::GetLocalMediumRole(
+    ClientProxy* client) const {
   ClientProxy::MediumsAvailability mediums_availability;
   mediums_availability.is_wifi_direct_go_available =
       mediums_->GetWifiDirect().IsGOAvailable();
@@ -1840,21 +1875,7 @@ bool BwuManager::CanHost(
       mediums_->GetWifiHotspot().IsAPAvailable();
   mediums_availability.is_wifi_hotspot_client_available =
       mediums_->GetWifiHotspot().IsClientAvailable();
-  const location::nearby::connections::MediumRole& local_medium_role =
-      client->GetLocalMediumRole(mediums_availability);
-  if ((local_medium_role.support_wifi_direct_group_owner() &&
-       medium_role.support_wifi_direct_group_client() &&
-       mediums_->GetWifiDirect().IsGOAvailable()) ||
-      (local_medium_role.support_wifi_hotspot_host() &&
-       medium_role.support_wifi_hotspot_client() &&
-       mediums_->GetWifiHotspot().IsAPAvailable()) ||
-      (local_medium_role.support_wifi_aware_publisher() &&
-       medium_role.support_wifi_aware_subscriber())) {
-    LOG(INFO) << "BwuManager: Can host the upgrade medium.";
-    return true;
-  }
-  LOG(INFO) << "BwuManager: Can't host the upgrade medium.";
-  return false;
+  return client->GetLocalMediumRole(mediums_availability);
 }
 
 const location::nearby::connections::OsInfo& BwuManager::GetLocalOsInfo(
