@@ -17,6 +17,11 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
+config_setting(
+    name = "optimized_mode",
+    values = {"compilation_mode": "opt"},
+)
+
 cc_library(
     name = "mediums",
     srcs = [
@@ -64,6 +69,13 @@ cc_library(
         "wifi_lan_bwu_handler.h",
         "wifi_lan_endpoint_channel.h",
     ],
+    copts = select({
+        ":optimized_mode": [
+            "-Oz",
+            "-DNEARBY_OPTIMIZED_MODE",
+        ],
+        "//conditions:default": [],
+    }),
     local_defines = select({
         "//:webrtc_enabled": [],
         "//conditions:default": ["NO_WEBRTC"],

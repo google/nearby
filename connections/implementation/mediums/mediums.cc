@@ -32,6 +32,13 @@
 namespace nearby {
 namespace connections {
 
+#if defined(__clang__) && defined(NEARBY_OPTIMIZED_MODE) && \
+    !defined(__OPTIMIZE_SIZE__)
+static_assert(false,
+              "Optimized builds of Nearby Connections mediums must be "
+              "compiled with -Oz (__OPTIMIZE_SIZE__)");
+#endif
+
 Mediums::Mediums() {
 #ifndef NO_WEBRTC
   webrtc_ = std::make_unique<mediums::WebRtcImpl>();
