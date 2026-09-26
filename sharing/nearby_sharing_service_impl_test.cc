@@ -86,6 +86,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
+#include "sharing/outgoing_share_session.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -5090,6 +5091,37 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   unknown_file_paths_to_delete =
       fake_nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
+  EXPECT_EQ(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .size(),
+      0);
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       DeletesUnknownFilePaths) {
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      FilePath{"unsolicited1.exe"});
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      FilePath{"unsolicited2.exe"});
+  EXPECT_EQ(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .size(),
+      2);
+
+  nearby::analytics::MockEventLogger mock_event_logger;
+  analytics::AnalyticsRecorderImpl analytics_recorder{/*vendor_id=*/0,
+                                                      &mock_event_logger};
+  ShareTarget share_target;
+  share_target.is_incoming = false;
+  OutgoingShareSession session(
+      fake_context_.fake_clock(), *sharing_service_task_runner_,
+      fake_nearby_connections_manager_, analytics_recorder, "endpoint_id",
+      share_target, [](OutgoingShareSession&, const TransferMetadata&) {});
+  service_->OnOutgoingTransferUpdate(
+      session,
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kDeviceAuthenticationFailed)
+          .build());
   EXPECT_EQ(
       fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
           .size(),
