@@ -494,8 +494,13 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
     return {Status::kPayloadUnknown};
   }
 
-  // Mark the payload as canceled.
+  // Mark the payload as canceled. For incoming payloads, also close the
+  // underlying file/stream handle immediately so callers can delete the
+  // partially written file even if the remote sender sends no further chunks.
   canceled_payload->MarkLocallyCanceled();
+  if (canceled_payload->IsIncoming()) {
+    canceled_payload->Close();
+  }
   VLOG(1) << "Cancelling "
           << (canceled_payload->IsIncoming() ? "incoming" : "outgoing")
           << " payload_id=" << payload_id << " at request of client.";
@@ -730,6 +735,9 @@ ErrorOr<PayloadManager::PendingPayloadHandle>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                       const std::string& endpoint_id,
                                       const std::string& save_path) {
+  if (frame.payload_header().has_id()) {
+    pending_payloads_.StopTrackingPayload(frame.payload_header().id());
+  }
   ErrorOr<std::unique_ptr<InternalPayload>> result =
       CreateIncomingInternalPayload(
           frame, save_path.empty() ? custom_save_path_ : save_path);
@@ -824,6 +832,7 @@ void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
         // Unless we never started tracking this payload (meaning we
         // failed to even create the InternalPayload), notify the client
         // (and close it).
+        pending_payload->Close();
         PayloadProgressInfo update{payload_header.id(),
                                    PayloadStatusToTransferUpdateStatus(status),
                                    payload_header.total_size(), offset_bytes};
@@ -1632,8 +1641,6 @@ void PayloadManager::PendingPayload::SetOffsetForEndpoint(
 }
 
 void PayloadManager::PendingPayload::Close() {
-  bool was_closed = is_closed_.Set(true);
-  if (was_closed) return;
   if (internal_payload_) internal_payload_->Close();
 }
 
@@ -1666,6 +1673,9 @@ void PayloadManager::PendingPayloads::Remove(
     absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>::iterator
         it) {
   if (it != pending_payloads_.end()) {
+    if (it->second->IsIncoming()) {
+      it->second->Close();
+    }
     int refcount = it->second->DecRefCount();
     if (refcount == 0) {
       // Nobody is using the payload, we can remove it.
