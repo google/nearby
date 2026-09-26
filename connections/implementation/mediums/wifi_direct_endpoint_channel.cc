@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__APPLE__)
+
 #include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 
 #include <string>
@@ -47,3 +49,5 @@ void WifiDirectEndpointChannel::CloseImpl() {
 
 }  // namespace connections
 }  // namespace nearby
+
+#endif  // !defined(__APPLE__)

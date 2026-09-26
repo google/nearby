@@ -17,6 +17,11 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
+config_setting(
+    name = "optimized_mode",
+    values = {"compilation_mode": "opt"},
+)
+
 cc_library(
     name = "types",
     hdrs = [
@@ -217,7 +222,16 @@ cc_library(
         "service_controller_router.h",
         "wifi_lan_service_info.h",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
+    copts = [
+        "-DCORE_ADAPTER_DLL",
+        "-fno-exceptions",
+    ] + select({
+        ":optimized_mode": [
+            "-Oz",
+            "-DNEARBY_OPTIMIZED_MODE",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__pkg__",
@@ -615,6 +629,13 @@ cc_test(
         "offline_service_controller_test.cc",
         "service_controller_router_test.cc",
     ],
+    copts = ["-fno-exceptions"] + select({
+        ":optimized_mode": [
+            "-Oz",
+            "-DNEARBY_OPTIMIZED_MODE",
+        ],
+        "//conditions:default": [],
+    }),
     deps = [
         ":client_proxy",
         ":internal",

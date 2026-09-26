@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__APPLE__)
+
 #include "connections/implementation/mediums/bluetooth_bwu_handler.h"
 
 #include <memory>
@@ -183,3 +185,5 @@ void BluetoothBwuHandler::OnIncomingBluetoothConnection(
 
 }  // namespace connections
 }  // namespace nearby
+
+#endif  // !defined(__APPLE__)

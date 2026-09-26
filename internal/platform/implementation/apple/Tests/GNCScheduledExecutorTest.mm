@@ -142,4 +142,29 @@ using ::nearby::api::ScheduledExecutor;
   XCTAssertEqual(self.counter, 0);
 }
 
+// Tests that an Objective-C NSException thrown inside a scheduled runnable is caught by
+// ScheduledExecutor (even when compiled with -fno-exceptions) and subsequent tasks still execute.
+- (void)testScheduleRecoversFromObjCException {
+  std::unique_ptr<ScheduledExecutor> executor([self executor]);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"recovered after exception"];
+
+  executor->Schedule(
+      []() {
+        @throw [NSException exceptionWithName:NSInternalInconsistencyException
+                                       reason:@"Simulated ObjC exception in scheduled task"
+                                     userInfo:nil];
+      },
+      absl::Milliseconds(10));
+
+  executor->Schedule(
+      [self, expectation]() {
+        self.counter++;
+        [expectation fulfill];
+      },
+      absl::Milliseconds(50));
+
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
+  XCTAssertEqual(self.counter, 1);
+}
+
 @end

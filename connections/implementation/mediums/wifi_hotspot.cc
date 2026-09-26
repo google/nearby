@@ -63,8 +63,14 @@ bool WifiHotspot::IsAPAvailable() const {
 }
 
 bool WifiHotspot::IsAPAvailableLocked() const {
+#if defined(__APPLE__)
+  // Apple platforms only support joining a remote Wi-Fi Hotspot as a client
+  // (STA) and do not support hosting a SoftAP server.
+  return false;
+#else
   if (medium_.IsValid()) return medium_.IsInterfaceValid();
   return false;
+#endif
 }
 
 bool WifiHotspot::IsClientAvailable() const {
