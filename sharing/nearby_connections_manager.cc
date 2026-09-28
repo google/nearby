@@ -14,10 +14,7 @@
 
 #include "sharing/nearby_connections_manager.h"
 
-#include <memory>
 #include <string>
-
-#include "sharing/nearby_connections_types.h"
 
 namespace nearby {
 namespace sharing {
@@ -64,7 +61,9 @@ std::string NearbyConnectionsManager::ConnectionsStatusToString(
     case ConnectionsStatus::kTimeout:
       return "kTimeout";
     case ConnectionsStatus::kUnknown:
-      // fall through
+      return "Unknown";
+    case ConnectionsStatus::kWifiAwareError:
+      return "kWifiAwareError";
     default:
       return "Unknown";
   }

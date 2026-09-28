@@ -142,6 +142,11 @@ bool EndpointChannelManager::isWifiLanConnected() const {
   return channel_state_.isWifiLanConnected();
 }
 
+bool EndpointChannelManager::isWifiAwareConnected() const {
+  MutexLock lock(&mutex_);
+  return channel_state_.isWifiAwareConnected();
+}
+
 void EndpointChannelManager::UpdateSafeToDisconnectForEndpoint(
     const std::string& endpoint_id, bool safe_to_disconnect_enabled) {
   MutexLock lock(&mutex_);
@@ -335,6 +340,18 @@ bool EndpointChannelManager::ChannelState::isWifiLanConnected() const {
     std::shared_ptr<EndpointChannel> channel = endpoint_data->channel();
     if (channel->GetMedium() == Medium::WIFI_LAN) {
       LOG(INFO) << "Found WIFI_LAN Medium for endpoint:" << endpoint_id;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool EndpointChannelManager::ChannelState::isWifiAwareConnected() const {
+  for (const auto& [endpoint_id, endpoint_data] : endpoints_) {
+    std::shared_ptr<EndpointChannel> channel = endpoint_data->channel();
+    if (channel && channel->GetMedium() == Medium::WIFI_AWARE) {
+      LOG(INFO) << "Found WIFI_AWARE Medium for endpoint:" << endpoint_id;
       return true;
     }
   }

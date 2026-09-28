@@ -30,7 +30,6 @@
 #include "connections/discovery_options.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/implementation/service_controller.h"
 #include "connections/listeners.h"
@@ -46,10 +45,8 @@
 #include "connections/v3/listeners.h"
 #include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
@@ -738,6 +735,7 @@ ServiceController* ServiceControllerRouter::GetServiceController() {
                                      /*web_rtc_no_cellular=*/false,
                                      /*web_rtc=*/true,
                                      /*wifi_lan=*/true,
+                                     /*wifi_aware=*/false,
                                      /*wifi_hotspot=*/false,
                                      /*wifi_direct=*/true,
                                      /*awdl=*/false};

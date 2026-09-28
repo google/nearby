@@ -51,6 +51,13 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    if (mediums_->GetWifiAware().IsAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::WIFI_AWARE);
+    }
+  }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
               kEnableWifiDirect)) {
     if (mediums_->GetWifi().IsAvailable() &&
         mediums_->GetWifiDirect().IsGCAvailable()) {

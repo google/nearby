@@ -71,6 +71,8 @@ NSError *NSErrorFromCppStatus(Status status) {
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorTimeout userInfo:nil];
     case Status::kUnknown:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorUnknown userInfo:nil];
+    case Status::kWifiAwareError:
+      return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorWifiAwareError userInfo:nil];
     case Status::kNextValue:
       return [NSError errorWithDomain:GNCErrorDomain code:GNCErrorUnknown userInfo:nil];
   }

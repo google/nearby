@@ -106,6 +106,8 @@ class EndpointChannelManager final {
 
   // Check if any endpoint uses WLAN Medium
   bool isWifiLanConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
+  // Check if any endpoint uses WIFI_AWARE Medium
+  bool isWifiAwareConnected() const ABSL_LOCKS_EXCLUDED(mutex_);
   void UpdateSafeToDisconnectForEndpoint(const std::string& endpoint_id,
                                          bool safe_to_disconnect_enabled)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -222,6 +224,7 @@ class EndpointChannelManager final {
 
     int GetConnectedEndpointsCount() const { return endpoints_.size(); }
     bool isWifiLanConnected() const;
+    bool isWifiAwareConnected() const;
     void MarkEndpointStopWaitToDisconnect(absl::string_view endpoint_id,
                                           bool is_safe_to_disconnect,
                                           bool notify_stop_waiting);

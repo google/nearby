@@ -96,8 +96,10 @@ enum class Status {
   kTimeout = 17,
   // No status is available
   kUnknown = 18,
+  // There was an error trying to use the device's Wi-Fi Aware capabilities.
+  kWifiAwareError = 19,
   // Value of the next enum variant.
-  kNextValue = 19,
+  kNextValue = 20,
 };
 // LINT.ThenChange(
 //     ../connections/status.h:status_enum,

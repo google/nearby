@@ -15,12 +15,13 @@
 #include "connections/v3/connections_device.h"
 
 #include <string>
+#include <variant>
 
 #include "absl/strings/str_cat.h"
-#include "absl/types/variant.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/wifi_aware_connection_info.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
@@ -31,22 +32,27 @@ std::string ConnectionsDevice::ToProtoBytes() const {
   // Bytes holding the connection info data elements.
   std::string connection_info_string;
   for (const auto& connection_info : connection_infos_) {
-    if (absl::holds_alternative<std::monostate>(connection_info)) {
+    if (std::holds_alternative<std::monostate>(connection_info)) {
       continue;
     }
-    if (absl::holds_alternative<BleConnectionInfo>(connection_info)) {
+    if (std::holds_alternative<BleConnectionInfo>(connection_info)) {
       absl::StrAppend(
           &connection_info_string,
-          absl::get<BleConnectionInfo>(connection_info).ToDataElementBytes());
+          std::get<BleConnectionInfo>(connection_info).ToDataElementBytes());
     }
-    if (absl::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
+    if (std::holds_alternative<WifiLanConnectionInfo>(connection_info)) {
       absl::StrAppend(&connection_info_string,
-                      absl::get<WifiLanConnectionInfo>(connection_info)
+                      std::get<WifiLanConnectionInfo>(connection_info)
                           .ToDataElementBytes());
     }
-    if (absl::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
+    if (std::holds_alternative<WifiAwareConnectionInfo>(connection_info)) {
       absl::StrAppend(&connection_info_string,
-                      absl::get<BluetoothConnectionInfo>(connection_info)
+                      std::get<WifiAwareConnectionInfo>(connection_info)
+                          .ToDataElementBytes());
+    }
+    if (std::holds_alternative<BluetoothConnectionInfo>(connection_info)) {
+      absl::StrAppend(&connection_info_string,
+                      std::get<BluetoothConnectionInfo>(connection_info)
                           .ToDataElementBytes());
     }
   }

@@ -393,5 +393,40 @@ TEST(BaseEndpointChannelManagerTest,
                                                      absl::Seconds(1)));
 }
 
+TEST(BaseEndpointChannelManagerTest, IsWifiAwareConnected) {
+  ClientProxy proxy;
+  EndpointChannelManager ecm;
+
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
+
+  auto pipe = CreatePipe();
+  auto channel = std::make_shared<MockEndpointChannel>(pipe.first.get(),
+                                                       pipe.second.get());
+  ON_CALL(*channel, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, std::string(kEndpointId), channel);
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
+
+  auto aware_pipe = CreatePipe();
+  auto aware_channel = std::make_shared<MockEndpointChannel>(
+      aware_pipe.first.get(), aware_pipe.second.get());
+  ON_CALL(*aware_channel, GetMedium).WillByDefault([]() {
+    return Medium::WIFI_AWARE;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, "aware_endpoint", aware_channel);
+  EXPECT_TRUE(ecm.isWifiAwareConnected());
+
+  channel->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  aware_channel->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+
+  ecm.UnregisterChannelForEndpoint("aware_endpoint",
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
+}
+
 }  // namespace
 }  // namespace nearby::connections

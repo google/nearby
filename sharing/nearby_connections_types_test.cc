@@ -60,6 +60,8 @@ TEST(NearbyConnectionSharingTypesTest, TestStatusValueIsSame) {
   EXPECT_EQ(NsStatus::kReset, ConvertToStatus({NcStatus::kReset}));
   EXPECT_EQ(NsStatus::kTimeout, ConvertToStatus({NcStatus::kTimeout}));
   EXPECT_EQ(NsStatus::kUnknown, ConvertToStatus({NcStatus::kUnknown}));
+  EXPECT_EQ(NsStatus::kWifiAwareError,
+            ConvertToStatus({NcStatus::kWifiAwareError}));
   EXPECT_EQ(NsStatus::kNextValue, ConvertToStatus({NcStatus::kNextValue}));
 }
 // LINT.ThenChange()
@@ -68,6 +70,9 @@ TEST(NearbyConnectionSharingTypesTest, TestNoFailWithUnknownStatus) {
   EXPECT_EQ(
       NearbyConnectionsManager::ConnectionsStatusToString(NsStatus::kNextValue),
       "Unknown");
+  EXPECT_EQ(NearbyConnectionsManager::ConnectionsStatusToString(
+                NsStatus::kWifiAwareError),
+            "kWifiAwareError");
 }
 
 }  // namespace
