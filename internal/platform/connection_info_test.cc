@@ -52,6 +52,40 @@ constexpr absl::string_view kBssid = "\x0A\x1B\x2C\x34\x58\x7E";
 // Wi-Fi Aware
 constexpr absl::string_view kServiceId = "test_service_id";
 
+ConnectionInfoVariant FromDataElementBytes(
+    absl::string_view data_element_bytes) {
+  if (data_element_bytes.size() < 3 ||
+      static_cast<uint8_t>(data_element_bytes[0]) != kDataElementFieldType) {
+    return std::monostate();
+  }
+  uint8_t type = data_element_bytes[2];
+  if (type == kBluetoothMediumType) {
+    auto result =
+        BluetoothConnectionInfo::FromDataElementBytes(data_element_bytes);
+    if (result.ok()) {
+      return result.value();
+    }
+  } else if (type == kBleGattMediumType) {
+    auto result = BleConnectionInfo::FromDataElementBytes(data_element_bytes);
+    if (result.ok()) {
+      return result.value();
+    }
+  } else if (type == kWifiLanMediumType) {
+    auto result =
+        WifiLanConnectionInfo::FromDataElementBytes(data_element_bytes);
+    if (result.ok()) {
+      return result.value();
+    }
+  } else if (type == kWifiAwareMediumType) {
+    auto result =
+        WifiAwareConnectionInfo::FromDataElementBytes(data_element_bytes);
+    if (result.ok()) {
+      return result.value();
+    }
+  }
+  return std::monostate();
+}
+
 std::vector<uint8_t> GetDefaultActions() {
   return {kFirstAction, kSecondAction};
 }
@@ -60,7 +94,7 @@ TEST(ConnectionInfoTest, TestRestoreBle) {
   BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm,
                          GetDefaultActions());
   auto serialized = info.ToDataElementBytes();
-  auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
+  auto connection_info = FromDataElementBytes(serialized);
   ASSERT_TRUE(absl::holds_alternative<BleConnectionInfo>(connection_info));
   auto ble_connection_info = absl::get<BleConnectionInfo>(connection_info);
   EXPECT_EQ(ble_connection_info, info);
@@ -75,7 +109,7 @@ TEST(ConnectionInfoTest, TestRestoreBluetooth) {
   BluetoothConnectionInfo info(mac_address, kBluetoothUuid,
                                GetDefaultActions());
   auto serialized = info.ToDataElementBytes();
-  auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
+  auto connection_info = FromDataElementBytes(serialized);
   ASSERT_TRUE(
       absl::holds_alternative<BluetoothConnectionInfo>(connection_info));
   auto bt_connection_info = absl::get<BluetoothConnectionInfo>(connection_info);
@@ -85,7 +119,7 @@ TEST(ConnectionInfoTest, TestRestoreBluetooth) {
 TEST(ConnectionInfoTest, TestRestoreMdns) {
   WifiLanConnectionInfo info(kIpv4Addr, kPort, kBssid, GetDefaultActions());
   auto serialized = info.ToDataElementBytes();
-  auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
+  auto connection_info = FromDataElementBytes(serialized);
   ASSERT_TRUE(absl::holds_alternative<WifiLanConnectionInfo>(connection_info));
   auto wlan_connection_info = absl::get<WifiLanConnectionInfo>(connection_info);
   EXPECT_EQ(wlan_connection_info, info);
@@ -94,7 +128,7 @@ TEST(ConnectionInfoTest, TestRestoreMdns) {
 TEST(ConnectionInfoTest, TestRestoreWifiAware) {
   WifiAwareConnectionInfo info(kServiceId, GetDefaultActions());
   auto serialized = info.ToDataElementBytes();
-  auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
+  auto connection_info = FromDataElementBytes(serialized);
   ASSERT_TRUE(
       absl::holds_alternative<WifiAwareConnectionInfo>(connection_info));
   auto wifi_aware_connection_info =
@@ -164,7 +198,7 @@ TEST(ConnectionInfoTest, TestMonostate) {
   for (auto info : infos) {
     auto serialized = info->ToDataElementBytes();
     auto connection_info =
-        ConnectionInfo::FromDataElementBytes(serialized.substr(0, 10));
+        FromDataElementBytes(serialized.substr(0, 10));
     EXPECT_TRUE(std::holds_alternative<std::monostate>(connection_info));
   }
 }
@@ -172,18 +206,18 @@ TEST(ConnectionInfoTest, TestMonostate) {
 TEST(ConnectionInfoTest, TestFromDataElementBytesInvalidOrShort) {
   // Empty
   EXPECT_TRUE(std::holds_alternative<std::monostate>(
-      ConnectionInfo::FromDataElementBytes("")));
+      FromDataElementBytes("")));
   // 1 byte
   EXPECT_TRUE(std::holds_alternative<std::monostate>(
-      ConnectionInfo::FromDataElementBytes("\x14")));
+      FromDataElementBytes("\x14")));
   // 2 bytes
   std::string two_bytes = {'\x14', '\x00'};
   EXPECT_TRUE(std::holds_alternative<std::monostate>(
-      ConnectionInfo::FromDataElementBytes(two_bytes)));
+      FromDataElementBytes(two_bytes)));
   // Wrong data element field type
   std::string bad_type = {'\x15', '\x05', '\x04'};
   EXPECT_TRUE(std::holds_alternative<std::monostate>(
-      ConnectionInfo::FromDataElementBytes(bad_type)));
+      FromDataElementBytes(bad_type)));
 }
 
 TEST(ConnectionInfoTest, TestCannotRestoreAsOtherInfos) {

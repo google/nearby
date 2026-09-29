@@ -177,7 +177,6 @@ cc_library(
     srcs = [
         "ble_connection_info.cc",
         "bluetooth_connection_info.cc",
-        "connection_info.cc",
         "wifi_aware_connection_info.cc",
         "wifi_lan_connection_info.cc",
     ],

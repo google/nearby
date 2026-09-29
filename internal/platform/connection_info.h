@@ -20,8 +20,6 @@
 #include <variant>
 #include <vector>
 
-#include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -49,8 +47,6 @@ class ConnectionInfo {
       const = 0;
   virtual std::string ToDataElementBytes() const = 0;
   virtual std::vector<uint8_t> GetActions() const = 0;
-  static ConnectionInfoVariant FromDataElementBytes(
-      absl::string_view data_element_bytes);
 };
 }  // namespace nearby
 
