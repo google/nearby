@@ -222,6 +222,7 @@ cc_library(
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__pkg__",
         "//connections:partners",
+        "//location/nearby/testing/nearby_native/client_windows/connections:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [
