@@ -57,10 +57,11 @@ constexpr int kWifiDirectFrequency = 2412;
 constexpr int kPort = 1000;
 constexpr int kHotspotFrequency = 2412;
 constexpr bool kSupportsDisablingEncryption = true;
-constexpr std::array<Medium, 9> kMediums = {
-    Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
-    Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
-    Medium::NFC,  Medium::WIFI_DIRECT, Medium::WEB_RTC,
+constexpr std::array<Medium, 10> kMediums = {
+    Medium::MDNS,          Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
+    Medium::BLE,           Medium::WIFI_LAN,    Medium::WIFI_AWARE,
+    Medium::NFC,           Medium::WIFI_DIRECT, Medium::WEB_RTC,
+    Medium::WIFI_AWARE_R4,
 };
 constexpr int kKeepAliveIntervalMillis = 1000;
 constexpr int kKeepAliveTimeoutMillis = 5000;

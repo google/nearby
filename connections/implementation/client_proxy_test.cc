@@ -1229,7 +1229,7 @@ TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
   // Before
   EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
   EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
-  StopDiscovery(client2());                  // No Discovery
+  StopDiscovery(client2());  // No Discovery
   EXPECT_TRUE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // One Connection
 
@@ -1602,6 +1602,9 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOs) {
   EXPECT_TRUE(role.support_awdl_publisher());
   EXPECT_TRUE(role.support_awdl_subscriber());
   EXPECT_TRUE(role.support_wifi_hotspot_client());
+  // Apple can subscribe to a Wi-Fi Aware R4 service but never publishes one.
+  EXPECT_TRUE(role.support_wifi_aware_subscriber());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
   EXPECT_FALSE(role.support_wifi_direct_group_owner());
   EXPECT_FALSE(role.support_wifi_direct_group_client());
   EXPECT_FALSE(role.support_wifi_hotspot_host());
@@ -1779,7 +1782,7 @@ TEST_F(ClientProxyTest, ResetLocalEndpointId_OngoingConnectionReturnsEarly) {
 
   // Set up an ongoing connection
   OnAdvertisingConnectionInitiated(client1(),
-                                    {ByteArray("EndpointInfo"), "EndA"});
+                                   {ByteArray("EndpointInfo"), "EndA"});
   EXPECT_TRUE(client1()->HasOngoingConnection());
 
   // ResetLocalEndpointId should NOT clear local_endpoint_id

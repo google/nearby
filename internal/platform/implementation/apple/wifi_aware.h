@@ -80,6 +80,7 @@ class WifiAwareSocket : public api::WifiAwareSocket {
   std::unique_ptr<WifiAwareInputStream> input_stream_;
   std::unique_ptr<WifiAwareOutputStream> output_stream_;
 };
+
 /**
  * Concrete WifiAwareMedium implementation.
  */
@@ -106,9 +107,15 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   bool StartSubscribing() override;
   bool StopSubscribing() override;
 
+  void SetExpectedPeerId(const std::string& peer_id) override;
+
   std::unique_ptr<api::WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) override;
+
+  std::unique_ptr<api::WifiAwareSocket> ConnectToService(
+      const std::string& service_name, const ByteArray& service_info, const std::string& passphrase,
+      int port, CancellationFlag* cancellation_flag) override;
 
   std::unique_ptr<api::WifiAwareServerSocket> ListenForService(int port) override;
 
@@ -120,6 +127,10 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   DiscoveredServiceCallback service_callback_;
   NSObject<OS_dispatch_semaphore>* publish_pairing_semaphore_ = nullptr;
   NSObject<OS_dispatch_semaphore>* subscribe_pairing_semaphore_ = nullptr;
+  bool is_showing_pairing_ui_ = false;
+  // Stable identifier of the peer whose upgrade request we are currently servicing, as supplied by
+  // that peer. Empty when it sent none. Set by SetExpectedPeerId() just before StartSubscribing().
+  std::string expected_peer_id_;
 };
 
 }  // namespace apple

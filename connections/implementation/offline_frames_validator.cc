@@ -46,6 +46,7 @@ using ClientIntroduction = ::location::nearby::connections::
 using WifiHotspotCredentials = UpgradePathInfo::WifiHotspotCredentials;
 using WifiLanSocket = UpgradePathInfo::WifiLanSocket;
 using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
+using WifiAwareR4Credentials = UpgradePathInfo::WifiAwareR4Credentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
@@ -333,6 +334,18 @@ Exception EnsureValidBandwidthUpgradeWifiAwarePathAvailableFrame(
   return {Exception::kSuccess};
 }
 
+Exception EnsureValidBandwidthUpgradeWifiAwareR4PathAvailableFrame(
+    const WifiAwareR4Credentials& wifi_aware_r4_credentials) {
+  if (!wifi_aware_r4_credentials.has_service_id())
+    return {Exception::kInvalidProtocolBuffer};
+  if (!wifi_aware_r4_credentials.has_service_info())
+    return {Exception::kInvalidProtocolBuffer};
+
+  // For backwards compatibility reasons, no other fields should be null-checked
+  // for this frame. Parameter checking (eg. must be within this range) is fine.
+  return {Exception::kSuccess};
+}
+
 Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
     const WifiDirectCredentials& wifi_direct_credentials) {
   if (!wifi_direct_credentials.has_frequency() ||
@@ -410,6 +423,13 @@ Exception EnsureValidBandwidthUpgradePathAvailableFrame(
       if (upgrade_path_info.has_wifi_aware_credentials()) {
         return EnsureValidBandwidthUpgradeWifiAwarePathAvailableFrame(
             upgrade_path_info.wifi_aware_credentials());
+      }
+      return {Exception::kInvalidProtocolBuffer};
+
+    case Medium::WIFI_AWARE_R4:
+      if (upgrade_path_info.has_wifi_aware_r4_credentials()) {
+        return EnsureValidBandwidthUpgradeWifiAwareR4PathAvailableFrame(
+            upgrade_path_info.wifi_aware_r4_credentials());
       }
       return {Exception::kInvalidProtocolBuffer};
 

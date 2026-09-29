@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/functional/any_invocable.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -93,10 +94,38 @@ class WifiAwareMedium {
   virtual bool StartSubscribing() = 0;
   virtual bool StopSubscribing() = 0;
 
+  // Names the peer that the next ConnectToService() call is meant for, using a
+  // stable identifier the remote device put in its upgrade frame
+  // (WifiAwareR4Credentials.advertised_name).
+  //
+  // Everything else in that frame is per-session — endpoint IDs rotate, service
+  // IDs are generated per transfer — so this is the only way a platform can
+  // tell whether an incoming upgrade comes from a device it has already paired
+  // with. Apple's Wi-Fi Aware stack needs that distinction because it can only
+  // browse for devices already in its paired store; a peer it has never paired
+  // with is silently dropped, and it must present the system pairing UI
+  // instead.
+  //
+  // Optional. `peer_id` is empty when the remote device did not supply one, and
+  // platforms that cannot make use of it ignore this entirely.
+  virtual void SetExpectedPeerId(const std::string& peer_id) {}
+
   // Connects to a WifiAware service.
   virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) = 0;
+
+  // Connects to a WifiAware service identified by `service_name` and
+  // `service_info`, using `passphrase` to secure the data path and `port` as
+  // the remote port.
+  //
+  // Returns nullptr by default; platforms that support this should override.
+  virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
+      const std::string& service_name, const ByteArray& service_info,
+      const std::string& passphrase, int port,
+      CancellationFlag* cancellation_flag) {
+    return nullptr;
+  }
 
   // Listens for incoming connection.
   virtual std::unique_ptr<WifiAwareServerSocket> ListenForService(int port) = 0;

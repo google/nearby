@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
@@ -296,6 +297,11 @@ bool WifiAware::StopSubscribing() {
   return medium_.StopSubscribing();
 }
 
+void WifiAware::SetExpectedPeerId(absl::string_view peer_id) {
+  MutexLock lock(&mutex_);
+  medium_.SetExpectedPeerId(std::string(peer_id));
+}
+
 ErrorOr<WifiAwareSocket> WifiAware::Connect(
     const std::string& service_id, const WifiAwareServiceInfo& service_info,
     CancellationFlag* cancellation_flag) {
@@ -312,6 +318,30 @@ ErrorOr<WifiAwareSocket> WifiAware::Connect(
 
   WifiAwareSocket socket =
       medium_.ConnectToService(service_info, cancellation_flag);
+  if (!socket.IsValid()) {
+    return {Error(location::nearby::proto::connections::OperationResultCode::
+                      CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+  return {std::move(socket)};
+}
+
+ErrorOr<WifiAwareSocket> WifiAware::Connect(
+    const std::string& service_id, const std::string& service_name,
+    const ByteArray& service_info, const std::string& passphrase, int port,
+    CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+  if (!IsAvailableLocked()) {
+    return {Error(location::nearby::proto::connections::OperationResultCode::
+                      MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
+  }
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
+    return {
+        Error(location::nearby::proto::connections::OperationResultCode::
+                  CLIENT_CANCELLATION_CANCEL_WIFI_AWARE_OUTGOING_CONNECTION)};
+  }
+
+  WifiAwareSocket socket = medium_.ConnectToService(
+      service_name, service_info, passphrase, port, cancellation_flag);
   if (!socket.IsValid()) {
     return {Error(location::nearby::proto::connections::OperationResultCode::
                       CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE)};

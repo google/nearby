@@ -91,6 +91,7 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
     case location::nearby::proto::connections::WIFI_HOTSPOT:
     case location::nearby::proto::connections::WIFI_LAN:
     case location::nearby::proto::connections::WIFI_AWARE:
+    case location::nearby::proto::connections::WIFI_AWARE_R4:
     case location::nearby::proto::connections::WIFI_DIRECT:
     case location::nearby::proto::connections::WEB_RTC:
     case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:

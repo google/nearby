@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
@@ -77,6 +78,12 @@ class WifiAware {
   bool StartSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // See api::WifiAwareMedium::SetExpectedPeerId(). Must be called before
+  // StartSubscribing(), because that is where a platform decides whether it can
+  // reach this peer with the pairings it already holds or has to ask the user
+  // to pair first.
+  void SetExpectedPeerId(absl::string_view peer_id) ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Starts a worker thread, creates a WifiAware socket, associates it with a
   // service id.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
@@ -93,6 +100,12 @@ class WifiAware {
   // Establishes connection to WifiAware service.
   ErrorOr<WifiAwareSocket> Connect(const std::string& service_id,
                                    const WifiAwareServiceInfo& service_info,
+                                   CancellationFlag* cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<WifiAwareSocket> Connect(const std::string& service_id,
+                                   const std::string& service_name,
+                                   const ByteArray& service_info,
+                                   const std::string& passphrase, int port,
                                    CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 

@@ -1427,7 +1427,7 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
                                  /*web_rtc=*/true, /*wifi_lan=*/true,
                                  /*wifi_aware=*/false,
                                  /*wifi_hotspot=*/false, /*wifi_direct=*/true,
-                                 /*awdl=*/false));
+                                 /*awdl=*/false, /*wifi_aware_r4=*/false));
 }
 
 TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
@@ -1448,7 +1448,7 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
                                  /*web_rtc=*/true, /*wifi_lan=*/true,
                                  /*wifi_aware=*/false,
                                  /*wifi_hotspot=*/true, /*wifi_direct=*/true,
-                                 /*awdl=*/false));
+                                 /*awdl=*/false, /*wifi_aware_r4=*/false));
 }
 
 }  // namespace

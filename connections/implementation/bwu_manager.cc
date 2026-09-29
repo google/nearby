@@ -104,7 +104,7 @@ BwuManager::BwuManager(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableWifiAware)) {
-      config_.allow_upgrade_to.wifi_aware = true;
+      config_.allow_upgrade_to.wifi_aware_r4 = true;
     }
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
@@ -153,12 +153,13 @@ void BwuManager::InitBwuHandlers() {
                       mediums_->GetWifiLan().CreateBwuHandler(absl::bind_front(
                           &BwuManager::OnIncomingConnection, this)));
   }
-  if (config_.allow_upgrade_to.wifi_aware &&
+  if ((config_.allow_upgrade_to.wifi_aware ||
+       config_.allow_upgrade_to.wifi_aware_r4) &&
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiAware)) {
     handlers_.emplace(
-        Medium::WIFI_AWARE,
+        Medium::WIFI_AWARE_R4,
         std::make_unique<WifiAwareBwuHandler>(
             mediums_->GetWifiAware(),
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
@@ -514,7 +515,8 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
   if (!IsInitiatorUpgradeServiceId(service_id)) {
     if (medium == Medium::WIFI_HOTSPOT || medium == Medium::WIFI_DIRECT) {
       handler->RevertResponderState(service_id);
-    } else if (medium == Medium::WIFI_AWARE) {
+    } else if (medium == Medium::WIFI_AWARE ||
+               medium == Medium::WIFI_AWARE_R4) {
       handler->RevertInitiatorState(WrapInitiatorUpgradeServiceId(service_id),
                                     endpoint_id);
       handler->RevertResponderState(service_id);
@@ -555,7 +557,9 @@ void BwuManager::SetBwuMediumForEndpoint(const std::string& endpoint_id,
 
 BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
   if (medium == Medium::UNKNOWN_MEDIUM) return nullptr;
-
+  if (medium == Medium::WIFI_AWARE) {
+    medium = Medium::WIFI_AWARE_R4;
+  }
   auto it = handlers_.find(medium);
   if (it == handlers_.end()) return nullptr;
 
@@ -855,7 +859,11 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     } else {
       auto medium_role = client->GetMediumRole(endpoint_id);
       auto remote_os_info = client->GetRemoteOsInfo(endpoint_id);
-      if (medium_role.has_value() &&
+      // Without a MediumRole from the peer we cannot decide to switch roles, so
+      // keep the default behaviour of dropping the frame. Otherwise the mere
+      // act of enabling dynamic role switch would let an advertiser accept
+      // upgrades it used to ignore.
+      if (!medium_role.has_value() ||
           !NeedToSwitchRole(client, endpoint_id, upgrade_medium,
                             medium_role.value(),
                             remote_os_info.value_or(OsInfo()))) {
@@ -1560,6 +1568,7 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
           available = mediums_->GetWifiLan().IsAvailable();
           break;
         case Medium::WIFI_AWARE:
+        case Medium::WIFI_AWARE_R4:
           available = mediums_->GetWifiAware().IsAvailable();
           break;
         case Medium::WIFI_DIRECT:
@@ -1705,6 +1714,29 @@ bool BwuManager::NeedToSwitchRole(
     switch (medium) {
       case Medium::WIFI_HOTSPOT:
         return medium_role.support_wifi_hotspot_host();
+      case Medium::WIFI_AWARE_R4: {
+        // Apple can only take the Wi-Fi Aware R4 subscriber role: its publisher
+        // path advertises a bootstrapping method set (PIN_CODE_DISPLAY only)
+        // that an Android subscriber cannot negotiate against, so first-time
+        // pairing always fails. Hand the publisher role to the peer instead,
+        // but only when all three of the following hold:
+        //   1. the peer is Android,
+        //   2. the peer advertised that it can publish, and
+        //   3. the peer is the discoverer (i.e. we are the advertiser, so the
+        //      default host would have been us). In the other direction the
+        //      peer is already the publisher and switching would only force a
+        //      redundant re-publish on a new port.
+        const bool peer_is_android = remote_os_info.type() == OsInfo::ANDROID;
+        const bool peer_can_publish =
+            medium_role.support_wifi_aware_publisher();
+        const bool we_are_advertiser =
+            client->IsIncomingConnection(endpoint_id);
+        LOG(INFO) << "NeedToSwitchRole(WIFI_AWARE_R4) for endpoint "
+                  << endpoint_id << ": peer_is_android=" << peer_is_android
+                  << ", peer_can_publish=" << peer_can_publish
+                  << ", we_are_advertiser=" << we_are_advertiser;
+        return peer_is_android && peer_can_publish && we_are_advertiser;
+      }
       default:
         break;
     }

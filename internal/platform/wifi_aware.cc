@@ -21,6 +21,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
@@ -156,6 +157,19 @@ WifiAwareSocket WifiAwareMedium::ConnectToService(
             << remote_service_info.GetServiceName();
   return WifiAwareSocket(
       impl_->ConnectToService(remote_service_info, cancellation_flag));
+}
+
+WifiAwareSocket WifiAwareMedium::ConnectToService(
+    const std::string& service_name, const ByteArray& service_info,
+    const std::string& passphrase, int port,
+    CancellationFlag* cancellation_flag) {
+  if (!IsValid()) {
+    return WifiAwareSocket();
+  }
+  LOG(INFO) << "WifiAwareMedium::ConnectToService: service_name="
+            << service_name << ", port=" << port;
+  return WifiAwareSocket(impl_->ConnectToService(
+      service_name, service_info, passphrase, port, cancellation_flag));
 }
 
 WifiAwareServerSocket WifiAwareMedium::ListenForService(int port) {
