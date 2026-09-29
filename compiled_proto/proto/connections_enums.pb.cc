@@ -186,9 +186,9 @@ bool SessionRole_Parse(::absl::string_view name, SessionRole* PROTOBUF_NONNULL v
   return success;
 }
 PROTOBUF_CONSTINIT const uint32_t Medium_internal_data_[] = {
-    917504u, 0u, };
+    983040u, 0u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    Medium_strings[14] = {};
+    Medium_strings[15] = {};
 
 static const char Medium_names[] = {
     "AWDL"
@@ -202,6 +202,7 @@ static const char Medium_names[] = {
     "WEB_RTC"
     "WEB_RTC_NON_CELLULAR"
     "WIFI_AWARE"
+    "WIFI_AWARE_R4"
     "WIFI_DIRECT"
     "WIFI_HOTSPOT"
     "WIFI_LAN"
@@ -219,44 +220,46 @@ static const ::google::protobuf::internal::EnumEntry Medium_entries[] = {
     {{&Medium_names[49], 7}, 9},
     {{&Medium_names[56], 20}, 12},
     {{&Medium_names[76], 10}, 6},
-    {{&Medium_names[86], 11}, 8},
-    {{&Medium_names[97], 12}, 3},
-    {{&Medium_names[109], 8}, 5},
+    {{&Medium_names[86], 13}, 14},
+    {{&Medium_names[99], 11}, 8},
+    {{&Medium_names[110], 12}, 3},
+    {{&Medium_names[122], 8}, 5},
 };
 
 static const int Medium_entries_by_number[] = {
     6,  // 0 -> UNKNOWN_MEDIUM
     4,  // 1 -> MDNS
     3,  // 2 -> BLUETOOTH
-    12,  // 3 -> WIFI_HOTSPOT
+    13,  // 3 -> WIFI_HOTSPOT
     1,  // 4 -> BLE
-    13,  // 5 -> WIFI_LAN
+    14,  // 5 -> WIFI_LAN
     10,  // 6 -> WIFI_AWARE
     5,  // 7 -> NFC
-    11,  // 8 -> WIFI_DIRECT
+    12,  // 8 -> WIFI_DIRECT
     8,  // 9 -> WEB_RTC
     2,  // 10 -> BLE_L2CAP
     7,  // 11 -> USB
     9,  // 12 -> WEB_RTC_NON_CELLULAR
     0,  // 13 -> AWDL
+    11,  // 14 -> WIFI_AWARE_R4
 };
 
 const ::std::string& Medium_Name(Medium value) {
   static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      Medium_entries, Medium_entries_by_number, 14,
+      Medium_entries, Medium_entries_by_number, 15,
       Medium_strings);
   (void)kDummy;
 
   int idx = ::google::protobuf::internal::LookUpEnumName(Medium_entries,
                                   Medium_entries_by_number,
-                                  14, value);
+                                  15, value);
   return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : Medium_strings[idx].get();
 }
 
 bool Medium_Parse(::absl::string_view name, Medium* PROTOBUF_NONNULL value) {
   int int_value;
   bool success = ::google::protobuf::internal::LookUpEnumValue(
-      Medium_entries, 14, name, &int_value);
+      Medium_entries, 15, name, &int_value);
   if (success) {
     *value = static_cast<Medium>(int_value);
   }

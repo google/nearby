@@ -588,6 +588,47 @@ struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentialsDef
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials_default_instance_;
 
+inline constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        service_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        service_info_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        pmk_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        advertised_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ipv6_address_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        port_{0},
+        pairing_flags_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::MessageLite(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::MessageLite(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4CredentialsDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4CredentialsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4CredentialsDefaultTypeInternal() {}
+  union {
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4CredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_default_instance_;
+
 inline constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1189,6 +1230,7 @@ inline constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Impl_::Impl_(
         web_rtc_credentials_{nullptr},
         upgrade_path_request_{nullptr},
         awdl_credentials_{nullptr},
+        wifi_aware_r4_credentials_{nullptr},
         medium_{static_cast< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium >(0)},
         supports_disabling_encryption_{false},
         supports_client_introduction_ack_{false} {}
@@ -1426,9 +1468,9 @@ bool V1Frame_FrameType_Parse(::absl::string_view name, V1Frame_FrameType* PROTOB
   return success;
 }
 PROTOBUF_CONSTINIT const uint32_t ConnectionRequestFrame_Medium_internal_data_[] = {
-    917504u, 0u, };
+    983040u, 0u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    ConnectionRequestFrame_Medium_strings[14] = {};
+    ConnectionRequestFrame_Medium_strings[15] = {};
 
 static const char ConnectionRequestFrame_Medium_names[] = {
     "AWDL"
@@ -1442,6 +1484,7 @@ static const char ConnectionRequestFrame_Medium_names[] = {
     "WEB_RTC"
     "WEB_RTC_NON_CELLULAR"
     "WIFI_AWARE"
+    "WIFI_AWARE_R4"
     "WIFI_DIRECT"
     "WIFI_HOTSPOT"
     "WIFI_LAN"
@@ -1459,44 +1502,46 @@ static const ::google::protobuf::internal::EnumEntry ConnectionRequestFrame_Medi
     {{&ConnectionRequestFrame_Medium_names[49], 7}, 9},
     {{&ConnectionRequestFrame_Medium_names[56], 20}, 12},
     {{&ConnectionRequestFrame_Medium_names[76], 10}, 6},
-    {{&ConnectionRequestFrame_Medium_names[86], 11}, 8},
-    {{&ConnectionRequestFrame_Medium_names[97], 12}, 3},
-    {{&ConnectionRequestFrame_Medium_names[109], 8}, 5},
+    {{&ConnectionRequestFrame_Medium_names[86], 13}, 14},
+    {{&ConnectionRequestFrame_Medium_names[99], 11}, 8},
+    {{&ConnectionRequestFrame_Medium_names[110], 12}, 3},
+    {{&ConnectionRequestFrame_Medium_names[122], 8}, 5},
 };
 
 static const int ConnectionRequestFrame_Medium_entries_by_number[] = {
     6,  // 0 -> UNKNOWN_MEDIUM
     4,  // 1 -> MDNS
     3,  // 2 -> BLUETOOTH
-    12,  // 3 -> WIFI_HOTSPOT
+    13,  // 3 -> WIFI_HOTSPOT
     1,  // 4 -> BLE
-    13,  // 5 -> WIFI_LAN
+    14,  // 5 -> WIFI_LAN
     10,  // 6 -> WIFI_AWARE
     5,  // 7 -> NFC
-    11,  // 8 -> WIFI_DIRECT
+    12,  // 8 -> WIFI_DIRECT
     8,  // 9 -> WEB_RTC
     2,  // 10 -> BLE_L2CAP
     7,  // 11 -> USB
     9,  // 12 -> WEB_RTC_NON_CELLULAR
     0,  // 13 -> AWDL
+    11,  // 14 -> WIFI_AWARE_R4
 };
 
 const ::std::string& ConnectionRequestFrame_Medium_Name(ConnectionRequestFrame_Medium value) {
   static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      ConnectionRequestFrame_Medium_entries, ConnectionRequestFrame_Medium_entries_by_number, 14,
+      ConnectionRequestFrame_Medium_entries, ConnectionRequestFrame_Medium_entries_by_number, 15,
       ConnectionRequestFrame_Medium_strings);
   (void)kDummy;
 
   int idx = ::google::protobuf::internal::LookUpEnumName(ConnectionRequestFrame_Medium_entries,
                                   ConnectionRequestFrame_Medium_entries_by_number,
-                                  14, value);
+                                  15, value);
   return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : ConnectionRequestFrame_Medium_strings[idx].get();
 }
 
 bool ConnectionRequestFrame_Medium_Parse(::absl::string_view name, ConnectionRequestFrame_Medium* PROTOBUF_NONNULL value) {
   int int_value;
   bool success = ::google::protobuf::internal::LookUpEnumValue(
-      ConnectionRequestFrame_Medium_entries, 14, name, &int_value);
+      ConnectionRequestFrame_Medium_entries, 15, name, &int_value);
   if (success) {
     *value = static_cast<ConnectionRequestFrame_Medium>(int_value);
   }
@@ -1767,9 +1812,9 @@ bool PayloadTransferFrame_PacketType_Parse(::absl::string_view name, PayloadTran
   return success;
 }
 PROTOBUF_CONSTINIT const uint32_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_internal_data_[] = {
-    655360u, 32u, 14u, };
+    655360u, 32u, 30u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[13] = {};
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[14] = {};
 
 static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[] = {
     "AWDL"
@@ -1782,6 +1827,7 @@ static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[
     "WEB_RTC"
     "WEB_RTC_NON_CELLULAR"
     "WIFI_AWARE"
+    "WIFI_AWARE_R4"
     "WIFI_DIRECT"
     "WIFI_HOTSPOT"
     "WIFI_LAN"
@@ -1798,43 +1844,45 @@ static const ::google::protobuf::internal::EnumEntry BandwidthUpgradeNegotiation
     {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[40], 7}, 9},
     {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[47], 20}, 12},
     {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[67], 10}, 6},
-    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[77], 11}, 8},
-    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[88], 12}, 3},
-    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[100], 8}, 5},
+    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[77], 13}, 14},
+    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[90], 11}, 8},
+    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[101], 12}, 3},
+    {{&BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[113], 8}, 5},
 };
 
 static const int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number[] = {
     5,  // 0 -> UNKNOWN_MEDIUM
     3,  // 1 -> MDNS
     2,  // 2 -> BLUETOOTH
-    11,  // 3 -> WIFI_HOTSPOT
+    12,  // 3 -> WIFI_HOTSPOT
     1,  // 4 -> BLE
-    12,  // 5 -> WIFI_LAN
+    13,  // 5 -> WIFI_LAN
     9,  // 6 -> WIFI_AWARE
     4,  // 7 -> NFC
-    10,  // 8 -> WIFI_DIRECT
+    11,  // 8 -> WIFI_DIRECT
     7,  // 9 -> WEB_RTC
     6,  // 11 -> USB
     8,  // 12 -> WEB_RTC_NON_CELLULAR
     0,  // 13 -> AWDL
+    10,  // 14 -> WIFI_AWARE_R4
 };
 
 const ::std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
   static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number, 13,
+      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number, 14,
       BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings);
   (void)kDummy;
 
   int idx = ::google::protobuf::internal::LookUpEnumName(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries,
                                   BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number,
-                                  13, value);
+                                  14, value);
   return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[idx].get();
 }
 
 bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Parse(::absl::string_view name, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium* PROTOBUF_NONNULL value) {
   int int_value;
   bool success = ::google::protobuf::internal::LookUpEnumValue(
-      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 13, name, &int_value);
+      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 14, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>(int_value);
   }
@@ -1900,9 +1948,9 @@ bool BandwidthUpgradeNegotiationFrame_EventType_Parse(::absl::string_view name, 
   return success;
 }
 PROTOBUF_CONSTINIT const uint32_t BandwidthUpgradeRetryFrame_Medium_internal_data_[] = {
-    65536u, 32u, 8190u, };
+    65536u, 32u, 16382u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    BandwidthUpgradeRetryFrame_Medium_strings[13] = {};
+    BandwidthUpgradeRetryFrame_Medium_strings[14] = {};
 
 static const char BandwidthUpgradeRetryFrame_Medium_names[] = {
     "AWDL"
@@ -1915,6 +1963,7 @@ static const char BandwidthUpgradeRetryFrame_Medium_names[] = {
     "WEB_RTC"
     "WEB_RTC_NON_CELLULAR"
     "WIFI_AWARE"
+    "WIFI_AWARE_R4"
     "WIFI_DIRECT"
     "WIFI_HOTSPOT"
     "WIFI_LAN"
@@ -1931,43 +1980,45 @@ static const ::google::protobuf::internal::EnumEntry BandwidthUpgradeRetryFrame_
     {{&BandwidthUpgradeRetryFrame_Medium_names[45], 7}, 9},
     {{&BandwidthUpgradeRetryFrame_Medium_names[52], 20}, 12},
     {{&BandwidthUpgradeRetryFrame_Medium_names[72], 10}, 6},
-    {{&BandwidthUpgradeRetryFrame_Medium_names[82], 11}, 8},
-    {{&BandwidthUpgradeRetryFrame_Medium_names[93], 12}, 3},
-    {{&BandwidthUpgradeRetryFrame_Medium_names[105], 8}, 5},
+    {{&BandwidthUpgradeRetryFrame_Medium_names[82], 13}, 14},
+    {{&BandwidthUpgradeRetryFrame_Medium_names[95], 11}, 8},
+    {{&BandwidthUpgradeRetryFrame_Medium_names[106], 12}, 3},
+    {{&BandwidthUpgradeRetryFrame_Medium_names[118], 8}, 5},
 };
 
 static const int BandwidthUpgradeRetryFrame_Medium_entries_by_number[] = {
     5,  // 0 -> UNKNOWN_MEDIUM
     3,  // 2 -> BLUETOOTH
-    11,  // 3 -> WIFI_HOTSPOT
+    12,  // 3 -> WIFI_HOTSPOT
     1,  // 4 -> BLE
-    12,  // 5 -> WIFI_LAN
+    13,  // 5 -> WIFI_LAN
     9,  // 6 -> WIFI_AWARE
     4,  // 7 -> NFC
-    10,  // 8 -> WIFI_DIRECT
+    11,  // 8 -> WIFI_DIRECT
     7,  // 9 -> WEB_RTC
     2,  // 10 -> BLE_L2CAP
     6,  // 11 -> USB
     8,  // 12 -> WEB_RTC_NON_CELLULAR
     0,  // 13 -> AWDL
+    10,  // 14 -> WIFI_AWARE_R4
 };
 
 const ::std::string& BandwidthUpgradeRetryFrame_Medium_Name(BandwidthUpgradeRetryFrame_Medium value) {
   static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      BandwidthUpgradeRetryFrame_Medium_entries, BandwidthUpgradeRetryFrame_Medium_entries_by_number, 13,
+      BandwidthUpgradeRetryFrame_Medium_entries, BandwidthUpgradeRetryFrame_Medium_entries_by_number, 14,
       BandwidthUpgradeRetryFrame_Medium_strings);
   (void)kDummy;
 
   int idx = ::google::protobuf::internal::LookUpEnumName(BandwidthUpgradeRetryFrame_Medium_entries,
                                   BandwidthUpgradeRetryFrame_Medium_entries_by_number,
-                                  13, value);
+                                  14, value);
   return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : BandwidthUpgradeRetryFrame_Medium_strings[idx].get();
 }
 
 bool BandwidthUpgradeRetryFrame_Medium_Parse(::absl::string_view name, BandwidthUpgradeRetryFrame_Medium* PROTOBUF_NONNULL value) {
   int int_value;
   bool success = ::google::protobuf::internal::LookUpEnumValue(
-      BandwidthUpgradeRetryFrame_Medium_entries, 13, name, &int_value);
+      BandwidthUpgradeRetryFrame_Medium_entries, 14, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeRetryFrame_Medium>(int_value);
   }
@@ -3581,7 +3632,7 @@ ConnectionRequestFrame::_table_ = {
       PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, _impl_.nonce_)}},
     // repeated .location.nearby.connections.ConnectionRequestFrame.Medium mediums = 5;
     {::_pbi::TcParser::FastEr0R1,
-     {40, 0, 13,
+     {40, 0, 14,
       PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, _impl_.mediums_)}},
     // optional bytes endpoint_info = 6;
     {::_pbi::TcParser::FastBS1,
@@ -3656,7 +3707,7 @@ ConnectionRequestFrame::_table_ = {
       {::_pbi::TcParser::GetTable<::location::nearby::connections::ConnectionsDevice>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::PresenceDevice>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::LocationHint>()},
-      {0, 13},
+      {0, 14},
       {0, 1},
   }},
   {{
@@ -8824,6 +8875,443 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::InternalS
 
 // ===================================================================
 
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_._has_bits_);
+};
+
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::MessageLite(arena, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::MessageLite(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+}
+PROTOBUF_NDEBUG_INLINE BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        service_id_(arena, from.service_id_),
+        service_info_(arena, from.service_info_),
+        pmk_(arena, from.pmk_),
+        advertised_name_(arena, from.advertised_name_),
+        ipv6_address_(arena, from.ipv6_address_) {}
+
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::MessageLite(arena, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::MessageLite(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::std::string>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, port_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, port_),
+           offsetof(Impl_, pairing_flags_) -
+               offsetof(Impl_, port_) +
+               sizeof(Impl_::pairing_flags_));
+
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+}
+PROTOBUF_NDEBUG_INLINE BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        service_id_(arena),
+        service_info_(arena),
+        pmk_(arena),
+        advertised_name_(arena),
+        ipv6_address_(arena) {}
+
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, port_),
+           0,
+           offsetof(Impl_, pairing_flags_) -
+               offsetof(Impl_, port_) +
+               sizeof(Impl_::pairing_flags_));
+}
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::~BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  SharedDtor(*this);
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::SharedDtor(MessageLite& self) {
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& this_ = static_cast<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::std::string>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.service_id_.Destroy();
+  this_._impl_.service_info_.Destroy();
+  this_._impl_.pmk_.Destroy();
+  this_._impl_.advertised_name_.Destroy();
+  this_._impl_.ipv6_address_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials(arena);
+}
+constexpr auto BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials),
+                                            alignof(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials));
+}
+constexpr auto BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataLite<100>{
+      {
+          &_BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::MergeImpl,
+          ::google::protobuf::MessageLite::GetNewImpl<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::SharedDtor,
+          ::google::protobuf::MessageLite::GetClearImpl<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials>(), &BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::ByteSizeLong,
+              &BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_._cached_size_),
+          true,
+      },
+      "location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials",
+  };
+}
+
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataLite<100> BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_ =
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::GetClassData() const {
+  return BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 7, 0, 0, 2>
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_._has_bits_),
+    0, // no _extensions_
+    7, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967168,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    7,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallbackLite,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // optional string service_id = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.service_id_)}},
+    // optional bytes service_info = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.service_info_)}},
+    // optional bytes pmk = 3;
+    {::_pbi::TcParser::FastBS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.pmk_)}},
+    // optional string advertised_name = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.advertised_name_)}},
+    // optional bytes ipv6_address = 5;
+    {::_pbi::TcParser::FastBS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.ipv6_address_)}},
+    // optional int32 port = 6;
+    {::_pbi::TcParser::FastV32S1,
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.port_)}},
+    // optional int32 pairing_flags = 7;
+    {::_pbi::TcParser::FastV32S1,
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.pairing_flags_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // optional string service_id = 1;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.service_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional bytes service_info = 2;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.service_info_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional bytes pmk = 3;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.pmk_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional string advertised_name = 4;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.advertised_name_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional bytes ipv6_address = 5;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.ipv6_address_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // optional int32 port = 6;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.port_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // optional int32 pairing_flags = 7;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.pairing_flags_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.service_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.service_info_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.pmk_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.advertised_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.ipv6_address_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000060U)) {
+    ::memset(&_impl_.port_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.pairing_flags_) -
+        reinterpret_cast<char*>(&_impl_.port_)) + sizeof(_impl_.pairing_flags_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::std::string>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& this_ = static_cast<const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // optional string service_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    const ::std::string& _s = this_._internal_service_id();
+    target = stream->WriteStringMaybeAliased(1, _s, target);
+  }
+
+  // optional bytes service_info = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    const ::std::string& _s = this_._internal_service_info();
+    target = stream->WriteBytesMaybeAliased(2, _s, target);
+  }
+
+  // optional bytes pmk = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    const ::std::string& _s = this_._internal_pmk();
+    target = stream->WriteBytesMaybeAliased(3, _s, target);
+  }
+
+  // optional string advertised_name = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    const ::std::string& _s = this_._internal_advertised_name();
+    target = stream->WriteStringMaybeAliased(4, _s, target);
+  }
+
+  // optional bytes ipv6_address = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    const ::std::string& _s = this_._internal_ipv6_address();
+    target = stream->WriteBytesMaybeAliased(5, _s, target);
+  }
+
+  // optional int32 port = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target =
+        ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<6>(
+            stream, this_._internal_port(), target);
+  }
+
+  // optional int32 pairing_flags = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target =
+        ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<7>(
+            stream, this_._internal_pairing_flags(), target);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(
+        this_._internal_metadata_.unknown_fields<::std::string>(::google::protobuf::internal::GetEmptyString).data(),
+        static_cast<int>(this_._internal_metadata_.unknown_fields<::std::string>(::google::protobuf::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::ByteSizeLong(const MessageLite& base) {
+  const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& this_ = static_cast<const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::ByteSizeLong() const {
+  const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // optional string service_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                      this_._internal_service_id());
+    }
+    // optional bytes service_info = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                      this_._internal_service_info());
+    }
+    // optional bytes pmk = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                      this_._internal_pmk());
+    }
+    // optional string advertised_name = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                      this_._internal_advertised_name());
+    }
+    // optional bytes ipv6_address = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                      this_._internal_ipv6_address());
+    }
+    // optional int32 port = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+          this_._internal_port());
+    }
+    // optional int32 pairing_flags = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+          this_._internal_pairing_flags());
+    }
+  }
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    total_size += this_._internal_metadata_.unknown_fields<::std::string>(::google::protobuf::internal::GetEmptyString).size();
+  }
+  this_._impl_._cached_size_.Set(::_pbi::ToCachedSize(total_size));
+  return total_size;
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials*>(&to_msg);
+  auto& from = static_cast<const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _this->_internal_set_service_id(from._internal_service_id());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _this->_internal_set_service_info(from._internal_service_info());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _this->_internal_set_pmk(from._internal_pmk());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _this->_internal_set_advertised_name(from._internal_advertised_name());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _this->_internal_set_ipv6_address(from._internal_ipv6_address());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _this->_impl_.port_ = from._impl_.port_;
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _this->_impl_.pairing_flags_ = from._impl_.pairing_flags_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::std::string>(
+      from._internal_metadata_);
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::CopyFrom(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::InternalSwap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.service_id_, &other->_impl_.service_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.service_info_, &other->_impl_.service_info_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pmk_, &other->_impl_.pmk_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.advertised_name_, &other->_impl_.advertised_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ipv6_address_, &other->_impl_.ipv6_address_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.pairing_flags_)
+      + sizeof(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials::_impl_.pairing_flags_)
+      - PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials, _impl_.port_)>(
+          reinterpret_cast<char*>(&_impl_.port_),
+          reinterpret_cast<char*>(&other->_impl_.port_));
+}
+
+// ===================================================================
+
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_Internal {
  public:
   using HasBits =
@@ -9205,6 +9693,9 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::BandwidthUpgradeNegotiationFra
   _impl_.awdl_credentials_ = (CheckHasBit(cached_has_bits, 0x00000080U))
                 ? ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.awdl_credentials_)
                 : nullptr;
+  _impl_.wifi_aware_r4_credentials_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+                ? ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.wifi_aware_r4_credentials_)
+                : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, medium_),
            reinterpret_cast<const char*>(&from._impl_) +
@@ -9248,6 +9739,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::SharedDtor(Message
   delete this_._impl_.web_rtc_credentials_;
   delete this_._impl_.upgrade_path_request_;
   delete this_._impl_.awdl_credentials_;
+  delete this_._impl_.wifi_aware_r4_credentials_;
   this_._impl_.~Impl_();
 }
 
@@ -9291,17 +9783,17 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::GetClassData() const {
   return BandwidthUpgradeNegotiationFrame_UpgradePathInfo_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 11, 9, 0, 2>
+const ::_pbi::TcParseTable<4, 12, 10, 0, 2>
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_._has_bits_),
     0, // no _extensions_
-    11, 120,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294965248,  // skipmap
+    4294963200,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    11,  // num_field_entries
-    9,  // num_aux_entries
+    12,  // num_field_entries
+    10,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -9313,7 +9805,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
     {::_pbi::TcParser::FastEvS1,
-     {8, 8, 8,
+     {8, 9, 9,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.medium_)}},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials wifi_hotspot_credentials = 2;
     {::_pbi::TcParser::FastMtS1,
@@ -9337,7 +9829,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.wifi_direct_credentials_)}},
     // optional bool supports_disabling_encryption = 7;
     {::_pbi::TcParser::FastV8S1,
-     {56, 9, 0,
+     {56, 10, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_disabling_encryption_)}},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WebRtcCredentials web_rtc_credentials = 8;
     {::_pbi::TcParser::FastMtS1,
@@ -9345,7 +9837,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.web_rtc_credentials_)}},
     // optional bool supports_client_introduction_ack = 9;
     {::_pbi::TcParser::FastV8S1,
-     {72, 10, 0,
+     {72, 11, 0,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_client_introduction_ack_)}},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest upgrade_path_request = 10;
     {::_pbi::TcParser::FastMtS1,
@@ -9355,7 +9847,10 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {90, 7, 7,
       PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.awdl_credentials_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials wifi_aware_r4_credentials = 12;
+    {::_pbi::TcParser::FastMtS1,
+     {98, 8, 8,
+      PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.wifi_aware_r4_credentials_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -9363,7 +9858,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
     65535, 65535
   }}, {{
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
-    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.medium_), _Internal::kHasBitsOffset + 8, 8, (0 | ::_fl::kFcOptional | ::_fl::kEnum)},
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.medium_), _Internal::kHasBitsOffset + 9, 9, (0 | ::_fl::kFcOptional | ::_fl::kEnum)},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials wifi_hotspot_credentials = 2;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.wifi_hotspot_credentials_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket wifi_lan_socket = 3;
@@ -9375,15 +9870,17 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials wifi_direct_credentials = 6;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.wifi_direct_credentials_), _Internal::kHasBitsOffset + 4, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional bool supports_disabling_encryption = 7;
-    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_disabling_encryption_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_disabling_encryption_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WebRtcCredentials web_rtc_credentials = 8;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.web_rtc_credentials_), _Internal::kHasBitsOffset + 5, 5, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional bool supports_client_introduction_ack = 9;
-    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_client_introduction_ack_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.supports_client_introduction_ack_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest upgrade_path_request = 10;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.upgrade_path_request_), _Internal::kHasBitsOffset + 6, 6, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials awdl_credentials = 11;
     {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.awdl_credentials_), _Internal::kHasBitsOffset + 7, 7, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials wifi_aware_r4_credentials = 12;
+    {PROTOBUF_FIELD_OFFSET(BandwidthUpgradeNegotiationFrame_UpgradePathInfo, _impl_.wifi_aware_r4_credentials_), _Internal::kHasBitsOffset + 8, 8, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials>()},
@@ -9394,6 +9891,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_table_ = {
       {::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>()},
       {::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials>()},
+      {::_pbi::TcParser::GetTable<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareR4Credentials>()},
       {::_pbi::FieldAuxEnumData{}, ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_internal_data_},
   }},
   {{
@@ -9441,7 +9939,11 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
       _impl_.awdl_credentials_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    ABSL_DCHECK(_impl_.wifi_aware_r4_credentials_ != nullptr);
+    _impl_.wifi_aware_r4_credentials_->Clear();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000e00U)) {
     ::memset(&_impl_.medium_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.supports_client_introduction_ack_) -
         reinterpret_cast<char*>(&_impl_.medium_)) + sizeof(_impl_.supports_client_introduction_ack_));
@@ -9470,7 +9972,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
         1, this_._internal_medium(), target);
@@ -9512,7 +10014,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
   }
 
   // optional bool supports_disabling_encryption = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(
         7, this_._internal_supports_disabling_encryption(), target);
@@ -9526,7 +10028,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
   }
 
   // optional bool supports_client_introduction_ack = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(
         9, this_._internal_supports_client_introduction_ack(), target);
@@ -9543,6 +10045,13 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
   if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         11, *this_._impl_.awdl_credentials_, this_._impl_.awdl_credentials_->GetCachedSize(), target,
+        stream);
+  }
+
+  // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials wifi_aware_r4_credentials = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        12, *this_._impl_.wifi_aware_r4_credentials_, this_._impl_.wifi_aware_r4_credentials_->GetCachedSize(), target,
         stream);
   }
 
@@ -9571,7 +10080,7 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  total_size += ::absl::popcount(0x00000600U & cached_has_bits) * 2;
+  total_size += ::absl::popcount(0x00000c00U & cached_has_bits) * 2;
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials wifi_hotspot_credentials = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
@@ -9614,9 +10123,14 @@ PROTOBUF_NOINLINE void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear()
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.awdl_credentials_);
     }
   }
-   {
-    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareR4Credentials wifi_aware_r4_credentials = 12;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.wifi_aware_r4_credentials_);
+    }
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       total_size += 1 +
                     ::_pbi::WireFormatLite::EnumSize(this_._internal_medium());
     }
@@ -9709,14 +10223,22 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::MergeImpl(::google::proto
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      _this->_impl_.medium_ = from._impl_.medium_;
+      ABSL_DCHECK(from._impl_.wifi_aware_r4_credentials_ != nullptr);
+      if (_this->_impl_.wifi_aware_r4_credentials_ == nullptr) {
+        _this->_impl_.wifi_aware_r4_credentials_ = ::google::protobuf::MessageLite::CopyConstruct(arena, *from._impl_.wifi_aware_r4_credentials_);
+      } else {
+        _this->_impl_.wifi_aware_r4_credentials_->MergeFrom(*from._impl_.wifi_aware_r4_credentials_);
+      }
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
-      _this->_impl_.supports_disabling_encryption_ = from._impl_.supports_disabling_encryption_;
+      _this->_impl_.medium_ = from._impl_.medium_;
     }
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      _this->_impl_.supports_disabling_encryption_ = from._impl_.supports_disabling_encryption_;
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       _this->_impl_.supports_client_introduction_ack_ = from._impl_.supports_client_introduction_ack_;
     }
   }
@@ -16817,7 +17339,7 @@ PresenceDevice::_table_ = {
       PROTOBUF_FIELD_OFFSET(PresenceDevice, _impl_.device_image_url_)}},
     // repeated .location.nearby.connections.ConnectionRequestFrame.Medium discovery_medium = 8 [packed = true];
     {::_pbi::TcParser::FastEr0P1,
-     {66, 0, 13,
+     {66, 0, 14,
       PROTOBUF_FIELD_OFFSET(PresenceDevice, _impl_.discovery_medium_)}},
     // repeated int32 actions = 9 [packed = true];
     {::_pbi::TcParser::FastV32P1,
@@ -16859,7 +17381,7 @@ PresenceDevice::_table_ = {
   {{
       {0, 2},
       {0, 6},
-      {0, 13},
+      {0, 14},
   }},
   {{
   }},

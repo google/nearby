@@ -300,17 +300,18 @@ enum Medium : int {
   USB = 11,
   WEB_RTC_NON_CELLULAR = 12,
   AWDL = 13,
+  WIFI_AWARE_R4 = 14,
 };
 
 extern const uint32_t Medium_internal_data_[];
 inline constexpr Medium Medium_MIN =
     static_cast<Medium>(0);
 inline constexpr Medium Medium_MAX =
-    static_cast<Medium>(13);
+    static_cast<Medium>(14);
 inline bool Medium_IsValid(int value) {
-  return 0 <= value && value <= 13;
+  return 0 <= value && value <= 14;
 }
-inline constexpr int Medium_ARRAYSIZE = 13 + 1;
+inline constexpr int Medium_ARRAYSIZE = 14 + 1;
 const ::std::string& Medium_Name(Medium value);
 template <typename T>
 const ::std::string& Medium_Name(T value) {
