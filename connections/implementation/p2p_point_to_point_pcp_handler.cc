@@ -53,7 +53,7 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
           config_package_nearby::nearby_connections_feature::
               kEnableWifiAware)) {
     if (mediums_->GetWifiAware().IsAvailable()) {
-      mediums.push_back(location::nearby::proto::connections::WIFI_AWARE);
+      mediums.push_back(location::nearby::proto::connections::WIFI_AWARE_R4);
     }
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(

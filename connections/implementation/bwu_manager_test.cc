@@ -197,7 +197,7 @@ TEST_F(BwuManagerBaseTest,
 }
 
 TEST_F(BwuManagerBaseTest,
-     InitiateBwu_NeedToSwitchRole_WindowsAndroid_NoSwitch_Success) {
+       InitiateBwu_NeedToSwitchRole_WindowsAndroid_NoSwitch_Success) {
   ClientProxy client;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -251,6 +251,181 @@ TEST_F(BwuManagerBaseTest,
   EXPECT_EQ(fake_wifi_direct_ptr->handle_initialize_calls().size(), 1u);
 
   ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  bwu_manager->Shutdown();
+}
+
+// Apple can only be a Wi-Fi Aware R4 subscriber, so when it is the advertiser
+// talking to an Android peer that can publish, it must hand the publisher role
+// over instead of hosting the upgrade itself.
+TEST_F(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_AppleAwareR4_Success) {
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  config.allow_upgrade_to.wifi_aware_r4 = true;
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_aware_r4 = std::make_unique<FakeBwuHandler>(Medium::WIFI_AWARE_R4);
+  auto* fake_aware_r4_ptr = fake_aware_r4.get();
+  handlers.emplace(Medium::WIFI_AWARE_R4, std::move(fake_aware_r4));
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+
+  client.SetLocalOsType(OsInfo::APPLE);
+  OsInfo remote_os_info;
+  remote_os_info.set_type(OsInfo::ANDROID);
+
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  auto* channel1_ptr = channel1.get();
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_publisher(true);
+
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint"),
+       .is_incoming_connection = true},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {remote_medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  client.SetRemoteOsInfo(kEndpointId1, remote_os_info);
+
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+
+  EXPECT_EQ(channel1_ptr->GetLastWriteTimestamp(), absl::InfinitePast());
+
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_AWARE_R4);
+
+  // The role was switched, so we delegate instead of hosting: no local upgrade,
+  // and an UPGRADE_PATH_REQUEST frame on the wire.
+  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_TRUE(fake_aware_r4_ptr->handle_initialize_calls().empty());
+  EXPECT_NE(channel1_ptr->GetLastWriteTimestamp(), absl::InfinitePast());
+
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  bwu_manager->Shutdown();
+}
+
+// When Apple is the discoverer the Android peer is already the publisher, so
+// switching would only force a redundant re-publish on a new port.
+TEST_F(BwuManagerBaseTest,
+       InitiateBwu_NeedToSwitchRole_AppleAwareR4_Outgoing_NoSwitch) {
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  config.allow_upgrade_to.wifi_aware_r4 = true;
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_aware_r4 = std::make_unique<FakeBwuHandler>(Medium::WIFI_AWARE_R4);
+  auto* fake_aware_r4_ptr = fake_aware_r4.get();
+  handlers.emplace(Medium::WIFI_AWARE_R4, std::move(fake_aware_r4));
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+
+  client.SetLocalOsType(OsInfo::APPLE);
+  OsInfo remote_os_info;
+  remote_os_info.set_type(OsInfo::ANDROID);
+
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_publisher(true);
+
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint"),
+       .is_incoming_connection = false},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {remote_medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  client.SetRemoteOsInfo(kEndpointId1, remote_os_info);
+
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_AWARE_R4);
+
+  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_EQ(fake_aware_r4_ptr->handle_initialize_calls().size(), 1u);
+
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  bwu_manager->Shutdown();
+}
+
+// An Apple peer cannot publish, so Apple <-> Apple must keep the default
+// behaviour of hosting locally.
+TEST_F(BwuManagerBaseTest,
+       InitiateBwu_NeedToSwitchRole_AppleAwareR4_ApplePeer_NoSwitch) {
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  config.allow_upgrade_to.wifi_aware_r4 = true;
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto fake_aware_r4 = std::make_unique<FakeBwuHandler>(Medium::WIFI_AWARE_R4);
+  auto* fake_aware_r4_ptr = fake_aware_r4.get();
+  handlers.emplace(Medium::WIFI_AWARE_R4, std::move(fake_aware_r4));
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+
+  client.SetLocalOsType(OsInfo::APPLE);
+  OsInfo remote_os_info;
+  remote_os_info.set_type(OsInfo::APPLE);
+
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+
+  // Even if the peer claimed it could publish, it is not an Android device.
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_publisher(true);
+
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint"),
+       .is_incoming_connection = true},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {remote_medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  client.SetRemoteOsInfo(kEndpointId1, remote_os_info);
+
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_AWARE_R4);
+
+  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_EQ(fake_aware_r4_ptr->handle_initialize_calls().size(), 1u);
+
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
                                    DisconnectionReason::LOCAL_DISCONNECTION,
                                    SafeDisconnectionResult::kSafeDisconnection);
   bwu_manager->Shutdown();
@@ -396,51 +571,47 @@ TEST_F(BwuManagerTest, AllowToUpgradeMedium) {
   auto channel1 = std::make_unique<FakeEndpointChannel>(
       Medium::BLUETOOTH, std::string(kServiceIdA));
   ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId1),
-                                 std::move(channel1));
+                                  std::move(channel1));
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
-                                      Medium::WIFI_LAN);
+                                       Medium::WIFI_LAN);
   EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
-  ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId1),
-                                   DisconnectionReason::LOCAL_DISCONNECTION,
-                                   SafeDisconnectionResult::kSafeDisconnection);
+  ecm_.UnregisterChannelForEndpoint(
+      kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel2 = std::make_unique<FakeEndpointChannel>(
       Medium::BLUETOOTH, std::string(kServiceIdA));
   ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId2),
-                                 std::move(channel2));
+                                  std::move(channel2));
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId2),
-                                      Medium::WIFI_HOTSPOT);
+                                       Medium::WIFI_HOTSPOT);
   EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)));
-  ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId2),
-                                   DisconnectionReason::LOCAL_DISCONNECTION,
-                                   SafeDisconnectionResult::kSafeDisconnection);
+  ecm_.UnregisterChannelForEndpoint(
+      kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel3 = std::make_unique<FakeEndpointChannel>(
       Medium::BLUETOOTH, std::string(kServiceIdA));
   ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId3),
-                                 std::move(channel3));
+                                  std::move(channel3));
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId3),
-                                      Medium::WIFI_DIRECT);
+                                       Medium::WIFI_DIRECT);
   EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId3)));
-  ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId3),
-                                   DisconnectionReason::LOCAL_DISCONNECTION,
-                                   SafeDisconnectionResult::kSafeDisconnection);
+  ecm_.UnregisterChannelForEndpoint(
+      kEndpointId3, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
 
   auto channel4 = std::make_unique<FakeEndpointChannel>(
       Medium::WEB_RTC, std::string(kServiceIdA));
   ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId4),
-                                 std::move(channel4));
+                                  std::move(channel4));
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId4),
-                                      Medium::BLUETOOTH);
+                                       Medium::BLUETOOTH);
   EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId4)));
-  ecm_.UnregisterChannelForEndpoint(std::string(kEndpointId4),
-                                   DisconnectionReason::LOCAL_DISCONNECTION,
-                                   SafeDisconnectionResult::kSafeDisconnection);
+  ecm_.UnregisterChannelForEndpoint(
+      kEndpointId4, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
 }
-
-
-
-
 
 TEST_F(BwuManagerTest,
        InitiateBwu_Revert_OnDisconnect_MultipleEndpoints_FlagEnabled) {
@@ -897,8 +1068,8 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
   ::nearby::connections::V1Frame* v1_frame = frame.mutable_v1();
   ::nearby::connections::BandwidthUpgradeNegotiationFrame* sub_frame =
       v1_frame->mutable_bandwidth_upgrade_negotiation();
-  BandwidthUpgradeNegotiationFrame::UpgradePathInfo*
-      upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo* upgrade_path_info =
+      sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_supports_client_introduction_ack(false);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH);
@@ -1150,16 +1321,15 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_True) {
 
   // Set up fake BWU handlers for WifiDirect.
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
-  auto fake_wifi_direct =
-      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  auto fake_wifi_direct = std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
   FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
   handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
 
   BwuManager::Config config;
   config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
 
-  bwu_manager_ = std::make_unique<BwuManager>(
-      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_ = std::make_unique<BwuManager>(mediums_, em_, ecm_,
+                                              std::move(handlers), config);
   bwu_manager_->MakeSingleThreadedForTesting();
 
   // Create initial connection
@@ -1199,16 +1369,15 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_False) {
 
   // Set up fake BWU handlers for WifiDirect.
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
-  auto fake_wifi_direct =
-      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  auto fake_wifi_direct = std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
   FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
   handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
 
   BwuManager::Config config;
   config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
 
-  bwu_manager_ = std::make_unique<BwuManager>(
-      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_ = std::make_unique<BwuManager>(mediums_, em_, ecm_,
+                                              std::move(handlers), config);
   bwu_manager_->MakeSingleThreadedForTesting();
 
   // Create initial connection
@@ -1247,16 +1416,15 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_DynamicRoleSwitchDisabled) {
 
   // Set up fake BWU handlers for WifiDirect.
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
-  auto fake_wifi_direct =
-      std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
+  auto fake_wifi_direct = std::make_unique<FakeBwuHandler>(Medium::WIFI_DIRECT);
   FakeBwuHandler* fake_wifi_direct_handler_ptr = fake_wifi_direct.get();
   handlers.emplace(Medium::WIFI_DIRECT, std::move(fake_wifi_direct));
 
   BwuManager::Config config;
   config.allow_upgrade_to = BooleanMediumSelector{.wifi_direct = true};
 
-  bwu_manager_ = std::make_unique<BwuManager>(
-      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_ = std::make_unique<BwuManager>(mediums_, em_, ecm_,
+                                              std::move(handlers), config);
   bwu_manager_->MakeSingleThreadedForTesting();
 
   // Create initial connection
@@ -1303,8 +1471,8 @@ TEST_F(BwuManagerTest, OnIncomingConnection_EndpointAliasesToLastEndpointId) {
   BwuManager::Config config;
   config.allow_upgrade_to = BooleanMediumSelector{.web_rtc = true};
 
-  bwu_manager_ = std::make_unique<BwuManager>(
-      mediums_, em_, ecm_, std::move(handlers), config);
+  bwu_manager_ = std::make_unique<BwuManager>(mediums_, em_, ecm_,
+                                              std::move(handlers), config);
   bwu_manager_->MakeSingleThreadedForTesting();
 
   // Create initial connection with the old endpoint ID "OldEndpoint"
@@ -1349,9 +1517,7 @@ TEST_F(BwuManagerTest, OnIncomingConnection_EndpointAliasesToLastEndpointId) {
 class BwuManagerTestParam : public BwuManagerTest,
                             public ::testing::WithParamInterface<bool> {
  protected:
-  BwuManagerTestParam() {
-    SetSupportMultipleBwuMediums(GetParam());
-  }
+  BwuManagerTestParam() { SetSupportMultipleBwuMediums(GetParam()); }
 };
 
 TEST_P(BwuManagerTestParam, InitiateBwu_Success) {

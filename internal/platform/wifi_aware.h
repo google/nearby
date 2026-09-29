@@ -140,9 +140,20 @@ class WifiAwareMedium final {
   bool StartSubscribing() { return IsValid() && impl_->StartSubscribing(); }
   bool StopSubscribing() { return IsValid() && impl_->StopSubscribing(); }
 
+  void SetExpectedPeerId(const std::string& peer_id) {
+    if (IsValid()) {
+      impl_->SetExpectedPeerId(peer_id);
+    }
+  }
+
   WifiAwareSocket ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag);
+
+  WifiAwareSocket ConnectToService(const std::string& service_name,
+                                   const ByteArray& service_info,
+                                   const std::string& passphrase, int port,
+                                   CancellationFlag* cancellation_flag);
 
   WifiAwareServerSocket ListenForService(int port = 0);
 

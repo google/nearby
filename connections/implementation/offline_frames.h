@@ -77,8 +77,8 @@ std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
 std::string ForBwuIntroduction(const std::string& endpoint_id,
-                             const std::string& last_endpoint_id,
-                             bool supports_disabling_encryption);
+                               const std::string& last_endpoint_id,
+                               bool supports_disabling_encryption);
 std::string ForBwuIntroductionAck();
 std::string ForBwuWifiHotspotPathAvailable(
     location::nearby::connections::BandwidthUpgradeNegotiationFrame::
@@ -87,23 +87,26 @@ std::string ForBwuWifiHotspotPathAvailable(
 std::string ForBwuWifiLanPathAvailable(
     const std::vector<ServiceAddress>& addresses);
 std::string ForBwuAwdlPathAvailable(const std::string& service_name,
-                                  const std::string& service_type,
-                                  const std::string& password,
-                                  bool supports_disabling_encryption);
+                                    const std::string& service_type,
+                                    const std::string& password,
+                                    bool supports_disabling_encryption);
 std::string ForBwuWifiAwarePathAvailable(const std::string& service_id,
-                                       const std::string& service_info,
-                                       const std::string& password,
-                                       bool supports_disabling_encryption);
-std::string ForBwuWifiDirectPathAvailable(const std::string& ssid,
-                                        const std::string& password,
-                                        std::int32_t port,
-                                        std::int32_t frequency,
-                                        bool supports_disabling_encryption,
-                                        const std::string& gateway,
-                                        const std::string& device_name,
-                                        const std::string& pin);
+                                         const std::string& service_info,
+                                         const std::string& password,
+                                         bool supports_disabling_encryption);
+std::string ForBwuWifiAwareR4PathAvailable(absl::string_view service_id,
+                                           absl::string_view service_info,
+                                           absl::string_view pmk,
+                                           std::int32_t port,
+                                           absl::string_view advertised_name,
+                                           bool supports_disabling_encryption);
+std::string ForBwuWifiDirectPathAvailable(
+    const std::string& ssid, const std::string& password, std::int32_t port,
+    std::int32_t frequency, bool supports_disabling_encryption,
+    const std::string& gateway, const std::string& device_name,
+    const std::string& pin);
 std::string ForBwuBluetoothPathAvailable(const std::string& service_id,
-                                       MacAddress mac_address);
+                                         MacAddress mac_address);
 std::string ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);
@@ -118,7 +121,7 @@ std::string ForBwuSafeToClose();
 std::string ForKeepAlive();
 std::string ForKeepAlive(bool ack, uint32_t seq_num);
 std::string ForDisconnection(bool request_safe_to_disconnect,
-                           bool ack_safe_to_disconnect);
+                             bool ack_safe_to_disconnect);
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
 
