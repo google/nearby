@@ -332,13 +332,9 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
         OnLockStateChanged(screen_status ==
                            nearby::api::DeviceInfo::ScreenStatus::kLocked);
       });
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kEnableSuspendResumeListener)) {
-    suspend_resume_listener_id_ =
-        device_info_.RegisterSuspendResumeListener(absl::bind_front(
-            &NearbySharingServiceImpl::OnSuspendResumeEvent, this));
-  }
+  suspend_resume_listener_id_ =
+      device_info_.RegisterSuspendResumeListener(absl::bind_front(
+          &NearbySharingServiceImpl::OnSuspendResumeEvent, this));
 
   account_manager_.AddObserver(this);
   settings_->AddSettingsObserver(this);
