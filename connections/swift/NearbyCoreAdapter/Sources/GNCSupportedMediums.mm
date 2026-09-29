@@ -21,6 +21,7 @@
                              ble:YES
                           webRTC:YES
                          wifiLAN:YES
+                       wifiAware:YES
                      wifiHotspot:YES
                       wifiDirect:YES
                             awdl:YES];
@@ -30,6 +31,7 @@
                               ble:(BOOL)ble
                            webRTC:(BOOL)webRTC
                           wifiLAN:(BOOL)wifiLAN
+                        wifiAware:(BOOL)wifiAware
                       wifiHotspot:(BOOL)wifiHotspot
                        wifiDirect:(BOOL)wifiDirect
                              awdl:(BOOL)awdl {
@@ -39,6 +41,7 @@
     _ble = ble;
     _webRTC = webRTC;
     _wifiLAN = wifiLAN;
+    _wifiAware = wifiAware;
     _wifiHotspot = wifiHotspot;
     _wifiDirect = wifiDirect;
     _awdl = awdl;

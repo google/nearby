@@ -20,4 +20,7 @@
 /** Whether BLE v2 is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class) BOOL enableBLEV2;
 
+/** Whether Wi-Fi Aware is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class) BOOL wifiAwareEnabled;
+
 @end

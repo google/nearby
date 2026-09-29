@@ -32,4 +32,15 @@
   // This is deprecated. It's a no-op.
 }
 
++ (BOOL)wifiAwareEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware);
+}
+
++ (void)setWifiAwareEnabled:(BOOL)value {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      value);
+}
+
 @end
