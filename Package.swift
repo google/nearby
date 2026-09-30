@@ -405,6 +405,7 @@ let package = Package(
         "connections/implementation/mediums/bluetooth_radio_test.cc",
         "connections/implementation/mediums/lost_entity_tracker_test.cc",
         "connections/implementation/mediums/webrtc_test.cc",
+        "connections/implementation/mediums/wifi_aware_test.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler_test.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_test.cc",
         "connections/implementation/mediums/wifi_hotspot/wifi_hotspot_bwu_handler_test.cc",

@@ -48,6 +48,18 @@ class WifiAware {
   WifiAware() = default;
   ~WifiAware();
 
+  // Returns the Wi-Fi Aware service name that Nearby publishes and subscribes
+  // to, e.g. "_8E70C42FBA2B._tcp".
+  //
+  // The name is derived from a service ID the same way the Wi-Fi LAN and AWDL
+  // service types are: "_<hash>._tcp", where <hash> is the uppercase hex
+  // encoding of the first WifiAwareServiceInfo::kTypeFromServiceIdHashLength
+  // bytes of SHA-256("<service ID>_UPGRADE_AWARE"). A single service ID is
+  // shared by all Nearby clients, so an iOS app declares exactly one entry
+  // under WiFiAwareServices in its Info.plist, and every platform must derive
+  // the same name.
+  static std::string GetServiceName();
+
   // Returns true, if WifiAware communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
