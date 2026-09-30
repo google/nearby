@@ -54,15 +54,12 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
  private:
   class WifiHotspotIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    explicit WifiHotspotIncomingSocket(const std::string& name,
-                                       WifiHotspotSocket socket)
-        : name_(name), socket_(socket) {}
+    explicit WifiHotspotIncomingSocket(WifiHotspotSocket socket)
+        : socket_(socket) {}
 
-    std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
    private:
-    std::string name_;
     WifiHotspotSocket socket_;
   };
 

@@ -102,18 +102,6 @@ class FakeBwuHandler : public BaseBwuHandler {
   }
 
  private:
-  class FakeIncomingSocket : public BwuHandler::IncomingSocket {
-   public:
-    explicit FakeIncomingSocket(const std::string& name) : name_(name) {}
-    ~FakeIncomingSocket() override = default;
-
-    std::string ToString() override { return name_; }
-    void Close() override {}
-
-   private:
-    std::string name_;
-  };
-
   // BwuHandler:
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,

@@ -54,15 +54,12 @@ class WifiAwareBwuHandler : public BaseBwuHandler {
  private:
   class WifiAwareIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    explicit WifiAwareIncomingSocket(const std::string& name,
-                                     WifiAwareSocket socket)
-        : name_(name), socket_(std::move(socket)) {}
+    explicit WifiAwareIncomingSocket(WifiAwareSocket socket)
+        : socket_(std::move(socket)) {}
 
-    std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
    private:
-    std::string name_;
     WifiAwareSocket socket_;
   };
 

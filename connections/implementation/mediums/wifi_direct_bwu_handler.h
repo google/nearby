@@ -41,15 +41,12 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
  private:
   class WifiDirectIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    explicit WifiDirectIncomingSocket(const std::string& name,
-                                      WifiDirectSocket socket)
-        : name_(name), socket_(socket) {}
+    explicit WifiDirectIncomingSocket(WifiDirectSocket socket)
+        : socket_(socket) {}
 
-    std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
    private:
-    std::string name_;
     WifiDirectSocket socket_;
   };
 

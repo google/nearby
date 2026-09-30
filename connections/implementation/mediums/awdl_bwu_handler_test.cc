@@ -367,7 +367,6 @@ TEST_F(AwdlBwuHandlerTest, AwdlIncomingSocket_ToStringAndClose) {
       .WillOnce([&latch](ClientProxy* client,
                          std::unique_ptr<BwuHandler::IncomingSocketConnection>
                              connection) {
-        EXPECT_FALSE(connection->socket->ToString().empty());
         connection->socket->Close();
         latch.CountDown();
       });

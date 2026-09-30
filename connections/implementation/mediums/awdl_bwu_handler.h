@@ -42,14 +42,12 @@ class AwdlBwuHandler : public BaseBwuHandler {
  private:
   class AwdlIncomingSocket : public BwuHandler::IncomingSocket {
    public:
-    explicit AwdlIncomingSocket(const std::string& name, AwdlSocket socket)
-        : name_(name), socket_(socket) {}
+    explicit AwdlIncomingSocket(AwdlSocket socket)
+        : socket_(socket) {}
 
-    std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
    private:
-    std::string name_;
     AwdlSocket socket_;
   };
 

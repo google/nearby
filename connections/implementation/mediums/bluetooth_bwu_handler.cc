@@ -174,8 +174,7 @@ void BluetoothBwuHandler::OnIncomingBluetoothConnection(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection{
       new IncomingSocketConnection{
-          .socket = std::make_unique<BluetoothIncomingSocket>(
-              upgrade_service_id, socket),
+          .socket = std::make_unique<BluetoothIncomingSocket>(socket),
           .channel = std::move(channel),
       }};
   NotifyOnIncomingConnection(client, std::move(connection));

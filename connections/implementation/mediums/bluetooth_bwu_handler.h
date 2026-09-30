@@ -44,15 +44,12 @@ class BluetoothBwuHandler : public BaseBwuHandler {
  private:
   class BluetoothIncomingSocket : public IncomingSocket {
    public:
-    explicit BluetoothIncomingSocket(const std::string& name,
-                                     BluetoothSocket socket)
-        : name_(name), socket_(socket) {}
+    explicit BluetoothIncomingSocket(BluetoothSocket socket)
+        : socket_(socket) {}
 
-    std::string ToString() override { return name_; }
     void Close() override { socket_.Close(); }
 
    private:
-    std::string name_;
     BluetoothSocket socket_;
   };
 

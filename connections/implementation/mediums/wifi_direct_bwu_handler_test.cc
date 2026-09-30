@@ -91,8 +91,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
       &mediums_wfd_go.GetWifiDirect(), [&](ClientProxy* client,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
-        LOG(INFO) << "Server socket connection accept call back, Socket name: "
-                  << mutable_connection->socket->ToString();
+        LOG(INFO) << "Server socket connection accept call back";
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
       });

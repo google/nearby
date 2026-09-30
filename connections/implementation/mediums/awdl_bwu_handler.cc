@@ -267,8 +267,7 @@ void AwdlBwuHandler::OnIncomingAwdlConnection(
       &awdl_medium_, /*is_outgoing=*/false);
   std::unique_ptr<IncomingSocketConnection> connection(
       new IncomingSocketConnection{
-          .socket =
-              std::make_unique<AwdlIncomingSocket>(upgrade_service_id, socket),
+          .socket = std::make_unique<AwdlIncomingSocket>(socket),
           .channel = std::move(channel),
       });
   NotifyOnIncomingConnection(client, std::move(connection));

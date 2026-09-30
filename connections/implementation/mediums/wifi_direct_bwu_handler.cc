@@ -143,8 +143,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
   const std::string& ssid = upgrade_path_info_credentials.ssid();
   const std::string& password = upgrade_path_info_credentials.password();
-  const std::string& device_name =
-      upgrade_path_info_credentials.device_name();
+  const std::string& device_name = upgrade_path_info_credentials.device_name();
   const std::string& pin = upgrade_path_info_credentials.pin();
   std::int32_t port = upgrade_path_info_credentials.port();
   const std::string& gateway = upgrade_path_info_credentials.gateway();
@@ -206,8 +205,7 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection(
       new IncomingSocketConnection{
-          .socket = std::make_unique<WifiDirectIncomingSocket>(
-              upgrade_service_id, socket),
+          .socket = std::make_unique<WifiDirectIncomingSocket>(socket),
           .channel = std::move(channel),
       });
   NotifyOnIncomingConnection(client, std::move(connection));

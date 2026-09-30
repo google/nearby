@@ -34,7 +34,6 @@ class BwuHandler {
    public:
     virtual ~IncomingSocket() = default;
 
-    virtual std::string ToString() = 0;
     virtual void Close() = 0;
   };
 
