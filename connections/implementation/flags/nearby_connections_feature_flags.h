@@ -77,10 +77,15 @@ constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
 // Enable/Disable Wi-Fi Aware in Nearby connections SDK.
 constexpr auto kEnableWifiAware =
-    flags::Flag<bool>(kConfigPackage, "45833001", false);
+    flags::Flag<bool>(kConfigPackage, "45833001", true);
 // Enable/Disable Wi-Fi Direct in Nearby connections SDK.
 constexpr auto kEnableWifiDirect =
     flags::Flag<bool>(kConfigPackage, "45741157", false);
+// Enable/Disable WIFI_LAN as a supported connection/bandwidth upgrade medium.
+// Defaulted to false so that Wi-Fi Aware is selected instead of WIFI_LAN when
+// both devices share a Wi-Fi network.
+constexpr auto kEnableWifiLanUpgrade =
+    flags::Flag<bool>(kConfigPackage, "45852183", true);
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);

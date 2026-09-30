@@ -736,7 +736,7 @@ ServiceController* ServiceControllerRouter::GetServiceController() {
                                      /*web_rtc_no_cellular=*/false,
                                      /*web_rtc=*/true,
                                      /*wifi_lan=*/true,
-                                     /*wifi_aware=*/false,
+                                     /*wifi_aware=*/true,
                                      /*wifi_hotspot=*/false,
                                      /*wifi_direct=*/true,
                                      /*awdl=*/false};

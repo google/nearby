@@ -17,8 +17,12 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/service_id_constants.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -31,6 +35,37 @@
 
 namespace nearby {
 namespace connections {
+
+namespace {
+
+// The service ID from which the Wi-Fi Aware service name is derived. It is
+// shared by all Nearby clients rather than taken from each client's own
+// service ID, because an iOS app must declare every Wi-Fi Aware service it
+// uses in its Info.plist ahead of time.
+constexpr absl::string_view kServiceIdForServiceName = "NearbySharing";
+
+// Appended to the (upgrade-wrapped) service ID before hashing, so that the
+// Wi-Fi Aware service name never collides with the Wi-Fi LAN or AWDL service
+// types derived from the same service ID.
+constexpr absl::string_view kServiceIdSuffixForServiceName = "_AWARE";
+
+// Unlike WifiAwareServiceInfo::kWifiAwareTypeFormat, this has no trailing dot:
+// it must match the WiFiAwareServices key in an iOS app's Info.plist.
+constexpr absl::string_view kServiceNameFormat = "_%s._tcp";
+
+}  // namespace
+
+std::string WifiAware::GetServiceName() {
+  const ByteArray service_id_hash = Utils::Sha256Hash(
+      absl::StrCat(WrapInitiatorUpgradeServiceId(kServiceIdForServiceName),
+                   kServiceIdSuffixForServiceName),
+      WifiAwareServiceInfo::kTypeFromServiceIdHashLength);
+  std::string service_id_hash_string;
+  for (auto byte : std::string(service_id_hash)) {
+    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
+  }
+  return absl::StrFormat(kServiceNameFormat, service_id_hash_string);
+}
 
 WifiAware::~WifiAware() {
   while (!discovering_info_.empty()) {
@@ -207,7 +242,7 @@ bool WifiAware::IsAcceptingConnectionsLocked(const std::string& service_id) {
 
 ErrorOr<bool> WifiAware::StartAcceptingConnectionsLocked(
     const std::string& service_id, AcceptedConnectionCallback callback) {
-  if (medium_.StartPublishing()) {
+  if (medium_.StartPublishing(GetServiceName())) {
     LOG(INFO) << "WifiAware successfully started publishing";
 
     WifiAwareServerSocket server_socket = medium_.ListenForService(0);
@@ -274,7 +309,7 @@ bool WifiAware::IsPublishing() {
 
 bool WifiAware::StartPublishing() {
   MutexLock lock(&mutex_);
-  return medium_.StartPublishing();
+  return medium_.StartPublishing(GetServiceName());
 }
 
 bool WifiAware::StopPublishing() {
@@ -289,12 +324,17 @@ bool WifiAware::IsSubscribing() {
 
 bool WifiAware::StartSubscribing() {
   MutexLock lock(&mutex_);
-  return medium_.StartSubscribing();
+  return medium_.StartSubscribing(GetServiceName());
 }
 
 bool WifiAware::StopSubscribing() {
   MutexLock lock(&mutex_);
   return medium_.StopSubscribing();
+}
+
+void WifiAware::SetExpectedPeerId(absl::string_view peer_id) {
+  MutexLock lock(&mutex_);
+  medium_.SetExpectedPeerId(std::string(peer_id));
 }
 
 ErrorOr<WifiAwareSocket> WifiAware::Connect(

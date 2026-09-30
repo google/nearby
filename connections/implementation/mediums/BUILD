@@ -206,6 +206,7 @@ cc_test(
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
+        "wifi_aware_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_lan_test.cc",

@@ -17,7 +17,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -1675,6 +1678,104 @@ TEST_P(BwuManagerTestParam,
 
 INSTANTIATE_TEST_SUITE_P(BwuManagerTestParam, BwuManagerTestParam,
                          testing::Bool());
+
+// Creates a BwuManager with `config` and a fake WebRTC handler, so that no
+// real medium handlers are created.
+std::unique_ptr<BwuManager> CreateBwuManagerWithConfig(
+    Mediums& mediums, EndpointManager& em, EndpointChannelManager& ecm,
+    const BwuManager::Config& config) {
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  handlers.emplace(Medium::WEB_RTC,
+                   std::make_unique<FakeBwuHandler>(Medium::WEB_RTC));
+  return std::make_unique<BwuManager>(mediums, em, ecm, std::move(handlers),
+                                      config);
+}
+
+const std::vector<Medium>& AllAdvertisedMediums() {
+  static const auto* const kMediums = new std::vector<Medium>{
+      Medium::AWDL,        Medium::WIFI_LAN,     Medium::WIFI_AWARE_R4,
+      Medium::WIFI_DIRECT, Medium::WIFI_HOTSPOT, Medium::WEB_RTC,
+      Medium::BLUETOOTH,   Medium::BLE};
+  return *kMediums;
+}
+
+TEST_F(BwuManagerBaseTest,
+       StripOutDisallowedUpgradeMediums_WifiLanAndHotspotDisallowed_Removed) {
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.web_rtc = true;
+  config.allow_upgrade_to.wifi_lan = false;
+  config.allow_upgrade_to.wifi_hotspot = false;
+  auto bwu_manager = CreateBwuManagerWithConfig(mediums, em, ecm, config);
+
+  EXPECT_THAT(
+      bwu_manager->StripOutDisallowedUpgradeMediums(AllAdvertisedMediums()),
+      testing::ElementsAre(Medium::AWDL, Medium::WIFI_AWARE_R4,
+                           Medium::WIFI_DIRECT, Medium::WEB_RTC,
+                           Medium::BLUETOOTH, Medium::BLE));
+}
+
+TEST_F(BwuManagerBaseTest,
+       StripOutDisallowedUpgradeMediums_WifiLanAndHotspotAllowed_Kept) {
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.web_rtc = true;
+  config.allow_upgrade_to.wifi_lan = true;
+  config.allow_upgrade_to.wifi_hotspot = true;
+  auto bwu_manager = CreateBwuManagerWithConfig(mediums, em, ecm, config);
+
+  EXPECT_EQ(
+      bwu_manager->StripOutDisallowedUpgradeMediums(AllAdvertisedMediums()),
+      AllAdvertisedMediums());
+}
+
+TEST_F(BwuManagerBaseTest,
+       StripOutDisallowedUpgradeMediums_DefaultConfig_FollowsFlagsDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiLanUpgrade,
+      false);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableWifiHotspotClient,
+      false);
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  // An all-false config makes BwuManager fill in the defaults from flags.
+  auto bwu_manager =
+      CreateBwuManagerWithConfig(mediums, em, ecm, BwuManager::Config());
+
+  EXPECT_THAT(bwu_manager->StripOutDisallowedUpgradeMediums(
+                  {Medium::WIFI_LAN, Medium::WIFI_AWARE_R4,
+                   Medium::WIFI_HOTSPOT, Medium::BLE}),
+              testing::ElementsAre(Medium::WIFI_AWARE_R4, Medium::BLE));
+}
+
+TEST_F(BwuManagerBaseTest,
+       StripOutDisallowedUpgradeMediums_DefaultConfig_FollowsFlagsEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiLanUpgrade,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableWifiHotspotClient,
+      true);
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  auto bwu_manager =
+      CreateBwuManagerWithConfig(mediums, em, ecm, BwuManager::Config());
+
+  EXPECT_THAT(bwu_manager->StripOutDisallowedUpgradeMediums(
+                  {Medium::WIFI_LAN, Medium::WIFI_AWARE_R4,
+                   Medium::WIFI_HOTSPOT, Medium::BLE}),
+              testing::ElementsAre(Medium::WIFI_LAN, Medium::WIFI_AWARE_R4,
+                                   Medium::WIFI_HOTSPOT, Medium::BLE));
+}
 
 }  // namespace
 }  // namespace nearby::connections

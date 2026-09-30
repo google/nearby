@@ -133,12 +133,22 @@ class WifiAwareMedium final {
   bool StopDiscovery(absl::string_view service_type);
 
   bool IsPublishing() { return IsValid() && impl_->IsPublishing(); }
-  bool StartPublishing() { return IsValid() && impl_->StartPublishing(); }
+  bool StartPublishing(const std::string& service_name) {
+    return IsValid() && impl_->StartPublishing(service_name);
+  }
   bool StopPublishing() { return IsValid() && impl_->StopPublishing(); }
 
   bool IsSubscribing() { return IsValid() && impl_->IsSubscribing(); }
-  bool StartSubscribing() { return IsValid() && impl_->StartSubscribing(); }
+  bool StartSubscribing(const std::string& service_name) {
+    return IsValid() && impl_->StartSubscribing(service_name);
+  }
   bool StopSubscribing() { return IsValid() && impl_->StopSubscribing(); }
+
+  void SetExpectedPeerId(const std::string& peer_id) {
+    if (IsValid()) {
+      impl_->SetExpectedPeerId(peer_id);
+    }
+  }
 
   WifiAwareSocket ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
