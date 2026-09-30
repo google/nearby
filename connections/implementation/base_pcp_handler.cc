@@ -217,7 +217,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
           std::string(ip_address.begin(), ip_address.end()),
           absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "", {});
       connection_infos.push_back(info);
-    } else if (medium == location::nearby::proto::connections::WIFI_AWARE) {
+    } else if (medium == location::nearby::proto::connections::WIFI_AWARE_R4) {
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
                   kEnableWifiAware)) {
@@ -349,9 +349,9 @@ void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
     result << location::nearby::proto::connections::Medium_Name(Medium::WEB_RTC)
            << " ";
   }
-  if (allowed.wifi_aware) {
+  if (allowed.wifi_aware_r4) {
     result << location::nearby::proto::connections::Medium_Name(
-                  Medium::WIFI_AWARE)
+                  Medium::WIFI_AWARE_R4)
            << " ";
   }
   if (allowed.wifi_lan) {
@@ -493,6 +493,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   mediumSelector.wifi_hotspot = intersection.contains(Medium::WIFI_HOTSPOT);
   mediumSelector.wifi_direct = intersection.contains(Medium::WIFI_DIRECT);
   mediumSelector.awdl = intersection.contains(Medium::AWDL);
+  mediumSelector.wifi_aware_r4 = intersection.contains(Medium::WIFI_AWARE_R4);
   return mediumSelector;
 }
 
@@ -1316,9 +1317,6 @@ void BasePcpHandler::StripOutUnavailableMediums(
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
   }
-  if (allowed.wifi_aware) {
-    allowed.wifi_aware = mediums_->GetWifiAware().IsAvailable();
-  }
   if (allowed.wifi_lan) {
     allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
   }
@@ -1330,6 +1328,11 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
   if (allowed.awdl) {
     allowed.awdl = mediums_->GetAwdl().IsAvailable();
+  }
+  // Legacy Wi-Fi Aware is promoted to Wi-Fi Aware R4.
+  if (allowed.wifi_aware || allowed.wifi_aware_r4) {
+    allowed.wifi_aware_r4 = mediums_->GetWifiAware().IsAvailable();
+    allowed.wifi_aware = false;
   }
 }
 
@@ -1365,9 +1368,6 @@ void BasePcpHandler::StripOutUnavailableMediums(
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
   }
-  if (allowed.wifi_aware) {
-    allowed.wifi_aware = mediums_->GetWifiAware().IsAvailable();
-  }
   if (allowed.wifi_lan) {
     allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
   }
@@ -1378,6 +1378,11 @@ void BasePcpHandler::StripOutUnavailableMediums(
   if (allowed.wifi_direct) {
     allowed.wifi_direct = mediums_->GetWifi().IsAvailable() &&
                           mediums_->GetWifiDirect().IsGCAvailable();
+  }
+  // Legacy Wi-Fi Aware is promoted to Wi-Fi Aware R4.
+  if (allowed.wifi_aware || allowed.wifi_aware_r4) {
+    allowed.wifi_aware_r4 = mediums_->GetWifiAware().IsAvailable();
+    allowed.wifi_aware = false;
   }
 }
 
@@ -1477,9 +1482,12 @@ void BasePcpHandler::StripOutWifiHotspotMedium(
   bool is_wifi_aware_enabled = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableWifiAware);
   for (auto medium : connection_info.supported_mediums) {
+    // Older peers may still advertise legacy WIFI_AWARE instead of
+    // WIFI_AWARE_R4, so check for both.
     if (medium == location::nearby::proto::connections::WIFI_LAN ||
         (is_wifi_aware_enabled &&
-         medium == location::nearby::proto::connections::WIFI_AWARE)) {
+         (medium == location::nearby::proto::connections::WIFI_AWARE ||
+          medium == location::nearby::proto::connections::WIFI_AWARE_R4))) {
       has_wifi_lan_or_wifi_aware = true;
       break;
     }

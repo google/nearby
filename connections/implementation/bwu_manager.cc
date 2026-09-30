@@ -104,7 +104,7 @@ BwuManager::BwuManager(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableWifiAware)) {
-      config_.allow_upgrade_to.wifi_aware = true;
+      config_.allow_upgrade_to.wifi_aware_r4 = true;
     }
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
@@ -153,12 +153,13 @@ void BwuManager::InitBwuHandlers() {
                       mediums_->GetWifiLan().CreateBwuHandler(absl::bind_front(
                           &BwuManager::OnIncomingConnection, this)));
   }
-  if (config_.allow_upgrade_to.wifi_aware &&
+  if ((config_.allow_upgrade_to.wifi_aware ||
+       config_.allow_upgrade_to.wifi_aware_r4) &&
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiAware)) {
     handlers_.emplace(
-        Medium::WIFI_AWARE,
+        Medium::WIFI_AWARE_R4,
         std::make_unique<WifiAwareBwuHandler>(
             mediums_->GetWifiAware(),
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
@@ -514,7 +515,8 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
   if (!IsInitiatorUpgradeServiceId(service_id)) {
     if (medium == Medium::WIFI_HOTSPOT || medium == Medium::WIFI_DIRECT) {
       handler->RevertResponderState(service_id);
-    } else if (medium == Medium::WIFI_AWARE) {
+    } else if (medium == Medium::WIFI_AWARE ||
+               medium == Medium::WIFI_AWARE_R4) {
       handler->RevertInitiatorState(WrapInitiatorUpgradeServiceId(service_id),
                                     endpoint_id);
       handler->RevertResponderState(service_id);
@@ -555,7 +557,9 @@ void BwuManager::SetBwuMediumForEndpoint(const std::string& endpoint_id,
 
 BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
   if (medium == Medium::UNKNOWN_MEDIUM) return nullptr;
-
+  if (medium == Medium::WIFI_AWARE) {
+    medium = Medium::WIFI_AWARE_R4;
+  }
   auto it = handlers_.find(medium);
   if (it == handlers_.end()) return nullptr;
 
@@ -1560,6 +1564,7 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
           available = mediums_->GetWifiLan().IsAvailable();
           break;
         case Medium::WIFI_AWARE:
+        case Medium::WIFI_AWARE_R4:
           available = mediums_->GetWifiAware().IsAvailable();
           break;
         case Medium::WIFI_DIRECT:

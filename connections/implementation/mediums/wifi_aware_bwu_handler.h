@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ class WifiAwareBwuHandler : public BaseBwuHandler {
           UpgradePathInfo& upgrade_path_info) override;
   location::nearby::proto::connections::Medium GetUpgradeMedium()
       const override {
-    return location::nearby::proto::connections::Medium::WIFI_AWARE;
+    return location::nearby::proto::connections::Medium::WIFI_AWARE_R4;
   }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) override {}

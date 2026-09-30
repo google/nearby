@@ -152,7 +152,7 @@ class NcEventLogger : public ::nearby::analytics::EventLogger {
  private:
   const NC_EVENT_LOGGER* event_logger_;
 };
-#else  // !defined(NC_OSS_BUILD)
+#else   // !defined(NC_OSS_BUILD)
 class NcEventLogger;
 #endif  // !defined(NC_OSS_BUILD)
 
@@ -279,7 +279,7 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
   kNcContextMap->insert({nc_context.core, nc_context});
   return nc_context.core;
 }
-#else  // !defined(NC_OSS_BUILD)
+#else   // !defined(NC_OSS_BUILD)
 NC_INSTANCE NcCreateService() {
   NcContext nc_context;
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
@@ -330,8 +330,11 @@ void NcStartAdvertising(
       advertising_options->common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
   cpp_advertising_options.allowed.wifi_lan =
       advertising_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
-  cpp_advertising_options.allowed.wifi_aware =
-      advertising_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_AWARE];
+  cpp_advertising_options.allowed.wifi_aware_r4 =
+      advertising_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE] ||
+      advertising_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE_R4];
   cpp_advertising_options.allowed.wifi_direct =
       advertising_options->common_options
           .allowed_mediums[NC_MEDIUM_WIFI_DIRECT];
@@ -442,8 +445,11 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_BLE];
   cpp_discovery_options.allowed.wifi_lan =
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
-  cpp_discovery_options.allowed.wifi_aware =
-      discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_AWARE];
+  cpp_discovery_options.allowed.wifi_aware_r4 =
+      discovery_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE] ||
+      discovery_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE_R4];
   cpp_discovery_options.allowed.wifi_hotspot =
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
   cpp_discovery_options.allowed.web_rtc =
@@ -558,8 +564,11 @@ void NcRequestConnection(
       connection_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
   cpp_connection_options.allowed.wifi_lan =
       connection_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
-  cpp_connection_options.allowed.wifi_aware =
-      connection_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_AWARE];
+  cpp_connection_options.allowed.wifi_aware_r4 =
+      connection_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE] ||
+      connection_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_AWARE_R4];
   cpp_connection_options.allowed.wifi_hotspot =
       connection_options->common_options
           .allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];

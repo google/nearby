@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
@@ -38,6 +39,12 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+
+// The Wi-Fi Aware service name sent to the remote device in the upgrade path
+// info.
+// TODO: edwinwu - Determine the long-term strategy for declaring and handling
+// Wi-Fi Aware service IDs for all Nearby services beyond just Quick Share.
+constexpr std::string_view kWifiAwareR4ServiceName = "_qs-aware._tcp";
 }  // namespace
 
 WifiAwareBwuHandler::WifiAwareBwuHandler(
@@ -54,13 +61,14 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
     const std::string& endpoint_id,
     const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
         upgrade_path_info) {
-  if (!upgrade_path_info.has_wifi_aware_credentials()) {
+  if (!upgrade_path_info.has_wifi_aware_r4_credentials()) {
     return {
         Error(OperationResultCode::CONNECTIVITY_WIFI_AWARE_INVALID_CREDENTIAL)};
   }
   wifi_aware_medium_.StartSubscribing();
-  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiAwareCredentials&
-      credentials = upgrade_path_info.wifi_aware_credentials();
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+      WifiAwareR4Credentials& credentials =
+          upgrade_path_info.wifi_aware_r4_credentials();
 
   LOG(INFO) << "WifiAwareBwuHandler is attempting to connect to available "
                "WifiAware service ("
@@ -69,13 +77,21 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
   // We need to construct a WifiAwareServiceInfo from the credentials.
   // WifiAwareMedium::Connect takes WifiAwareServiceInfo.
   WifiAwareServiceInfo service_info;
-  int port = 0;
   std::string service_name = credentials.service_id();
+  // Prefer the explicit port carried in the R4 credentials.
+  int port = (credentials.has_port() && credentials.port() > 0 &&
+              credentials.port() <= 65535)
+                 ? credentials.port()
+                 : 0;
   auto colon_pos = service_name.rfind(':');
   if (colon_pos != std::string::npos) {
     std::string port_str = service_name.substr(colon_pos + 1);
-    if (absl::SimpleAtoi(port_str, &port)) {
+    int parsed_port = 0;
+    if (absl::SimpleAtoi(port_str, &parsed_port)) {
       service_name = service_name.substr(0, colon_pos);
+      if (port == 0) {
+        port = parsed_port;
+      }
     }
   }
 
@@ -153,8 +169,9 @@ std::string WifiAwareBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   LOG(INFO) << "WifiAwareBwuHandler successfully initialized upgraded medium "
                "for endpoint "
             << endpoint_id;
-  return parser::ForBwuWifiAwarePathAvailable(
-      "_qs-aware._tcp", /*service_info=*/"", /*password=*/"",
+  return parser::ForBwuWifiAwareR4PathAvailable(
+      kWifiAwareR4ServiceName, /*service_info=*/"", /*pmk=*/"",
+      /*port=*/0, /*advertised_name=*/"",
       /*supports_disabling_encryption=*/false);
 }
 

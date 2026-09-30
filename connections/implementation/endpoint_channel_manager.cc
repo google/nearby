@@ -350,7 +350,8 @@ bool EndpointChannelManager::ChannelState::isWifiLanConnected() const {
 bool EndpointChannelManager::ChannelState::isWifiAwareConnected() const {
   for (const auto& [endpoint_id, endpoint_data] : endpoints_) {
     std::shared_ptr<EndpointChannel> channel = endpoint_data->channel();
-    if (channel && channel->GetMedium() == Medium::WIFI_AWARE) {
+    if (channel && (channel->GetMedium() == Medium::WIFI_AWARE ||
+                    channel->GetMedium() == Medium::WIFI_AWARE_R4)) {
       LOG(INFO) << "Found WIFI_AWARE Medium for endpoint:" << endpoint_id;
       return true;
     }
