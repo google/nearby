@@ -80,6 +80,7 @@ class WifiAwareSocket : public api::WifiAwareSocket {
   std::unique_ptr<WifiAwareInputStream> input_stream_;
   std::unique_ptr<WifiAwareOutputStream> output_stream_;
 };
+
 /**
  * Concrete WifiAwareMedium implementation.
  */
@@ -109,6 +110,10 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   std::unique_ptr<api::WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) override;
+
+  std::unique_ptr<api::WifiAwareSocket> ConnectToService(
+      const std::string& service_name, const ByteArray& service_info, const std::string& passphrase,
+      int port, CancellationFlag* cancellation_flag) override;
 
   std::unique_ptr<api::WifiAwareServerSocket> ListenForService(int port) override;
 

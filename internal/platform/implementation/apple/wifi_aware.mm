@@ -278,6 +278,7 @@ bool WifiAwareMedium::StartPublishing() {
   is_publishing_ = true;
   return true;
 }
+
 bool WifiAwareMedium::StopPublishing() {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StopPublishing");
   is_publishing_ = false;
@@ -290,6 +291,7 @@ bool WifiAwareMedium::StopPublishing() {
 }
 
 bool WifiAwareMedium::IsSubscribing() { return is_subscribing_; }
+
 bool WifiAwareMedium::StartSubscribing() {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StartSubscribing");
   if (is_subscribing_) {
@@ -329,6 +331,7 @@ bool WifiAwareMedium::StartSubscribing() {
   is_subscribing_ = true;
   return true;
 }
+
 bool WifiAwareMedium::StopSubscribing() {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StopSubscribing");
   is_subscribing_ = false;
@@ -435,6 +438,98 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
   return std::make_unique<WifiAwareSocket>(connectionWrapper);
 }
 
+std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
+    const std::string& service_name, const ByteArray& service_info, const std::string& passphrase,
+    int port, CancellationFlag* cancellation_flag) {
+  NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
+  NSLog(@"QS_AWARE ConnectToService start, serviceName: %s, serviceInfo size: %zu, "
+        @"passphrase size: %zu, port: %d",
+        service_name.c_str(), service_info.size(), passphrase.size(), port);
+
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
+    NSLog(@"QS_AWARE ConnectToService: already cancelled");
+    return nullptr;
+  }
+
+  if (aware_manager_ == nil) {
+    NSLog(@"QS_AWARE ConnectToService: aware_manager_ is nil");
+    return nullptr;
+  }
+
+  if (subscribe_pairing_semaphore_ != nil) {
+    NSLog(@"QS_AWARE ConnectToService: waiting for subscription pairing UI...");
+    std::unique_ptr<CancellationFlagListener> pairing_cancellation_listener;
+    if (cancellation_flag != nullptr) {
+      pairing_cancellation_listener =
+          std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
+            NSLog(@"QS_AWARE ConnectToService: cancellation requested during pairing UI");
+            if (subscribe_pairing_semaphore_ != nil) {
+              dispatch_semaphore_signal(subscribe_pairing_semaphore_);
+            }
+          });
+    }
+    dispatch_semaphore_wait(subscribe_pairing_semaphore_, DISPATCH_TIME_FOREVER);
+    NSLog(@"QS_AWARE ConnectToService: subscription pairing UI dismissed, proceeding.");
+    subscribe_pairing_semaphore_ = nil;
+  }
+
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
+    NSLog(@"QS_AWARE ConnectToService: cancelled after pairing UI");
+    return nullptr;
+  }
+
+  NSLog(@"QS_AWARE ConnectToService: aware_manager_ is %@", aware_manager_);
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError* browseError = nil;
+
+  std::unique_ptr<CancellationFlagListener> cancellation_flag_listener;
+  if (cancellation_flag != nullptr) {
+    cancellation_flag_listener =
+        std::make_unique<CancellationFlagListener>(cancellation_flag, [this, semaphore]() {
+          NSLog(@"QS_AWARE ConnectToService: cancellation requested, cancelling browse task");
+          [aware_manager_ cancelBrowseTask];
+          dispatch_semaphore_signal(semaphore);
+        });
+  }
+
+  NSLog(@"QS_AWARE ConnectToService: calling browseWithPort:%d completionHandler", port);
+  [aware_manager_
+         browseWithPort:port
+      completionHandler:^(NSError* _Nullable error) {
+        NSLog(@"QS_AWARE ConnectToService: browseWithPort completed with error: %@", error);
+        browseError = error;
+        dispatch_semaphore_signal(semaphore);
+      }];
+
+  dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, 40 * NSEC_PER_SEC);
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    NSLog(@"QS_AWARE ConnectToService: browseWithPort timed out (40s)");
+    [aware_manager_ cancelBrowseTask];
+    return nullptr;
+  }
+
+  if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
+    NSLog(@"QS_AWARE ConnectToService: cancelled during browse");
+    [aware_manager_ cancelBrowseTask];
+    return nullptr;
+  }
+
+  if (browseError != nil) {
+    NSLog(@"QS_AWARE Error during GNCAwareManager browse: %@", browseError);
+    return nullptr;
+  }
+
+  GNCWiFiAwareConnectionWrapper* connectionWrapper = [aware_manager_ getLatestConnectionWrapper];
+  NSLog(@"QS_AWARE ConnectToService: connectionWrapper is %@", connectionWrapper);
+  if (connectionWrapper == nil) {
+    NSLog(@"QS_AWARE Error: GNCAwareManager browse succeeded but latestConnectionWrapper is nil");
+    return nullptr;
+  }
+
+  NSLog(@"QS_AWARE ConnectToService completed successfully.");
+  return std::make_unique<WifiAwareSocket>(connectionWrapper);
+}
+
 std::unique_ptr<api::WifiAwareServerSocket> WifiAwareMedium::ListenForService(int port) {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium ListenForService start on port %d", port);
   if (aware_manager_ == nil) {
@@ -512,6 +607,12 @@ bool WifiAwareMedium::StopSubscribing() { return false; }
 
 std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
     const WifiAwareServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
+  return nullptr;
+}
+
+std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
+    const std::string& service_name, const ByteArray& service_info, const std::string& passphrase,
+    int port, CancellationFlag* cancellation_flag) {
   return nullptr;
 }
 

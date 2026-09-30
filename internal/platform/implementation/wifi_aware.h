@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/functional/any_invocable.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -97,6 +98,18 @@ class WifiAwareMedium {
   virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) = 0;
+
+  // Connects to a WifiAware service identified by `service_name` and
+  // `service_info`, using `passphrase` to secure the data path and `port` as
+  // the remote port.
+  //
+  // Returns nullptr by default; platforms that support this should override.
+  virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
+      const std::string& service_name, const ByteArray& service_info,
+      const std::string& passphrase, int port,
+      CancellationFlag* cancellation_flag) {
+    return nullptr;
+  }
 
   // Listens for incoming connection.
   virtual std::unique_ptr<WifiAwareServerSocket> ListenForService(int port) = 0;

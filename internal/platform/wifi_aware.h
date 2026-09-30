@@ -144,6 +144,11 @@ class WifiAwareMedium final {
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag);
 
+  WifiAwareSocket ConnectToService(const std::string& service_name,
+                                   const ByteArray& service_info,
+                                   const std::string& passphrase, int port,
+                                   CancellationFlag* cancellation_flag);
+
   WifiAwareServerSocket ListenForService(int port = 0);
 
   bool IsValid() const { return impl_ != nullptr; }
