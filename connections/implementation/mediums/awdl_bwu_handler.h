@@ -40,17 +40,6 @@ class AwdlBwuHandler : public BaseBwuHandler {
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
-  class AwdlIncomingSocket : public BwuHandler::IncomingSocket {
-   public:
-    explicit AwdlIncomingSocket(AwdlSocket socket)
-        : socket_(socket) {}
-
-    void Close() override { socket_.Close(); }
-
-   private:
-    AwdlSocket socket_;
-  };
-
   // BwuHandler implementation:
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,

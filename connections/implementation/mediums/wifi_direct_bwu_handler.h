@@ -39,17 +39,6 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
-  class WifiDirectIncomingSocket : public BwuHandler::IncomingSocket {
-   public:
-    explicit WifiDirectIncomingSocket(WifiDirectSocket socket)
-        : socket_(socket) {}
-
-    void Close() override { socket_.Close(); }
-
-   private:
-    WifiDirectSocket socket_;
-  };
-
   // Called by BWU target. Retrieves a new medium info from incoming message,
   // Windows doesn't support WIFIDirect as GC because phone side uses simplified
   // WFD protocol to established connection while WINRT follow the standard WFD

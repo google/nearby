@@ -17,11 +17,13 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {
@@ -32,14 +34,22 @@ class BwuHandler {
  public:
   class IncomingSocket {
    public:
-    virtual ~IncomingSocket() = default;
+    explicit IncomingSocket(std::shared_ptr<Socket> socket)
+        : socket_(std::move(socket)) {}
 
-    virtual void Close() = 0;
+    void Close() { socket_->Close(); }
+
+   private:
+    std::shared_ptr<Socket> socket_;
   };
 
   struct IncomingSocketConnection {
     std::unique_ptr<IncomingSocket> socket;
     std::unique_ptr<EndpointChannel> channel;
+
+    IncomingSocketConnection(std::unique_ptr<IncomingSocket> socket,
+                             std::unique_ptr<EndpointChannel> channel)
+        : socket(std::move(socket)), channel(std::move(channel)) {}
   };
   using IncomingConnectionCallback = absl::AnyInvocable<void(
       ClientProxy* client,

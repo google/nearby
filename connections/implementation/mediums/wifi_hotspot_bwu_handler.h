@@ -52,17 +52,6 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) override {}
 
  private:
-  class WifiHotspotIncomingSocket : public BwuHandler::IncomingSocket {
-   public:
-    explicit WifiHotspotIncomingSocket(WifiHotspotSocket socket)
-        : socket_(socket) {}
-
-    void Close() override { socket_.Close(); }
-
-   private:
-    WifiHotspotSocket socket_;
-  };
-
   // BaseBwuHandler implementation:
   std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,

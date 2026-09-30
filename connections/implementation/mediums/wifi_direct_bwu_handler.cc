@@ -203,11 +203,10 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
     WifiDirectSocket socket) {
   auto channel = std::make_unique<WifiDirectEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
-  std::unique_ptr<IncomingSocketConnection> connection(
-      new IncomingSocketConnection{
-          .socket = std::make_unique<WifiDirectIncomingSocket>(socket),
-          .channel = std::move(channel),
-      });
+  auto connection = std::make_unique<IncomingSocketConnection>(
+      std::make_unique<IncomingSocket>(
+          std::make_shared<WifiDirectSocket>(socket)),
+      std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 }  // namespace connections

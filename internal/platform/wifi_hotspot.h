@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
@@ -31,6 +30,8 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
+#include "internal/platform/socket.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
@@ -38,7 +39,7 @@ namespace nearby {
 // Socket class for both SoftAP ( created through accept connection from STA)
 // and STA side (created through connect request to SoftAP side)
 // Class WifiHotspotSocket is copyable & movable
-class WifiHotspotSocket final {
+class WifiHotspotSocket : public Socket {
  public:
   WifiHotspotSocket() = default;
   WifiHotspotSocket(const WifiHotspotSocket&) = default;
@@ -54,7 +55,7 @@ class WifiHotspotSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  InputStream& GetInputStream() {
+  InputStream& GetInputStream() override{
     CHECK(impl_);
     return impl_->GetInputStream();
   }
@@ -64,13 +65,13 @@ class WifiHotspotSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  OutputStream& GetOutputStream() {
+  OutputStream& GetOutputStream() override{
     CHECK(impl_);
     return impl_->GetOutputStream();
   }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() {
+  Exception Close() override{
     CHECK(impl_);
     return impl_->Close();
   }

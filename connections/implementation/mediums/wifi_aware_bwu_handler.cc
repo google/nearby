@@ -157,12 +157,10 @@ void WifiAwareBwuHandler::OnIncomingWifiAwareConnection(
             << upgrade_service_id;
   auto channel = std::make_unique<WifiAwareEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
-  std::unique_ptr<IncomingSocketConnection> connection(
-      new IncomingSocketConnection{
-          .socket =
-              std::make_unique<WifiAwareIncomingSocket>(std::move(socket)),
-          .channel = std::move(channel),
-      });
+  auto connection = std::make_unique<IncomingSocketConnection>(
+      std::make_unique<IncomingSocket>(
+          std::make_shared<WifiAwareSocket>(socket)),
+      std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 

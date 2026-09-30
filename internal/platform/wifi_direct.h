@@ -34,6 +34,7 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
@@ -41,7 +42,7 @@ namespace nearby {
 // Socket class for both WifiDirect GO ( created through accept connection from
 // STA) and STA side (created through connect request to WifiDirect GO side)
 // Class WifiDirectSocket is copyable & movable
-class WifiDirectSocket final {
+class WifiDirectSocket : public Socket {
  public:
   WifiDirectSocket() = default;
   WifiDirectSocket(const WifiDirectSocket&) = default;
@@ -57,7 +58,7 @@ class WifiDirectSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiDirectSocket object is destroyed.
-  InputStream& GetInputStream() {
+  InputStream& GetInputStream() override {
     CHECK(impl_);
     return impl_->GetInputStream();
   }
@@ -67,13 +68,13 @@ class WifiDirectSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiDirectSocket object is destroyed.
-  OutputStream& GetOutputStream() {
+  OutputStream& GetOutputStream() override {
     CHECK(impl_);
     return impl_->GetOutputStream();
   }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() {
+  Exception Close() override {
     CHECK(impl_);
     return impl_->Close();
   }

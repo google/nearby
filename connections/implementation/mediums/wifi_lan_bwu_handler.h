@@ -52,17 +52,6 @@ class WifiLanBwuHandler : public BaseBwuHandler {
                             const std::string& endpoint_id) override {}
 
  private:
-  class WifiLanIncomingSocket : public BwuHandler::IncomingSocket {
-   public:
-    explicit WifiLanIncomingSocket(WifiLanSocket socket)
-        : socket_(socket) {}
-
-    void Close() override { socket_.Close(); }
-
-   private:
-    WifiLanSocket socket_;
-  };
-
   // BaseBwuHandler implementation:
   std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,

@@ -1495,7 +1495,8 @@ TEST_F(BwuManagerTest, OnIncomingConnection_EndpointAliasesToLastEndpointId) {
   upgraded_channel->set_read_output(
       ExceptionOr<ByteArray>(ByteArray(intro_frame)));
 
-  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>();
+  auto connection =
+      std::make_unique<BwuHandler::IncomingSocketConnection>(nullptr, nullptr);
   connection->channel = std::move(upgraded_channel);
 
   // Invoke OnIncomingConnection

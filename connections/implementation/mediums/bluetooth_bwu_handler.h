@@ -42,17 +42,6 @@ class BluetoothBwuHandler : public BaseBwuHandler {
       IncomingConnectionCallback incoming_connection_callback);
 
  private:
-  class BluetoothIncomingSocket : public IncomingSocket {
-   public:
-    explicit BluetoothIncomingSocket(BluetoothSocket socket)
-        : socket_(socket) {}
-
-    void Close() override { socket_.Close(); }
-
-   private:
-    BluetoothSocket socket_;
-  };
-
   // BwuHandler implementation:
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
