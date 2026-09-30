@@ -18,3 +18,4 @@ _NcGetLocalEndpointId
 _NcEnableBleV2
 _NcSetCustomSavePath
 _NcSetPhenotypeFlagReader
+_NcRegisterEventHandler

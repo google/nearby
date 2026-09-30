@@ -539,6 +539,15 @@ class Core {
     client_.RegisterConnectionsDeviceProvider(std::move(provider));
   }
 
+  // Registers a handler for events that require a decision from the client,
+  // e.g. before joining a remote Wi-Fi hotspot during a bandwidth upgrade.
+  // The handler is invoked synchronously on an internal thread and blocks it
+  // until it returns. Replaces any previously registered handler. Passing
+  // nullptr unregisters. If no handler is registered, all events proceed.
+  void RegisterEventHandler(ClientEventHandler handler) {
+    client_.RegisterEventHandler(std::move(handler));
+  }
+
  private:
   ClientProxy client_;
   ServiceControllerRouter* router_ = nullptr;

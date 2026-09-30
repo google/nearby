@@ -189,6 +189,28 @@ struct PayloadListener {
           [](absl::string_view, const PayloadProgressInfo&) {};
 };
 
+// An event that requires a decision from the client.
+struct ClientEvent {
+  enum class Type {
+    // The local device is about to join the remote endpoint's Wi-Fi hotspot.
+    // `data` contains the SSID of the hotspot.
+    kJoinHotspotPrompt = 1,
+    // Reserved. `data` contains the PIN to display.
+    kDisplayPin = 2,
+    // Reserved. `data` is empty.
+    kEnterPin = 3,
+  };
+
+  Type type;
+  std::string endpoint_id;
+  std::string data;
+};
+
+// Handles a `ClientEvent` synchronously. Returns true if the operation that
+// triggered the event may proceed, false to cancel it. The handler blocks the
+// calling thread until it returns.
+using ClientEventHandler = std::function<bool(const ClientEvent& event)>;
+
 }  // namespace connections
 }  // namespace nearby
 
