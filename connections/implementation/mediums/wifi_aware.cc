@@ -297,6 +297,11 @@ bool WifiAware::StopSubscribing() {
   return medium_.StopSubscribing();
 }
 
+void WifiAware::SetExpectedPeerId(absl::string_view peer_id) {
+  MutexLock lock(&mutex_);
+  medium_.SetExpectedPeerId(std::string(peer_id));
+}
+
 ErrorOr<WifiAwareSocket> WifiAware::Connect(
     const std::string& service_id, const WifiAwareServiceInfo& service_info,
     CancellationFlag* cancellation_flag) {

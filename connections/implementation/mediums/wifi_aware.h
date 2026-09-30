@@ -78,6 +78,12 @@ class WifiAware {
   bool StartSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // See api::WifiAwareMedium::SetExpectedPeerId(). Must be called before
+  // StartSubscribing(), because that is where a platform decides whether it can
+  // reach this peer with the pairings it already holds or has to ask the user
+  // to pair first.
+  void SetExpectedPeerId(absl::string_view peer_id) ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Starts a worker thread, creates a WifiAware socket, associates it with a
   // service id.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,

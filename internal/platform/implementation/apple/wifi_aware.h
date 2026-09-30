@@ -107,6 +107,8 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   bool StartSubscribing() override;
   bool StopSubscribing() override;
 
+  void SetExpectedPeerId(const std::string& peer_id) override;
+
   std::unique_ptr<api::WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) override;
@@ -125,6 +127,13 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   DiscoveredServiceCallback service_callback_;
   NSObject<OS_dispatch_semaphore>* publish_pairing_semaphore_ = nullptr;
   NSObject<OS_dispatch_semaphore>* subscribe_pairing_semaphore_ = nullptr;
+  bool is_showing_pairing_ui_ = false;
+  // Stable identifier of the peer whose upgrade request we are currently servicing, as supplied by
+  // that peer. Empty when it sent none. Set by SetExpectedPeerId() just before StartSubscribing().
+  // TODO: edwinwu - Only a single expected peer is tracked, so this supports the 1:1 upgrade case
+  // only. Support the 1:N case (multiple peers upgrading concurrently) by tracking a set of
+  // expected peer IDs.
+  std::string expected_peer_id_;
 };
 
 }  // namespace apple

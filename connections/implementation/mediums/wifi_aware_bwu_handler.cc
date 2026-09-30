@@ -63,12 +63,16 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
     return {
         Error(OperationResultCode::CONNECTIVITY_WIFI_AWARE_INVALID_CREDENTIAL)};
   }
-
-  wifi_aware_medium_.StartSubscribing();
-
   const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
       WifiAwareR4Credentials& credentials =
           upgrade_path_info.wifi_aware_r4_credentials();
+  // Must happen before StartSubscribing(): that is where a platform decides
+  // whether it can reach this peer with the pairings it already has, or has to
+  // ask the user to pair first. Empty when the remote device sends no
+  // identifier, which platforms treat as "unknown peer".
+  wifi_aware_medium_.SetExpectedPeerId(credentials.advertised_name());
+  wifi_aware_medium_.StartSubscribing();
+
   std::string target_service_id = credentials.service_id();
   std::string service_info_bytes;
   std::string passphrase;
