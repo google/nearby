@@ -33,6 +33,10 @@ struct LocalLogger {
     osLogger.info("\(message)")
   }
 
+  func warning(_ message: String) {
+    osLogger.warning("\(message)")
+  }
+
   func error(_ message: String) {
     osLogger.error("\(message)")
   }
@@ -565,11 +569,51 @@ actor ConnectionManager: Sendable {
     return wrapper
   }
 
-  func setupConnection(to endpoint: WAEndpoint, port: Int = 0) async throws
-    -> WiFiAwareConnectionWrapper
-  {
+  private func extractUnderlyingNWEndpoint(from endpoint: WAEndpoint) -> NWEndpoint? {
+    let mirror = Mirror(reflecting: endpoint)
+    for child in mirror.children {
+      if child.label == "nw", let nwEndpoint = child.value as? NWEndpoint {
+        return nwEndpoint
+      }
+    }
+    for child in mirror.children {
+      if let nwEndpoint = child.value as? NWEndpoint {
+        return nwEndpoint
+      }
+    }
+    return nil
+  }
+
+  func setupConnection(
+    to endpoint: WAEndpoint,
+    nwEndpoint: NWEndpoint? = nil,
+    port: Int = 0
+  ) async throws -> WiFiAwareConnectionWrapper {
+    var targetEndpoint: WAEndpoint = endpoint
+    if port > 0, let port16 = UInt16(exactly: port), let nwPort = NWEndpoint.Port(rawValue: port16)
+    {
+      if #available(iOS 26.4, *) {
+        let sourceNWEndpoint = nwEndpoint ?? extractUnderlyingNWEndpoint(from: endpoint)
+        if let sourceNWEndpoint = sourceNWEndpoint,
+          let portEndpoint = sourceNWEndpoint.wifiAware(port: nwPort)
+        {
+          targetEndpoint = portEndpoint
+          logger.info(
+            "Attached port \(port) to WAEndpoint via underlying NWEndpoint (\(sourceNWEndpoint)): \(portEndpoint)"
+          )
+        } else {
+          logger.warning(
+            "Failed to attach port \(port) to WAEndpoint (sourceNWEndpoint: \(String(describing: sourceNWEndpoint))), falling back to discovered endpoint: \(endpoint)"
+          )
+        }
+      } else {
+        logger.warning(
+          "wifiAware(port:) requires iOS 26.4+, falling back to discovered endpoint: \(endpoint)")
+      }
+    }
+
     let connection = NetworkConnection(
-      to: endpoint,
+      to: targetEndpoint,
       using: .parameters {
         TCP().noDelay(true).keepalive(idleTimeInSeconds: 5, count: 5, intervalInSeconds: 1)
       }
@@ -578,7 +622,7 @@ actor ConnectionManager: Sendable {
     )
 
     let id = connection.id
-    logger.info("Set up connection: \(id) to endpoint: \(endpoint)")
+    logger.info("Set up connection: \(id) to endpoint: \(targetEndpoint) (targetPort: \(port))")
 
     let wrapper = WiFiAwareConnectionWrapper(connection: connection) { [weak self] in
       guard let self else { return }
@@ -691,6 +735,8 @@ actor ConnectionManager: Sendable {
 actor NetworkManager: Sendable {
   private let logger = Logger(component: "NetworkManager")
   private var activeListener: NetworkListener<TCP>?
+  private var activeBrowser: NWBrowser?
+  private let browserQueue = DispatchQueue(label: "com.google.nearby.WiFiAware.NWBrowser")
   private var listenTask: Task<Void, Error>?
   private var browseTask: Task<Void, Error>?
 
@@ -803,34 +849,104 @@ actor NetworkManager: Sendable {
     // Brief pause to allow Android Synaptics firmware to finalize NAN pairing context (b/451755510)
     try? await Task.sleep(nanoseconds: 250_000_000)
 
-    let browser = NetworkBrowser(
-      for: .wifiAware(.connecting(to: .allPairedDevices, from: .qsService))
+    let subscriber: WASubscriberBrowser = .wifiAware(
+      .connecting(to: .allPairedDevices, from: .qsService)
     )
-    .onStateUpdate { browser, state in
-      self.logger.info("Browser onStateUpdate: \(state)")
+    let descriptor = subscriber.makeDescriptor()
+    let parameters = subscriber.configureParameters(nil)
+    let browser = NWBrowser(for: descriptor, using: parameters)
+    self.activeBrowser = browser
+
+    do {
+      // Discover the first endpoint WITHOUT cancelling NWBrowser so Subscriber 1 and nan0 stay
+      // active in wifip2pd while NWConnection resolves and establishes the NAN Data Path.
+      let discovered: (waEndpoint: WAEndpoint, nwEndpoint: NWEndpoint) =
+        try await withTaskCancellationHandler {
+          try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<(WAEndpoint, NWEndpoint), Error>) in
+            let resumedLock = OSAllocatedUnfairLock(initialState: false)
+
+            browser.stateUpdateHandler = { [weak self] state in
+              self?.logger.info("Browser onStateUpdate: \(state)")
+              switch state {
+              case .failed(let error):
+                let alreadyResumed = resumedLock.withLock {
+                  let old = $0
+                  $0 = true
+                  return old
+                }
+                if !alreadyResumed {
+                  continuation.resume(throwing: error)
+                }
+              case .cancelled:
+                let alreadyResumed = resumedLock.withLock {
+                  let old = $0
+                  $0 = true
+                  return old
+                }
+                if !alreadyResumed {
+                  continuation.resume(
+                    throwing: NSError(
+                      domain: "NetworkManager", code: -1,
+                      userInfo: [
+                        NSLocalizedDescriptionKey: "NWBrowser cancelled before discovery"
+                      ]))
+                }
+              default:
+                break
+              }
+            }
+
+            browser.browseResultsChangedHandler = { [weak self] results, _ in
+              self?.logger.info("Discovered browseResults: \(results.count)")
+              for result in results {
+                var resolvedWAEndpoint: WAEndpoint? = try? subscriber.makeEndpoint(from: result)
+                if resolvedWAEndpoint == nil, #available(iOS 26.4, *) {
+                  resolvedWAEndpoint = result.endpoint.wifiAware
+                }
+                if let waEndpoint = resolvedWAEndpoint {
+                  self?.logger.info(
+                    " - Discovered WAEndpoint: \(waEndpoint), device: \(waEndpoint.device), nwEndpoint: \(result.endpoint)"
+                  )
+                  let alreadyResumed = resumedLock.withLock {
+                    let old = $0
+                    $0 = true
+                    return old
+                  }
+                  if !alreadyResumed {
+                    continuation.resume(returning: (waEndpoint, result.endpoint))
+                  }
+                  return
+                }
+              }
+            }
+
+            browser.start(queue: self.browserQueue)
+          }
+        } onCancel: {
+          browser.cancel()
+        }
+
+      logger.info(
+        "Browser discovered endpoint: \(discovered.waEndpoint), setting up connection (port: \(port)) while keeping NWBrowser active..."
+      )
+      let wrapper = try await connectionManager.setupConnection(
+        to: discovered.waEndpoint,
+        nwEndpoint: discovered.nwEndpoint,
+        port: port
+      )
+
+      logger.info("Awaiting connection handshake (.ready) while NWBrowser remains active...")
+      try await wrapper.awaitReady(timeoutSeconds: 30.0)
+      logger.info("Connection ready and handshake completed! Stopping NWBrowser now.")
+      cancelBrowse()
+      return wrapper
+    } catch {
+      logger.error(
+        "Discovery, connection setup, or handshake failed (\(error)), stopping NWBrowser.")
+      cancelBrowse()
+      throw error
     }
-
-    // Connect to the first discovered endpoint (clean discovery pattern from BuildingPeerToPeerApps)
-    let endpoint = try await browser.run { waEndpoints in
-      self.logger.info("Discovered endpoints: \(waEndpoints.count)")
-      for ep in waEndpoints {
-        self.logger.info(" - Discovered endpoint: \(ep), device: \(ep.device)")
-      }
-      if let firstEndpoint = waEndpoints.first {
-        return .finish(firstEndpoint)
-      } else {
-        return .continue
-      }
-    }
-
-    logger.info(
-      "Browser discovered endpoint: \(endpoint), setting up connection (port: \(port))...")
-    let wrapper = try await connectionManager.setupConnection(to: endpoint, port: port)
-
-    logger.info("Awaiting connection handshake (.ready)...")
-    try await wrapper.awaitReady(timeoutSeconds: 30.0)
-    logger.info("Connection ready and handshake completed!")
-    return wrapper
   }
 
   func cancelListen() {
@@ -840,11 +956,17 @@ actor NetworkManager: Sendable {
   }
 
   func cancelBrowse() {
+    if let browser = activeBrowser {
+      logger.info("Cancelling active NetworkBrowser")
+      browser.cancel()
+      activeBrowser = nil
+    }
     browseTask?.cancel()
     browseTask = nil
   }
 
   deinit {
+    activeBrowser?.cancel()
     listenTask?.cancel()
     browseTask?.cancel()
   }
