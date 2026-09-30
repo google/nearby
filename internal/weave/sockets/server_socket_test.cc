@@ -144,14 +144,14 @@ class ServerSocketTest : public ::testing::Test {
     EXPECT_EQ(packet->GetControlCommandNumber(),
               Packet::ControlPacketType::kControlConnectionConfirm);
     EXPECT_EQ(packet->GetPacketCounter(), 0);
-    int16_t agreed_protocol_version = ((packet->GetPayload().data()[0] << 8) |
-                                       packet->GetPayload().data()[1]) &
-                                      (int16_t)0xFFFF;
+    int16_t agreed_protocol_version =
+        ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
+        (int16_t)0xFFFF;
     EXPECT_EQ(agreed_protocol_version, kProtocolVersion);
     // Check packet size for the expected size.
-    int packet_size = ((packet->GetPayload().data()[2] << 8) |
-                       packet->GetPayload().data()[3]) &
-                      (int16_t)0xFFFF;
+    int packet_size =
+        ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
+        (int16_t)0xFFFF;
     EXPECT_EQ(packet_size, expected_size);
     // Now write a data packet of the expected payload size.
     int expected_payload_size = expected_size - 1;

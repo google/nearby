@@ -143,16 +143,15 @@ class ClientSocketTest : public ::testing::Test {
     EXPECT_EQ(packet->GetControlCommandNumber(),
               Packet::ControlPacketType::kControlConnectionRequest);
     EXPECT_EQ(packet->GetPacketCounter(), 0);
-    int16_t min_protocol_version = ((packet->GetPayload().data()[0] << 8) |
-                                    packet->GetPayload().data()[1]) &
-                                   (int16_t)0xFFFF;
-    int16_t max_protocol_version = ((packet->GetPayload().data()[2] << 8) |
-                                    packet->GetPayload().data()[3]) &
-                                   (int16_t)0xFFFF;
+    int16_t min_protocol_version =
+        ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
+        (int16_t)0xFFFF;
+    int16_t max_protocol_version =
+        ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
+        (int16_t)0xFFFF;
     EXPECT_EQ(min_protocol_version, kProtocolVersion);
     EXPECT_EQ(max_protocol_version, kProtocolVersion);
-    int pkt_size = ((packet->GetPayload().data()[4] << 8) |
-                    packet->GetPayload().data()[5]) &
+    int pkt_size = ((packet->GetPayload()[4] << 8) | packet->GetPayload()[5]) &
                    (int16_t)0xFFFF;
     EXPECT_EQ(pkt_size, client_size);
     EXPECT_EQ(packet->GetPayload().size(), 6);
@@ -205,16 +204,15 @@ TEST_F(ClientSocketTest, TestClientServerPacketSizeHigher) {
             Packet::ControlPacketType::kControlConnectionRequest);
   EXPECT_EQ(packet->GetPacketCounter(), 0);
   int16_t min_protocol_version =
-      ((packet->GetPayload().data()[0] << 8) | packet->GetPayload().data()[1]) &
+      ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
       (int16_t)0xFFFF;
   int16_t max_protocol_version =
-      ((packet->GetPayload().data()[2] << 8) | packet->GetPayload().data()[3]) &
+      ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
       (int16_t)0xFFFF;
   EXPECT_EQ(min_protocol_version, kProtocolVersion);
   EXPECT_EQ(max_protocol_version, kProtocolVersion);
-  int pkt_size =
-      ((packet->GetPayload().data()[4] << 8) | packet->GetPayload().data()[5]) &
-      (int16_t)0xFFFF;
+  int pkt_size = ((packet->GetPayload()[4] << 8) | packet->GetPayload()[5]) &
+                 (int16_t)0xFFFF;
   EXPECT_EQ(pkt_size, client_size);
   EXPECT_EQ(packet->GetPayload().size(), 6);
   socket_.OnReceiveControlPacketProxy(

@@ -43,21 +43,21 @@ constexpr int kMaxPacketSizeLsbIndex = 5;
 
 int16_t ExtractMinProtocolVersionFromConnRequest(
     absl::string_view packet_bytes) {
-  return ((packet_bytes.data()[kMinProtocolMsbIndex] << 8) |
-          packet_bytes.data()[kMinProtocolLsbIndex]) &
+  return ((packet_bytes[kMinProtocolMsbIndex] << 8) |
+          packet_bytes[kMinProtocolLsbIndex]) &
          0xFFFF;
 }
 
 int16_t ExtractMaxProtocolVersionFromConnRequest(
     absl::string_view packet_bytes) {
-  return ((packet_bytes.data()[kMaxProtocolMsbIndex] << 8) |
-          packet_bytes.data()[kMaxProtocolLsbIndex]) &
+  return ((packet_bytes[kMaxProtocolMsbIndex] << 8) |
+          packet_bytes[kMaxProtocolLsbIndex]) &
          0xFFFF;
 }
 
 uint16_t ExtractMaxPacketSizeFromConnRequest(absl::string_view packet_bytes) {
-  return ((packet_bytes.data()[kMaxPacketSizeMsbIndex] << 8) |
-          packet_bytes.data()[kMaxPacketSizeLsbIndex]) &
+  return ((packet_bytes[kMaxPacketSizeMsbIndex] << 8) |
+          packet_bytes[kMaxPacketSizeLsbIndex]) &
          0xFFFF;
 }
 }  // namespace
