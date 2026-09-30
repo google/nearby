@@ -124,8 +124,9 @@ class FakeWifiAwareMedium : public api::WifiAwareMedium {
   }
 
   bool IsPublishing() override { return publishing_; }
-  bool StartPublishing() override {
+  bool StartPublishing(const std::string& service_name) override {
     publishing_ = true;
+    publish_service_name_ = service_name;
     return true;
   }
   bool StopPublishing() override {
@@ -134,8 +135,9 @@ class FakeWifiAwareMedium : public api::WifiAwareMedium {
   }
 
   bool IsSubscribing() override { return subscribing_; }
-  bool StartSubscribing() override {
+  bool StartSubscribing(const std::string& service_name) override {
     subscribing_ = true;
+    subscribe_service_name_ = service_name;
     return true;
   }
   bool StopSubscribing() override {
@@ -172,12 +174,20 @@ class FakeWifiAwareMedium : public api::WifiAwareMedium {
 
   void SetDiscoveryFail(bool fail) { discovery_fail_ = fail; }
   bool IsAdvertising() const { return advertising_; }
+  const std::string& GetPublishServiceName() const {
+    return publish_service_name_;
+  }
+  const std::string& GetSubscribeServiceName() const {
+    return subscribe_service_name_;
+  }
 
  private:
   bool advertising_ = false;
   bool publishing_ = false;
   bool subscribing_ = false;
   bool discovery_fail_ = false;
+  std::string publish_service_name_;
+  std::string subscribe_service_name_;
   std::map<std::string, DiscoveredServiceCallback> discovery_callbacks_;
 };
 
@@ -237,11 +247,11 @@ TEST(WifiAwareMediumTest, DefaultPlatformImplementation) {
   EXPECT_FALSE(medium.StopDiscovery("_nearby._tcp"));
 
   EXPECT_FALSE(medium.IsPublishing());
-  EXPECT_FALSE(medium.StartPublishing());
+  EXPECT_FALSE(medium.StartPublishing("_nearby._tcp"));
   EXPECT_FALSE(medium.StopPublishing());
 
   EXPECT_FALSE(medium.IsSubscribing());
-  EXPECT_FALSE(medium.StartSubscribing());
+  EXPECT_FALSE(medium.StartSubscribing("_nearby._tcp"));
   EXPECT_FALSE(medium.StopSubscribing());
 
   CancellationFlag flag;
@@ -269,14 +279,16 @@ TEST(WifiAwareMediumTest, AdvertisingAndPublishing) {
   EXPECT_FALSE(fake_ptr->IsAdvertising());
 
   EXPECT_FALSE(medium.IsPublishing());
-  EXPECT_TRUE(medium.StartPublishing());
+  EXPECT_TRUE(medium.StartPublishing("_publish._tcp"));
   EXPECT_TRUE(medium.IsPublishing());
+  EXPECT_EQ(fake_ptr->GetPublishServiceName(), "_publish._tcp");
   EXPECT_TRUE(medium.StopPublishing());
   EXPECT_FALSE(medium.IsPublishing());
 
   EXPECT_FALSE(medium.IsSubscribing());
-  EXPECT_TRUE(medium.StartSubscribing());
+  EXPECT_TRUE(medium.StartSubscribing("_subscribe._tcp"));
   EXPECT_TRUE(medium.IsSubscribing());
+  EXPECT_EQ(fake_ptr->GetSubscribeServiceName(), "_subscribe._tcp");
   EXPECT_TRUE(medium.StopSubscribing());
   EXPECT_FALSE(medium.IsSubscribing());
 }

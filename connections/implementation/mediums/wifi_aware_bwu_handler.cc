@@ -16,7 +16,6 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
@@ -37,12 +36,6 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
-
-// The Wi-Fi Aware service name sent to the remote device in the upgrade path
-// info.
-// TODO: edwinwu - Determine the long-term strategy for declaring and handling
-// Wi-Fi Aware service IDs for all Nearby services beyond just Quick Share.
-constexpr std::string_view kWifiAwareR4ServiceName = "_qs-aware._tcp";
 }  // namespace
 
 WifiAwareBwuHandler::WifiAwareBwuHandler(
@@ -63,13 +56,20 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
     return {
         Error(OperationResultCode::CONNECTIVITY_WIFI_AWARE_INVALID_CREDENTIAL)};
   }
-
-  wifi_aware_medium_.StartSubscribing();
-
   const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
       WifiAwareR4Credentials& credentials =
           upgrade_path_info.wifi_aware_r4_credentials();
-  std::string target_service_id = credentials.service_id();
+  // Must happen before StartSubscribing(): that is where a platform decides
+  // whether it can reach this peer with the pairings it already has, or has to
+  // ask the user to pair first. Empty when the remote device sends no
+  // identifier, which platforms treat as "unknown peer".
+  wifi_aware_medium_.SetExpectedPeerId(credentials.advertised_name());
+  wifi_aware_medium_.StartSubscribing();
+
+  // Both sides derive the Wi-Fi Aware service name locally rather than reading
+  // it from the frame: an Android initiator puts its own upgrade service ID in
+  // `credentials.service_id()`, not the Wi-Fi Aware service name.
+  const std::string service_name = WifiAware::GetServiceName();
   std::string service_info_bytes;
   std::string passphrase;
   int port = 0;
@@ -83,25 +83,26 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
     port = credentials.port();
   }
   LOG(INFO) << "WifiAwareBwuHandler is attempting to connect to available "
-               "WifiAware service ("
-            << target_service_id << ") for port " << port << " for endpoint "
-            << endpoint_id;
+               "WifiAware service "
+            << service_name << " (remote service ID "
+            << credentials.service_id() << ") for port " << port
+            << " for endpoint " << endpoint_id;
 
   ErrorOr<WifiAwareSocket> socket_result = wifi_aware_medium_.Connect(
-      service_id, target_service_id, ByteArray(service_info_bytes), passphrase,
-      port, client->GetCancellationFlag(endpoint_id).get());
+      service_id, service_name, ByteArray(service_info_bytes), passphrase, port,
+      client->GetCancellationFlag(endpoint_id).get());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WifiAwareBwuHandler failed to connect to the WifiAware "
-                  "service ("
-               << target_service_id << ") for endpoint " << endpoint_id
+                  "service "
+               << service_name << " for endpoint " << endpoint_id
                << ", has_error=" << socket_result.has_error();
     wifi_aware_medium_.StopSubscribing();
     return {Error(socket_result.error().operation_result_code().value_or(
         OperationResultCode::DETAIL_UNKNOWN))};
   }
-  LOG(INFO)
-      << "WifiAwareBwuHandler successfully connected to WifiAware service ("
-      << target_service_id << ") while upgrading endpoint " << endpoint_id;
+  LOG(INFO) << "WifiAwareBwuHandler successfully connected to WifiAware "
+               "service "
+            << service_name << " while upgrading endpoint " << endpoint_id;
 
   wifi_aware_medium_.StopSubscribing();
 
@@ -132,7 +133,7 @@ std::string WifiAwareBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
                "for endpoint "
             << endpoint_id;
   return parser::ForBwuWifiAwareR4PathAvailable(
-      kWifiAwareR4ServiceName, /*service_info=*/"", /*pmk=*/"",
+      WifiAware::GetServiceName(), /*service_info=*/"", /*pmk=*/"",
       /*port=*/0, /*advertised_name=*/"",
       /*supports_disabling_encryption=*/false);
 }

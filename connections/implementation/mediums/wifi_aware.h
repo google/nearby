@@ -45,6 +45,18 @@ class WifiAware {
   WifiAware() = default;
   ~WifiAware();
 
+  // Returns the Wi-Fi Aware service name that Nearby publishes and subscribes
+  // to, e.g. "_8E70C42FBA2B._tcp".
+  //
+  // The name is derived from a service ID the same way the Wi-Fi LAN and AWDL
+  // service types are: "_<hash>._tcp", where <hash> is the uppercase hex
+  // encoding of the first WifiAwareServiceInfo::kTypeFromServiceIdHashLength
+  // bytes of SHA-256("<service ID>_UPGRADE_AWARE"). A single service ID is
+  // shared by all Nearby clients, so an iOS app declares exactly one entry
+  // under WiFiAwareServices in its Info.plist, and every platform must derive
+  // the same name.
+  static std::string GetServiceName();
+
   // Returns true, if WifiAware communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -77,6 +89,12 @@ class WifiAware {
   bool IsSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
   bool StartSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // See api::WifiAwareMedium::SetExpectedPeerId(). Must be called before
+  // StartSubscribing(), because that is where a platform decides whether it can
+  // reach this peer with the pairings it already holds or has to ask the user
+  // to pair first.
+  void SetExpectedPeerId(absl::string_view peer_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a WifiAware socket, associates it with a
   // service id.

@@ -87,12 +87,33 @@ class WifiAwareMedium {
   virtual bool StopDiscovery(const std::string& service_type) = 0;
 
   virtual bool IsPublishing() = 0;
-  virtual bool StartPublishing() = 0;
+  // Starts publishing the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp"). Incoming connections for it are then accepted via
+  // ListenForService().
+  virtual bool StartPublishing(const std::string& service_name) = 0;
   virtual bool StopPublishing() = 0;
 
   virtual bool IsSubscribing() = 0;
-  virtual bool StartSubscribing() = 0;
+  // Starts subscribing to the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp").
+  virtual bool StartSubscribing(const std::string& service_name) = 0;
   virtual bool StopSubscribing() = 0;
+
+  // Names the peer that the next ConnectToService() call is meant for, using a
+  // stable identifier the remote device put in its upgrade frame
+  // (WifiAwareR4Credentials.advertised_name).
+  //
+  // Everything else in that frame is per-session — endpoint IDs rotate, service
+  // IDs are generated per transfer — so this is the only way a platform can
+  // tell whether an incoming upgrade comes from a device it has already paired
+  // with. Apple's Wi-Fi Aware stack needs that distinction because it can only
+  // browse for devices already in its paired store; a peer it has never paired
+  // with is silently dropped, and it must present the system pairing UI
+  // instead.
+  //
+  // Optional. `peer_id` is empty when the remote device did not supply one, and
+  // platforms that cannot make use of it ignore this entirely.
+  virtual void SetExpectedPeerId(const std::string& peer_id) {}
 
   // Connects to a WifiAware service.
   virtual std::unique_ptr<WifiAwareSocket> ConnectToService(

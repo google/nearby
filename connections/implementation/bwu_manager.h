@@ -124,6 +124,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
   bool IsUpgradeOngoing(const std::string& endpoint_id);
   Config GetConfig() const { return config_; }
 
+  // Returns `mediums` without the ones this device refuses to upgrade to, so
+  // that they are not advertised to the remote device in the
+  // ConnectionRequest. Currently this removes WIFI_LAN and WIFI_HOTSPOT when
+  // the matching `allow_upgrade_to` field is false (see kEnableWifiLanUpgrade
+  // and kEnableWifiHotspotClient).
+  std::vector<Medium> StripOutDisallowedUpgradeMediums(
+      std::vector<Medium> mediums) const;
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);

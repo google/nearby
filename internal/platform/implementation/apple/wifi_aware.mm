@@ -122,10 +122,12 @@ Exception WifiAwareSocket::Close() {
 class WifiAwareServerSocket : public api::WifiAwareServerSocket {
  public:
   WifiAwareServerSocket(GNCWiFiAwareConnectionWrapper* listener_wrapper,
-                        GNCAwareManager* aware_manager, dispatch_semaphore_t pairing_semaphore)
+                        GNCAwareManager* aware_manager, dispatch_semaphore_t pairing_semaphore,
+                        NSString* service_name)
       : listener_wrapper_(listener_wrapper),
         aware_manager_(aware_manager),
-        pairing_semaphore_(pairing_semaphore) {}
+        pairing_semaphore_(pairing_semaphore),
+        service_name_(service_name) {}
   ~WifiAwareServerSocket() override = default;
 
   std::unique_ptr<api::WifiAwareSocket> Accept() override {
@@ -144,10 +146,11 @@ class WifiAwareServerSocket : public api::WifiAwareServerSocket {
     if (!listen_started_) {
       dispatch_semaphore_t listen_semaphore = dispatch_semaphore_create(0);
       __block NSError* listen_error = nil;
-      [aware_manager_ listenWithCompletionHandler:^(NSError* _Nullable error) {
-        listen_error = error;
-        dispatch_semaphore_signal(listen_semaphore);
-      }];
+      [aware_manager_ listenWithServiceName:service_name_
+                          completionHandler:^(NSError* _Nullable error) {
+                            listen_error = error;
+                            dispatch_semaphore_signal(listen_semaphore);
+                          }];
       dispatch_semaphore_wait(listen_semaphore, DISPATCH_TIME_FOREVER);
       if (listen_error != nil) {
         GNCLoggerError(@"[NEARBY] WifiAwareServerSocket Accept: listen failed: %@", listen_error);
@@ -190,6 +193,7 @@ class WifiAwareServerSocket : public api::WifiAwareServerSocket {
   GNCWiFiAwareConnectionWrapper* listener_wrapper_;
   GNCAwareManager* aware_manager_;
   dispatch_semaphore_t pairing_semaphore_;
+  NSString* service_name_;
   bool listen_started_ = false;
 };
 
@@ -239,16 +243,18 @@ bool WifiAwareMedium::StopDiscovery(const std::string& service_type) {
 
 bool WifiAwareMedium::IsPublishing() { return is_publishing_; }
 
-bool WifiAwareMedium::StartPublishing() {
-  GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StartPublishing");
+bool WifiAwareMedium::StartPublishing(const std::string& service_name) {
+  GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StartPublishing: %s", service_name.c_str());
   if (is_publishing_) {
     return true;
   }
 
   if (@available(iOS 26.0, *)) {
     NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
+    publish_service_name_ = service_name;
     publish_pairing_semaphore_ = dispatch_semaphore_create(0);
     dispatch_semaphore_t sem = publish_pairing_semaphore_;
+    NSString* serviceName = [NSString stringWithUTF8String:service_name.c_str()];
 
     dispatch_async(dispatch_get_main_queue(), ^{
       GNCWiFiAwareMedium* awareMedium = [[GNCWiFiAwareMedium alloc] init];
@@ -256,7 +262,8 @@ bool WifiAwareMedium::StartPublishing() {
         GNCLoggerInfo(@"[NEARBY] Aware paired devices count: %@", @(pairedDeviceCount));
         if (pairedDeviceCount == 0) {
           dispatch_async(dispatch_get_main_queue(), ^{
-            [awareMedium showAwarePublishingViewAtTopWithCompletion:^{
+            [awareMedium showAwarePublishingViewAtTopWithServiceName:serviceName
+                                                          completion:^{
               GNCLoggerInfo(
                   @"[NEARBY] showAwarePublishingViewAtTop dismissed, signaling semaphore");
               dispatch_semaphore_signal(sem);
@@ -292,37 +299,114 @@ bool WifiAwareMedium::StopPublishing() {
 
 bool WifiAwareMedium::IsSubscribing() { return is_subscribing_; }
 
-bool WifiAwareMedium::StartSubscribing() {
-  GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StartSubscribing");
+bool WifiAwareMedium::StartSubscribing(const std::string& service_name) {
+  GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StartSubscribing: %s", service_name.c_str());
   if (is_subscribing_) {
     return true;
   }
 
   if (@available(iOS 26.0, *)) {
     NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
+    subscribe_service_name_ = service_name;
     subscribe_pairing_semaphore_ = dispatch_semaphore_create(0);
     dispatch_semaphore_t sem = subscribe_pairing_semaphore_;
+    GNCAwareManager* awareManager = aware_manager_;
+    NSString* serviceName = [NSString stringWithUTF8String:service_name.c_str()];
+
+    // Nothing downstream of this gate needs the pairing UI to be *gone*; it only needs the pairing
+    // to *exist* (browse() re-checks the paired-device store before it does anything). So release
+    // on whichever arrives first. Guarded by `gateReleased` and funnelled through the main queue so
+    // the two racing callbacks cannot both signal.
+    __block BOOL gateReleased = NO;
+    void (^releaseGate)(NSString*) = ^(NSString* source) {
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (gateReleased) {
+          return;
+        }
+        gateReleased = YES;
+        GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Subscribing pairing gate released by: %@", source);
+        dispatch_semaphore_signal(sem);
+      });
+    };
+
+    NSString* peerId = [NSString stringWithUTF8String:expected_peer_id_.c_str()];
+    BOOL peerIdKnown = expected_peer_id_.empty() ? NO : YES;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-      GNCWiFiAwareMedium* awareMedium = [[GNCWiFiAwareMedium alloc] init];
-      [awareMedium getPairedDeviceCountWithCompletionHandler:^(NSInteger pairedDeviceCount) {
-        GNCLoggerInfo(@"[NEARBY] Aware paired devices count: %@", @(pairedDeviceCount));
-        if (pairedDeviceCount == 0) {
-          dispatch_async(dispatch_get_main_queue(), ^{
-            [awareMedium showAwareSubscribingViewAtTopWithCompletion:^{
-              GNCLoggerInfo(
-                  @"[NEARBY] showAwareSubscribingViewAtTop dismissed, signaling semaphore");
-              dispatch_semaphore_signal(sem);
-            }];
-          });
-        } else {
-          GNCLoggerInfo(@"[NEARBY] Skipping subscribing View, already have Aware paired devices %@",
-                        @(pairedDeviceCount));
-          dispatch_semaphore_signal(sem);
-        }
-      }];
-    });
+      GNCWiFiAwareSwiftWrapper* awareSwiftWrapper = [[GNCWiFiAwareSwiftWrapper alloc] init];
 
+      // Presents Apple's pairing UI and releases the gate once a pairing for `peerId` exists or the
+      // sheet goes away, whichever happens first.
+      void (^pairWithPeer)() = ^{
+        [awareManager awaitNewPairedDeviceForPeerId:peerId
+                                  completionHandler:^{
+                                    releaseGate(@"new pairing recorded");
+                                  }];
+        if (is_showing_pairing_ui_) {
+          // Android re-sends UPGRADE_PATH_AVAILABLE every few seconds, so a sheet from an earlier
+          // attempt may still be up. Presenting a second one silently fails and its completion
+          // never runs, which would wedge this attempt on the gate forever.
+          GNCLoggerInfo(@"[NEARBY] WifiAwareMedium  Already showing subscribing pairing View, not "
+                        @"stacking another");
+          releaseGate(@"pairing UI already showing");
+          return;
+        }
+        is_showing_pairing_ui_ = true;
+        dispatch_async(dispatch_get_main_queue(), ^{
+          [awareSwiftWrapper showAwareSubscribingViewAtTopWithServiceName:serviceName
+                                                                completion:^{
+            // Backstop: also covers the user cancelling without ever pairing.
+            is_showing_pairing_ui_ = false;
+            // The attempt is over either way. A successful pairing has already been bound by now
+            // (the store updates well before the sheet's success animation ends); an abandoned one
+            // must not leave a watch behind to bind whatever gets paired next to this `peerId`.
+            [awareManager cancelPairingWatch];
+            releaseGate(@"pairing UI dismissal");
+          }];
+        });
+      };
+
+      if (!peerIdKnown) {
+        // The peer sent no identifier, so we cannot tell which device it is. Nothing better is
+        // available than the old global check: pair if we have no pairings at all, otherwise hope
+        // the one we have is the right one. This is the path that fails for a second device, and
+        // it only remains for peers running a build that predates the identifier.
+        GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Subscribing gate: peer sent no identifier, using "
+                      @"paired-device count");
+        [awareSwiftWrapper
+            getPairedDeviceCountWithCompletionHandler:^(NSInteger pairedDeviceCount) {
+              GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Aware paired devices count: %@",
+                            @(pairedDeviceCount));
+              if (pairedDeviceCount == 0) {
+                [awareManager awaitPairedDeviceWithCompletionHandler:^{
+                  releaseGate(@"paired-device store");
+                }];
+                pairWithPeer();
+              } else {
+                GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Skipping subscribing View, already have "
+                              @"Aware paired devices %@",
+                              @(pairedDeviceCount));
+                releaseGate(@"cached pairing");
+              }
+            }];
+        return;
+      }
+
+      [awareManager
+          hasPairingForPeerId:peerId
+            completionHandler:^(BOOL alreadyPaired) {
+              GNCLoggerInfo(
+                  @"[NEARBY] WifiAwareMedium Subscribing gate: peerId=%@ alreadyPaired=%@", peerId,
+                  alreadyPaired ? @"YES" : @"NO");
+              if (alreadyPaired) {
+                // We have a pairing with *this* device. No UI needed, and browse() will
+                // narrow the subscribe to it.
+                releaseGate(@"known peer");
+                return;
+              }
+              pairWithPeer();
+            }];
+    });
   } else {
     GNCLoggerError(@"[NEARBY] Wi-Fi Aware subscribing not supported on this iOS version");
     return false;
@@ -336,11 +420,18 @@ bool WifiAwareMedium::StopSubscribing() {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StopSubscribing");
   is_subscribing_ = false;
   [aware_manager_ cancelBrowseTask];
+  [aware_manager_ cancelPairingWatch];
   if (subscribe_pairing_semaphore_ != nil) {
     dispatch_semaphore_signal(subscribe_pairing_semaphore_);
     subscribe_pairing_semaphore_ = nil;
   }
   return true;
+}
+
+void WifiAwareMedium::SetExpectedPeerId(const std::string& peer_id) {
+  GNCLoggerInfo(@"[NEARBY] WifiAwareMedium SetExpectedPeerId: %s",
+                peer_id.empty() ? "(none)" : peer_id.c_str());
+  expected_peer_id_ = peer_id;
 }
 
 std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
@@ -398,9 +489,14 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
         });
   }
 
+  // Narrows the subscribe to the paired device for `expected_peer_id_`. An empty ID (peer sent
+  // none) falls back to browsing across all paired devices.
+  NSString* peerId = [NSString stringWithUTF8String:expected_peer_id_.c_str()];
   [aware_manager_
-         browseWithPort:targetPort
-      completionHandler:^(NSError* _Nullable error) {
+      browseWithServiceName:[NSString stringWithUTF8String:subscribe_service_name_.c_str()]
+                       port:targetPort
+                     peerId:peerId
+          completionHandler:^(NSError* _Nullable error) {
         if (error != nil) {
           GNCLoggerError(@"[NEARBY] ConnectToService: browseWithPort completed with error: %@",
                          error);
@@ -463,6 +559,7 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
       pairing_cancellation_listener =
           std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
             NSLog(@"QS_AWARE ConnectToService: cancellation requested during pairing UI");
+            [aware_manager_ cancelPairingWatch];
             if (subscribe_pairing_semaphore_ != nil) {
               dispatch_semaphore_signal(subscribe_pairing_semaphore_);
             }
@@ -492,10 +589,14 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
         });
   }
 
-  NSLog(@"QS_AWARE ConnectToService: calling browseWithPort:%d completionHandler", port);
+  NSString* peerId = [NSString stringWithUTF8String:expected_peer_id_.c_str()];
+  NSLog(@"QS_AWARE ConnectToService: calling browseWithServiceName:%s port:%d peerId:%@",
+        service_name.c_str(), port, peerId);
   [aware_manager_
-         browseWithPort:port
-      completionHandler:^(NSError* _Nullable error) {
+      browseWithServiceName:[NSString stringWithUTF8String:service_name.c_str()]
+                       port:port
+                     peerId:peerId
+          completionHandler:^(NSError* _Nullable error) {
         NSLog(@"QS_AWARE ConnectToService: browseWithPort completed with error: %@", error);
         browseError = error;
         dispatch_semaphore_signal(semaphore);
@@ -537,8 +638,9 @@ std::unique_ptr<api::WifiAwareServerSocket> WifiAwareMedium::ListenForService(in
     return nullptr;
   }
   GNCWiFiAwareConnectionWrapper* listener_wrapper = aware_manager_.latestListenerWrapper;
-  auto server_socket_ptr = std::make_unique<WifiAwareServerSocket>(listener_wrapper, aware_manager_,
-                                                                   publish_pairing_semaphore_);
+  auto server_socket_ptr = std::make_unique<WifiAwareServerSocket>(
+      listener_wrapper, aware_manager_, publish_pairing_semaphore_,
+      [NSString stringWithUTF8String:publish_service_name_.c_str()]);
 
   return server_socket_ptr;
 }
@@ -595,13 +697,13 @@ bool WifiAwareMedium::StopDiscovery(const std::string& service_type) { return fa
 
 bool WifiAwareMedium::IsPublishing() { return false; }
 
-bool WifiAwareMedium::StartPublishing() { return false; }
+bool WifiAwareMedium::StartPublishing(const std::string& service_name) { return false; }
 
 bool WifiAwareMedium::StopPublishing() { return false; }
 
 bool WifiAwareMedium::IsSubscribing() { return false; }
 
-bool WifiAwareMedium::StartSubscribing() { return false; }
+bool WifiAwareMedium::StartSubscribing(const std::string& service_name) { return false; }
 
 bool WifiAwareMedium::StopSubscribing() { return false; }
 
