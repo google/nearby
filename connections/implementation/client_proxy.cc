@@ -1533,6 +1533,11 @@ location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
     // Apple always supports wifi hotspot client role since they can always
     // join a hotspot.
     medium_role.set_support_wifi_hotspot_client(true);
+    // Apple supports the Wi-Fi Aware R4 subscriber role only; it never takes
+    // the publisher role (see BwuManager::NeedToSwitchRole). Advertising this
+    // lets the peer's CanHost() check decide on the right capability instead of
+    // falling back to the hotspot client bit.
+    medium_role.set_support_wifi_aware_subscriber(true);
     return medium_role;
   }
 
