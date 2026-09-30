@@ -5094,6 +5094,70 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
       0);
 }
 
+TEST_F(NearbySharingServiceImplTest,
+       RemoveUnknownFilePayloadsReceivedAfterFailBeforeDisconnect) {
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
+                                                              GetToken());
+  SetUpEmptyIntroductionFrameDecoder();
+
+  SetLanConnected(true);
+  NiceMock<MockTransferUpdateCallback> callback;
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce([](const ShareTarget& share_target,
+                   const AttachmentContainer& container,
+                   TransferMetadata metadata) {
+        EXPECT_TRUE(metadata.is_final_status());
+        EXPECT_EQ(metadata.status(),
+                  TransferMetadata::Status::kUnsupportedAttachmentType);
+      });
+
+  SetUpKeyVerification(/*is_incoming=*/true,
+                       service::proto::PairedKeyResultFrame::SUCCESS);
+  SetUpForegroundReceiveSurface(callback);
+  ScopedReceiveSurface r(service_.get(), &callback);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  StartIncomingConnection();
+  ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                           /*success=*/true);
+  ASSERT_TRUE(ExpectPairedKeyEncryptionFrame());
+  ASSERT_TRUE(ExpectPairedKeyResultFrame());
+  ASSERT_TRUE(ExpectConnectionResponseFrame(
+      service::proto::ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE));
+
+  // Connection is still open during kIncomingRejectionDelay, and
+  // got_final_status_ is already true on the session. Simulate an unsolicited
+  // FILE payload arriving in this window before disconnect.
+  EXPECT_TRUE(
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      FilePath{"unsolicited_post_fail_1.txt"});
+  EXPECT_EQ(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .size(),
+      1u);
+
+  // Simulate peer disconnect during the rejection delay window
+  // (OnConnectionDisconnected -> UnregisterShareTarget).
+  sharing_service_task_runner_->PostTask([this]() {
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
+    connection_.reset();
+  });
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  EXPECT_TRUE(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .empty());
+
+  // Also verify that when the delayed CloseConnection timer fires, any unknown
+  // file paths queued before CloseConnection are drained.
+  fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
+      FilePath{"unsolicited_post_fail_2.txt"});
+  FastForward(kIncomingRejectionDelay);
+  EXPECT_TRUE(
+      fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
+          .empty());
+}
+
 TEST_F(NearbySharingServiceImplTest, NotifyLogoutSucceededWithCredentialError) {
   TestObserver observer(service_.get());
   AccountManager::Account account;

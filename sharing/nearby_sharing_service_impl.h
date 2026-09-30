@@ -357,6 +357,7 @@ class NearbySharingServiceImpl
   void OnOutgoingPayloadTransferUpdates(int64_t share_target_id);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
+  void DeleteUnknownFilePaths();
 
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
