@@ -553,10 +553,20 @@ class BasePcpHandlerTest
     pcp_handler->UpdateDiscoveryOptions(client, "service", new_options);
   }
 
+  // Creates a pair of connected mock channels (channel_a <-> channel_b).
+  //
+  // By default (`drop_first_write = true`), the first write on `channel_a` is
+  // dropped. Outgoing connection tests (`RequestConnection`) need this because
+  // the initiator sends a ConnectionRequest frame first, while the test peer on
+  // `channel_b` jumps straight to the encryption handshake without reading it.
+  //
+  // Incoming connection tests (`OnIncomingConnection`) should pass
+  // `drop_first_write = false` so `OnIncomingConnection` can read that initial
+  // ConnectionRequest frame from the pipe.
   std::pair<std::unique_ptr<MockEndpointChannel>,
             std::unique_ptr<MockEndpointChannel>>
-  SetupConnection(
-      location::nearby::proto::connections::Medium medium) {  // NOLINT
+  SetupConnection(location::nearby::proto::connections::Medium medium,
+                  bool drop_first_write = true) {
     auto [input_a, output_a] = CreatePipe();
     auto [input_b, output_b] = CreatePipe();
     auto channel_a = std::make_unique<MockEndpointChannel>(std::move(input_a),
@@ -567,18 +577,35 @@ class BasePcpHandlerTest
         .WillByDefault(Return(NearbyDevice::Type::kUnknownDevice));
     ON_CALL(mock_device_, GetEndpointId)
         .WillByDefault(Return(std::string(kTestEndpointId)));
-    // On initiator (A) side, we drop the first write, since this is a
-    // connection establishment packet, and we don't have the peer entity, just
-    // the peer channel. The rest of the exchange must happen for the benefit of
-    // DH key exchange.
     EXPECT_CALL(*channel_a, Read())
         .WillRepeatedly(
             [channel = channel_a.get()]() { return channel->DoRead(); });
-    EXPECT_CALL(*channel_a, Write(_))
-        .WillOnce(Return(Exception{Exception::kSuccess}))
-        .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
-          return channel->DoWrite(data);
-        });
+    if (drop_first_write) {
+      // On initiator (A) side, we drop the first write, since this is a
+      // connection establishment packet, and we don't have the peer entity,
+      // just the peer channel. The rest of the exchange must happen for the
+      // benefit of DH key exchange.
+      EXPECT_CALL(*channel_a, Write(_))
+          .WillOnce([](absl::string_view data) {
+            auto frame = parser::FromBytes(data);
+            EXPECT_TRUE(frame.ok());
+            EXPECT_EQ(
+                parser::GetFrameType(frame.result()),
+                location::nearby::connections::V1Frame::CONNECTION_REQUEST);
+            return Exception{Exception::kSuccess};
+          })
+          .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+            return channel->DoWrite(data);
+          });
+    } else {
+      // For incoming connection tests, keep the first write so that
+      // OnIncomingConnection() can read the initial ConnectionRequest packet
+      // from the peer channel.
+      EXPECT_CALL(*channel_a, Write(_))
+          .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+            return channel->DoWrite(data);
+          });
+    }
     EXPECT_CALL(*channel_a, GetMedium).WillRepeatedly(Return(medium));
     EXPECT_CALL(*channel_a, GetLastReadTimestamp)
         .WillRepeatedly(Return(absl::Now()));
@@ -2461,7 +2488,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithUnknown) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2473,8 +2501,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithUnknown) {
   frame.mutable_v1()->mutable_connection_request()->clear_presence_device();
   ASSERT_FALSE(frame.v1().connection_request().has_connections_device());
   ASSERT_FALSE(frame.v1().connection_request().has_presence_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
@@ -2511,7 +2537,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithUnknown) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2523,8 +2550,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithUnknown) {
   frame.mutable_v1()->mutable_connection_request()->clear_presence_device();
   ASSERT_FALSE(frame.v1().connection_request().has_connections_device());
   ASSERT_FALSE(frame.v1().connection_request().has_presence_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
@@ -2560,7 +2585,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithConnections) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2573,8 +2599,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithConnections) {
       ->mutable_connections_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
@@ -2610,7 +2634,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithPresence) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2623,8 +2648,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForPresenceWithPresence) {
       ->mutable_presence_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_presence_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
@@ -2659,7 +2682,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithConnections) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2672,8 +2696,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithConnections) {
       ->mutable_connections_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_connections_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_TRUE(pcp_handler
                   .OnIncomingConnection(
@@ -2708,7 +2730,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "ABCD",
@@ -2721,8 +2744,6 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithPresence) {
       ->mutable_presence_device()
       ->set_endpoint_id("ABCD");
   ASSERT_TRUE(frame.v1().connection_request().has_presence_device());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_EQ(pcp_handler
                 .OnIncomingConnection(
@@ -2761,7 +2782,8 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
                   .first.Ok());
   ASSERT_TRUE(client_->IsListeningForIncomingConnections());
   ASSERT_TRUE(pcp_handler.CanReceiveIncomingConnection(client_.get()));
-  auto channel_pair = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::string serialized_frame = parser::ForConnectionRequestConnections(
       {}, {
               .local_endpoint_id = "",
@@ -2773,8 +2795,6 @@ TEST_F(BasePcpHandlerTest, IncomingConnectionFailsWithEmptyEndpointId) {
   frame.ParseFromString(serialized_frame);
   frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
   ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
-  // do a dummy write to get to the actual write.
-  channel_pair.first->Write("");
   channel_pair.first->Write(frame.SerializeAsString());
   EXPECT_CALL(*mock_analytics_recorder_ptr_, LogSession()).Times(3);
   EXPECT_CALL(*mock_analytics_recorder_ptr_, LogStartSession()).Times(3);
@@ -3193,7 +3213,8 @@ TEST_F(BasePcpHandlerTest,
   constexpr absl::string_view kEndpointId = "ABCD";
   constexpr std::int32_t kSameNonce = 12345;
 
-  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_1 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_1 =
       std::move(channel_pair_1.first);
   auto& server_channel_1 = channel_pair_1.second;
@@ -3206,11 +3227,6 @@ TEST_F(BasePcpHandlerTest,
         initiated_latch.CountDown();
       });
 
-  // SetupConnection() configures the first channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_1->Write("");
   client_channel_1->Write(
       CreateConnectionRequestFrame(kEndpointId, kSameNonce));
 
@@ -3229,16 +3245,12 @@ TEST_F(BasePcpHandlerTest,
 
   // Send incoming Connection #2 with the same endpoint_id and same nonce
   // after Connection #1's channel has been moved to EndpointManager.
-  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_2 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_2 =
       std::move(channel_pair_2.first);
   auto& server_channel_2 = channel_pair_2.second;
 
-  // SetupConnection() configures the first channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_2->Write("");
   client_channel_2->Write(
       CreateConnectionRequestFrame(kEndpointId, kSameNonce));
 
@@ -3279,7 +3291,8 @@ TEST_F(BasePcpHandlerTest,
   constexpr std::int32_t kLowerNonce = 100;
   constexpr std::int32_t kHigherNonce = 200;
 
-  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_1 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_1 =
       std::move(channel_pair_1.first);
   auto& server_channel_1 = channel_pair_1.second;
@@ -3293,11 +3306,6 @@ TEST_F(BasePcpHandlerTest,
       })
       .WillRepeatedly(Return());
 
-  // SetupConnection() configures the first channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_1->Write("");
   client_channel_1->Write(
       CreateConnectionRequestFrame(kEndpointId, kLowerNonce));
 
@@ -3325,16 +3333,12 @@ TEST_F(BasePcpHandlerTest,
         rejected_latch.CountDown();
       });
 
-  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_2 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_2 =
       std::move(channel_pair_2.first);
   auto& server_channel_2 = channel_pair_2.second;
 
-  // SetupConnection() configures the second channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_2->Write("");
   client_channel_2->Write(
       CreateConnectionRequestFrame(kEndpointId, kHigherNonce));
 
@@ -3371,7 +3375,8 @@ TEST_F(BasePcpHandlerTest,
   constexpr std::int32_t kHigherNonce = 200;
   constexpr std::int32_t kLowerNonce = 100;
 
-  auto channel_pair_1 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_1 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_1 =
       std::move(channel_pair_1.first);
   auto& server_channel_1 = channel_pair_1.second;
@@ -3383,11 +3388,6 @@ TEST_F(BasePcpHandlerTest,
         initiated_latch.CountDown();
       });
 
-  // SetupConnection() configures the first channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_1->Write("");
   client_channel_1->Write(
       CreateConnectionRequestFrame(kEndpointId, kHigherNonce));
 
@@ -3404,16 +3404,12 @@ TEST_F(BasePcpHandlerTest,
                   .Ok());
   ASSERT_TRUE(initiated_latch.Await(absl::Seconds(5)).result());
 
-  auto channel_pair_2 = SetupConnection(Medium::BLUETOOTH);
+  auto channel_pair_2 =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
   std::shared_ptr<MockEndpointChannel> client_channel_2 =
       std::move(channel_pair_2.first);
   auto& server_channel_2 = channel_pair_2.second;
 
-  // SetupConnection() configures the first channel to drop its first Write()
-  // call (to ignore the outgoing ConnectionRequest frame in initiator tests).
-  // Perform a dummy write first so that the subsequent ConnectionRequest frame
-  // is actually written to the pipe for OnIncomingConnection() to read.
-  client_channel_2->Write("");
   client_channel_2->Write(
       CreateConnectionRequestFrame(kEndpointId, kLowerNonce));
 
