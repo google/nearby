@@ -25,7 +25,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/wifi_direct.h"
 
 namespace nearby {
 namespace connections {
@@ -69,7 +68,7 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
   // Accept Connection Callback.
   void OnIncomingWifiDirectConnection(ClientProxy* client,
                                       const std::string& upgrade_service_id,
-                                      WifiDirectSocket socket);
+                                      std::unique_ptr<EndpointChannel> channel);
 
   WifiDirect& wifi_direct_medium_;
 };

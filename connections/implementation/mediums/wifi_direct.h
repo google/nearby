@@ -15,14 +15,16 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_H_
 #define CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "connections/implementation/bwu_handler.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
@@ -37,7 +39,7 @@ class WifiDirect {
  public:
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, WifiDirectSocket socket)>;
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
   using WifiDirectAuthType =
       ::location::nearby::proto::connections::WifiDirectAuthType;
 
@@ -58,8 +60,7 @@ class WifiDirect {
   bool IsGOStarted() ABSL_LOCKS_EXCLUDED(mutex_);
   // Start WifiDirect Group Owner. Returns true if WifiDirect GO is successfully
   // started.
-  bool StartWifiDirect()
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StartWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
   // Stop WifiDirect Group Owner
   bool StopWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -86,12 +87,10 @@ class WifiDirect {
 
   // Establishes connection to WifiDirect service by ip address and port for
   // bandwidth upgradation.
-  // Returns socket instance. On success, WifiDirectSocket.IsValid() return
-  // true.
-  ErrorOr<WifiDirectSocket> Connect(const std::string& service_id,
-                                    const std::string& ip_address, int port,
-                                    CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  // On success, a non-null EndpointChannel is returned.
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id, const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
   // services on the network to identify and connect to this service.

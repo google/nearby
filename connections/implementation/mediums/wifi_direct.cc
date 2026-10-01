@@ -14,15 +14,17 @@
 
 #include "connections/implementation/mediums/wifi_direct.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <algorithm>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_direct_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -204,7 +206,10 @@ bool WifiDirect::StartAcceptingConnections(
             break;
           }
           if (callback) {
-            callback(service_id, std::move(client_socket));
+            auto channel = std::make_unique<WifiDirectEndpointChannel>(
+                service_id, /*channel_name=*/service_id,
+                std::move(client_socket));
+            callback(service_id, std::move(channel));
           }
         }
       });
@@ -262,7 +267,7 @@ bool WifiDirect::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-ErrorOr<WifiDirectSocket> WifiDirect::Connect(
+ErrorOr<std::unique_ptr<EndpointChannel>> WifiDirect::Connect(
     const std::string& service_id, const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
@@ -287,7 +292,6 @@ ErrorOr<WifiDirectSocket> WifiDirect::Connect(
                   CLIENT_CANCELLATION_CANCEL_WIFI_DIRECT_OUTGOING_CONNECTION)};
   }
 
-  // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiDirectSocket socket;
   socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
   if (!socket.IsValid()) {
@@ -296,8 +300,8 @@ ErrorOr<WifiDirectSocket> WifiDirect::Connect(
     return {Error(OperationResultCode::
                       CONNECTIVITY_WIFI_DIRECT_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
-  return socket;
+  return {std::make_unique<WifiDirectEndpointChannel>(
+      service_id, /*channel_name=*/service_id, std::move(socket))};
 }
 
 bool WifiDirect::SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) {

@@ -25,7 +25,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_direct.h"
-#include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
@@ -33,7 +32,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
-#include "internal/platform/wifi_direct.h"
 
 namespace nearby {
 namespace connections {
@@ -180,31 +178,27 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
   std::shared_ptr<CancellationFlag> cancellation_flag =
       client->GetCancellationFlag(endpoint_id);
-  ErrorOr<WifiDirectSocket> socket_result = wifi_direct_medium_.Connect(
-      service_id, gateway, port, cancellation_flag.get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_direct_medium_.Connect(service_id, gateway, port,
+                                  cancellation_flag.get());
+  if (channel_result.has_error()) {
     LOG(ERROR)
         << "WifiDirectBwuHandler failed to connect to the WifiDirect service("
         << port << ") for endpoint " << endpoint_id;
-    return {Error(socket_result.error().operation_result_code().value())};
+    return {Error(channel_result.error().operation_result_code().value())};
   }
 
   VLOG(1)
       << "WifiDirectBwuHandler successfully connected to WifiDirect service ("
       << gateway << ":" << port << ") while upgrading endpoint " << endpoint_id;
-
-  // Create a new WifiDirectEndpointChannel.
-  return {std::make_unique<WifiDirectEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket_result.value())};
+  return std::move(channel_result.value());
 }
 
 void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    WifiDirectSocket socket) {
-  auto channel = std::make_unique<WifiDirectEndpointChannel>(
-      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
-  auto connection = std::make_unique<IncomingSocketConnection>(
-      std::move(channel));
+    std::unique_ptr<EndpointChannel> channel) {
+  auto connection =
+      std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 }  // namespace connections
