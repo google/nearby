@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_AWDL_H_
-#define CORE_INTERNAL_MEDIUMS_AWDL_H_
+#ifndef CORE_INTERNAL_MEDIUMS_AWDL_AWDL_H_
+#define CORE_INTERNAL_MEDIUMS_AWDL_AWDL_H_
 
 #include <cstdint>
 #include <memory>
@@ -258,4 +258,4 @@ class Awdl {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_AWDL_H_
+#endif  // CORE_INTERNAL_MEDIUMS_AWDL_AWDL_H_

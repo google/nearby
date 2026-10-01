@@ -244,6 +244,7 @@ cc_library(
         "//connections/implementation/mediums:webrtc_peer_id",
         "//connections/implementation/mediums/advertisements:dct_advertisement",
         "//connections/implementation/mediums/advertisements:util",
+        "//connections/implementation/mediums/awdl",
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/bluetooth",

@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/awdl_endpoint_channel.h"
+#include "connections/implementation/mediums/awdl/awdl_endpoint_channel.h"
 
 #include <string>
 #include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/logging.h"
 

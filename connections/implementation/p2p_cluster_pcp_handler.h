@@ -35,7 +35,7 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"

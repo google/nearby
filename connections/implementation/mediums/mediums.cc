@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"

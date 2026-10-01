@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_AWDL_BWU_HANDLER_H_
-#define CORE_INTERNAL_MEDIUMS_AWDL_BWU_HANDLER_H_
+#ifndef CORE_INTERNAL_MEDIUMS_AWDL_AWDL_BWU_HANDLER_H_
+#define CORE_INTERNAL_MEDIUMS_AWDL_AWDL_BWU_HANDLER_H_
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
@@ -74,4 +74,4 @@ class AwdlBwuHandler : public BaseBwuHandler {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_AWDL_BWU_HANDLER_H_
+#endif  // CORE_INTERNAL_MEDIUMS_AWDL_AWDL_BWU_HANDLER_H_

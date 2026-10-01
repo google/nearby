@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/awdl_bwu_handler.h"
+#include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
 
 #include <cstdint>
 #include <memory>
@@ -28,8 +28,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/mediums/awdl.h"
-#include "connections/implementation/mediums/awdl_endpoint_channel.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl_endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/awdl.h"

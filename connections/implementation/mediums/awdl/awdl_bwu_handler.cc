@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/awdl_bwu_handler.h"
+#include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
 
 #include <memory>
 #include <string>
@@ -27,7 +27,7 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"

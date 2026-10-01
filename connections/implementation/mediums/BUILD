@@ -20,9 +20,6 @@ licenses(["notice"])
 cc_library(
     name = "mediums",
     srcs = [
-        "awdl.cc",
-        "awdl_bwu_handler.cc",
-        "awdl_endpoint_channel.cc",
         "ble.cc",
         "ble_endpoint_channel.cc",
         "ble_l2cap_endpoint_channel.cc",
@@ -41,9 +38,6 @@ cc_library(
         "wifi_lan_endpoint_channel.cc",
     ],
     hdrs = [
-        "awdl.h",
-        "awdl_bwu_handler.h",
-        "awdl_endpoint_channel.h",
         "ble.h",
         "ble_endpoint_channel.h",
         "ble_l2cap_endpoint_channel.h",
@@ -83,6 +77,7 @@ cc_library(
         "//connections/implementation:service_id_constants",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
+        "//connections/implementation/mediums/awdl",
         "//connections/implementation/mediums/ble",
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
@@ -172,6 +167,7 @@ cc_library(
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/advertisements:__pkg__",
+        "//connections/implementation/mediums/awdl:__pkg__",
         "//connections/implementation/mediums/ble:__subpackages__",
         "//internal/platform/implementation/windows:__pkg__",
     ],
@@ -210,7 +206,6 @@ cc_test(
     name = "core_internal_mediums_test",
     size = "small",
     srcs = [
-        "awdl_test.cc",
         "ble_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
@@ -225,7 +220,6 @@ cc_test(
         ":lost_entity_tracker",
         ":mediums",
         "//connections:core_types",
-        "//connections/implementation:endpoint_channel",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble",
@@ -252,7 +246,6 @@ cc_test(
     name = "bwu_handler_test",
     size = "small",
     srcs = [
-        "awdl_bwu_handler_test.cc",
         "wifi_direct_bwu_handler_test.cc",
         "wifi_hotspot_bwu_handler_test.cc",
         "wifi_lan_bwu_handler_test.cc",
@@ -263,11 +256,9 @@ cc_test(
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
         "//connections/implementation:offline_frames",
-        "//connections/implementation:service_id_constants",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:mock_platform",

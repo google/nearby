@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_AWDL_ENDPOINT_CHANNEL_H_
-#define CORE_INTERNAL_MEDIUMS_AWDL_ENDPOINT_CHANNEL_H_
+#ifndef CORE_INTERNAL_MEDIUMS_AWDL_AWDL_ENDPOINT_CHANNEL_H_
+#define CORE_INTERNAL_MEDIUMS_AWDL_AWDL_ENDPOINT_CHANNEL_H_
 
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "connections/implementation/mediums/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl.h"
 #include "internal/platform/awdl.h"
 
 namespace nearby {
@@ -49,4 +49,4 @@ class AwdlEndpointChannel final : public BaseEndpointChannel {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_AWDL_ENDPOINT_CHANNEL_H_
+#endif  // CORE_INTERNAL_MEDIUMS_AWDL_AWDL_ENDPOINT_CHANNEL_H_
