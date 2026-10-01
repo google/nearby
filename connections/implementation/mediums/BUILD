@@ -26,10 +26,6 @@ cc_library(
         "ble.cc",
         "ble_endpoint_channel.cc",
         "ble_l2cap_endpoint_channel.cc",
-        "bluetooth_bwu_handler.cc",
-        "bluetooth_classic.cc",
-        "bluetooth_endpoint_channel.cc",
-        "bluetooth_radio.cc",
         "mediums.cc",
         "wifi_aware.cc",
         "wifi_aware_bwu_handler.cc",
@@ -51,10 +47,6 @@ cc_library(
         "ble.h",
         "ble_endpoint_channel.h",
         "ble_l2cap_endpoint_channel.h",
-        "bluetooth_bwu_handler.h",
-        "bluetooth_classic.h",
-        "bluetooth_endpoint_channel.h",
-        "bluetooth_radio.h",
         "mediums.h",
         "wifi.h",
         "wifi_aware.h",
@@ -78,6 +70,7 @@ cc_library(
         "//connections/implementation:__subpackages__",
     ],
     deps = [
+        ":bluetooth_radio",
         ":utils",
         ":webrtc",
         ":webrtc_peer_id",
@@ -94,6 +87,7 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/ble:bloom_filter",
+        "//connections/implementation/mediums/bluetooth",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/base:masker",
         "//internal/flags:nearby_flags",
@@ -126,6 +120,21 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+)
+
+cc_library(
+    name = "bluetooth_radio",
+    srcs = ["bluetooth_radio.cc"],
+    hdrs = ["bluetooth_radio.h"],
+    visibility = [
+        "//connections/implementation:__pkg__",
+        "//connections/implementation/mediums/bluetooth:__pkg__",
+    ],
+    deps = [
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+    ],
 )
 
 cc_library(
@@ -203,7 +212,6 @@ cc_test(
     srcs = [
         "awdl_test.cc",
         "ble_test.cc",
-        "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
         "wifi_direct_test.cc",
@@ -213,10 +221,10 @@ cc_test(
     ],
     shard_count = 16,
     deps = [
+        ":bluetooth_radio",
         ":lost_entity_tracker",
         ":mediums",
         "//connections:core_types",
-        "//connections/implementation:endpoint_channel",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble",
@@ -244,7 +252,6 @@ cc_test(
     size = "small",
     srcs = [
         "awdl_bwu_handler_test.cc",
-        "bluetooth_bwu_handler_test.cc",
         "wifi_direct_bwu_handler_test.cc",
         "wifi_hotspot_bwu_handler_test.cc",
         "wifi_lan_bwu_handler_test.cc",
@@ -289,16 +296,9 @@ cc_test(
     ],
     deps = [
         ":webrtc_peer_id",
-        ":webrtc_socket",
         "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
-        "//internal/platform:comm",
-        "//internal/platform:test_util",
-        "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )

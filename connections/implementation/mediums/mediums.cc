@@ -18,7 +18,7 @@
 
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
-#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc/webrtc_impl.h"

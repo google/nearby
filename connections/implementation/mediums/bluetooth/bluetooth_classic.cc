@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 
 #include <memory>
 #include <string>
@@ -20,8 +20,8 @@
 
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/bluetooth_bwu_handler.h"
-#include "connections/implementation/mediums/bluetooth_endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"

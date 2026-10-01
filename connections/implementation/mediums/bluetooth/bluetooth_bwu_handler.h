@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_BWU_HANDLER_H_
-#define CORE_INTERNAL_MEDIUMS_BLUETOOTH_BWU_HANDLER_H_
+#ifndef CORE_INTERNAL_MEDIUMS_BLUETOOTH_BLUETOOTH_BWU_HANDLER_H_
+#define CORE_INTERNAL_MEDIUMS_BLUETOOTH_BLUETOOTH_BWU_HANDLER_H_
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -70,4 +70,4 @@ class BluetoothBwuHandler : public BaseBwuHandler {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_BWU_HANDLER_H_
+#endif  // CORE_INTERNAL_MEDIUMS_BLUETOOTH_BLUETOOTH_BWU_HANDLER_H_

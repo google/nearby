@@ -38,7 +38,7 @@
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
-#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/webrtc.h"

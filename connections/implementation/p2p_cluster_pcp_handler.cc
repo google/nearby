@@ -48,7 +48,7 @@
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble_endpoint_channel.h"
 #include "connections/implementation/mediums/ble_l2cap_endpoint_channel.h"
-#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
