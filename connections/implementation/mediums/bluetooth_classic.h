@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -42,7 +43,7 @@ class BluetoothClassic {
 
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, BluetoothSocket socket)>;
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   explicit BluetoothClassic(BluetoothRadio& radio);
   ~BluetoothClassic();
@@ -84,7 +85,8 @@ class BluetoothClassic {
   // Returns true, if server socket was successfully created, false otherwise.
   // Called by server.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
-                                          AcceptedConnectionCallback callback)
+                                          AcceptedConnectionCallback callback,
+                                          bool for_upgrade = false)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true, if object is currently running a Accept() loop.
@@ -114,9 +116,10 @@ class BluetoothClassic {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
-  ErrorOr<BluetoothSocket> Connect(BluetoothDevice& bluetooth_device,
-                                   const std::string& service_id,
-                                   CancellationFlag* cancellation_flag)
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      BluetoothDevice& bluetooth_device, const std::string& service_id,
+      const std::string& local_service_id, const std::string& channel_name,
+      CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   MacAddress GetAddress() const ABSL_LOCKS_EXCLUDED(mutex_);

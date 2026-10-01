@@ -19,8 +19,10 @@
 #include <utility>
 
 #include "connections/implementation/bwu_handler.h"
-#include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_bwu_handler.h"
+#include "connections/implementation/mediums/bluetooth_endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
@@ -312,7 +314,8 @@ void BluetoothClassic::StopAllDiscovery() {
 }
 
 ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
+    const std::string& service_id, AcceptedConnectionCallback callback,
+    bool for_upgrade) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
@@ -359,25 +362,31 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections()
   // is invoked.
-  accept_loops_runner_.Execute("bt-accept", [callback = std::move(callback),
-                                             server_socket =
-                                                 std::move(owned_socket),
-                                             service_id]() mutable {
-    while (true) {
-      BluetoothSocket client_socket = server_socket.Accept();
-      if (!client_socket.IsValid()) {
-        LOG(INFO) << "Failed to accept connection for " << service_id;
-        server_socket.Close();
-        break;
-      }
-      LOG(INFO) << "Accepted connection for " << service_id;
-      bool callback_called = false;
-      if (callback && !callback_called) {
-        LOG(INFO) << "Call back triggered for physical socket.";
-        callback(service_id, std::move(client_socket));
-      }
-    }
-  });
+  accept_loops_runner_.Execute(
+      "bt-accept",
+      [callback = std::move(callback), server_socket = std::move(owned_socket),
+       service_id, for_upgrade]() mutable {
+        while (true) {
+          BluetoothSocket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            LOG(INFO) << "Failed to accept connection for " << service_id;
+            server_socket.Close();
+            break;
+          }
+          LOG(INFO) << "Accepted connection for " << service_id;
+          bool callback_called = false;
+          if (callback && !callback_called) {
+            LOG(INFO) << "Call back triggered for physical socket.";
+            callback(
+                service_id,
+                std::make_unique<BluetoothEndpointChannel>(
+                    service_id,
+                    for_upgrade ? service_id
+                                : client_socket.GetRemoteDevice().GetName(),
+                    std::move(client_socket)));
+          }
+        }
+      });
 
   return {true};
 }
@@ -433,8 +442,9 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
   return true;
 }
 
-ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
+ErrorOr<std::unique_ptr<EndpointChannel>> BluetoothClassic::Connect(
     BluetoothDevice& bluetooth_device, const std::string& service_id,
+    const std::string& local_service_id, const std::string& channel_name,
     CancellationFlag* cancellation_flag) {
   service_id_to_connect_attempts_count_map_[service_id] = 1;
   while (service_id_to_connect_attempts_count_map_[service_id] <=
@@ -455,7 +465,10 @@ ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
               << (wrapper_result.has_value() ? wrapper_result.value().IsValid()
                                              : false);
     if (wrapper_result.has_value() && wrapper_result.value().IsValid()) {
-      return std::move(wrapper_result.value());
+      std::unique_ptr<EndpointChannel> channel =
+          std::make_unique<BluetoothEndpointChannel>(
+              local_service_id, channel_name, wrapper_result.value());
+      return std::move(channel);
     }
 
     service_id_to_connect_attempts_count_map_[service_id]++;
@@ -536,8 +549,7 @@ void BluetoothClassic::RemoveAllDiscoveryCallbacks() {
   discovery_callbacks_.clear();
 }
 
-BluetoothDevice BluetoothClassic::GetRemoteDevice(
-    MacAddress mac_address) {
+BluetoothDevice BluetoothClassic::GetRemoteDevice(MacAddress mac_address) {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {

@@ -61,7 +61,7 @@ class BluetoothBwuHandler : public BaseBwuHandler {
 
   void OnIncomingBluetoothConnection(ClientProxy* client,
                                      const std::string& upgrade_service_id,
-                                     BluetoothSocket socket);
+                                     std::unique_ptr<EndpointChannel> channel);
 
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;

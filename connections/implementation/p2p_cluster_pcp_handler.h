@@ -31,6 +31,7 @@
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
@@ -57,7 +58,6 @@
 #include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
@@ -194,10 +194,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void BluetoothDeviceLostHandler(ClientProxy* client,
                                   const std::string& service_id,
                                   BluetoothDevice& device);
-  void BluetoothConnectionAcceptedHandler(ClientProxy* client,
-                                          NearbyDevice::Type device_type,
-                                          const std::string& service_id,
-                                          BluetoothSocket socket);
+  void BluetoothConnectionAcceptedHandler(
+      ClientProxy* client, NearbyDevice::Type device_type,
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel);
   ErrorOr<location::nearby::proto::connections::Medium>
   StartBluetoothAdvertising(ClientProxy* client, const std::string& service_id,
                             const ByteArray& service_id_hash,

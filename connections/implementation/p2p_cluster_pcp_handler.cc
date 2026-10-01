@@ -35,6 +35,7 @@
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -48,7 +49,6 @@
 #include "connections/implementation/mediums/ble_endpoint_channel.h"
 #include "connections/implementation/mediums/ble_l2cap_endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
-#include "connections/implementation/mediums/bluetooth_endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
@@ -67,7 +67,6 @@
 #include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -1922,17 +1921,12 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
 
 void P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler(
     ClientProxy* client, NearbyDevice::Type device_type,
-    const std::string& service_id, BluetoothSocket socket) {
+    const std::string& service_id, std::unique_ptr<EndpointChannel> channel) {
   RunOnPcpHandlerThread(
       "p2p-bt-on-incoming-connection",
-      [this, client, service_id, socket = std::move(socket), device_type]()
+      [this, client, service_id, channel = std::move(channel), device_type]()
           RUN_ON_PCP_HANDLER_THREAD() mutable {
-            std::string remote_device_name = socket.GetRemoteDevice().GetName();
-            auto channel = std::make_unique<BluetoothEndpointChannel>(
-                service_id,
-                /*channel_name=*/remote_device_name, socket);
-            ByteArray remote_device_info{remote_device_name};
-
+            ByteArray remote_device_info{channel->GetName()};
             OnIncomingConnection(client, remote_device_info, std::move(channel),
                                  BLUETOOTH, device_type);
           });
@@ -2133,9 +2127,11 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
 
   std::shared_ptr<CancellationFlag> cancellation_flag =
       client->GetCancellationFlag(endpoint->endpoint_id);
-  ErrorOr<BluetoothSocket> bluetooth_socket_result = bluetooth_medium_.Connect(
-      device, endpoint->service_id, cancellation_flag.get());
-  if (bluetooth_socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> bluetooth_channel_result =
+      bluetooth_medium_.Connect(device, endpoint->service_id,
+                                endpoint->service_id, endpoint->endpoint_id,
+                                cancellation_flag.get());
+  if (bluetooth_channel_result.has_error()) {
     LOG(ERROR)
         << "In BluetoothConnectImpl(), failed to connect to Bluetooth device "
         << device.GetName() << " for endpoint(id=" << endpoint->endpoint_id
@@ -2143,12 +2139,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBluetoothError},
         .operation_result_code =
-            bluetooth_socket_result.error().operation_result_code().value()};
+            bluetooth_channel_result.error().operation_result_code().value()};
   }
 
-  auto channel = std::make_unique<BluetoothEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      bluetooth_socket_result.value());
   VLOG(1) << "Client" << client->GetClientId()
           << " created Bluetooth endpoint channel to endpoint(id="
           << endpoint->endpoint_id << ").";
@@ -2157,7 +2150,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
       .medium = BLUETOOTH,
       .status = {Status::kSuccess},
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-      .endpoint_channel = std::move(channel)};
+      .endpoint_channel = std::move(bluetooth_channel_result.value())};
 }
 
 void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
