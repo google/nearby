@@ -24,7 +24,9 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_hotspot_endpoint_channel.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -202,7 +204,10 @@ bool WifiHotspot::StartAcceptingConnections(
             break;
           }
           if (callback) {
-            callback(service_id, std::move(client_socket));
+            auto channel = std::make_unique<WifiHotspotEndpointChannel>(
+                service_id, /*channel_name=*/service_id,
+                std::move(client_socket));
+            callback(service_id, std::move(channel));
           }
         }
       });
@@ -260,7 +265,7 @@ bool WifiHotspot::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
+ErrorOr<std::unique_ptr<EndpointChannel>> WifiHotspot::Connect(
     const std::string& service_id,
     const std::vector<ServiceAddress>& service_addresses,
     CancellationFlag* cancellation_flag) {
@@ -325,8 +330,10 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
         Error(OperationResultCode::
                   CONNECTIVITY_WIFI_HOTSPOT_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
-  return socket;
+  std::unique_ptr<EndpointChannel> channel =
+      std::make_unique<WifiHotspotEndpointChannel>(
+          service_id, /*channel_name=*/service_id, socket);
+  return std::move(channel);
 }
 
 std::unique_ptr<BwuHandler> WifiHotspot::CreateBwuHandler(

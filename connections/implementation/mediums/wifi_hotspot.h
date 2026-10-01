@@ -15,17 +15,21 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
 #define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
@@ -36,7 +40,7 @@ class WifiHotspot {
  public:
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, WifiHotspotSocket socket)>;
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   WifiHotspot() : is_hotspot_started_(false), is_connected_to_hotspot_(false) {}
   ~WifiHotspot();
@@ -74,9 +78,8 @@ class WifiHotspot {
 
   // Establishes connection to WifiHotspot service by ip address and port for
   // bandwidth upgradation.
-  // Returns socket instance. On success, WifiHotspotSocket.IsValid() return
-  // true.
-  ErrorOr<WifiHotspotSocket> Connect(
+  // On success, a non-null EndpointChannel is returned.
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
       const std::string& service_id,
       const std::vector<ServiceAddress>& service_addresses,
       CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);

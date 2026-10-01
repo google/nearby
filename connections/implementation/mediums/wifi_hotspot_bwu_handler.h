@@ -25,7 +25,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -59,9 +58,9 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
   void HandleRevertInitiatorStateForService(
       const std::string& upgrade_service_id) final;
 
-  void OnIncomingWifiHotspotConnection(ClientProxy* client,
-                                       const std::string& upgrade_service_id,
-                                       WifiHotspotSocket socket);
+  void OnIncomingWifiHotspotConnection(
+      ClientProxy* client, const std::string& upgrade_service_id,
+      std::unique_ptr<EndpointChannel> channel);
 
   WifiHotspot& wifi_hotspot_medium_;
 };

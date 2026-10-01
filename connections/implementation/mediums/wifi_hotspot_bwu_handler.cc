@@ -33,7 +33,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
-#include "connections/implementation/mediums/wifi_hotspot_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/strategy.h"
@@ -44,7 +43,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
-#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -225,14 +223,15 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   std::shared_ptr<CancellationFlag> cancellation_flag =
       client->GetCancellationFlag(endpoint_id);
-  ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
-      service_id, hotspot_credentials.GetAddressCandidates(),
-      cancellation_flag.get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_hotspot_medium_.Connect(service_id,
+                                   hotspot_credentials.GetAddressCandidates(),
+                                   cancellation_flag.get());
+  if (channel_result.has_error()) {
     LOG(ERROR) << "WifiHotspotBwuHandler failed to connect to the WifiHotspot "
                   "service for endpoint "
                << endpoint_id;
-    return {Error(socket_result.error().operation_result_code().value_or(
+    return {Error(channel_result.error().operation_result_code().value_or(
         OperationResultCode::DETAIL_UNKNOWN))};
   }
   VLOG(1)
@@ -240,21 +239,15 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
          "while upgrading endpoint "
       << endpoint_id;
 
-  // Create a new WifiHotspotEndpointChannel.
-  auto channel = std::make_unique<WifiHotspotEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket_result.value());
-
-  return {std::move(channel)};
+  return {std::move(channel_result.value())};
 }
 
 // Accept Connection Callback.
 void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    WifiHotspotSocket socket) {
-  auto channel = std::make_unique<WifiHotspotEndpointChannel>(
-      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
-  auto connection = std::make_unique<IncomingSocketConnection>(
-      std::move(channel));
+    std::unique_ptr<EndpointChannel> channel) {
+  auto connection =
+      std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 
