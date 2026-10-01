@@ -106,8 +106,13 @@ BwuManager::BwuManager(
                 kEnableWifiAware)) {
       config_.allow_upgrade_to.wifi_aware_r4 = true;
     }
-    config_.allow_upgrade_to.wifi_lan = true;
-    config_.allow_upgrade_to.wifi_hotspot = true;
+    config_.allow_upgrade_to.wifi_lan = NearbyFlags::GetInstance().GetBoolFlag(
+        config_package_nearby::nearby_connections_feature::
+            kEnableWifiLanUpgrade);
+    config_.allow_upgrade_to.wifi_hotspot =
+        NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableWifiHotspotClient);
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
       config_.allow_upgrade_to.awdl = true;
@@ -1540,6 +1545,27 @@ void BwuManager::TryNextBestUpgradeMediums(
   LOG(INFO) << "BwuManager is attempting to upgrade endpoint " << endpoint_id
             << " again with a new bandwidth upgrade medium.";
   InitiateBwuForEndpoint(client, endpoint_id, next_medium);
+}
+
+std::vector<Medium> BwuManager::StripOutDisallowedUpgradeMediums(
+    std::vector<Medium> mediums) const {
+  const BooleanMediumSelector& allowed = config_.allow_upgrade_to;
+  mediums.erase(std::remove_if(mediums.begin(), mediums.end(),
+                               [&allowed](Medium medium) {
+                                 switch (medium) {
+                                   case Medium::WIFI_LAN:
+                                     return !allowed.wifi_lan;
+                                   case Medium::WIFI_HOTSPOT:
+                                     return !allowed.wifi_hotspot;
+                                   default:
+                                     // Other mediums are either gated by
+                                     // their own flags in the PCP handlers
+                                     // or are regular connection mediums.
+                                     return false;
+                                 }
+                               }),
+                mediums.end());
+  return mediums;
 }
 
 std::vector<Medium> BwuManager::StripOutUnavailableMediums(

@@ -929,8 +929,11 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
               << "; bssid=" << connection_info.bssid
               << "; ap_frequency=" << connection_info.ap_frequency << "Mhz";
   }
+  // Don't advertise mediums that the local BwuManager won't upgrade to,
+  // otherwise the remote may pick them and the upgrade would fail.
   connection_info.supported_mediums =
-      GetSupportedConnectionMediumsByPriority(connection_options);
+      bwu_manager_->StripOutDisallowedUpgradeMediums(
+          GetSupportedConnectionMediumsByPriority(connection_options));
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiDirect)) {

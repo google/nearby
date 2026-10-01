@@ -1425,7 +1425,7 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
               testing::FieldsAre(/*bluetooth=*/false, /*ble=*/false,
                                  /*web_rtc_no_cellular=*/false,
                                  /*web_rtc=*/true, /*wifi_lan=*/true,
-                                 /*wifi_aware=*/false,
+                                 /*wifi_aware=*/true,
                                  /*wifi_hotspot=*/false, /*wifi_direct=*/true,
                                  /*awdl=*/false, /*wifi_aware_r4=*/false));
 }
@@ -1433,8 +1433,18 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
 TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
      notHPRealtekDevice_defaultBwuConfig) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableWifiHotspotClient,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
       true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiLanUpgrade,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      false);
   ServiceControllerRouter router(
       absl::AnyInvocable<bool()>{[]() { return false; }});
   auto service_controller = router.GetServiceController();
