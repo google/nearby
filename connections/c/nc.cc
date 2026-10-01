@@ -834,3 +834,29 @@ void NcSetPhenotypeFlagReader(READER_CONTEXT context,
       context, phenotype_flag_reader);
   nearby::NearbyFlags::GetInstance().SetFlagReader(*kNearbyFlags);
 }
+
+void NcRegisterEventHandler(NC_INSTANCE instance,
+                            NcCallbackEventHandler event_handler,
+                            CALLER_CONTEXT context) {
+  NcContext* nc_context = GetContext(instance);
+  if (nc_context == nullptr) {
+    LOG(WARNING) << "Trying to register event handler on not existent service "
+                 << instance;
+    return;
+  }
+
+  if (event_handler == nullptr) {
+    nc_context->core->RegisterEventHandler(nullptr);
+    return;
+  }
+
+  nc_context->core->RegisterEventHandler(
+      [=](const ::nearby::connections::ClientEvent& event) {
+        NC_EVENT nc_event;
+        nc_event.type = static_cast<NC_EVENT_TYPE>(event.type);
+        nc_event.endpoint_id = convertStringToInt(event.endpoint_id);
+        nc_event.data.data = const_cast<char*>(event.data.data());
+        nc_event.data.size = event.data.size();
+        return event_handler(instance, &nc_event, context);
+      });
+}

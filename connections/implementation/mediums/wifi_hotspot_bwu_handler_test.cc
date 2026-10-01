@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -27,6 +28,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -205,6 +207,38 @@ TEST_F(WifiHotspotTest, CreateUpgradedEndpointChannel_RejectGatewayPort0) {
   EXPECT_TRUE(result.has_error());
   EXPECT_EQ(result.error().operation_result_code().value(),
             OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL);
+}
+
+TEST_F(WifiHotspotTest, CreateUpgradedEndpointChannel_ClientRejectsJoin) {
+  ClientProxy client;
+  client.AddCancellationFlag(std::string(kEndpointID));
+  std::vector<ClientEvent> events;
+  client.RegisterEventHandler([&events](const ClientEvent& event) {
+    events.push_back(event);
+    return false;
+  });
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+
+  UpgradePathInfo path_info;
+  auto* credentials = path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid("DIRECT-SSID");
+  credentials->set_password("password");
+  credentials->set_gateway("192.168.43.1");
+  credentials->set_port(1234);
+
+  auto result = handler.CreateUpgradedEndpointChannel(
+      &client, std::string(kServiceID), std::string(kEndpointID), path_info);
+
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::
+                CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION);
+  EXPECT_FALSE(mediums.GetWifiHotspot().IsConnectedToHotspot());
+  ASSERT_EQ(events.size(), 1);
+  EXPECT_EQ(events[0].type, ClientEvent::Type::kJoinHotspotPrompt);
+  EXPECT_EQ(events[0].endpoint_id, kEndpointID);
+  EXPECT_EQ(events[0].data, "DIRECT-SSID");
 }
 
 }  // namespace connections

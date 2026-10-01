@@ -313,6 +313,15 @@ class ClientProxy final {
     connections_device_provider_ = std::move(provider);
   }
 
+  // Registers a handler for events that require a decision from the client.
+  // Replaces any previously registered handler. Passing nullptr unregisters.
+  void RegisterEventHandler(ClientEventHandler handler);
+
+  // Dispatches `event` to the registered handler and returns its decision.
+  // Returns true if no handler is registered. The handler is invoked without
+  // holding the internal lock and blocks the calling thread.
+  bool OnEvent(const ClientEvent& event);
+
   const bool& IsSupportSafeToDisconnect() const {
     return supports_safe_to_disconnect_;
   }
@@ -549,6 +558,8 @@ class ClientProxy final {
   NearbyDeviceProvider* external_device_provider_ = nullptr;
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
+  // Handler for events that require a decision from the client.
+  ClientEventHandler event_handler_;
   bool supports_safe_to_disconnect_;
   // Allowed to use WebRTC over non-cellular networks.
   bool webrtc_non_cellular_ = false;

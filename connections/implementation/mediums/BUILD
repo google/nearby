@@ -251,6 +251,7 @@ cc_test(
     ],
     deps = [
         ":mediums",
+        "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",

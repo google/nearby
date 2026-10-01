@@ -568,6 +568,50 @@ TEST_F(ClientProxyTest, ResetClearsState) {
   EXPECT_TRUE(client1()->GetDiscoveryServiceId().empty());
 }
 
+TEST_F(ClientProxyTest, OnEventWithoutHandlerReturnsTrue) {
+  EXPECT_TRUE(client1()->OnEvent({.type = ClientEvent::Type::kJoinHotspotPrompt,
+                                  .endpoint_id = "ABCD",
+                                  .data = "SSID"}));
+}
+
+TEST_F(ClientProxyTest, OnEventReturnsHandlerResult) {
+  std::vector<ClientEvent> events;
+  bool decision = false;
+  client1()->RegisterEventHandler([&](const ClientEvent& event) {
+    events.push_back(event);
+    return decision;
+  });
+  ClientEvent event = {.type = ClientEvent::Type::kJoinHotspotPrompt,
+                       .endpoint_id = "ABCD",
+                       .data = "SSID"};
+
+  EXPECT_FALSE(client1()->OnEvent(event));
+  decision = true;
+  EXPECT_TRUE(client1()->OnEvent(event));
+
+  ASSERT_EQ(events.size(), 2);
+  EXPECT_EQ(events[0].type, ClientEvent::Type::kJoinHotspotPrompt);
+  EXPECT_EQ(events[0].endpoint_id, "ABCD");
+  EXPECT_EQ(events[0].data, "SSID");
+}
+
+TEST_F(ClientProxyTest, OnEventAfterUnregisterReturnsTrue) {
+  client1()->RegisterEventHandler([](const ClientEvent&) { return false; });
+  client1()->RegisterEventHandler(nullptr);
+  EXPECT_TRUE(client1()->OnEvent({.type = ClientEvent::Type::kJoinHotspotPrompt,
+                                  .endpoint_id = "ABCD",
+                                  .data = "SSID"}));
+}
+
+TEST_F(ClientProxyTest, EventHandlerSurvivesReset) {
+  client1()->RegisterEventHandler([](const ClientEvent&) { return false; });
+  client1()->Reset();
+  EXPECT_FALSE(
+      client1()->OnEvent({.type = ClientEvent::Type::kJoinHotspotPrompt,
+                          .endpoint_id = "ABCD",
+                          .data = "SSID"}));
+}
+
 TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {
   client1()->StartedAdvertising(service_id_, strategy_, {}, {}, {});
 
