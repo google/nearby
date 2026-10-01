@@ -42,7 +42,6 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
-#include "connections/implementation/mediums/awdl_endpoint_channel.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
@@ -64,7 +63,6 @@
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
-#include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -2578,20 +2576,16 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 }
 
 void P2pClusterPcpHandler::AwdlConnectionAcceptedHandler(
-    ClientProxy* client, const std::string& local_endpoint_id,
-    NearbyDevice::Type device_type, const std::string& service_id,
-    AwdlSocket socket) {
+    ClientProxy* client, NearbyDevice::Type device_type,
+    const std::string& service_id, std::unique_ptr<EndpointChannel> channel) {
   RunOnPcpHandlerThread(
       "p2p-awdl-on-incoming-connection",
-      [this, client, local_endpoint_id, service_id, device_type,
-       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        auto channel = std::make_unique<AwdlEndpointChannel>(
-            service_id, /*channel_name=*/local_endpoint_id, socket);
-        ByteArray remote_service_name_byte{local_endpoint_id};
-
-        OnIncomingConnection(client, remote_service_name_byte,
-                             std::move(channel), AWDL, device_type);
-      });
+      [this, client, service_id, device_type, channel = std::move(channel)]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            ByteArray remote_service_name_byte{channel->GetName()};
+            OnIncomingConnection(client, remote_service_name_byte,
+                                 std::move(channel), AWDL, device_type);
+          });
 }
 
 void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
@@ -2621,10 +2615,9 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlAdvertising(
             << service_id << ": start";
   if (!awdl_medium_.IsAcceptingConnections(service_id)) {
     ErrorOr<bool> awdl_result = awdl_medium_.StartAcceptingConnections(
-        service_id,
+        service_id, /*channel_name=*/local_endpoint_id,
         absl::bind_front(&P2pClusterPcpHandler::AwdlConnectionAcceptedHandler,
-                         this, client, local_endpoint_id,
-                         NearbyDevice::Type::kConnectionsDevice));
+                         this, client, NearbyDevice::Type::kConnectionsDevice));
     if (awdl_result.has_error()) {
       LOG(WARNING)
           << "In StartAwdlAdvertising("
@@ -2813,25 +2806,20 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::AwdlConnectImpl(
             << endpoint->endpoint_id << ") over Awdl.";
   std::shared_ptr<CancellationFlag> cancellation_flag =
       client->GetCancellationFlag(endpoint->endpoint_id);
-  ErrorOr<AwdlSocket> socket_result = awdl_medium_.Connect(
-      endpoint->service_id, endpoint->service_info, cancellation_flag.get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      awdl_medium_.Connect(endpoint->service_id,
+                           /*channel_name=*/endpoint->endpoint_id,
+                           endpoint->service_info, cancellation_flag.get());
+  if (channel_result.has_error()) {
     LOG(ERROR) << "In AwdlConnectImpl(), failed to connect to service "
                << endpoint->service_info.GetServiceName()
                << " for endpoint(id=" << endpoint->endpoint_id << ").";
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kWifiLanError},
         .operation_result_code =
-            socket_result.error().operation_result_code().value(),
+            channel_result.error().operation_result_code().value(),
     };
   }
-  LOG(INFO) << "In AwdlConnectImpl(), connect to service "
-            << " socket=" << &socket_result.value().GetImpl()
-            << " for endpoint(id=" << endpoint->endpoint_id << ").";
-
-  auto channel = std::make_unique<AwdlEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      socket_result.value());
   LOG(INFO) << "Client " << client->GetClientId()
             << " created Awdl endpoint channel to endpoint(id="
             << endpoint->endpoint_id << ").";
@@ -2839,7 +2827,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::AwdlConnectImpl(
       .medium = AWDL,
       .status = {Status::kSuccess},
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-      .endpoint_channel = std::move(channel),
+      .endpoint_channel = std::move(channel_result.value()),
   };
 }
 

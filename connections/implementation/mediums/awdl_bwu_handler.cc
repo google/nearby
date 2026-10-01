@@ -28,12 +28,10 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl.h"
-#include "connections/implementation/mediums/awdl_endpoint_channel.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #include "internal/base/masker.h"
-#include "internal/platform/awdl.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
@@ -152,38 +150,22 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
 
   std::shared_ptr<CancellationFlag> cancellation_flag =
       client->GetCancellationFlag(endpoint_id);
-  ErrorOr<AwdlSocket> socket_result = awdl_medium_.Connect(
-      upgrade_service_id, nsd_service_info, psk_info, cancellation_flag.get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      awdl_medium_.Connect(upgrade_service_id, nsd_service_info, psk_info,
+                           cancellation_flag.get());
+  if (channel_result.has_error()) {
     LOG(ERROR) << "Failed to connect to the AWDL service (service_name:"
                << service_name << ", service_type:" << service_type
                << ") for endpoint " << endpoint_id;
     awdl_medium_.StopDiscovery(upgrade_service_id);
-    return {Error(socket_result.error().operation_result_code().value())};
+    return {Error(channel_result.error().operation_result_code().value())};
   }
 
   LOG(INFO) << "Connected to AWDL service (service_name:" << service_name
             << ", service_type:" << service_type
             << ") successfully while upgrading endpoint " << endpoint_id;
-
-  // Create a new AwdlEndpointChannel.
-  auto channel = std::make_unique<AwdlEndpointChannel>(
-      upgrade_service_id,
-      /*channel_name=*/upgrade_service_id, socket_result.value(), &awdl_medium_,
-      /*is_outgoing=*/true);
-  if (channel == nullptr) {
-    LOG(ERROR) << "Failed to create AWDL endpoint "
-               << "channel to the AWDL service (service_name:" << service_name
-               << ", service_type:" << service_type << ") for endpoint "
-               << endpoint_id;
-    awdl_medium_.StopDiscovery(upgrade_service_id);
-    socket_result.value().Close();
-    return {Error(
-        OperationResultCode::NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE)};
-  }
-
   awdl_medium_.StopDiscovery(upgrade_service_id);
-  return {std::move(channel)};
+  return {std::move(channel_result.value())};
 }
 
 // Called by BWU initiator. Set up AWDL upgraded medium for this endpoint,
@@ -198,7 +180,7 @@ std::string AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
         .password = GeneratePassword(),
     };
     if (!awdl_medium_.StartAcceptingConnections(
-            upgrade_service_id, psk_info,
+            upgrade_service_id, /*channel_name=*/upgrade_service_id, psk_info,
             absl::bind_front(&AwdlBwuHandler::OnIncomingAwdlConnection, this,
                              client))) {
       LOG(ERROR) << "Failed to initiate the AWDL upgrade for "
@@ -259,14 +241,11 @@ void AwdlBwuHandler::HandleRevertInitiatorStateForService(
 // Accept Connection Callback.
 void AwdlBwuHandler::OnIncomingAwdlConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    AwdlSocket socket) {
+    std::unique_ptr<EndpointChannel> channel) {
   LOG(INFO) << "Accepted connection for upgrade service ID "
             << upgrade_service_id;
-  auto channel = std::make_unique<AwdlEndpointChannel>(
-      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket,
-      &awdl_medium_, /*is_outgoing=*/false);
-  auto connection = std::make_unique<IncomingSocketConnection>(
-      std::move(channel));
+  auto connection =
+      std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 

@@ -225,6 +225,7 @@ cc_test(
         ":lost_entity_tracker",
         ":mediums",
         "//connections:core_types",
+        "//connections/implementation:endpoint_channel",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble",

@@ -26,6 +26,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -43,7 +44,7 @@ class Awdl {
 
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, AwdlSocket socket)>;
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   struct AwdlCredential {
     std::string service_name;
@@ -87,12 +88,14 @@ class Awdl {
   // Starts a worker thread, creates a Awdl socket, associates it with a
   // service id.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          const std::string& channel_name,
                                           AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a PSK-based Awdl socket, associates it with
   // a service id.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          const std::string& channel_name,
                                           const api::PskInfo& psk_info,
                                           AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -107,21 +110,20 @@ class Awdl {
   // Establishes connection to Awdl service that was might be started on
   // another service with StartAcceptingConnections() using the same service_id.
   // Blocks until connection is established, or server-side is terminated.
-  // Returns socket instance. On success, AwdlSocket.IsValid() return true.
-  ErrorOr<AwdlSocket> Connect(const std::string& service_id,
-                              const NsdServiceInfo& service_info,
-                              CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  // Returns socket instance. On success, non null EndpointChannel is returned.
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id, const std::string& channel_name,
+      const NsdServiceInfo& service_info,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to PSK-based Awdl service that was might be started
   // on another service with StartAcceptingConnections() using the same
   // service_id. Blocks until connection is established, or server-side is
-  // terminated. Returns socket instance. On success, AwdlSocket.IsValid()
-  // return true.
-  ErrorOr<AwdlSocket> Connect(const std::string& service_id,
-                              const NsdServiceInfo& service_info,
-                              const api::PskInfo& psk_info,
-                              CancellationFlag* cancellation_flag)
+  // terminated. Returns socket instance. On success, non null EndpointChannel
+  // is returned.
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id, const NsdServiceInfo& service_info,
+      const api::PskInfo& psk_info, CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets ip address + port for remote services on the network to identify and
@@ -222,14 +224,15 @@ class Awdl {
   // Internal version of StartAcceptingConnections that is called by the
   // public methods.
   ErrorOr<bool> InternalStartAcceptingConnections(
-      const std::string& service_id,
+      const std::string& service_id, const std::string& channel_name,
       const std::optional<api::PskInfo>& psk_info,
       AcceptedConnectionCallback callback)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Internal version of Connect that is called by the public methods.
-  ErrorOr<AwdlSocket> InternalConnect(
-      const std::string& service_id, const NsdServiceInfo& service_info,
+  ErrorOr<std::unique_ptr<EndpointChannel>> InternalConnect(
+      const std::string& service_id, const std::string& channel_name,
+      const NsdServiceInfo& service_info,
       const std::optional<api::PskInfo>& psk_info,
       CancellationFlag* cancellation_flag)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);

@@ -61,7 +61,7 @@ class AwdlBwuHandler : public BaseBwuHandler {
 
   void OnIncomingAwdlConnection(ClientProxy* client,
                                 const std::string& upgrade_service_id,
-                                AwdlSocket socket);
+                                std::unique_ptr<EndpointChannel> channel);
 
   std::string GenerateServiceType(const std::string& service_id);
   std::string GenerateServiceName();

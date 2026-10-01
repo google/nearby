@@ -55,7 +55,6 @@
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
-#include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -263,10 +262,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void AwdlServiceLostHandler(ClientProxy* client, NsdServiceInfo service_info,
                               const std::string& service_id);
   void AwdlConnectionAcceptedHandler(ClientProxy* client,
-                                     const std::string& local_endpoint_id,
                                      NearbyDevice::Type device_type,
                                      const std::string& service_id,
-                                     AwdlSocket socket);
+                                     std::unique_ptr<EndpointChannel> channel);
   BasePcpHandler::ConnectImplResult AwdlConnectImpl(ClientProxy* client,
                                                     AwdlEndpoint* endpoint);
   ErrorOr<location::nearby::proto::connections::Medium> StartAwdlAdvertising(

@@ -14,12 +14,14 @@
 
 #include "connections/implementation/mediums/awdl.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
@@ -70,10 +72,12 @@ TEST_P(AwdlTest, CanConnect) {
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
-  AwdlSocket socket_for_server;
+  std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, AwdlSocket socket) {
-        socket_for_server = std::move(socket);
+      service_id, "",
+      [&](const std::string& service_id,
+          std::unique_ptr<EndpointChannel> channel) {
+        channel_for_server = std::move(channel);
         accept_latch.CountDown();
       }));
 
@@ -99,14 +103,14 @@ TEST_P(AwdlTest, CanConnect) {
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag;
-  ErrorOr<AwdlSocket> socket_for_client_result =
-      awdl_client.Connect(service_id, discovered_service_info, &flag);
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
+      awdl_client.Connect(service_id, "", discovered_service_info, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
-  EXPECT_TRUE(socket_for_server.IsValid());
-  EXPECT_TRUE(socket_for_client_result.has_value());
-  EXPECT_TRUE(socket_for_client_result.value().IsValid());
+  EXPECT_TRUE(channel_for_server);
+  EXPECT_TRUE(channel_for_client_result.has_value());
+  EXPECT_TRUE(channel_for_client_result.value());
   env_.Stop();
 }
 
@@ -124,11 +128,12 @@ TEST_P(AwdlTest, CanConnectWithPsk) {
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
-  AwdlSocket socket_for_server;
+  std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
-      service_id, psk_info,
-      [&](const std::string& service_id, AwdlSocket socket) {
-        socket_for_server = std::move(socket);
+      service_id, "", psk_info,
+      [&](const std::string& service_id,
+          std::unique_ptr<EndpointChannel> channel) {
+        channel_for_server = std::move(channel);
         accept_latch.CountDown();
       }));
 
@@ -154,14 +159,14 @@ TEST_P(AwdlTest, CanConnectWithPsk) {
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag;
-  ErrorOr<AwdlSocket> socket_for_client_result =
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
       awdl_client.Connect(service_id, discovered_service_info, psk_info, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
-  EXPECT_TRUE(socket_for_server.IsValid());
-  EXPECT_TRUE(socket_for_client_result.has_value());
-  EXPECT_TRUE(socket_for_client_result.value().IsValid());
+  EXPECT_TRUE(channel_for_server);
+  EXPECT_TRUE(channel_for_client_result.has_value());
+  EXPECT_TRUE(channel_for_client_result.value());
   env_.Stop();
 }
 
@@ -177,10 +182,12 @@ TEST_P(AwdlTest, CanCancelConnect) {
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
-  AwdlSocket socket_for_server;
+  std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, AwdlSocket socket) {
-        socket_for_server = std::move(socket);
+      service_id, "",
+      [&](const std::string& service_id,
+          std::unique_ptr<EndpointChannel> channel) {
+        channel_for_server = std::move(channel);
         accept_latch.CountDown();
       }));
 
@@ -206,22 +213,22 @@ TEST_P(AwdlTest, CanCancelConnect) {
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag(true);
-  ErrorOr<AwdlSocket> socket_for_client_result =
-      awdl_client.Connect(service_id, discovered_service_info, &flag);
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
+      awdl_client.Connect(service_id, "", discovered_service_info, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
-    EXPECT_TRUE(socket_for_server.IsValid());
-    EXPECT_TRUE(socket_for_client_result.has_value());
-    EXPECT_TRUE(socket_for_client_result.value().IsValid());
+    EXPECT_TRUE(channel_for_server);
+    EXPECT_TRUE(channel_for_client_result.has_value());
+    EXPECT_TRUE(channel_for_client_result.value());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
-    EXPECT_FALSE(socket_for_server.IsValid());
-    EXPECT_TRUE(socket_for_client_result.has_error());
+    EXPECT_FALSE(channel_for_server);
+    EXPECT_TRUE(channel_for_client_result.has_error());
   }
   env_.Stop();
 }
@@ -247,7 +254,7 @@ TEST_F(AwdlTest, CanStartAdvertising) {
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -263,7 +270,7 @@ TEST_F(AwdlTest, StartAdvertisingFailsWithInvalidNsdServiceInfo) {
   Awdl awdl_a;
   std::string service_id(kServiceID);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   ErrorOr<bool> result = awdl_a.StartAdvertising(service_id, nsd_service_info);
@@ -290,7 +297,7 @@ TEST_F(AwdlTest, StartAdvertisingFailsIfAlreadyAdvertising) {
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -332,7 +339,7 @@ TEST_F(AwdlTest, StartAdvertisingUpdatesNsdServiceInfo) {
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -355,7 +362,7 @@ TEST_F(AwdlTest, CanStartAcceptingConnectionsWithPsk) {
   api::PskInfo psk_info;
   psk_info.password = "password";
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, psk_info, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", psk_info, {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -376,8 +383,8 @@ TEST_F(AwdlTest, CanStartMultipleAdvertising) {
   std::string service_info_name_2("ServiceInfoName_1");
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id_1, {}));
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id_2, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id_1, "", {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id_2, "", {}));
 
   NsdServiceInfo nsd_service_info_1;
   nsd_service_info_1.SetServiceName(service_info_name_1);
@@ -399,7 +406,7 @@ TEST_F(AwdlTest, CanStartMultipleAdvertising) {
 TEST_F(AwdlTest, StartAcceptingConnectionsFailsWithEmptyServiceId) {
   env_.Start();
   Awdl awdl_a;
-  ErrorOr<bool> result = awdl_a.StartAcceptingConnections("", {});
+  ErrorOr<bool> result = awdl_a.StartAcceptingConnections("", "", {});
   EXPECT_FALSE(result.has_value());
   EXPECT_EQ(result.error().operation_result_code().value(),
             location::nearby::proto::connections::OperationResultCode::
@@ -412,8 +419,8 @@ TEST_F(AwdlTest, StartAcceptingConnectionsFailsIfAlreadyAccepting) {
   Awdl awdl_a;
   std::string service_id(kServiceID);
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
-  ErrorOr<bool> result = awdl_a.StartAcceptingConnections(service_id, {});
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
+  ErrorOr<bool> result = awdl_a.StartAcceptingConnections(service_id, "", {});
   EXPECT_FALSE(result.has_value());
   EXPECT_EQ(result.error().operation_result_code().value(),
             location::nearby::proto::connections::OperationResultCode::
@@ -470,7 +477,7 @@ TEST_F(AwdlTest, CanAdvertiseThatOtherMediumDiscover) {
                           },
                   });
 
-  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_a.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -494,7 +501,7 @@ TEST_F(AwdlTest, CanDiscoverThatOtherMediumAdvertise) {
   CountDownLatch discovered_latch(1);
   CountDownLatch lost_latch(1);
 
-  EXPECT_TRUE(awdl_b.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(awdl_b.StartAcceptingConnections(service_id, "", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);

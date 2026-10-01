@@ -24,7 +24,9 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl_bwu_handler.h"
+#include "connections/implementation/mediums/awdl_endpoint_channel.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/byte_array.h"
@@ -164,8 +166,7 @@ ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't discover Awdl services because Awdl isn't available.";
-    return {Error(
-        OperationResultCode::MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE)};
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE)};
   }
 
   if (IsDiscoveringLocked(service_id)) {
@@ -180,8 +181,8 @@ ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
       medium_.StartDiscovery(service_id, service_type, std::move(callback));
   if (!ret) {
     LOG(INFO) << "Failed to start discovery of Awdl services.";
-    return {Error(
-        OperationResultCode::CONNECTIVITY_AWDL_START_DISCOVERY_FAILURE)};
+    return {
+        Error(OperationResultCode::CONNECTIVITY_AWDL_START_DISCOVERY_FAILURE)};
   }
 
   LOG(INFO) << "Turned on Awdl discovering with service_id=" << service_id;
@@ -218,18 +219,19 @@ bool Awdl::IsDiscoveringLocked(const std::string& service_id) {
 }
 
 ErrorOr<bool> Awdl::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
+    const std::string& service_id, const std::string& channel_name,
+    AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
-  return InternalStartAcceptingConnections(service_id, std::nullopt,
-                                           std::move(callback));
+  return InternalStartAcceptingConnections(service_id, channel_name,
+                                           std::nullopt, std::move(callback));
 }
 
 ErrorOr<bool> Awdl::StartAcceptingConnections(
-    const std::string& service_id, const api::PskInfo& psk_info,
-    AcceptedConnectionCallback callback) {
+    const std::string& service_id, const std::string& channel_name,
+    const api::PskInfo& psk_info, AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
-  ErrorOr<bool> result = InternalStartAcceptingConnections(service_id, psk_info,
-                                                           std::move(callback));
+  ErrorOr<bool> result = InternalStartAcceptingConnections(
+      service_id, channel_name, psk_info, std::move(callback));
 
   if (result.has_value() && result.value()) {
     listening_info_.Add(service_id, psk_info);
@@ -290,20 +292,20 @@ bool Awdl::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
-                                  const NsdServiceInfo& service_info,
-                                  CancellationFlag* cancellation_flag) {
+ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::Connect(
+    const std::string& service_id, const std::string& channel_name,
+    const NsdServiceInfo& service_info, CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
-  return InternalConnect(service_id, service_info, std::nullopt,
+  return InternalConnect(service_id, channel_name, service_info, std::nullopt,
                          cancellation_flag);
 }
 
-ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
-                                  const NsdServiceInfo& service_info,
-                                  const api::PskInfo& psk_info,
-                                  CancellationFlag* cancellation_flag) {
+ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::Connect(
+    const std::string& service_id, const NsdServiceInfo& service_info,
+    const api::PskInfo& psk_info, CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
-  return InternalConnect(service_id, service_info, psk_info, cancellation_flag);
+  return InternalConnect(service_id, /*channel_name=*/service_id, service_info,
+                         psk_info, cancellation_flag);
 }
 
 Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
@@ -353,7 +355,8 @@ int Awdl::GeneratePort(const std::string& service_id,
 }
 
 ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
-    const std::string& service_id, const std::optional<api::PskInfo>& psk_info,
+    const std::string& service_id, const std::string& channel_name,
+    const std::optional<api::PskInfo>& psk_info,
     AcceptedConnectionCallback callback) {
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to start accepting Awdl connections; "
@@ -364,8 +367,7 @@ ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't start accepting Awdl connections [service_id="
               << service_id << "]; Awdl not available.";
-    return {Error(
-        OperationResultCode::MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE)};
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE)};
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
@@ -392,8 +394,8 @@ ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
   if (!server_socket.IsValid()) {
     LOG(INFO) << "Failed to start accepting Awdl connections for service_id="
               << service_id;
-    return {Error(OperationResultCode::
-                      CLIENT_CANCELLATION_AWDL_SERVER_SOCKET_CREATION)};
+    return {Error(
+        OperationResultCode::CLIENT_CANCELLATION_AWDL_SERVER_SOCKET_CREATION)};
   }
 
   // Mark the fact that there's an in-progress Awdl server accepting
@@ -407,8 +409,9 @@ ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
   // invoked.
   accept_loops_runner_.Execute(
       "awdl-accept",
-      [callback = std::move(callback),
-       server_socket = std::move(owned_server_socket), service_id]() mutable {
+      [this, callback = std::move(callback),
+       server_socket = std::move(owned_server_socket), service_id, channel_name,
+       for_upgrade = psk_info.has_value()]() mutable {
         while (true) {
           AwdlSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
@@ -418,7 +421,16 @@ ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
           LOG(INFO) << "Accepted connection for " << service_id;
           if (callback) {
             LOG(INFO) << "Call back triggered for physical socket.";
-            callback(service_id, std::move(client_socket));
+            std::unique_ptr<EndpointChannel> channel;
+            if (for_upgrade) {
+              channel = std::make_unique<AwdlEndpointChannel>(
+                  service_id, channel_name, std::move(client_socket), this,
+                  /*is_outgoing=*/false);
+            } else {
+              channel = std::make_unique<AwdlEndpointChannel>(
+                  service_id, channel_name, std::move(client_socket));
+            }
+            callback(service_id, std::move(channel));
           }
         }
       });
@@ -426,13 +438,11 @@ ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
   return {true};
 }
 
-ErrorOr<AwdlSocket> Awdl::InternalConnect(
-    const std::string& service_id, const NsdServiceInfo& service_info,
+ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::InternalConnect(
+    const std::string& service_id, const std::string& channel_name,
+    const NsdServiceInfo& service_info,
     const std::optional<api::PskInfo>& psk_info,
     CancellationFlag* cancellation_flag) {
-  // Socket to return. To allow for NRVO to work, it has to be a single object.
-  AwdlSocket socket;
-
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client Awdl socket because "
                  "service_id is empty.";
@@ -455,11 +465,10 @@ ErrorOr<AwdlSocket> Awdl::InternalConnect(
       service_info.GetServiceType().empty()) {
     LOG(INFO) << "Can't create client Awdl socket due to invalid service "
                  "information.";
-    return {
-        Error(OperationResultCode::CONNECTIVITY_AWDL_INVALID_CREDENTIAL)};
+    return {Error(OperationResultCode::CONNECTIVITY_AWDL_INVALID_CREDENTIAL)};
   }
 
-  socket =
+  AwdlSocket socket =
       psk_info.has_value()
           ? medium_.ConnectToService(service_info, *psk_info, cancellation_flag)
           : medium_.ConnectToService(service_info, cancellation_flag);
@@ -471,7 +480,16 @@ ErrorOr<AwdlSocket> Awdl::InternalConnect(
 
   LOG(INFO) << "Successfully connected via Awdl [service_id=" << service_id
             << "]";
-  return socket;
+  std::unique_ptr<EndpointChannel> channel;
+  if (psk_info.has_value()) {
+    channel = std::make_unique<AwdlEndpointChannel>(service_id, channel_name,
+                                                    std::move(socket), this,
+                                                    /*is_outgoing=*/true);
+  } else {
+    channel = std::make_unique<AwdlEndpointChannel>(service_id, channel_name,
+                                                    std::move(socket));
+  }
+  return std::move(channel);
 }
 
 std::unique_ptr<BwuHandler> Awdl::CreateBwuHandler(
