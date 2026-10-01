@@ -19,11 +19,11 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {
@@ -32,25 +32,14 @@ namespace connections {
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BwuHandler {
  public:
-  class IncomingSocket {
-   public:
-    explicit IncomingSocket(std::shared_ptr<Socket> socket)
-        : socket_(std::move(socket)) {}
-
-    void Close() { socket_->Close(); }
-
-   private:
-    std::shared_ptr<Socket> socket_;
-  };
-
   struct IncomingSocketConnection {
-    std::unique_ptr<IncomingSocket> socket;
-    std::unique_ptr<EndpointChannel> channel;
+    explicit IncomingSocketConnection(
+        absl_nonnull std::unique_ptr<EndpointChannel> channel)
+        : channel(std::move(channel)) {}
 
-    IncomingSocketConnection(std::unique_ptr<IncomingSocket> socket,
-                             std::unique_ptr<EndpointChannel> channel)
-        : socket(std::move(socket)), channel(std::move(channel)) {}
+    absl_nonnull std::unique_ptr<EndpointChannel> channel;
   };
+
   using IncomingConnectionCallback = absl::AnyInvocable<void(
       ClientProxy* client,
       std::unique_ptr<IncomingSocketConnection> connection)>;

@@ -130,7 +130,7 @@ TEST_F(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_Success) {
                                       Medium::WIFI_HOTSPOT);
   EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
 
-  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
                                    DisconnectionReason::LOCAL_DISCONNECTION,
                                    SafeDisconnectionResult::kSafeDisconnection);
   bwu_manager->Shutdown();
@@ -190,7 +190,7 @@ TEST_F(BwuManagerBaseTest,
   // the channel
   EXPECT_NE(channel1_ptr->GetLastWriteTimestamp(), absl::InfinitePast());
 
-  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
                                    DisconnectionReason::LOCAL_DISCONNECTION,
                                    SafeDisconnectionResult::kSafeDisconnection);
   bwu_manager->Shutdown();
@@ -250,7 +250,7 @@ TEST_F(BwuManagerBaseTest,
   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
   EXPECT_EQ(fake_wifi_direct_ptr->handle_initialize_calls().size(), 1u);
 
-  ecm.UnregisterChannelForEndpoint(std::string(kEndpointId1),
+  ecm.UnregisterChannelForEndpoint(kEndpointId1,
                                    DisconnectionReason::LOCAL_DISCONNECTION,
                                    SafeDisconnectionResult::kSafeDisconnection);
   bwu_manager->Shutdown();
@@ -503,7 +503,7 @@ class BwuManagerTest : public ::testing::Test {
   }
   void UnRegisterChannelForEndpoint(absl::string_view endpoint_id) {
     ecm_.UnregisterChannelForEndpoint(
-        std::string(endpoint_id), DisconnectionReason::LOCAL_DISCONNECTION,
+        endpoint_id, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kSafeDisconnection);
   }
 
@@ -634,7 +634,7 @@ TEST_F(BwuManagerTest,
     // last WebRTC endpoint for the service is disconnected.
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId1), latch,
@@ -648,7 +648,7 @@ TEST_F(BwuManagerTest,
     // Disconnect the second WebRTC endpoint. We expect a revert.
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId2), latch,
@@ -682,7 +682,7 @@ TEST_F(BwuManagerTest,
     // Disconnect the first WebRTC endpoint.
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId1), latch,
@@ -702,7 +702,7 @@ TEST_F(BwuManagerTest,
     // Disconnect the second WebRTC endpoint.
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id, std::string(kEndpointId2), latch,
@@ -739,7 +739,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(1u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
@@ -759,7 +759,7 @@ TEST_F(BwuManagerTest,
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(0u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
@@ -793,7 +793,7 @@ TEST_F(BwuManagerTest,
     CountDownLatch latch(1);
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(1u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
@@ -813,7 +813,7 @@ TEST_F(BwuManagerTest,
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     EXPECT_EQ(0u, ecm_.GetConnectedEndpointsCount());
     bwu_manager_->OnEndpointDisconnect(
@@ -869,7 +869,7 @@ TEST_F(
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId1), latch,
@@ -894,7 +894,7 @@ TEST_F(
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_A, std::string(kEndpointId2), latch,
@@ -915,7 +915,7 @@ TEST_F(
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId3), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId3, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId3), latch,
@@ -936,7 +936,7 @@ TEST_F(
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId4), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId4, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId4), latch,
@@ -959,7 +959,7 @@ TEST_F(
   {
     CountDownLatch latch(1);
     ecm_.UnregisterChannelForEndpoint(
-        std::string(kEndpointId5), DisconnectionReason::LOCAL_DISCONNECTION,
+        kEndpointId5, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
     bwu_manager_->OnEndpointDisconnect(
         &client_, upgrade_service_id_B, std::string(kEndpointId5), latch,
@@ -1244,7 +1244,7 @@ TEST_F(BwuManagerTest, ReceiveUnexpectedLastWrite_NoCrashOrWedge) {
 TEST_F(BwuManagerTest, ReceiveEarlyLastWrite_Success) {
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
   std::shared_ptr<EndpointChannel> shared_initial_channel =
-      ecm_.GetChannelForEndpoint(std::string(kEndpointId1));
+      ecm_.GetChannelForEndpoint(kEndpointId1);
 
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
                                        Medium::WEB_RTC);
@@ -1284,7 +1284,7 @@ TEST_F(BwuManagerTest, ReceiveUnexpectedLastWriteBeforeUpgrade_NoWedge) {
 
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
   std::shared_ptr<EndpointChannel> shared_initial_channel =
-      ecm_.GetChannelForEndpoint(std::string(kEndpointId1));
+      ecm_.GetChannelForEndpoint(kEndpointId1);
 
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
                                        Medium::WEB_RTC);
@@ -1495,9 +1495,8 @@ TEST_F(BwuManagerTest, OnIncomingConnection_EndpointAliasesToLastEndpointId) {
   upgraded_channel->set_read_output(
       ExceptionOr<ByteArray>(ByteArray(intro_frame)));
 
-  auto connection =
-      std::make_unique<BwuHandler::IncomingSocketConnection>(nullptr, nullptr);
-  connection->channel = std::move(upgraded_channel);
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
 
   // Invoke OnIncomingConnection
   bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
@@ -1546,13 +1545,12 @@ TEST_P(BwuManagerTestParam, InitiateBwu_Success) {
   // Establish the incoming connection on the new medium. Verify that the
   // upgrade channel replaces the initial channel.
   std::shared_ptr<EndpointChannel> shared_initial_channel =
-      ecm_.GetChannelForEndpoint(std::string(kEndpointId1));
+      ecm_.GetChannelForEndpoint(kEndpointId1);
   EXPECT_EQ(initial_channel, shared_initial_channel.get());
   FakeEndpointChannel* upgraded_channel =
       fake_web_rtc_bwu_handler_->NotifyBwuManagerOfIncomingConnection(
           /*initialize_call_index=*/0u, bwu_manager_.get());
-  EXPECT_EQ(upgraded_channel,
-            ecm_.GetChannelForEndpoint(std::string(kEndpointId1)).get());
+  EXPECT_EQ(upgraded_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
 
   // Confirm that upgrade channel is paused until initial channel is shut down.
   EXPECT_TRUE(upgraded_channel->IsPaused());
@@ -1662,15 +1660,12 @@ TEST_P(BwuManagerTestParam,
   // However, we do not record an in-progress attempt. So, if we see an incoming
   // connection over WebRTC, we ignore it. In other words, the initial BLUETOOTH
   // channel is still used.
-  EXPECT_EQ(initial_channel,
-            ecm_.GetChannelForEndpoint(std::string(kEndpointId1)).get());
+  EXPECT_EQ(initial_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
   FakeEndpointChannel* upgraded_channel =
       fake_web_rtc_bwu_handler_->NotifyBwuManagerOfIncomingConnection(
           /*initialize_call_index=*/0u, bwu_manager_.get());
-  EXPECT_NE(upgraded_channel,
-            ecm_.GetChannelForEndpoint(std::string(kEndpointId1)).get());
-  EXPECT_EQ(initial_channel,
-            ecm_.GetChannelForEndpoint(std::string(kEndpointId1)).get());
+  EXPECT_NE(upgraded_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
+  EXPECT_EQ(initial_channel, ecm_.GetChannelForEndpoint(kEndpointId1).get());
   UnRegisterChannelForEndpoint(kEndpointId1);
 }
 

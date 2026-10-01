@@ -254,8 +254,6 @@ void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
   auto channel = std::make_unique<WifiHotspotEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   auto connection = std::make_unique<IncomingSocketConnection>(
-      std::make_unique<IncomingSocket>(
-          std::make_shared<WifiHotspotSocket>(socket)),
       std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }

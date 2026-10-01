@@ -73,6 +73,7 @@ cc_library(
         ":service_id_constants",
         "//internal/platform:base",
         "//internal/platform:logging",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",

@@ -173,8 +173,6 @@ void BluetoothBwuHandler::OnIncomingBluetoothConnection(
   auto channel = std::make_unique<BluetoothEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   auto connection = std::make_unique<IncomingSocketConnection>(
-      std::make_unique<IncomingSocket>(
-          std::make_shared<BluetoothSocket>(socket)),
       std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }

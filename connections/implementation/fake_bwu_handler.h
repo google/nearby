@@ -92,8 +92,7 @@ class FakeBwuHandler : public BaseBwuHandler {
             /*last_endpoint_id=*/"",
             false /* supports_disabling_encryption */))));
     auto connection =
-        std::make_unique<IncomingSocketConnection>(nullptr, nullptr);
-    connection->channel = std::move(upgraded_channel);
+        std::make_unique<IncomingSocketConnection>(std::move(upgraded_channel));
 
     bwu_manager->InvokeOnIncomingConnectionForTesting(
         handle_initialize_calls_[initialize_call_index].client,

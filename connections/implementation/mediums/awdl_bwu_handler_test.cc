@@ -31,6 +31,7 @@
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/awdl_endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/service_id_constants.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
@@ -43,8 +44,7 @@
 #include "internal/platform/mock_input_stream.h"
 #include "internal/platform/mock_output_stream.h"
 #include "internal/platform/nsd_service_info.h"
-#include "connections/implementation/service_id_constants.h"
-
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 
@@ -321,55 +321,6 @@ TEST_F(AwdlBwuHandlerTest, OnIncomingAwdlConnection_Success) {
       .WillOnce([&latch](ClientProxy* client,
                          std::unique_ptr<BwuHandler::IncomingSocketConnection>
                              connection) { latch.CountDown(); });
-
-  std::string result = handler_.InitializeUpgradedMediumForEndpoint(
-      &client, std::string(kServiceId), std::string(kEndpointId));
-  EXPECT_FALSE(result.empty());
-
-  auto await_result = latch.Await(absl::Seconds(5));
-  EXPECT_TRUE(await_result.ok());
-
-  handler_.RevertInitiatorState();
-  MediumEnvironment::Instance().Stop();
-}
-
-TEST_F(AwdlBwuHandlerTest, AwdlIncomingSocket_ToStringAndClose) {
-  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
-  ClientProxy client;
-  client.AddCancellationFlag(std::string(kEndpointId));
-
-  auto awdl_server_socket = std::make_unique<MockAwdlServerSocket>();
-  auto* awdl_server_socket_ptr = awdl_server_socket.get();
-  EXPECT_CALL(*awdl_server_socket_ptr, Close())
-      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
-  EXPECT_CALL(*awdl_server_socket_ptr, Accept())
-      .WillOnce([this]() {
-        auto awdl_socket = std::make_unique<MockAwdlSocket>();
-        EXPECT_CALL(*awdl_socket, GetInputStream())
-            .WillRepeatedly(ReturnRef(mock_input_stream_));
-        EXPECT_CALL(*awdl_socket, GetOutputStream())
-            .WillRepeatedly(ReturnRef(mock_output_stream_));
-        EXPECT_CALL(*awdl_socket, Close())
-            .WillOnce(Return(Exception{Exception::kSuccess}));
-        return awdl_socket;
-      })
-      .WillRepeatedly([]() {
-        absl::SleepFor(absl::Seconds(5));
-        return nullptr;
-      });
-
-  EXPECT_CALL(*awdl_medium_mock, ListenForService(_, 0))
-      .WillOnce(Return(ByMove(std::move(awdl_server_socket))));
-  EXPECT_CALL(*awdl_medium_mock, StartAdvertising(_)).WillOnce(Return(true));
-
-  CountDownLatch latch(1);
-  EXPECT_CALL(incoming_connection_callback_, Call(&client, _))
-      .WillOnce([&latch](ClientProxy* client,
-                         std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                             connection) {
-        connection->socket->Close();
-        latch.CountDown();
-      });
 
   std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));

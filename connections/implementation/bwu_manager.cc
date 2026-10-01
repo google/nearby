@@ -639,112 +639,100 @@ void BwuManager::OnIncomingConnection(
     ClientProxy* client,
     std::unique_ptr<BwuHandler::IncomingSocketConnection> mutable_connection) {
   LOG(INFO) << "BwuManager process incoming connection";
-  std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
-      mutable_connection.release());
-  RunOnBwuManagerThread("bwu-on-incoming-connection", [this, client,
-                                                       connection]() {
-    absl::Time connection_attempt_start_time = SystemClock::ElapsedRealtime();
-    EndpointChannel* channel = connection->channel.get();
-    if (channel == nullptr) {
-      LOG(ERROR)
-          << "BwuManager failed to create new EndpointChannel for incoming "
-             "socket.";
-      connection->socket->Close();
-      AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
-          location::nearby::proto::connections::MEDIUM_ERROR,
-          BandwidthUpgradeErrorStage::SOCKET_CREATION,
-          OperationResultCode::NEARBY_GENERIC_NEW_ENDPOINT_CHANNEL_NULL);
-      return;
-    }
+  RunOnBwuManagerThread(
+      "bwu-on-incoming-connection",
+      [this, client, connection = std::move(mutable_connection)]() {
+        absl::Time connection_attempt_start_time =
+            SystemClock::ElapsedRealtime();
+        EndpointChannel* channel = connection->channel.get();
+        VLOG(1) << "BwuManager successfully created new EndpointChannel for "
+                   "incoming socket";
 
-    VLOG(1) << "BwuManager successfully created new EndpointChannel for "
-               "incoming socket";
+        BandwidthUpgradeNegotiationFrame::ClientIntroduction introduction;
+        if (!ReadClientIntroductionFrame(channel, introduction)) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          channel->Close();
+          LOG(ERROR) << "BwuManager failed to read "
+                        "BWU_NEGOTIATION.CLIENT_INTRODUCTION OfflineFrame from "
+                        "newly-created EndpointChannel "
+                     << channel->GetName()
+                     << ", so the EndpointChannel was discarded.";
+          return;
+        }
 
-    BandwidthUpgradeNegotiationFrame::ClientIntroduction introduction;
-    if (!ReadClientIntroductionFrame(channel, introduction)) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      channel->Close();
-      LOG(ERROR) << "BwuManager failed to read "
-                    "BWU_NEGOTIATION.CLIENT_INTRODUCTION OfflineFrame from "
-                    "newly-created EndpointChannel "
-                 << channel->GetName()
-                 << ", so the EndpointChannel was discarded.";
-      return;
-    }
+        VLOG(1) << "BwuManager successfully received "
+                   "BWU_NEGOTIATION.CLIENT_INTRODUCTION "
+                   "OfflineFrame on EndpointChannel "
+                << channel->GetName();
 
-    VLOG(1) << "BwuManager successfully received "
-               "BWU_NEGOTIATION.CLIENT_INTRODUCTION "
-               "OfflineFrame on EndpointChannel "
-            << channel->GetName();
+        if (!WriteClientIntroductionAckFrame(channel)) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          LOG(ERROR) << "BwuManager failed to write"
+                        "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                        "OfflineFrame on EndpointChannel "
+                     << channel->GetName();
+          channel->Close();
+          return;
+        }
 
-    if (!WriteClientIntroductionAckFrame(channel)) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      LOG(ERROR) << "BwuManager failed to write"
-                    "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
-                    "OfflineFrame on EndpointChannel "
-                 << channel->GetName();
-      channel->Close();
-      return;
-    }
+        VLOG(1) << "BwuManager successfully wrote "
+                   "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                   "OfflineFrame on EndpointChannel "
+                << channel->GetName();
 
-    VLOG(1) << "BwuManager successfully wrote "
-               "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
-               "OfflineFrame on EndpointChannel "
-            << channel->GetName();
+        std::string endpoint_id = introduction.endpoint_id();
+        if (is_dynamic_role_switch_enabled_ &&
+            !in_progress_upgrades_.contains(endpoint_id) &&
+            introduction.has_last_endpoint_id() &&
+            !introduction.last_endpoint_id().empty()) {
+          std::string last_endpoint_id = introduction.last_endpoint_id();
+          if (in_progress_upgrades_.contains(last_endpoint_id)) {
+            LOG(INFO) << "BwuManager: aliasing endpoint ID " << endpoint_id
+                      << " to " << last_endpoint_id;
+            endpoint_id = last_endpoint_id;
+          }
+        }
 
-    std::string endpoint_id = introduction.endpoint_id();
-    if (is_dynamic_role_switch_enabled_ &&
-        !in_progress_upgrades_.contains(endpoint_id) &&
-        introduction.has_last_endpoint_id() &&
-        !introduction.last_endpoint_id().empty()) {
-      std::string last_endpoint_id = introduction.last_endpoint_id();
-      if (in_progress_upgrades_.contains(last_endpoint_id)) {
-        LOG(INFO) << "BwuManager: aliasing endpoint ID " << endpoint_id
-                  << " to " << last_endpoint_id;
-        endpoint_id = last_endpoint_id;
-      }
-    }
+        ClientProxy* mapped_client;
+        const auto item = in_progress_upgrades_.find(endpoint_id);
+        if (item == in_progress_upgrades_.end()) return;
+        mapped_client = item->second;
+        CancelRetryUpgradeAlarm(endpoint_id);
+        if (mapped_client == nullptr) {
+          // This was never a fully EstablishedConnection, no need to provide a
+          // closure reason.
+          channel->Close();
+          return;
+        }
 
-    ClientProxy* mapped_client;
-    const auto item = in_progress_upgrades_.find(endpoint_id);
-    if (item == in_progress_upgrades_.end()) return;
-    mapped_client = item->second;
-    CancelRetryUpgradeAlarm(endpoint_id);
-    if (mapped_client == nullptr) {
-      // This was never a fully EstablishedConnection, no need to provide a
-      // closure reason.
-      channel->Close();
-      return;
-    }
+        CHECK(client == mapped_client);
 
-    CHECK(client == mapped_client);
+        // The ConnectionAttempt has now succeeded, so record it as such.
+        std::unique_ptr<ConnectionAttemptMetadataParams>
+            connections_attempt_metadata_params;
+        if (channel != nullptr) {
+          connections_attempt_metadata_params =
+              AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
+                  channel->GetTechnology(), channel->GetBand(),
+                  channel->GetFrequency(), channel->GetTryCount());
+          connections_attempt_metadata_params->operation_result_code =
+              OperationResultCode::DETAIL_SUCCESS;
+        }
+        client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
+            location::nearby::proto::connections::UPGRADE, channel->GetMedium(),
+            location::nearby::proto::connections::RESULT_SUCCESS,
+            SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+            client->GetConnectionToken(endpoint_id),
+            connections_attempt_metadata_params.get());
 
-    // The ConnectionAttempt has now succeeded, so record it as such.
-    std::unique_ptr<ConnectionAttemptMetadataParams>
-        connections_attempt_metadata_params;
-    if (channel != nullptr) {
-      connections_attempt_metadata_params =
-          AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
-              channel->GetTechnology(), channel->GetBand(),
-              channel->GetFrequency(), channel->GetTryCount());
-      connections_attempt_metadata_params->operation_result_code =
-          OperationResultCode::DETAIL_SUCCESS;
-    }
-    client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-        location::nearby::proto::connections::UPGRADE, channel->GetMedium(),
-        location::nearby::proto::connections::RESULT_SUCCESS,
-        SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-        client->GetConnectionToken(endpoint_id),
-        connections_attempt_metadata_params.get());
-
-    // Use the introductory client information sent over to run the upgrade
-    // protocol.
-    RunUpgradeProtocol(mapped_client, endpoint_id,
-                       std::move(connection->channel),
-                       !introduction.supports_disabling_encryption());
-  });
+        // Use the introductory client information sent over to run the upgrade
+        // protocol.
+        RunUpgradeProtocol(mapped_client, endpoint_id,
+                           std::move(connection->channel),
+                           !introduction.supports_disabling_encryption());
+      });
 }
 
 void BwuManager::RunOnBwuManagerThread(const std::string& name,

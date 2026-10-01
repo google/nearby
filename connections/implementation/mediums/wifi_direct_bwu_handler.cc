@@ -204,8 +204,6 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
   auto channel = std::make_unique<WifiDirectEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   auto connection = std::make_unique<IncomingSocketConnection>(
-      std::make_unique<IncomingSocket>(
-          std::make_shared<WifiDirectSocket>(socket)),
       std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
