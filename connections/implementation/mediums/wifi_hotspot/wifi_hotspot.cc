@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_hotspot.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 
 #include <cstdint>
 #include <memory>
@@ -25,8 +25,8 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
-#include "connections/implementation/mediums/wifi_hotspot_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot_endpoint_channel.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"

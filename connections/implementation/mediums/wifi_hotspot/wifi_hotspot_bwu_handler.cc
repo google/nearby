@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_hotspot_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot_bwu_handler.h"
 
 #if !defined(_WIN32)
 #include <arpa/inet.h>
@@ -32,7 +32,7 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/wifi_hotspot.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/strategy.h"

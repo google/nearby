@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
-#define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_H_
+#define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_H_
 
 #include <memory>
 #include <string>
@@ -124,4 +124,4 @@ class WifiHotspot {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_H_

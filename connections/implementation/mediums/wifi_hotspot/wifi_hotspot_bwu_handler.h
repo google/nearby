@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_BWU_HANDLER_H_
-#define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_BWU_HANDLER_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_BWU_HANDLER_H_
+#define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_BWU_HANDLER_H_
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/wifi_hotspot.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
@@ -68,4 +68,4 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_BWU_HANDLER_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_WIFI_HOTSPOT_BWU_HANDLER_H_
