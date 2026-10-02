@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
@@ -110,8 +111,10 @@ bool P2pClusterPcpHandler::ShouldAcceptBluetoothConnections(
 }
 
 P2pClusterPcpHandler::P2pClusterPcpHandler(
-    Mediums* mediums, EndpointManager* endpoint_manager,
-    EndpointChannelManager* endpoint_channel_manager, BwuManager* bwu_manager,
+    Mediums* absl_nonnull mediums,
+    EndpointManager* absl_nonnull endpoint_manager,
+    EndpointChannelManager* absl_nonnull endpoint_channel_manager,
+    BwuManager* absl_nonnull bwu_manager,
     InjectedBluetoothDeviceStore& injected_bluetooth_device_store, Pcp pcp)
     : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager,
                      bwu_manager, pcp),
@@ -121,9 +124,6 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
       wifi_aware_medium_(mediums->GetWifiAware()),
-      wifi_hotspot_medium_(mediums->GetWifiHotspot()),
-      wifi_direct_medium_(mediums->GetWifiDirect()),
-      webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 
 P2pClusterPcpHandler::~P2pClusterPcpHandler() {
@@ -145,7 +145,7 @@ std::vector<Medium> P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
       wifi_aware_medium_.IsAvailable()) {
     mediums.push_back(WIFI_AWARE_R4);
   }
-  if (webrtc_medium_.IsAvailable()) {
+  if (mediums_.GetWebRtc().IsAvailable()) {
     mediums.push_back(WEB_RTC);
   }
   if (bluetooth_medium_.IsAvailable()) {
@@ -1497,8 +1497,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
   // ble
   if (NeedsToTurnOffAdvertisingMedium(BLE, old_options, advertising_options) ||
       needs_restart) {
-    mediums_->GetBle().StopAdvertising(std::string(service_id));
-    mediums_->GetBle().StopAcceptingConnections(std::string(service_id));
+    mediums_.GetBle().StopAdvertising(std::string(service_id));
+    mediums_.GetBle().StopAcceptingConnections(std::string(service_id));
   }
   // awdl
   if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -1506,15 +1506,15 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       (NeedsToTurnOffAdvertisingMedium(AWDL, old_options,
                                        advertising_options) ||
        needs_restart)) {
-    mediums_->GetAwdl().StopAdvertising(std::string(service_id));
-    mediums_->GetAwdl().StopAcceptingConnections(std::string(service_id));
+    mediums_.GetAwdl().StopAdvertising(std::string(service_id));
+    mediums_.GetAwdl().StopAcceptingConnections(std::string(service_id));
   }
   // wifi lan
   if (NeedsToTurnOffAdvertisingMedium(WIFI_LAN, old_options,
                                       advertising_options) ||
       needs_restart) {
-    mediums_->GetWifiLan().StopAdvertising(std::string(service_id));
-    mediums_->GetWifiLan().StopAcceptingConnections(std::string(service_id));
+    mediums_.GetWifiLan().StopAdvertising(std::string(service_id));
+    mediums_.GetWifiLan().StopAcceptingConnections(std::string(service_id));
   }
   // wifi aware
   if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -1523,20 +1523,20 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       (NeedsToTurnOffAdvertisingMedium(WIFI_AWARE_R4, old_options,
                                        advertising_options) ||
        needs_restart)) {
-    mediums_->GetWifiAware().StopAdvertising(std::string(service_id));
-    mediums_->GetWifiAware().StopAcceptingConnections(std::string(service_id));
+    mediums_.GetWifiAware().StopAdvertising(std::string(service_id));
+    mediums_.GetWifiAware().StopAcceptingConnections(std::string(service_id));
   }
   // Bluetooth classic
   if (NeedsToTurnOffAdvertisingMedium(BLUETOOTH, old_options,
                                       advertising_options) ||
       needs_restart) {
     // BT classic equivalent for advertising.
-    mediums_->GetBluetoothClassic().TurnOffDiscoverability();
-    mediums_->GetBluetoothClassic().StopAcceptingConnections(
+    mediums_.GetBluetoothClassic().TurnOffDiscoverability();
+    mediums_.GetBluetoothClassic().StopAcceptingConnections(
         std::string(service_id));
     if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS ||
         api::ImplementationPlatform::GetCurrentOS() == api::OSName::kLinux) {
-      mediums_->GetBle().StopLegacyAdvertising(
+      mediums_.GetBle().StopLegacyAdvertising(
           client->GetAdvertisingServiceId());
     }
   }
@@ -1547,7 +1547,7 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
   int update_index =
       client->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
   Status status = {Status::kSuccess};
-  WebRtcState web_rtc_state = webrtc_medium_.IsAvailable()
+  WebRtcState web_rtc_state = mediums_.GetWebRtc().IsAvailable()
                                   ? WebRtcState::kConnectable
                                   : WebRtcState::kUndefined;
   // ble
@@ -1751,13 +1751,13 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
           config_package_nearby::nearby_connections_feature::kEnableAwdl) &&
       (NeedsToTurnOffDiscoveryMedium(AWDL, old_options, discovery_options) ||
        needs_restart)) {
-    mediums_->GetAwdl().StopDiscovery(std::string(service_id));
+    mediums_.GetAwdl().StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, AWDL);
   }
   // wifi lan
   if (NeedsToTurnOffDiscoveryMedium(WIFI_LAN, old_options, discovery_options) ||
       needs_restart) {
-    mediums_->GetWifiLan().StopDiscovery(std::string(service_id));
+    mediums_.GetWifiLan().StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, WIFI_LAN);
   }
   // wifi aware
@@ -1767,7 +1767,7 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
       (NeedsToTurnOffDiscoveryMedium(WIFI_AWARE_R4, old_options,
                                      discovery_options) ||
        needs_restart)) {
-    mediums_->GetWifiAware().StopDiscovery(std::string(service_id));
+    mediums_.GetWifiAware().StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, WIFI_AWARE_R4);
   }
   // restart
