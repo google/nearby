@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_direct_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
 
 #include <cstdint>
 #include <memory>
@@ -24,7 +24,7 @@
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/wifi_direct.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"

@@ -248,6 +248,7 @@ cc_library(
         "//connections/implementation/mediums/ble:ble_advertisement_header",
         "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/mediums/bluetooth",
+        "//connections/implementation/mediums/wifi_direct",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
         "//internal/base:file_path_sanitize",

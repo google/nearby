@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_direct.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 
 #include <cstddef>
 #include <memory>

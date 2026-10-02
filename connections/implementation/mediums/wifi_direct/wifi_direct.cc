@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_direct.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 
 #include <algorithm>
 #include <memory>
@@ -23,8 +23,8 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/mediums/wifi_direct_bwu_handler.h"
-#include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"

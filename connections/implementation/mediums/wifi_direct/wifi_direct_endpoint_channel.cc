@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_direct_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_endpoint_channel.h"
 
 #include <string>
 #include <utility>
