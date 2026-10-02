@@ -19,6 +19,18 @@ licenses(["notice"])
 
 cc_library(
     name = "awdl",
+    textual_hdrs = ["awdl.h"],
+    visibility = [
+        "//connections/implementation:__pkg__",
+        "//connections/implementation/mediums:__pkg__",
+    ],
+    deps = [
+        ":awdl_internal",
+    ],
+)
+
+cc_library(
+    name = "awdl_internal",
     srcs = [
         "awdl.cc",
         "awdl_bwu_handler.cc",
@@ -29,10 +41,7 @@ cc_library(
         "awdl_bwu_handler.h",
         "awdl_endpoint_channel.h",
     ],
-    visibility = [
-        "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
@@ -66,7 +75,7 @@ cc_test(
         "awdl_test.cc",
     ],
     deps = [
-        ":awdl",
+        ":awdl_internal",
         "//connections/implementation:endpoint_channel",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -90,7 +99,7 @@ cc_test(
         "awdl_bwu_handler_test.cc",
     ],
     deps = [
-        ":awdl",
+        ":awdl_internal",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:service_id_constants",

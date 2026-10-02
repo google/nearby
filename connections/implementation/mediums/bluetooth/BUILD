@@ -19,6 +19,18 @@ licenses(["notice"])
 
 cc_library(
     name = "bluetooth",
+    textual_hdrs = ["bluetooth_classic.h"],
+    visibility = [
+        "//connections/implementation:__pkg__",
+        "//connections/implementation/mediums:__pkg__",
+    ],
+    deps = [
+        ":bluetooth_internal",
+    ],
+)
+
+cc_library(
+    name = "bluetooth_internal",
     srcs = [
         "bluetooth_bwu_handler.cc",
         "bluetooth_classic.cc",
@@ -29,10 +41,7 @@ cc_library(
         "bluetooth_classic.h",
         "bluetooth_endpoint_channel.h",
     ],
-    visibility = [
-        "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         "//connections:core_types",
         "//connections/implementation:bwu_handler",
@@ -63,7 +72,7 @@ cc_test(
         "bluetooth_classic_test.cc",
     ],
     deps = [
-        ":bluetooth",
+        ":bluetooth_internal",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
