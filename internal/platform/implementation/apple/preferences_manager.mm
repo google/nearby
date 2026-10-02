@@ -16,6 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -23,14 +24,18 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
+#import "internal/platform/implementation/apple/json_utils.h"
 
 namespace nearby::apple {
 
 PreferencesManager::PreferencesManager(absl::string_view file_path) {}
 
 bool PreferencesManager::Set(absl::string_view key, const nlohmann::json& value) {
-  [NSUserDefaults.standardUserDefaults setObject:@(value.dump().c_str())
-                                            forKey:@(std::string(key).c_str())];
+  NSString* jsonString = JsonStringFromJson(value);
+  if (jsonString == nil) {
+    return false;
+  }
+  [NSUserDefaults.standardUserDefaults setObject:jsonString forKey:@(std::string(key).c_str())];
   return true;
 }
 
@@ -105,13 +110,10 @@ nlohmann::json PreferencesManager::Get(absl::string_view key,
                                        const nlohmann::json& default_value) const {
   NSString* keyString = @(std::string(key).c_str());
   id value = [NSUserDefaults.standardUserDefaults objectForKey:keyString];
-  if (value == nil) {
+  if (![value isKindOfClass:[NSString class]]) {
     return default_value;
   }
-  // We store JSON as a serialized string, so retrieve it as a string and deserialize.
-  NSCAssert([value isKindOfClass:[NSString class]], @"value for key \"%@\" must be JSON",
-            keyString);
-  return nlohmann::json::parse([(NSString*)value UTF8String]);
+  return JsonFromJsonString((NSString*)value).value_or(default_value);
 }
 
 bool PreferencesManager::GetBoolean(absl::string_view key, bool default_value) const {

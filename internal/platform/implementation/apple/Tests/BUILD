@@ -28,6 +28,7 @@ objc_library(
         "GNCBLEUtilsTest.mm",
         "GNCCryptoTest.mm",
         "GNCDeviceInfoTest.mm",
+        "GNCJsonUtilsTest.mm",
         "GNCMultiThreadExecutorTest.mm",
         "GNCPlatformTest.mm",
         "GNCPreferencesManagerTest.mm",

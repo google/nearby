@@ -69,6 +69,7 @@ objc_library(
         "awdl.mm",
         "crypto.mm",
         "device_info.mm",
+        "json_utils.mm",
         "platform.mm",
         "preferences_manager.mm",
         "scheduled_executor.mm",
@@ -80,6 +81,7 @@ objc_library(
     hdrs = [
         "awdl.h",
         "device_info.h",
+        "json_utils.h",
         "preferences_manager.h",
         "timer.h",
         "wifi.h",
