@@ -1985,6 +1985,92 @@ TEST_F(NearbyConnectionsManagerImplTest,
       kSynchronizationTimeOut));
 }
 
+TEST_F(NearbyConnectionsManagerImplTest,
+       ClearIncomingPayloadsClearsNeverReceivedPayloadStatusListeners) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  testing::NiceMock<MockIncomingConnectionListener>
+      incoming_connection_listener;
+  StartAdvertising(connection_listener_remote, incoming_connection_listener);
+
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  ASSERT_NE(OnIncomingConnection(connection_listener_remote,
+                                 incoming_connection_listener,
+                                 payload_listener_remote),
+            nullptr);
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->RegisterPayloadStatusListener(
+      kPayloadId, payload_listener->GetWeakPtr());
+
+  // Clear incoming payloads before kPayloadId is ever received.
+  nearby_connections_manager_->ClearIncomingPayloads();
+
+  absl::Notification cancel_notification;
+  EXPECT_CALL(*nearby_connections_, CancelPayload)
+      .WillOnce([&](absl::string_view service_id, int64_t payload_id,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(payload_id, kPayloadId);
+        std::move(callback)(Status::kSuccess);
+        cancel_notification.Notify();
+      });
+
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  Payload payload(kPayloadId, file);
+  nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
+                                                           payload);
+
+  EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
+            nullptr);
+  EXPECT_THAT(
+      nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete(),
+      ElementsAre(file));
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       OnPayloadReceivedRejectsExpiredPayloadStatusListener) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  testing::NiceMock<MockIncomingConnectionListener>
+      incoming_connection_listener;
+  StartAdvertising(connection_listener_remote, incoming_connection_listener);
+
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  ASSERT_NE(OnIncomingConnection(connection_listener_remote,
+                                 incoming_connection_listener,
+                                 payload_listener_remote),
+            nullptr);
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->RegisterPayloadStatusListener(
+      kPayloadId, payload_listener->GetWeakPtr());
+  payload_listener.reset();
+
+  absl::Notification cancel_notification;
+  EXPECT_CALL(*nearby_connections_, CancelPayload)
+      .WillOnce([&](absl::string_view service_id, int64_t payload_id,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(payload_id, kPayloadId);
+        std::move(callback)(Status::kSuccess);
+        cancel_notification.Notify();
+      });
+
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  Payload payload(kPayloadId, file);
+  nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
+                                                           payload);
+
+  EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
+            nullptr);
+  EXPECT_THAT(
+      nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete(),
+      ElementsAre(file));
+}
+
 TEST_F(NearbyConnectionsManagerImplTest, OverrideSavePath) {
   EXPECT_CALL(*nearby_connections_,
               OverrideSavePath(kRemoteEndpointId, "/tmp/test"));

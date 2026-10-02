@@ -582,13 +582,8 @@ void NearbyConnectionsManagerImpl::Cancel(int64_t payload_id) {
 
 void NearbyConnectionsManagerImpl::ClearIncomingPayloads() {
   MutexLock lock(&mutex_);
-  std::vector<Payload> payloads;
-  for (auto& it : incoming_payloads_) {
-    payloads.push_back(std::move(it.second));
-    payload_status_listeners_.erase(it.first);
-  }
-
   incoming_payloads_.clear();
+  payload_status_listeners_.clear();
 }
 
 std::optional<std::vector<uint8_t>>
@@ -795,11 +790,13 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
     absl::string_view endpoint_id, Payload& payload) {
   MutexLock lock(&mutex_);
   VLOG(1) << "Received payload id=" << payload.id;
-  if (payload.content.type != PayloadContent::Type::kBytes &&
-      !payload_status_listeners_.contains(payload.id)) {
-    LOG(WARNING) << __func__ << ": Received unknown payload. Canceling.";
-    DeleteUnknownFilePayloadAndCancel(payload);
-    return;
+  if (payload.content.type != PayloadContent::Type::kBytes) {
+    auto it = payload_status_listeners_.find(payload.id);
+    if (it == payload_status_listeners_.end() || it->second.expired()) {
+      LOG(WARNING) << __func__ << ": Received unknown payload. Canceling.";
+      DeleteUnknownFilePayloadAndCancel(payload);
+      return;
+    }
   }
   if (!incoming_payloads_.contains(payload.id)) {
     incoming_payloads_.emplace(payload.id, std::move(payload));
