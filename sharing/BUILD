@@ -691,6 +691,7 @@ cc_test(
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
