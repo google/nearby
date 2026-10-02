@@ -50,7 +50,6 @@
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
@@ -1418,11 +1417,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       !wifi_aware_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_aware_result =
         wifi_aware_medium_.StartAcceptingConnections(
-            std::string(service_id),
+            std::string(service_id), /*channel_name=*/local_endpoint_id,
             absl::bind_front(
                 &P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler, this,
-                client_proxy, std::string(local_endpoint_id), ByteArray{},
-                options.listening_endpoint_type));
+                client_proxy, options.listening_endpoint_type));
     if (wifi_aware_result.has_error()) {
       LOG(WARNING) << "Failed to start listening for incoming connections on "
                       "wifi_aware";
@@ -2915,23 +2913,13 @@ void P2pClusterPcpHandler::WifiAwareServiceLostHandler(
 }
 
 void P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_id,
-    const ByteArray& local_endpoint_info, NearbyDevice::Type device_type,
-    absl::string_view service_id, WifiAwareSocket socket) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info.AsStringView())
-                 << "), client=" << client->GetClientId();
-    return;
-  }
+    ClientProxy* client, NearbyDevice::Type device_type,
+    absl::string_view service_id, std::unique_ptr<EndpointChannel> channel) {
   RunOnPcpHandlerThread(
       "p2p-wifi-aware-on-incoming-connection",
-      [this, client, local_endpoint_id = std::string(local_endpoint_id),
-       service_id = std::string(service_id), device_type,
-       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        auto channel = std::make_unique<WifiAwareEndpointChannel>(
-            service_id, /*channel_name=*/local_endpoint_id, socket);
-        ByteArray remote_service_name_byte{local_endpoint_id};
+      [this, client, service_id = std::string(service_id), device_type,
+       channel = std::move(channel)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        ByteArray remote_service_name_byte{channel->GetName()};
 
         OnIncomingConnection(client, remote_service_name_byte,
                              std::move(channel), WIFI_AWARE_R4, device_type);
@@ -2981,11 +2969,11 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiAwareAdvertising(
             << " with service_id=" << service_id;
 
   ErrorOr<bool> wifi_aware_result = wifi_aware_medium_.StartAdvertising(
-      std::string(service_id), wifi_aware_service_info,
+      std::string(service_id), /*channel_name=*/local_endpoint_id,
+      wifi_aware_service_info,
       absl::bind_front(
           &P2pClusterPcpHandler::WifiAwareConnectionAcceptedHandler, this,
-          client, std::string(local_endpoint_id), local_endpoint_info,
-          NearbyDevice::Type::kConnectionsDevice));
+          client, NearbyDevice::Type::kConnectionsDevice));
   if (wifi_aware_result.has_error()) {
     LOG(WARNING) << "In StartWifiAwareAdvertising("
                  << absl::BytesToHexString(local_endpoint_info.data())
@@ -3036,27 +3024,22 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiAwareConnectImpl(
   LOG(INFO) << "Client " << client->GetClientId()
             << " is attempting to connect to endpoint(id="
             << endpoint->endpoint_id << ") over WifiAware.";
-  ErrorOr<WifiAwareSocket> socket_result = wifi_aware_medium_.Connect(
-      endpoint->service_id, endpoint->service_info,
-      client->GetCancellationFlag(endpoint->endpoint_id).get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_aware_medium_.Connect(
+          endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+          endpoint->service_info,
+          client->GetCancellationFlag(endpoint->endpoint_id).get());
+  if (channel_result.has_error()) {
     LOG(ERROR) << "In WifiAwareConnectImpl(), failed to connect to service "
                << endpoint->service_info.GetServiceName()
                << " for endpoint(id=" << endpoint->endpoint_id << ").";
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kWifiAwareError},
         .operation_result_code =
-            socket_result.error().operation_result_code().value_or(
+            channel_result.error().operation_result_code().value_or(
                 OperationResultCode::DETAIL_UNKNOWN),
     };
   }
-  LOG(INFO) << "In WifiAwareConnectImpl(), connect to service "
-            << " socket=" << socket_result.value().GetImpl().get()
-            << " for endpoint(id=" << endpoint->endpoint_id << ").";
-
-  auto channel = std::make_unique<WifiAwareEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      socket_result.value());
   LOG(INFO) << "Client " << client->GetClientId()
             << " created WifiAware endpoint channel to endpoint(id="
             << endpoint->endpoint_id << ").";
@@ -3064,7 +3047,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiAwareConnectImpl(
       .medium = WIFI_AWARE_R4,
       .status = {Status::kSuccess},
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-      .endpoint_channel = std::move(channel),
+      .endpoint_channel = std::move(channel_result.value()),
   };
 }
 

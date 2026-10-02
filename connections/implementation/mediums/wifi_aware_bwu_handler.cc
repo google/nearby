@@ -24,12 +24,10 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_aware.h"
-#include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_aware.h"
 
 namespace nearby {
 namespace connections {
@@ -91,16 +89,17 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
             << target_service_id << ") for port " << port << " for endpoint "
             << endpoint_id;
 
-  ErrorOr<WifiAwareSocket> socket_result = wifi_aware_medium_.Connect(
-      service_id, target_service_id, ByteArray(service_info_bytes), passphrase,
-      port, client->GetCancellationFlag(endpoint_id).get());
-  if (socket_result.has_error()) {
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_aware_medium_.Connect(
+          service_id, target_service_id, ByteArray(service_info_bytes),
+          passphrase, port, client->GetCancellationFlag(endpoint_id).get());
+  if (channel_result.has_error()) {
     LOG(ERROR) << "WifiAwareBwuHandler failed to connect to the WifiAware "
                   "service ("
                << target_service_id << ") for endpoint " << endpoint_id
-               << ", has_error=" << socket_result.has_error();
+               << ", has_error=" << channel_result.has_error();
     wifi_aware_medium_.StopSubscribing();
-    return {Error(socket_result.error().operation_result_code().value_or(
+    return {Error(channel_result.error().operation_result_code().value_or(
         OperationResultCode::DETAIL_UNKNOWN))};
   }
   LOG(INFO)
@@ -108,11 +107,7 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
       << target_service_id << ") while upgrading endpoint " << endpoint_id;
 
   wifi_aware_medium_.StopSubscribing();
-
-  // Create a new WifiAwareEndpointChannel.
-  auto channel = std::make_unique<WifiAwareEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket_result.value());
-  return {std::move(channel)};
+  return channel_result;
 }
 
 // Called by BWU initiator. Set up WifiAware upgraded medium for this endpoint,
@@ -123,7 +118,7 @@ std::string WifiAwareBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     const std::string& endpoint_id) {
   if (!wifi_aware_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_aware_medium_.StartAcceptingConnections(
-            upgrade_service_id,
+            upgrade_service_id, /*channel_name=*/upgrade_service_id,
             absl::bind_front(
                 &WifiAwareBwuHandler::OnIncomingWifiAwareConnection, this,
                 client))) {
@@ -151,12 +146,10 @@ void WifiAwareBwuHandler::HandleRevertInitiatorStateForService(
 // Accept Connection Callback.
 void WifiAwareBwuHandler::OnIncomingWifiAwareConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
-    WifiAwareSocket socket) {
+    std::unique_ptr<EndpointChannel> channel) {
   LOG(INFO) << "WifiAwareBwuHandler::OnIncomingWifiAwareConnection for "
                "upgrade_service_id "
             << upgrade_service_id;
-  auto channel = std::make_unique<WifiAwareEndpointChannel>(
-      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   auto connection =
       std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));

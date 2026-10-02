@@ -60,7 +60,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/wifi_aware.h"
 #include "internal/platform/wifi_aware_service_info.h"
 #include "internal/platform/wifi_lan.h"
 
@@ -281,12 +280,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   void WifiAwareServiceLostHandler(ClientProxy* client,
                                    WifiAwareServiceInfo service_info,
                                    absl::string_view service_id);
-  void WifiAwareConnectionAcceptedHandler(ClientProxy* client,
-                                          absl::string_view local_endpoint_id,
-                                          const ByteArray& local_endpoint_info,
-                                          NearbyDevice::Type device_type,
-                                          absl::string_view service_id,
-                                          WifiAwareSocket socket);
+  void WifiAwareConnectionAcceptedHandler(
+      ClientProxy* client, NearbyDevice::Type device_type,
+      absl::string_view service_id, std::unique_ptr<EndpointChannel> channel);
   ErrorOr<location::nearby::proto::connections::Medium>
   StartWifiAwareAdvertising(ClientProxy* client, absl::string_view service_id,
                             absl::string_view local_endpoint_id,

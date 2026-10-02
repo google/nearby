@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
@@ -25,7 +24,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_aware.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/wifi_aware.h"
 
 namespace nearby {
 namespace connections {
@@ -61,7 +59,7 @@ class WifiAwareBwuHandler : public BaseBwuHandler {
 
   void OnIncomingWifiAwareConnection(ClientProxy* client,
                                      const std::string& upgrade_service_id,
-                                     WifiAwareSocket socket);
+                                     std::unique_ptr<EndpointChannel> channel);
 
   WifiAware& wifi_aware_medium_;
 };

@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WIFI_AWARE_H_
 #define CORE_INTERNAL_MEDIUMS_WIFI_AWARE_H_
 
+#include <memory>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
@@ -22,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -40,7 +42,7 @@ class WifiAware {
 
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, WifiAwareSocket socket)>;
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   WifiAware() = default;
   ~WifiAware();
@@ -51,6 +53,7 @@ class WifiAware {
   // Enables WifiAware advertising.
   ErrorOr<bool> StartAdvertising(
       const std::string& service_id,
+      absl::string_view channel_name,
       const WifiAwareServiceInfo& wifi_aware_service_info,
       AcceptedConnectionCallback callback) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -87,6 +90,7 @@ class WifiAware {
   // Starts a worker thread, creates a WifiAware socket, associates it with a
   // service id.
   ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          absl::string_view channel_name,
                                           AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -98,16 +102,15 @@ class WifiAware {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to WifiAware service.
-  ErrorOr<WifiAwareSocket> Connect(const std::string& service_id,
-                                   const WifiAwareServiceInfo& service_info,
-                                   CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  ErrorOr<WifiAwareSocket> Connect(const std::string& service_id,
-                                   const std::string& service_name,
-                                   const ByteArray& service_info,
-                                   const std::string& passphrase, int port,
-                                   CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id,
+      absl::string_view channel_name,
+      const WifiAwareServiceInfo& service_info,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id, const std::string& service_name,
+      const ByteArray& service_info, const std::string& passphrase, int port,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the list of ip address candidates that can be used to connect to
   // this device for bandwidth upgrade + port number the service is listening
@@ -127,7 +130,8 @@ class WifiAware {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   ErrorOr<bool> StartAcceptingConnectionsLocked(
-      const std::string& service_id, AcceptedConnectionCallback callback)
+      const std::string& service_id, absl::string_view channel_name,
+      AcceptedConnectionCallback callback)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool StopAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);

@@ -14,11 +14,14 @@
 
 #include "connections/implementation/mediums/wifi_aware.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -61,6 +64,7 @@ bool WifiAware::IsAvailableLocked() const {
 
 ErrorOr<bool> WifiAware::StartAdvertising(
     const std::string& service_id,
+    absl::string_view channel_name,
     const WifiAwareServiceInfo& wifi_aware_service_info,
     AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
@@ -79,8 +83,8 @@ ErrorOr<bool> WifiAware::StartAdvertising(
                       NEARBY_WIFI_AWARE_OPERATION_REGISTERED_FAILED)};
   }
 
-  auto accept_result =
-      StartAcceptingConnectionsLocked(service_id, std::move(callback));
+  auto accept_result = StartAcceptingConnectionsLocked(service_id, channel_name,
+                                                       std::move(callback));
   if (accept_result.has_error()) {
     return accept_result;
   }
@@ -175,7 +179,8 @@ bool WifiAware::IsDiscoveringLocked(absl::string_view service_id) {
 }
 
 ErrorOr<bool> WifiAware::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
+    const std::string& service_id, absl::string_view channel_name,
+    AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {
@@ -188,7 +193,8 @@ ErrorOr<bool> WifiAware::StartAcceptingConnections(
                       NEARBY_WIFI_AWARE_OPERATION_REGISTERED_FAILED)};
   }
 
-  return StartAcceptingConnectionsLocked(service_id, std::move(callback));
+  return StartAcceptingConnectionsLocked(service_id, channel_name,
+                                         std::move(callback));
 }
 
 bool WifiAware::StopAcceptingConnections(const std::string& service_id) {
@@ -206,7 +212,8 @@ bool WifiAware::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 ErrorOr<bool> WifiAware::StartAcceptingConnectionsLocked(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
+    const std::string& service_id, absl::string_view channel_name,
+    AcceptedConnectionCallback callback) {
   if (medium_.StartPublishing()) {
     LOG(INFO) << "WifiAware successfully started publishing";
 
@@ -230,7 +237,8 @@ ErrorOr<bool> WifiAware::StartAcceptingConnectionsLocked(
     accept_loops_runner_.Execute(
         "wifi-aware-accept",
         [callback = std::move(callback),
-         server_socket = std::move(owned_server_socket), service_id]() mutable {
+         server_socket = std::move(owned_server_socket), service_id,
+         channel_name = std::string(channel_name)]() mutable {
           while (true) {
             WifiAwareSocket client_socket = server_socket.Accept();
             if (!client_socket.IsValid()) {
@@ -238,7 +246,9 @@ ErrorOr<bool> WifiAware::StartAcceptingConnectionsLocked(
               break;
             }
             if (callback) {
-              callback(service_id, std::move(client_socket));
+              auto channel = std::make_unique<WifiAwareEndpointChannel>(
+                  service_id, channel_name, std::move(client_socket));
+              callback(service_id, std::move(channel));
             }
           }
         });
@@ -302,8 +312,9 @@ void WifiAware::SetExpectedPeerId(absl::string_view peer_id) {
   medium_.SetExpectedPeerId(std::string(peer_id));
 }
 
-ErrorOr<WifiAwareSocket> WifiAware::Connect(
-    const std::string& service_id, const WifiAwareServiceInfo& service_info,
+ErrorOr<std::unique_ptr<EndpointChannel>> WifiAware::Connect(
+    const std::string& service_id, absl::string_view channel_name,
+    const WifiAwareServiceInfo& service_info,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   if (!IsAvailableLocked()) {
@@ -322,10 +333,12 @@ ErrorOr<WifiAwareSocket> WifiAware::Connect(
     return {Error(location::nearby::proto::connections::OperationResultCode::
                       CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-  return {std::move(socket)};
+  auto channel = std::make_unique<WifiAwareEndpointChannel>(
+      service_id, std::string(channel_name), std::move(socket));
+  return {std::move(channel)};
 }
 
-ErrorOr<WifiAwareSocket> WifiAware::Connect(
+ErrorOr<std::unique_ptr<EndpointChannel>> WifiAware::Connect(
     const std::string& service_id, const std::string& service_name,
     const ByteArray& service_info, const std::string& passphrase, int port,
     CancellationFlag* cancellation_flag) {
@@ -346,7 +359,9 @@ ErrorOr<WifiAwareSocket> WifiAware::Connect(
     return {Error(location::nearby::proto::connections::OperationResultCode::
                       CONNECTIVITY_WIFI_AWARE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-  return {std::move(socket)};
+  auto channel = std::make_unique<WifiAwareEndpointChannel>(
+      service_id, /*channel_name=*/service_id, std::move(socket));
+  return {std::move(channel)};
 }
 
 api::UpgradeAddressInfo WifiAware::GetUpgradeAddressCandidates(
