@@ -131,7 +131,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     InternalPayload* GetInternalPayload();
 
     bool IsLocallyCanceled() const;
-    void MarkLocallyCanceled();
+    void MarkLocallyCanceledAndClose();
     void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
     bool IsIncoming() const;
 
@@ -174,7 +174,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     mutable Mutex mutex_;
     const bool is_incoming_;
     AtomicBoolean is_locally_canceled_{false};
-    AtomicBoolean is_closed_;
     const std::unique_ptr<InternalPayload> internal_payload_;
     absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_

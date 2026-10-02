@@ -29,6 +29,7 @@
 #include "connections/payload.h"
 #include "connections/payload_type.h"
 #include "internal/base/file_path_sanitize.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -120,7 +121,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
 
     ExceptionOr<ByteArray> bytes_read = input_stream->Read(chunk_size);
     if (!bytes_read.ok()) {
-      input_stream->Close();
+      Close();
       return {};
     }
 
@@ -130,7 +131,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
       LOG(INFO) << "No more data for outgoing payload " << this
                 << ", closing InputStream.";
 
-      input_stream->Close();
+      Close();
       return {};
     }
 
@@ -150,7 +151,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
       return real_offset;
     }
     // Close the outgoing stream on any error
-    stream->Close();
+    Close();
     if (!real_offset.ok()) {
       return real_offset;
     }
@@ -160,11 +161,15 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   }
 
   void Close() override {
+    if (is_closed_.Set(true)) return;
     // Ignore the potential Exception returned by close(), as a counterpart
     // to Java's closeQuietly().
     InputStream* stream = payload_.AsStream();
     if (stream) stream->Close();
   }
+
+ private:
+  AtomicBoolean is_closed_{false};
 };
 
 class IncomingStreamInternalPayload : public InternalPayload {
@@ -197,9 +202,13 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return {Exception::kIo};
   }
 
-  void Close() override { output_->Close(); }
+  void Close() override {
+    if (is_closed_.Set(true)) return;
+    output_->Close();
+  }
 
  private:
+  AtomicBoolean is_closed_{false};
   std::unique_ptr<OutputStream> output_;
 };
 
@@ -232,7 +241,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
     if (bytes.Empty()) {
       // No more data for outgoing payload.
 
-      file->Close();
+      Close();
       return {};
     }
 
@@ -255,7 +264,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
       return real_offset;
     }
     // Close the outgoing file on any error
-    file->Close();
+    Close();
     if (!real_offset.ok()) {
       return real_offset;
     }
@@ -266,11 +275,13 @@ class OutgoingFileInternalPayload : public InternalPayload {
   }
 
   void Close() override {
+    if (is_closed_.Set(true)) return;
     InputFile* file = payload_.AsFile();
     if (file) file->Close();
   }
 
  private:
+  AtomicBoolean is_closed_{false};
   std::int64_t total_size_;
 };
 
@@ -327,13 +338,15 @@ class IncomingFileInternalPayload : public InternalPayload {
   }
 
   void Close() override {
+    if (is_closed_.Set(true)) return;
     output_file_.SetLastModifiedTime(last_modified_time_);
     output_file_.Close();
   }
 
  private:
+  AtomicBoolean is_closed_{false};
   OutputFile output_file_;
-  absl::Time last_modified_time_;
+  const absl::Time last_modified_time_;
   const int64_t total_size_;
   // Bytes written to the output file.
   int64_t bytes_written_ = 0;

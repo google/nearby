@@ -181,6 +181,20 @@ int PayloadManager::SendPayloadLoop(
   ByteArray next_chunk =
       pending_payload.GetInternalPayload()->DetachNextChunk(chunk_size);
   if (shutdown_.Get()) return -1;
+  // Check again in case CancelPayload() closed the payload while
+  // DetachNextChunk() was blocked; otherwise an empty chunk from the closed
+  // stream/file would be treated as normal EOF (SUCCESS) or a read error
+  // (LOCAL_ERROR) instead of LOCAL_CANCELLATION.
+  if (pending_payload.IsLocallyCanceled()) {
+    VLOG(1) << "Aborting send of payload_id="
+            << pending_payload.GetInternalPayload()->GetId() << " at offset "
+            << next_chunk_offset << " since it is marked canceled.";
+    HandleFinishedOutgoingPayload(
+        client, available_endpoint_ids, payload_header, next_chunk_offset,
+        OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD,
+        PayloadStatus::LOCAL_CANCELLATION);
+    return -1;
+  }
   // Save chunk size. We'll need it after we move next_chunk.
   size_t next_chunk_size = next_chunk.size();
   // If there are no more chunks, check if there should be more data to send.
@@ -316,8 +330,7 @@ void PayloadManager::CancelAllPayloads() {
     int pending_outgoing_payloads = 0;
     pending_payloads_.ForEachPayload([&](PendingPayload* pending) {
       if (!pending->IsIncoming()) pending_outgoing_payloads++;
-      pending->MarkLocallyCanceled();
-      pending->Close();  // To unblock the sender thread, if there is no data.
+      pending->MarkLocallyCanceledAndClose();
     });
 
     if (pending_outgoing_payloads) {
@@ -494,8 +507,10 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
     return {Status::kPayloadUnknown};
   }
 
-  // Mark the payload as canceled.
-  canceled_payload->MarkLocallyCanceled();
+  // Mark the payload as canceled and close the underlying file/stream handle
+  // immediately to unblock any pending read and allow callers to delete
+  // partially written incoming files even if no further chunks arrive.
+  canceled_payload->MarkLocallyCanceledAndClose();
   VLOG(1) << "Cancelling "
           << (canceled_payload->IsIncoming() ? "incoming" : "outgoing")
           << " payload_id=" << payload_id << " at request of client.";
@@ -1565,8 +1580,9 @@ bool PayloadManager::PendingPayload::IsLocallyCanceled() const {
   return is_locally_canceled_.Get();
 }
 
-void PayloadManager::PendingPayload::MarkLocallyCanceled() {
+void PayloadManager::PendingPayload::MarkLocallyCanceledAndClose() {
   is_locally_canceled_.Set(true);
+  Close();
 }
 
 void PayloadManager::PendingPayload::MarkReceivedAckFromEndpoint(
@@ -1632,8 +1648,6 @@ void PayloadManager::PendingPayload::SetOffsetForEndpoint(
 }
 
 void PayloadManager::PendingPayload::Close() {
-  bool was_closed = is_closed_.Set(true);
-  if (was_closed) return;
   if (internal_payload_) internal_payload_->Close();
 }
 

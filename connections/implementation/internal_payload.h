@@ -34,6 +34,9 @@ namespace connections {
 //
 // <p>There will be an extension of this abstract base class per type of
 // Payload.
+//
+// <p>Implementations are thread-compatible (go/thread-compatible), except that
+// Close() may be called from another thread.
 class InternalPayload {
  public:
   static constexpr int kIndeterminateSize = -1;
@@ -100,6 +103,8 @@ class InternalPayload {
 
   // Cleans up any resources used by this Payload. Called when we're stopping
   // early, e.g. after being cancelled or having no more recipients left.
+  // Implementations must be idempotent (safe to call multiple times) and safe
+  // to call from another thread.
   virtual void Close() {}
 
  protected:
