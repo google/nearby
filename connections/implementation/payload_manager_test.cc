@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/offline_frames.h"
@@ -27,6 +28,8 @@
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -120,6 +123,32 @@ class PayloadSimulationUser : public SimulationUser {
 
     pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
                         Medium::WIFI_HOTSPOT);
+  }
+
+  void SetCustomSavePath(const std::string& path) {
+    pm_.SetCustomSavePath(&client_, path);
+  }
+
+  void ReceiveFileChunk(Payload::Id payload_id, absl::string_view file_name,
+                        int64_t total_size, int64_t offset,
+                        absl::string_view body, int32_t flags) {
+    PayloadTransferFrame::PayloadHeader header;
+    header.set_id(payload_id);
+    header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+    header.set_total_size(total_size);
+    header.set_file_name(std::string(file_name));
+    header.set_parent_folder("");
+    PayloadTransferFrame::PayloadChunk chunk;
+    chunk.set_body(std::string(body));
+    chunk.set_offset(offset);
+    chunk.set_flags(flags);
+
+    OfflineFrame offline_frame;
+    std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(bytes);
+
+    pm_.OnIncomingFrame(offline_frame, discovered_.endpoint_id, &client_,
+                        Medium::WIFI_LAN);
   }
 
   Status CancelPayload() {
@@ -470,6 +499,47 @@ TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
   user.Stop();
   env_.Stop();
 }
+
+#if !defined(NEARBY_CHROMIUM)
+TEST_P(PayloadManagerTest, CancelCompletedIncomingFilePayloadDeletesFile) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98765;
+  constexpr absl::string_view kFileName = "unsolicited_complete_file.txt";
+  user_a.ReceiveFileChunk(kPayloadId, kFileName, kMessage.size(), /*offset=*/0,
+                          kMessage, /*flags=*/0);
+  user_a.ReceiveFileChunk(
+      kPayloadId, kFileName, kMessage.size(), /*offset=*/kMessage.size(),
+      /*body=*/"", PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
+
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kSuccess;
+      },
+      kProgressTimeout));
+
+  FilePath file_path(absl::StrCat(temp_dir, "/", kFileName));
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  // Even after the final chunk was processed and the payload was stopped,
+  // CancelPayload() from the client (e.g., rejecting an unsolicited incoming
+  // file payload) must delete the file from disk.
+  EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
+  EXPECT_FALSE(Files::FileExists(file_path));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+#endif  // !defined(NEARBY_CHROMIUM)
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
                          ::testing::ValuesIn(kTestCases));

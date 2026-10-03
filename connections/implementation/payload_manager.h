@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <string>
 #include <utility>
@@ -113,8 +114,12 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   class PendingPayload {
    public:
     PendingPayload(
-        std::unique_ptr<InternalPayload> internal_payload,
-        const std::vector<std::string>& endpoint_ids, bool is_incoming,
+        std::unique_ptr<IncomingInternalPayload> incoming_payload,
+        const std::vector<std::string>& endpoint_ids,
+        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
+    PendingPayload(
+        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
+        const std::vector<std::string>& endpoint_ids,
         absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
     PendingPayload(PendingPayload&&) = default;
     PendingPayload& operator=(PendingPayload&&) = default;
@@ -128,7 +133,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     Payload::Id GetId() const;
 
-    InternalPayload* GetInternalPayload();
+    InternalPayload* GetInternalPayload() const;
+    IncomingInternalPayload* GetIncomingInternalPayload() const {
+      return incoming_payload_.get();
+    }
+    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
+      return outgoing_payload_.get();
+    }
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceledAndClose();
@@ -158,8 +169,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void SetOffsetForEndpoint(const std::string& endpoint_id, int64_t offset)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
-    // Closes internal_payload_.
-    // Close is called when a pending peyload does not have associated
+    // Closes the underlying payload.
+    // Close is called when a pending payload does not have associated
     // endpoints.
     void Close();
 
@@ -171,10 +182,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     int DecRefCount() { return --refcount_; }
 
    private:
+    void InitEndpoints(const std::vector<std::string>& endpoint_ids)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+
     mutable Mutex mutex_;
-    const bool is_incoming_;
     AtomicBoolean is_locally_canceled_{false};
-    const std::unique_ptr<InternalPayload> internal_payload_;
+    std::unique_ptr<IncomingInternalPayload> incoming_payload_;
+    std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
     absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
@@ -230,6 +244,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void StopTrackingPayload(Payload::Id payload_id)
         ABSL_LOCKS_EXCLUDED(mutex_);
     void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
+    bool CancelStoppedIncomingPayload(Payload::Id payload_id)
+        ABSL_LOCKS_EXCLUDED(mutex_);
     PendingPayloadHandle GetPayload(Payload::Id payload_id) const
         ABSL_LOCKS_EXCLUDED(mutex_);
     // Calls `callback` for each tracked payload. The callback must not call
@@ -238,9 +254,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
+    static constexpr size_t kMaxStoppedIncomingPayloads = 128;
+
     void Release(PendingPayload* payload) ABSL_LOCKS_EXCLUDED(mutex_);
     void Remove(absl::flat_hash_map<
                 Payload::Id, std::unique_ptr<PendingPayload>>::iterator it)
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+    void RetainStoppedIncomingPayload(std::unique_ptr<PendingPayload> payload)
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
     mutable Mutex mutex_;
     absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>
@@ -250,6 +270,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     // garbage bin. When the `PendingPayloadHandle` is released, the payload
     // will be removed from the bin.
     std::vector<std::unique_ptr<PendingPayload>> payload_garbage_bin_
+        ABSL_GUARDED_BY(mutex_);
+    // Recently stopped incoming payloads are retained in a bounded ring buffer
+    // so an asynchronous CancelPayload() call that arrives after the final
+    // chunk was processed can still delete the backing file on disk.
+    std::deque<std::unique_ptr<PendingPayload>> stopped_incoming_payloads_
         ABSL_GUARDED_BY(mutex_);
   };
 
