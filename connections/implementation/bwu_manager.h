@@ -28,9 +28,11 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
@@ -139,8 +141,10 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void InitBwuHandlers();
   void RunOnBwuManagerThread(const std::string& name, Runnable runnable);
   std::vector<Medium> StripOutUnavailableMediums(
+      ClientProxy* client, const std::string& endpoint_id,
       const std::vector<Medium>& mediums) const;
-  Medium ChooseBestUpgradeMedium(const std::string& endpoint_id,
+  Medium ChooseBestUpgradeMedium(ClientProxy* client,
+                                 const std::string& endpoint_id,
                                  const std::vector<Medium>& mediums) const;
 
   // BaseBwuHandler
@@ -153,7 +157,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
       ClientProxy* client,
       const location::nearby::connections::BandwidthUpgradeNegotiationFrame&
           frame,
-      const string& endpoint_id);
+      const std::string& endpoint_id);
 
   // Called to revert any state changed in the course of setting up the upgraded
   // medium for an endpoint.
@@ -230,15 +234,22 @@ class BwuManager : public EndpointManager::FrameProcessor {
   bool NeedToSwitchRole(
       ClientProxy* client, const std::string& endpoint_id, Medium medium,
       const location::nearby::connections::MediumRole& medium_role,
-      const location::nearby::connections::OsInfo& remote_os_info);
+      const location::nearby::connections::OsInfo& remote_os_info) const;
+  bool CanSwitchRoleForMedium(ClientProxy* client,
+                              const std::string& endpoint_id,
+                              Medium medium) const;
 
   void ProcessUpgradePathRequest(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
           UpgradePathInfo& upgrade_path_info);
 
-  bool CanHost(ClientProxy* client,
-               const location::nearby::connections::MediumRole& medium_role);
+  bool CanHost(
+      const location::nearby::connections::MediumRole& local_medium_role,
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      Medium medium) const;
+  location::nearby::connections::MediumRole GetLocalMediumRole(
+      ClientProxy* client) const;
 
   virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
       ClientProxy* client) const;
