@@ -17,16 +17,22 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/service_address.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -80,6 +86,67 @@ TEST_F(WifiHotspotTest, CanStartStopHotspot) {
   } else {
     EXPECT_FALSE(wifi_hotspot_a->StartWifiHotspot());
   }
+}
+
+// Verifies that StartAcceptingConnections rejects an empty service_id.
+TEST_F(WifiHotspotTest, StartAcceptingConnectionsFailsWithEmptyServiceId) {
+  auto wifi_hotspot = std::make_unique<WifiHotspot>();
+
+  EXPECT_FALSE(wifi_hotspot->StartAcceptingConnections(/*service_id=*/"",
+                                                       /*callback=*/{}));
+  EXPECT_FALSE(wifi_hotspot->IsAcceptingConnections(/*service_id=*/""));
+}
+
+// Verifies that a WifiHotspot instance in the Client (STA) role can join a
+// remote SoftAP and establish an EndpointChannel to its listening socket.
+TEST_F(WifiHotspotTest, ClientStaCanConnectToRemoteHotspot) {
+  // Set up a remote SoftAP at the platform layer to simulate a peer (e.g.
+  // Android) hosting a Wi-Fi Hotspot independent of the local WifiHotspot
+  // medium's AP support.
+  WifiHotspotMedium remote_ap_medium;
+  ASSERT_TRUE(remote_ap_medium.StartWifiHotspot());
+  WifiHotspotServerSocket server_socket = remote_ap_medium.ListenForService();
+  ASSERT_TRUE(server_socket.IsValid());
+
+  HotspotCredentials* remote_credentials = remote_ap_medium.GetCredential();
+  ASSERT_NE(remote_credentials, nullptr);
+  server_socket.PopulateHotspotCredentials(*remote_credentials);
+
+  CountDownLatch accept_latch(1);
+  WifiHotspotSocket accepted_socket;
+  SingleThreadExecutor server_executor;
+  absl::Cleanup cleanup = [&]() {
+    server_socket.Close();
+    if (accepted_socket.IsValid()) {
+      accepted_socket.Close();
+    }
+    remote_ap_medium.StopWifiHotspot();
+  };
+  server_executor.Execute([&]() {
+    accepted_socket = server_socket.Accept();
+    if (accepted_socket.IsValid()) {
+      accept_latch.CountDown();
+    }
+  });
+
+  auto wifi_hotspot_client = std::make_unique<WifiHotspot>();
+  EXPECT_TRUE(wifi_hotspot_client->IsClientAvailable());
+  EXPECT_TRUE(wifi_hotspot_client->ConnectWifiHotspot(*remote_credentials));
+  EXPECT_TRUE(wifi_hotspot_client->IsConnectedToHotspot());
+
+  CancellationFlag flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_hotspot_client->Connect(std::string(kServiceID),
+                                   remote_credentials->GetAddressCandidates(),
+                                   &flag);
+  ASSERT_TRUE(channel_result.has_value());
+  std::unique_ptr<EndpointChannel> channel = std::move(channel_result.value());
+  ASSERT_NE(channel, nullptr);
+  EXPECT_TRUE(accept_latch.Await(absl::Milliseconds(1000)).result());
+
+  channel->Close();
+  EXPECT_TRUE(wifi_hotspot_client->DisconnectWifiHotspot());
+  EXPECT_FALSE(wifi_hotspot_client->IsConnectedToHotspot());
 }
 
 TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {

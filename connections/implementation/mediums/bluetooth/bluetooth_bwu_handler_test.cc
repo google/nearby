@@ -23,6 +23,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/count_down_latch.h"
@@ -64,7 +65,8 @@ TEST_F(BluetoothBwuTest, CanCreateBwuHandler) {
   Mediums mediums;
 
   auto handler = std::make_unique<BluetoothBwuHandler>(
-      &mediums.GetBluetoothRadio(), &mediums.GetBluetoothClassic(), nullptr);
+      &mediums.GetBluetoothRadio(),
+      static_cast<BluetoothClassic*>(&mediums.GetBluetoothClassic()), nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
                                                /*endpoint_id=*/"2");
@@ -91,7 +93,8 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
   EXPECT_TRUE(mediums_2.GetBluetoothRadio().Enable());
 
   auto handler_1 = std::make_unique<BluetoothBwuHandler>(
-      &mediums_1.GetBluetoothRadio(), &mediums_1.GetBluetoothClassic(),
+      &mediums_1.GetBluetoothRadio(),
+      static_cast<BluetoothClassic*>(&mediums_1.GetBluetoothClassic()),
       [&](ClientProxy* client,
           std::unique_ptr<BwuHandler::IncomingSocketConnection>
               mutable_connection) {
@@ -117,10 +120,10 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
   SingleThreadExecutor client_executor;
   // Wait till client_1 started as Bluetooth and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
-  std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<BluetoothBwuHandler>(
-          &mediums_2.GetBluetoothRadio(), &mediums_2.GetBluetoothClassic(),
-          nullptr);
+  std::unique_ptr<BwuHandler> handler_2 = std::make_unique<BluetoothBwuHandler>(
+      &mediums_2.GetBluetoothRadio(),
+      static_cast<BluetoothClassic*>(&mediums_2.GetBluetoothClassic()),
+      nullptr);
 
   client_executor.Execute([&]() {
     auto bwu_frame =

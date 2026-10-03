@@ -22,6 +22,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_stub.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -31,11 +33,14 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace connections {
 namespace {
+
+#if !defined(__APPLE__)
 
 using FeatureFlags = FeatureFlags::Flags;
 
@@ -704,6 +709,60 @@ TEST_F(BluetoothClassicTest, GetRemoteDevice) {
   EXPECT_FALSE(
       bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetAddress())
           .IsValid());
+}
+
+#endif  // !defined(__APPLE__)
+
+// Verifies that BluetoothClassicStub reports all operations as unavailable via
+// BluetoothClassicInterface.
+TEST(BluetoothClassicAppleTest, IsStubbedOnApple) {
+  BluetoothRadio radio;
+  BluetoothClassicStub stub(radio);
+  BluetoothClassicInterface& bluetooth = stub;
+
+  EXPECT_FALSE(bluetooth.IsAvailable());
+  EXPECT_FALSE(bluetooth.IsMediumValid());
+  EXPECT_FALSE(bluetooth.IsAdapterValid());
+  EXPECT_FALSE(bluetooth.TurnOffDiscoverability());
+  EXPECT_FALSE(bluetooth.StopDiscovery("service_id"));
+  bluetooth.StopAllDiscovery();
+  EXPECT_FALSE(bluetooth.IsDiscovering("service_id"));
+  EXPECT_FALSE(bluetooth.IsAcceptingConnections("service_id"));
+  EXPECT_FALSE(bluetooth.StopAcceptingConnections("service_id"));
+  EXPECT_FALSE(bluetooth.GetAddress().IsSet());
+  EXPECT_EQ(bluetooth.CreateBwuHandler(nullptr), nullptr);
+
+  BluetoothDevice remote_device = bluetooth.GetRemoteDevice(MacAddress());
+  EXPECT_FALSE(remote_device.IsValid());
+
+  CancellationFlag cancellation_flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel =
+      bluetooth.Connect(remote_device, "service_id", "local_service_id",
+                        "channel_name", &cancellation_flag);
+  ASSERT_TRUE(channel.has_error());
+  EXPECT_EQ(channel.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> discoverability =
+      bluetooth.TurnOnDiscoverability("test_device");
+  ASSERT_TRUE(discoverability.has_error());
+  EXPECT_EQ(discoverability.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> discovery = bluetooth.StartDiscovery("service_id", {});
+  ASSERT_TRUE(discovery.has_error());
+  EXPECT_EQ(discovery.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> accepting =
+      bluetooth.StartAcceptingConnections("service_id", {});
+  ASSERT_TRUE(accepting.has_error());
+  EXPECT_EQ(accepting.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
 }
 
 }  // namespace

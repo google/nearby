@@ -23,6 +23,8 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_stub.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -33,6 +35,8 @@
 namespace nearby {
 namespace connections {
 namespace {
+
+#if !defined(__APPLE__)
 
 using FeatureFlags = FeatureFlags::Flags;
 
@@ -224,6 +228,42 @@ TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Unsupported) {
   // Preferred type should remain the default.
   EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
             WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
+}
+
+#endif  // !defined(__APPLE__)
+
+// Verifies that WifiDirectStub reports Group Owner and Group Client roles as
+// unavailable via WifiDirectInterface.
+TEST(WifiDirectAppleTest, IsStubbedOnApple) {
+  WifiDirectStub stub;
+  WifiDirectInterface& wifi_direct = stub;
+
+  EXPECT_FALSE(wifi_direct.IsGOAvailable());
+  EXPECT_FALSE(wifi_direct.IsGCAvailable());
+  EXPECT_FALSE(wifi_direct.IsGOStarted());
+  EXPECT_FALSE(wifi_direct.StartWifiDirect());
+  EXPECT_FALSE(wifi_direct.StopWifiDirect());
+  EXPECT_FALSE(wifi_direct.IsConnectedToGO());
+  EXPECT_FALSE(wifi_direct.ConnectWifiDirect({}));
+  EXPECT_FALSE(wifi_direct.DisconnectWifiDirect());
+  EXPECT_FALSE(wifi_direct.StartAcceptingConnections("service_id", {}));
+  EXPECT_FALSE(wifi_direct.StopAcceptingConnections("service_id"));
+  EXPECT_FALSE(wifi_direct.IsAcceptingConnections("service_id"));
+  EXPECT_EQ(wifi_direct.GetCredentials("service_id"), nullptr);
+  EXPECT_TRUE(wifi_direct.GetSupportedWifiDirectAuthTypes().empty());
+  EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
+            WifiDirectStub::WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN);
+  EXPECT_FALSE(wifi_direct.SetPreferredWifiDirectAuthType(
+      WifiDirectStub::WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN));
+  EXPECT_EQ(wifi_direct.CreateBwuHandler(nullptr), nullptr);
+
+  CancellationFlag cancellation_flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel = wifi_direct.Connect(
+      "service_id", "192.168.49.1", 1234, &cancellation_flag);
+  ASSERT_TRUE(channel.has_error());
+  EXPECT_EQ(channel.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_WIFI_DIRECT_NOT_AVAILABLE);
 }
 
 }  // namespace

@@ -19,13 +19,49 @@ licenses(["notice"])
 
 cc_library(
     name = "bluetooth",
-    textual_hdrs = ["bluetooth_classic.h"],
+    textual_hdrs = [
+        "bluetooth_classic.h",
+        "bluetooth_classic_interface.h",
+        "bluetooth_classic_stub.h",
+    ],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
     ],
+    deps = select({
+        "@platforms//os:ios": [":bluetooth_stub"],
+        "//conditions:default": [":bluetooth_internal"],
+    }) + [
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//connections/implementation/mediums:bluetooth_radio",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform:mac_address",
+        "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
+cc_library(
+    name = "bluetooth_stub",
+    hdrs = [
+        "bluetooth_classic_interface.h",
+        "bluetooth_classic_stub.h",
+    ],
+    visibility = ["//visibility:private"],
     deps = [
-        ":bluetooth_internal",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//connections/implementation/mediums:bluetooth_radio",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform:mac_address",
+        "@com_google_absl//absl/functional:any_invocable",
     ],
 )
 
@@ -39,6 +75,7 @@ cc_library(
     hdrs = [
         "bluetooth_bwu_handler.h",
         "bluetooth_classic.h",
+        "bluetooth_classic_interface.h",
         "bluetooth_endpoint_channel.h",
     ],
     visibility = ["//visibility:private"],
@@ -68,11 +105,16 @@ cc_test(
     name = "bluetooth_test",
     size = "small",
     srcs = [
-        "bluetooth_bwu_handler_test.cc",
         "bluetooth_classic_test.cc",
-    ],
+    ] + select({
+        "@platforms//os:ios": [],
+        "//conditions:default": [
+            "bluetooth_bwu_handler_test.cc",
+        ],
+    }),
     deps = [
         ":bluetooth_internal",
+        ":bluetooth_stub",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
@@ -83,6 +125,7 @@ cc_test(
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
