@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "securegcm/ukey2_handshake.h"
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
@@ -89,9 +90,10 @@ class BasePcpHandler : public PcpHandler,
  public:
   using FrameProcessor = EndpointManager::FrameProcessor;
 
-  BasePcpHandler(Mediums* mediums, EndpointManager* endpoint_manager,
-                 EndpointChannelManager* channel_manager,
-                 BwuManager* bwu_manager, Pcp pcp);
+  BasePcpHandler(Mediums* absl_nonnull mediums,
+                 EndpointManager* absl_nonnull endpoint_manager,
+                 EndpointChannelManager* absl_nonnull channel_manager,
+                 BwuManager* absl_nonnull bwu_manager, Pcp pcp);
   ~BasePcpHandler() override;
   BasePcpHandler(BasePcpHandler&&) = delete;
   BasePcpHandler& operator=(BasePcpHandler&&) = delete;
@@ -435,9 +437,9 @@ class BasePcpHandler : public PcpHandler,
     return endpoint_lost_by_medium_alarms_.size();
   }
 
-  Mediums* mediums_;
-  EndpointManager* endpoint_manager_;
-  EndpointChannelManager* channel_manager_;
+  Mediums& mediums_;
+  EndpointManager& endpoint_manager_;
+  EndpointChannelManager& channel_manager_;
   AtomicBoolean stop_{false};
 
  private:
@@ -710,7 +712,7 @@ class BasePcpHandler : public PcpHandler,
   Pcp pcp_;
   Strategy strategy_{PcpToStrategy(pcp_)};
   EncryptionRunner encryption_runner_;
-  BwuManager* bwu_manager_;
+  BwuManager& bwu_manager_;
 };
 
 }  // namespace connections

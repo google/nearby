@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "securegcm/ukey2_handshake.h"
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/btree_map.h"
@@ -119,15 +120,16 @@ std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
 
 }  // namespace
 
-BasePcpHandler::BasePcpHandler(Mediums* mediums,
-                               EndpointManager* endpoint_manager,
-                               EndpointChannelManager* channel_manager,
-                               BwuManager* bwu_manager, Pcp pcp)
-    : mediums_(mediums),
-      endpoint_manager_(endpoint_manager),
-      channel_manager_(channel_manager),
+BasePcpHandler::BasePcpHandler(
+    Mediums* absl_nonnull mediums,
+    EndpointManager* absl_nonnull endpoint_manager,
+    EndpointChannelManager* absl_nonnull channel_manager,
+    BwuManager* absl_nonnull bwu_manager, Pcp pcp)
+    : mediums_(*mediums),
+      endpoint_manager_(*endpoint_manager),
+      channel_manager_(*channel_manager),
       pcp_(pcp),
-      bwu_manager_(bwu_manager) {}
+      bwu_manager_(*bwu_manager) {}
 
 BasePcpHandler::~BasePcpHandler() {
   VLOG(1) << __func__;
@@ -146,7 +148,7 @@ void BasePcpHandler::Shutdown() {
   encryption_runner_.Shutdown();
 
   // Stop discovery of Bluetooth Classic.
-  mediums_->GetBluetoothClassic().StopAllDiscovery();
+  mediums_.GetBluetoothClassic().StopAllDiscovery();
 
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
@@ -158,8 +160,8 @@ void BasePcpHandler::DisconnectFromEndpointManager() {
   LOG(INFO) << "BasePcpHandler(" << strategy_.GetName()
             << ") unregister from EPM.";
   // Unregister ourselves from EPM message dispatcher.
-  endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
-                                              this);
+  endpoint_manager_.UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
+                                             this);
 }
 
 std::pair<Status, std::vector<ConnectionInfoVariant>>
@@ -192,7 +194,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
   std::vector<ConnectionInfoVariant> connection_infos;
   for (const auto& medium : result.mediums) {
     if (medium == location::nearby::proto::connections::BLUETOOTH) {
-      BluetoothConnectionInfo info(mediums_->GetBluetoothClassic().GetAddress(),
+      BluetoothConnectionInfo info(mediums_.GetBluetoothClassic().GetAddress(),
                                    "", {});
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::BLE) {
@@ -201,7 +203,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::WIFI_LAN) {
       api::UpgradeAddressInfo upgrade_candidates =
-          mediums_->GetWifiLan().GetUpgradeAddressCandidates(
+          mediums_.GetWifiLan().GetUpgradeAddressCandidates(
               std::string(service_id));
       // Only use IPv4 address.  IPv4 addresses are always at the end of the
       // list.
@@ -446,7 +448,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
                                    static_cast<WifiDirectAuthType>(auth_type)));
                          });
         auto local_supported_wifi_direct_auth_types =
-            mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
+            mediums_.GetWifiDirect().GetSupportedWifiDirectAuthTypes();
         LOG(INFO) << "Local supported WifiDirect auth types: "
                   << absl::StrJoin(
                          local_supported_wifi_direct_auth_types, ", ",
@@ -467,7 +469,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
               remote_supported_wifi_direct_auth_types.end()) {
             LOG(INFO) << "Found common WifiDirect auth type: "
                       << WifiDirectAuthType_Name(auth_type);
-            mediums_->GetWifiDirect().SetPreferredWifiDirectAuthType(auth_type);
+            mediums_.GetWifiDirect().SetPreferredWifiDirectAuthType(auth_type);
             found_common_auth_type = true;
             break;
           }
@@ -831,7 +833,7 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
             << endpoint_id;
 
   // Set ourselves up so that we receive all acceptance/rejection messages
-  endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
+  endpoint_manager_.RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
 
   ConnectionOptions connection_options =
       pending_connection_info.connection_options;
@@ -842,7 +844,7 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
   // accept.
   LogConnectionAttemptSuccess(std::string(endpoint_id),
                               pending_connection_info);
-  endpoint_manager_->RegisterEndpoint(
+  endpoint_manager_.RegisterEndpoint(
       pending_connection_info.client, std::string(endpoint_id),
       {
           .remote_endpoint_info = pending_connection_info.remote_endpoint_info,
@@ -901,11 +903,11 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   connection_info.local_endpoint_id = client->GetLocalEndpointId();
   connection_info.local_endpoint_info = info.endpoint_info;
   connection_info.nonce = Prng().NextInt32();
-  if (mediums_->GetWifi().IsAvailable()) {
+  if (mediums_.GetWifi().IsAvailable()) {
     connection_info.supports_5_ghz =
-        mediums_->GetWifi().GetCapability().supports_5_ghz;
+        mediums_.GetWifi().GetCapability().supports_5_ghz;
 
-    api::WifiInformation& wifi_info = mediums_->GetWifi().GetInformation();
+    api::WifiInformation& wifi_info = mediums_.GetWifi().GetInformation();
     connection_info.bssid = wifi_info.bssid;
     connection_info.ap_frequency = wifi_info.ap_frequency;
     if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -914,13 +916,13 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
       LOG(INFO) << "kEnableDynamicRoleSwitch is enabled";
       ClientProxy::MediumsAvailability mediums_availability;
       mediums_availability.is_wifi_direct_go_available =
-          mediums_->GetWifiDirect().IsGOAvailable();
+          mediums_.GetWifiDirect().IsGOAvailable();
       mediums_availability.is_wifi_direct_gc_available =
-          mediums_->GetWifiDirect().IsGCAvailable();
+          mediums_.GetWifiDirect().IsGCAvailable();
       mediums_availability.is_wifi_hotspot_ap_available =
-          mediums_->GetWifiHotspot().IsAPAvailable();
+          mediums_.GetWifiHotspot().IsAPAvailable();
       mediums_availability.is_wifi_hotspot_client_available =
-          mediums_->GetWifiHotspot().IsClientAvailable();
+          mediums_.GetWifiHotspot().IsClientAvailable();
       connection_info.medium_role.emplace(
           client->GetLocalMediumRole(mediums_availability));
     }
@@ -932,13 +934,13 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   // Don't advertise mediums that the local BwuManager won't upgrade to,
   // otherwise the remote may pick them and the upgrade would fail.
   connection_info.supported_mediums =
-      bwu_manager_->StripOutDisallowedUpgradeMediums(
+      bwu_manager_.StripOutDisallowedUpgradeMediums(
           GetSupportedConnectionMediumsByPriority(connection_options));
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiDirect)) {
     connection_info.supported_wifi_direct_auth_types =
-        mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
+        mediums_.GetWifiDirect().GetSupportedWifiDirectAuthTypes();
     VLOG(1) << "Set SupportedWifiDirectAuthTypes for WIFI_DIRECT: "
             << absl::StrJoin(connection_info.supported_wifi_direct_auth_types,
                              ",");
@@ -1312,29 +1314,29 @@ void BasePcpHandler::StripOutUnavailableMediums(
   BooleanMediumSelector& allowed = advertising_options.allowed;
 
   if (allowed.bluetooth) {
-    allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
+    allowed.bluetooth = mediums_.GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    allowed.ble = mediums_.GetBle().IsAvailable();
   }
   if (allowed.web_rtc) {
-    allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
+    allowed.web_rtc = mediums_.GetWebRtc().IsAvailable();
   }
   if (allowed.wifi_lan) {
-    allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
+    allowed.wifi_lan = mediums_.GetWifiLan().IsAvailable();
   }
   if (allowed.wifi_hotspot) {
-    allowed.wifi_hotspot = mediums_->GetWifiHotspot().IsAPAvailable();
+    allowed.wifi_hotspot = mediums_.GetWifiHotspot().IsAPAvailable();
   }
   if (allowed.wifi_direct) {
-    allowed.wifi_direct = mediums_->GetWifiDirect().IsGOAvailable();
+    allowed.wifi_direct = mediums_.GetWifiDirect().IsGOAvailable();
   }
   if (allowed.awdl) {
-    allowed.awdl = mediums_->GetAwdl().IsAvailable();
+    allowed.awdl = mediums_.GetAwdl().IsAvailable();
   }
   // Legacy Wi-Fi Aware is promoted to Wi-Fi Aware R4.
   if (allowed.wifi_aware || allowed.wifi_aware_r4) {
-    allowed.wifi_aware_r4 = mediums_->GetWifiAware().IsAvailable();
+    allowed.wifi_aware_r4 = mediums_.GetWifiAware().IsAvailable();
     allowed.wifi_aware = false;
   }
 }
@@ -1363,28 +1365,28 @@ void BasePcpHandler::StripOutUnavailableMediums(
   BooleanMediumSelector& allowed = discovery_options.allowed;
 
   if (allowed.bluetooth) {
-    allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
+    allowed.bluetooth = mediums_.GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    allowed.ble = mediums_->GetBle().IsAvailable();
+    allowed.ble = mediums_.GetBle().IsAvailable();
   }
   if (allowed.web_rtc) {
-    allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
+    allowed.web_rtc = mediums_.GetWebRtc().IsAvailable();
   }
   if (allowed.wifi_lan) {
-    allowed.wifi_lan = mediums_->GetWifiLan().IsAvailable();
+    allowed.wifi_lan = mediums_.GetWifiLan().IsAvailable();
   }
   if (allowed.wifi_hotspot) {
-    allowed.wifi_hotspot = mediums_->GetWifi().IsAvailable() &&
-                           mediums_->GetWifiHotspot().IsClientAvailable();
+    allowed.wifi_hotspot = mediums_.GetWifi().IsAvailable() &&
+                           mediums_.GetWifiHotspot().IsClientAvailable();
   }
   if (allowed.wifi_direct) {
-    allowed.wifi_direct = mediums_->GetWifi().IsAvailable() &&
-                          mediums_->GetWifiDirect().IsGCAvailable();
+    allowed.wifi_direct = mediums_.GetWifi().IsAvailable() &&
+                          mediums_.GetWifiDirect().IsGCAvailable();
   }
   // Legacy Wi-Fi Aware is promoted to Wi-Fi Aware R4.
   if (allowed.wifi_aware || allowed.wifi_aware_r4) {
-    allowed.wifi_aware_r4 = mediums_->GetWifiAware().IsAvailable();
+    allowed.wifi_aware_r4 = mediums_.GetWifiAware().IsAvailable();
     allowed.wifi_aware = false;
   }
 }
@@ -1587,7 +1589,7 @@ void BasePcpHandler::ProcessPreConnectionResultFailure(
     bool should_call_disconnect_endpoint, const DisconnectionReason& reason) {
   auto item = pending_connections_.extract(endpoint_id);
   if (should_call_disconnect_endpoint) {
-    endpoint_manager_->DiscardEndpoint(client, endpoint_id, reason);
+    endpoint_manager_.DiscardEndpoint(client, endpoint_id, reason);
   }
   client->OnConnectionRejected(endpoint_id, {Status::kError});
 }
@@ -1617,7 +1619,7 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
         // EndpointManager::registerEndpoint(), so we now need to get access to
         // the EndpointChannel from the authoritative owner.
         std::shared_ptr<EndpointChannel> channel =
-            channel_manager_->GetChannelForEndpoint(endpoint_id);
+            channel_manager_.GetChannelForEndpoint(endpoint_id);
         if (channel == nullptr) {
           LOG(ERROR) << "Channel destroyed before Accept; bring down "
                         "connection: endpoint_id="
@@ -1678,7 +1680,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
         // EndpointManager::registerEndpoint(), so we now need to get access to
         // the EndpointChannel from the authoritative owner.
         std::shared_ptr<EndpointChannel> channel =
-            channel_manager_->GetChannelForEndpoint(endpoint_id);
+            channel_manager_.GetChannelForEndpoint(endpoint_id);
         if (channel == nullptr) {
           LOG(ERROR)
               << "Channel destroyed before Reject; bring down connection: "
@@ -1773,7 +1775,7 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteSafeToDisconnectVersion(
               endpoint_id, connection_response.safe_to_disconnect_version());
         }
-        channel_manager_->UpdateSafeToDisconnectForEndpoint(
+        channel_manager_.UpdateSafeToDisconnectForEndpoint(
             endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
         EvaluateConnectionResult(client, endpoint_id,
                                  /* can_close_immediately= */ true);
@@ -1815,7 +1817,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
 
 BluetoothDevice BasePcpHandler::GetRemoteBluetoothDevice(
     MacAddress remote_bluetooth_mac_address) {
-  return mediums_->GetBluetoothClassic().GetRemoteDevice(
+  return mediums_.GetBluetoothClassic().GetRemoteDevice(
       remote_bluetooth_mac_address);
 }
 
@@ -2487,7 +2489,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   BasePcpHandler::PendingConnectionInfo& pending_connection_info =
       pair.mapped();
   std::shared_ptr<EndpointChannel> endpint_channel =
-      channel_manager_->GetChannelForEndpoint(endpoint_id);
+      channel_manager_.GetChannelForEndpoint(endpoint_id);
   if (endpint_channel == nullptr) {
     LOG(WARNING) << "No endpint channel for endpoint_id=" << endpoint_id;
     return;
@@ -2511,8 +2513,8 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     CHECK(context);  // there is no way how this can fail, if Verify succeeded.
     // If it did, it's a UKEY2 protocol bug.
 
-    if (!channel_manager_->EncryptChannelForEndpoint(endpoint_id,
-                                                     std::move(context))) {
+    if (!channel_manager_.EncryptChannelForEndpoint(endpoint_id,
+                                                    std::move(context))) {
       response_code = {Status::kEndpointUnknown};
     }
   } else {
@@ -2526,15 +2528,15 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
     // Clean up the channel in EndpointManager if it's no longer required.
     if (can_close_immediately) {
-      endpoint_manager_->DiscardEndpoint(client, endpoint_id,
-                                         DisconnectionReason::UNFINISHED);
+      endpoint_manager_.DiscardEndpoint(client, endpoint_id,
+                                        DisconnectionReason::UNFINISHED);
     } else {
       pending_alarms_.emplace(
           endpoint_id,
           std::make_unique<CancelableAlarm>(
               "BasePcpHandler.evaluateConnectionResult() delayed close",
               [this, client, endpoint_id]() {
-                endpoint_manager_->DiscardEndpoint(
+                endpoint_manager_.DiscardEndpoint(
                     client, endpoint_id, DisconnectionReason::UNFINISHED);
               },
               kRejectedConnectionCloseDelay, &alarm_executor_));
@@ -2553,7 +2555,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   if (FeatureFlags::GetInstance()
           .GetFlags()
           .support_web_rtc_non_cellular_medium) {
-    if (medium == Medium::WEB_RTC && !mediums_->GetWebRtc().IsUsingCellular()) {
+    if (medium == Medium::WEB_RTC && !mediums_.GetWebRtc().IsUsingCellular()) {
       medium = Medium::WEB_RTC_NON_CELLULAR;
     }
   }
@@ -2564,7 +2566,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   // Kick off the bandwidth upgrade for incoming connections.
   if (pending_connection_info.is_incoming && client->AutoUpgradeBandwidth()) {
-    bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
+    bwu_manager_.InitiateBwuForEndpoint(client, endpoint_id);
   }
 }
 

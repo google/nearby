@@ -42,39 +42,39 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<location::nearby::proto::connections::Medium> mediums;
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
-    if (mediums_->GetAwdl().IsAvailable()) {
+    if (mediums_.GetAwdl().IsAvailable()) {
       mediums.push_back(location::nearby::proto::connections::AWDL);
     }
   }
-  if (mediums_->GetWifiLan().IsAvailable()) {
+  if (mediums_.GetWifiLan().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiAware)) {
-    if (mediums_->GetWifiAware().IsAvailable()) {
+    if (mediums_.GetWifiAware().IsAvailable()) {
       mediums.push_back(location::nearby::proto::connections::WIFI_AWARE_R4);
     }
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableWifiDirect)) {
-    if (mediums_->GetWifi().IsAvailable() &&
-        mediums_->GetWifiDirect().IsGCAvailable()) {
+    if (mediums_.GetWifi().IsAvailable() &&
+        mediums_.GetWifiDirect().IsGCAvailable()) {
       mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
     }
   }
-  if (mediums_->GetWifi().IsAvailable() &&
-      mediums_->GetWifiHotspot().IsClientAvailable()) {
+  if (mediums_.GetWifi().IsAvailable() &&
+      mediums_.GetWifiHotspot().IsClientAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_HOTSPOT);
   }
-  if (mediums_->GetWebRtc().IsAvailable()) {
+  if (mediums_.GetWebRtc().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WEB_RTC);
   }
-  if (mediums_->GetBluetoothClassic().IsAvailable()) {
+  if (mediums_.GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
-  if (mediums_->GetBle().IsAvailable()) {
+  if (mediums_.GetBle().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLE);
   }
   return mediums;
