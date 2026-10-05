@@ -97,6 +97,10 @@ class OutputFile final {
   // associated with it.
   Exception Close();
 
+  // Closes the file if open and deletes it from the filesystem.
+  // Returns true if the file was deleted.
+  bool Delete();
+
   // Returns a handle to the underlying  output stream.
   //
   // Returned handle will remain valid even if OutputFile is moved, for as long
@@ -110,6 +114,7 @@ class OutputFile final {
 
  private:
   std::unique_ptr<api::OutputFile> impl_;
+  std::string file_path_;
 };
 
 }  // namespace nearby

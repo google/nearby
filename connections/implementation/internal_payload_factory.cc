@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
@@ -37,6 +38,8 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 
@@ -56,12 +59,11 @@ std::string make_path(const std::string& custom_save_path,
                                                    parent_folder, file_name);
 }
 
-class BytesInternalPayload : public InternalPayload {
+class OutgoingBytesInternalPayload : public OutgoingInternalPayload {
  public:
-  explicit BytesInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
-        total_size_(payload_.AsBytes().size()),
-        detached_only_chunk_(false) {}
+  explicit OutgoingBytesInternalPayload(Payload payload)
+      : OutgoingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -83,14 +85,34 @@ class BytesInternalPayload : public InternalPayload {
     return std::move(payload_).AsBytes();
   }
 
-  // Does nothing.
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kSuccess};
-  }
-
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
     LOG(WARNING) << "Bytes payload does not support offsets";
     return {Exception::kIo};
+  }
+
+ private:
+  const std::int64_t total_size_;
+  bool detached_only_chunk_ = false;
+};
+
+class IncomingBytesInternalPayload : public IncomingInternalPayload {
+ public:
+  explicit IncomingBytesInternalPayload(Payload payload)
+      : IncomingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
+
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        BYTES;
+  }
+
+  std::int64_t GetTotalSize() const override { return total_size_; }
+
+  // Does nothing.
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    return {Exception::kSuccess};
   }
 
  private:
@@ -98,13 +120,12 @@ class BytesInternalPayload : public InternalPayload {
   // moved to another owner during the lifetime of an incoming
   // InternalPayload.
   const std::int64_t total_size_;
-  bool detached_only_chunk_;
 };
 
-class OutgoingStreamInternalPayload : public InternalPayload {
+class OutgoingStreamInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingStreamInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)) {}
+      : OutgoingInternalPayload(std::move(payload)) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -138,10 +159,6 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     return scoped_bytes_read;
   }
 
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kIo};
-  }
-
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
     InputStream* stream = payload_.AsStream();
     if (stream == nullptr) return {Exception::kIo};
@@ -172,19 +189,18 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   AtomicBoolean is_closed_{false};
 };
 
-class IncomingStreamInternalPayload : public InternalPayload {
+class IncomingStreamInternalPayload : public IncomingInternalPayload {
  public:
   IncomingStreamInternalPayload(Payload payload,
                                 std::unique_ptr<OutputStream> output)
-      : InternalPayload(std::move(payload)), output_(std::move(output)) {}
+      : IncomingInternalPayload(std::move(payload)),
+        output_(std::move(output)) {}
 
   PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
     return PayloadTransferFrame::PayloadHeader::STREAM;
   }
 
   std::int64_t GetTotalSize() const override { return -1; }
-
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
   Exception AttachNextChunk(absl::string_view chunk) override {
     if (chunk.empty()) {
@@ -197,11 +213,6 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return output_->Write(chunk);
   }
 
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming Payload " << this;
-    return {Exception::kIo};
-  }
-
   void Close() override {
     if (is_closed_.Set(true)) return;
     output_->Close();
@@ -212,10 +223,10 @@ class IncomingStreamInternalPayload : public InternalPayload {
   std::unique_ptr<OutputStream> output_;
 };
 
-class OutgoingFileInternalPayload : public InternalPayload {
+class OutgoingFileInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingFileInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
+      : OutgoingInternalPayload(std::move(payload)),
         total_size_{payload_.AsFile()->GetTotalSize()} {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
@@ -246,10 +257,6 @@ class OutgoingFileInternalPayload : public InternalPayload {
     }
 
     return bytes;
-  }
-
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kIo};
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -285,12 +292,12 @@ class OutgoingFileInternalPayload : public InternalPayload {
   std::int64_t total_size_;
 };
 
-class IncomingFileInternalPayload : public InternalPayload {
+class IncomingFileInternalPayload : public IncomingInternalPayload {
  public:
   IncomingFileInternalPayload(Payload payload, OutputFile output_file,
                               absl::Time last_modified_time,
                               std::int64_t total_size)
-      : InternalPayload(std::move(payload)),
+      : IncomingInternalPayload(std::move(payload)),
         output_file_(std::move(output_file)),
         last_modified_time_(last_modified_time),
         total_size_(total_size) {}
@@ -304,12 +311,16 @@ class IncomingFileInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return total_size_; }
 
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
-
   Exception AttachNextChunk(absl::string_view chunk) override {
+    MutexLock lock(&mutex_);
+    if (is_closed_) {
+      return {Exception::kIo};
+    }
     if (chunk.empty()) {
       // Received null last chunk for incoming payload.
-      Close();
+      is_closed_ = true;
+      output_file_.SetLastModifiedTime(last_modified_time_);
+      output_file_.Close();
       return {Exception::kSuccess};
     }
     // Truncate 1 incoming chunk to the total size of the payload.
@@ -318,7 +329,7 @@ class IncomingFileInternalPayload : public InternalPayload {
     // For file payloads, total size must be valid.
     if (bytes_written_ + chunk.size() > total_size_) {
       if (total_size_ <= bytes_written_) {
-        Close();
+        CloseAndDeleteLocked();
         return {Exception::kIo};
       }
       // TODO(b/511806938): Add metrics to track if this ever happens.  If not,
@@ -329,36 +340,49 @@ class IncomingFileInternalPayload : public InternalPayload {
       bytes_written_ += chunk.size();
     }
 
-    return output_file_.Write(chunk);
-  }
-
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming file Payload " << this;
-    return {Exception::kIo};
+    Exception write_result = output_file_.Write(chunk);
+    if (!write_result.Ok()) {
+      CloseAndDeleteLocked();
+    }
+    return write_result;
   }
 
   void Close() override {
-    if (is_closed_.Set(true)) return;
-    output_file_.SetLastModifiedTime(last_modified_time_);
-    output_file_.Close();
+    MutexLock lock(&mutex_);
+    if (is_closed_) return;
+    // Close() was called before the final empty chunk was received, so the
+    // incoming file is incomplete or was canceled/aborted.
+    CloseAndDeleteLocked();
+  }
+
+  void Cancel() override {
+    MutexLock lock(&mutex_);
+    CloseAndDeleteLocked();
   }
 
  private:
-  AtomicBoolean is_closed_{false};
-  OutputFile output_file_;
+  void CloseAndDeleteLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    is_closed_ = true;
+    output_file_.Delete();
+  }
+
+  Mutex mutex_;
+  bool is_closed_ ABSL_GUARDED_BY(mutex_) = false;
+  OutputFile output_file_ ABSL_GUARDED_BY(mutex_);
   const absl::Time last_modified_time_;
   const int64_t total_size_;
   // Bytes written to the output file.
-  int64_t bytes_written_ = 0;
+  int64_t bytes_written_ ABSL_GUARDED_BY(mutex_) = 0;
 };
 
 }  // namespace
 
-ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
+ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
     case PayloadType::kBytes:
-      return {std::make_unique<BytesInternalPayload>(std::move(payload))};
+      return {
+          std::make_unique<OutgoingBytesInternalPayload>(std::move(payload))};
 
     case PayloadType::kFile: {
       return {
@@ -375,7 +399,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
   }
 }
 
-ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
+ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path) {
   if (frame.packet_type() !=
@@ -387,7 +411,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
   const Payload::Id payload_id = frame.payload_header().id();
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
-      return {std::make_unique<BytesInternalPayload>(
+      return {std::make_unique<IncomingBytesInternalPayload>(
           Payload(payload_id, ByteArray(frame.payload_chunk().body())))};
     }
 

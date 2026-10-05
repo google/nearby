@@ -323,6 +323,8 @@ cc_library(
         ":types",
         ":uuid",
         "//connections/implementation/flags:connections_flags",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
