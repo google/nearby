@@ -324,6 +324,7 @@ let package = Package(
         "connections/implementation/mediums/awdl/BUILD",
         "connections/implementation/mediums/ble/BUILD",
         "connections/implementation/mediums/bluetooth/BUILD",
+        "connections/implementation/mediums/wifi_aware/BUILD",
         "connections/implementation/mediums/wifi_direct/BUILD",
         "connections/implementation/mediums/wifi_hotspot/BUILD",
         "connections/implementation/mediums/BUILD",

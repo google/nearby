@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
 
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "connections/implementation/mediums/wifi_aware_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_bwu_handler.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_endpoint_channel.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -63,8 +65,7 @@ bool WifiAware::IsAvailableLocked() const {
 }
 
 ErrorOr<bool> WifiAware::StartAdvertising(
-    const std::string& service_id,
-    absl::string_view channel_name,
+    const std::string& service_id, absl::string_view channel_name,
     const WifiAwareServiceInfo& wifi_aware_service_info,
     AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
@@ -372,6 +373,12 @@ api::UpgradeAddressInfo WifiAware::GetUpgradeAddressCandidates(
     return {};
   }
   return medium_.GetUpgradeAddressCandidates(it->second);
+}
+
+std::unique_ptr<BwuHandler> WifiAware::CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
+  return std::make_unique<WifiAwareBwuHandler>(
+      *this, std::move(incoming_connection_callback));
 }
 
 }  // namespace connections

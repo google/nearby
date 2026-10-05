@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_WIFI_AWARE_H_
-#define CORE_INTERNAL_MEDIUMS_WIFI_AWARE_H_
+#ifndef CORE_INTERNAL_MEDIUMS_WIFI_AWARE_WIFI_AWARE_H_
+#define CORE_INTERNAL_MEDIUMS_WIFI_AWARE_WIFI_AWARE_H_
 
 #include <memory>
 #include <string>
@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -118,6 +119,9 @@ class WifiAware {
   api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+    BwuHandler::IncomingConnectionCallback incoming_connection_callback);
+
  private:
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
@@ -150,4 +154,4 @@ class WifiAware {
 }  // namespace connections
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_WIFI_AWARE_H_
+#endif  // CORE_INTERNAL_MEDIUMS_WIFI_AWARE_WIFI_AWARE_H_

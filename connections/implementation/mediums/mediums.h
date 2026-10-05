@@ -23,7 +23,7 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
-#include "connections/implementation/mediums/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"

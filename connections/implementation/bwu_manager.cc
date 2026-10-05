@@ -34,7 +34,6 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/wifi_aware_bwu_handler.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #include "connections/medium_selector.h"
@@ -165,8 +164,7 @@ void BwuManager::InitBwuHandlers() {
               kEnableWifiAware)) {
     handlers_.emplace(
         Medium::WIFI_AWARE_R4,
-        std::make_unique<WifiAwareBwuHandler>(
-            mediums_->GetWifiAware(),
+        mediums_->GetWifiAware().CreateBwuHandler(
             absl::bind_front(&BwuManager::OnIncomingConnection, this)));
   }
   if (config_.allow_upgrade_to.web_rtc) {
