@@ -51,7 +51,6 @@
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
@@ -1471,14 +1470,6 @@ void BasePcpHandler::StopEndpointLostByMediumAlarm(
   }
 }
 
-mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
-    const std::string& service_id, const std::string& endpoint_id,
-    const ByteArray& endpoint_info) {
-  std::string seed =
-      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
-  return mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
-}
-
 void BasePcpHandler::StripOutWifiHotspotMedium(
     ConnectionInfo& connection_info) {
   bool has_wifi_lan_or_wifi_aware = false;
@@ -2447,8 +2438,6 @@ bool BasePcpHandler::AppendWebRTCEndpoint(
       {endpoint_id, endpoint->endpoint_info, endpoint->service_id,
        location::nearby::proto::connections::Medium::WEB_RTC,
        WebRtcState::kConnectable},
-      CreatePeerIdFromAdvertisement(endpoint->service_id, endpoint->endpoint_id,
-                                    endpoint->endpoint_info),
   });
 
   discovered_endpoints_.emplace(endpoint_id, std::move(webrtc_endpoint));
