@@ -810,6 +810,12 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
   // this endpoint.
   if (channel_manager_->UnregisterChannelForEndpoint(endpoint_id, reason,
                                                      safe_disconnect_result)) {
+    // Cancel any in-flight connection or bandwidth upgrade attempts for this
+    // endpoint before waiting on frame processors, so single-threaded
+    // processors (such as BwuManager) are not blocked by an in-flight medium
+    // ConnectToService call while processing the disconnection barrier.
+    client->CancelEndpoint(endpoint_id);
+
     // Notify all frame processors of the disconnection immediately and wait
     // for them to clean up state. Only once all processors are done cleaning
     // up, we can remove the endpoint from ClientProxy after which there

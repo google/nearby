@@ -635,5 +635,37 @@ TEST_F(EndpointManagerTest, ProcessDisconnectionFrameDuringDestruction) {
   endpoint_manager.reset();
 }
 
+TEST_F(EndpointManagerTest,
+       RemoveEndpointCancelsEndpointBeforeNotifyingFrameProcessors) {
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+
+  auto frame_processor = std::make_unique<MockFrameProcessor>();
+  bool cancelled_when_notified = false;
+  EXPECT_CALL(*frame_processor, OnEndpointDisconnect)
+      .WillOnce([&cancelled_when_notified](
+                    ClientProxy* client, const std::string& /*service_id*/,
+                    const std::string& endpoint_id, CountDownLatch barrier,
+                    DisconnectionReason /*reason*/) {
+        cancelled_when_notified =
+            client->GetCancellationFlag(endpoint_id)->Cancelled();
+        barrier.CountDown();
+      });
+
+  em_.RegisterFrameProcessor(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                             frame_processor.get());
+  processors_.emplace_back(std::move(frame_processor));
+
+  RegisterEndpoint(std::move(endpoint_channel), /*should_close=*/false);
+  client_->AddCancellationFlag(endpoint_id_);
+  ASSERT_FALSE(client_->GetCancellationFlag(endpoint_id_)->Cancelled());
+
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  EXPECT_TRUE(cancelled_when_notified);
+}
+
 }  // namespace
 }  // namespace nearby::connections
