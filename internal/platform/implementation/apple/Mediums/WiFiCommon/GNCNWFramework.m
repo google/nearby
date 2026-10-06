@@ -30,6 +30,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWSharedQueue.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -111,7 +112,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     _includePeerToPeer = NO;
     _serverSockets = [NSMapTable strongToWeakObjectsMapTable];
     _serviceBrowsers = [[NSMutableDictionary alloc] init];
-    _dispatchQueue = dispatch_queue_create("GNCNWFramework", DISPATCH_QUEUE_SERIAL);
+    _dispatchQueue = GNCNWGetSharedQueue();
   }
   return self;
 }

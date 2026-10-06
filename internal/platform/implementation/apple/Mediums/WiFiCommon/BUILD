@@ -35,6 +35,7 @@ objc_library(
         "GNCNWFrameworkSocket.mm",
         "GNCNWListenerImpl.m",
         "GNCNWParameters.m",
+        "GNCNWSharedQueue.m",
     ],
     hdrs = [
         "GNCIPv4Address.h",
@@ -52,6 +53,7 @@ objc_library(
         "GNCNWListener.h",
         "GNCNWListenerImpl.h",
         "GNCNWParameters.h",
+        "GNCNWSharedQueue.h",
     ],
     deps = [
         "//internal/platform/implementation/apple/Log:GNCLogger",

@@ -30,6 +30,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWListenerImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWSharedQueue.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -78,7 +79,7 @@ NS_ASSUME_NONNULL_BEGIN
     _port = port;
     _condition = [[NSCondition alloc] init];
     _listenerState = nw_listener_state_invalid;
-    _dispatchQueue = dispatch_queue_create("GNCNWFrameworkServerSocket", DISPATCH_QUEUE_SERIAL);
+    _dispatchQueue = GNCNWGetSharedQueue();
   }
   return self;
 }
