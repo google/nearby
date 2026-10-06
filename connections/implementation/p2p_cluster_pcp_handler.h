@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
@@ -41,10 +42,7 @@
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
-#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
-#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
@@ -76,8 +74,10 @@ namespace connections {
 class P2pClusterPcpHandler : public BasePcpHandler {
  public:
   P2pClusterPcpHandler(
-      Mediums* mediums, EndpointManager* endpoint_manager,
-      EndpointChannelManager* channel_manager, BwuManager* bwu_manager,
+      Mediums* absl_nonnull mediums,
+      EndpointManager* absl_nonnull endpoint_manager,
+      EndpointChannelManager* absl_nonnull channel_manager,
+      BwuManager* absl_nonnull bwu_manager,
       InjectedBluetoothDeviceStore& injected_bluetooth_device_store,
       Pcp pcp = Pcp::kP2pCluster);
   ~P2pClusterPcpHandler() override;
@@ -330,9 +330,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
   WifiAware& wifi_aware_medium_;
-  WifiHotspot& wifi_hotspot_medium_;
-  WifiDirect& wifi_direct_medium_;
-  mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
   // Maintains a map of client_id to service_id for bluetooth classic
   // discoverer.
