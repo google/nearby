@@ -396,7 +396,6 @@ let package = Package(
         "connections/implementation/mediums/bluetooth/bluetooth_classic_test.cc",
         "connections/implementation/mediums/bluetooth_radio_test.cc",
         "connections/implementation/mediums/lost_entity_tracker_test.cc",
-        "connections/implementation/mediums/webrtc_peer_id_test.cc",
         "connections/implementation/mediums/webrtc_test.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler_test.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_test.cc",

@@ -116,21 +116,6 @@ cc_library(
 )
 
 cc_library(
-    name = "webrtc_peer_id",
-    srcs = ["webrtc_peer_id.cc"],
-    hdrs = ["webrtc_peer_id.h"],
-    visibility = [
-        "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums/webrtc:__pkg__",
-    ],
-    deps = [
-        ":utils",
-        "//internal/platform:base",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
     name = "lost_entity_tracker",
     hdrs = ["lost_entity_tracker.h"],
     visibility = [
@@ -148,9 +133,7 @@ cc_library(
     hdrs = ["utils.h"],
     visibility = [
         "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums/advertisements:__pkg__",
-        "//connections/implementation/mediums/awdl:__pkg__",
-        "//connections/implementation/mediums/ble:__subpackages__",
+        "//connections/implementation/mediums:__subpackages__",
         "//internal/platform/implementation/windows:__pkg__",
     ],
     deps = [
@@ -223,26 +206,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "core_internal_mediums_webrtc_test",
-    size = "small",
-    srcs = [
-        "webrtc_peer_id_test.cc",
-    ],
-    shard_count = 16,
-    tags = [
-        "notsan",  # NOTE(b/139734036): known data race in usrsctplib.
-        "requires-net:external",
-    ],
-    deps = [
-        ":webrtc_peer_id",
-        "//internal/platform:base",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

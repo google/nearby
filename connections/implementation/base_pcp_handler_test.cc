@@ -26,7 +26,6 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -44,7 +43,6 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
@@ -362,13 +360,6 @@ class MockPcpHandler : public BasePcpHandler {
   }
   void StripOutWifiHotspotMedium(ConnectionInfo& connection_info) {
     BasePcpHandler::StripOutWifiHotspotMedium(connection_info);
-  }
-
-  mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
-      const std::string& service_id, const std::string& endpoint_id,
-      const ByteArray& endpoint_info) {
-    return BasePcpHandler::CreatePeerIdFromAdvertisement(
-        service_id, endpoint_id, endpoint_info);
   }
 
   bool HasOutgoingConnections(ClientProxy* client) const override {
@@ -1856,28 +1847,6 @@ TEST_F(BasePcpHandlerTest, StripOutWifiHotspotMedium) {
   EXPECT_THAT(
       connection_info2.supported_mediums,
       ::testing::UnorderedElementsAre(Medium::WIFI_HOTSPOT, Medium::BLUETOOTH));
-  bwu.Shutdown();
-  env_.Stop();
-}
-
-TEST_F(BasePcpHandlerTest, CreatePeerIdFromAdvertisement) {
-  env_.Start();
-  Mediums m;
-  EndpointChannelManager ecm;
-  EndpointManager em(&ecm);
-  BwuManager bwu(m, em, ecm, {}, {});
-  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
-  std::string service_id = "service";
-  std::string endpoint_id = "endpoint";
-  ByteArray endpoint_info("info");
-
-  mediums::WebrtcPeerId peer_id = pcp_handler.CreatePeerIdFromAdvertisement(
-      service_id, endpoint_id, endpoint_info);
-  std::string seed =
-      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
-  mediums::WebrtcPeerId expected_peer_id =
-      mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
-  EXPECT_EQ(peer_id.GetId(), expected_peer_id.GetId());
   bwu.Shutdown();
   env_.Stop();
 }

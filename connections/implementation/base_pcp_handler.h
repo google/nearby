@@ -39,7 +39,6 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/implementation/webrtc_state.h"
@@ -269,11 +268,8 @@ class BasePcpHandler : public PcpHandler,
   };
 
   struct WebRtcEndpoint : public DiscoveredEndpoint {
-    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::WebrtcPeerId peer_id)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          peer_id(std::move(peer_id)) {}
-
-    mediums::WebrtcPeerId peer_id;
+    explicit WebRtcEndpoint(DiscoveredEndpoint endpoint)
+        : DiscoveredEndpoint(std::move(endpoint)) {}
   };
 
   struct ConnectImplResult {
@@ -409,10 +405,6 @@ class BasePcpHandler : public PcpHandler,
   // Returns a vector of ConnectionInfos generated from a StartOperationResult.
   std::vector<ConnectionInfoVariant> GetConnectionInfoFromResult(
       absl::string_view service_id, StartOperationResult result);
-
-  mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
-      const std::string& service_id, const std::string& endpoint_id,
-      const ByteArray& endpoint_info);
 
   SingleThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {
