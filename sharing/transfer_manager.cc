@@ -34,7 +34,7 @@ namespace {
 bool IsHighQualityMedium(Medium medium) {
   if (medium == Medium::kWifiLan || medium == Medium::kWifiAware ||
       medium == Medium::kWifiDirect || medium == Medium::kWifiHotspot ||
-      medium == Medium::kWebRtc) {
+      medium == Medium::kWebRtc || medium == Medium::kAwdl) {
     return true;
   }
 

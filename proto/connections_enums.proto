@@ -101,7 +101,8 @@ enum Medium {
 //     //depot/google3/third_party/nearby/connections/c/nc_types.h,
 //     //depot/google3/logs/proto/wireless/android/backup/os_migration_log.proto:BandwidthChangedEvent.Medium,
 //     //depot/google3/java/com/google/android/gmscore/integ/modules/smartdevice/src/com/google/android/gms/smartdevice/logging/gil/SemanticLogger.kt,
-//     //depot/google3/javatests/com/google/android/gmscore/integ/modules/smartdevice/tests/robolectric/src/com/google/android/gms/smartdevice/logging/gil/SemanticLoggerTest.kt
+//     //depot/google3/javatests/com/google/android/gmscore/integ/modules/smartdevice/tests/robolectric/src/com/google/android/gms/smartdevice/logging/gil/SemanticLoggerTest.kt,
+//     //depot/google3/third_party/nearby/sharing/nearby_connections_types.h
 // )
 
 // LINT.IfChange

@@ -337,6 +337,10 @@ enum class Medium {
   kWifiDirect = 8,
   kWebRtc = 9,
   kBleL2Cap = 10,
+  kUsb = 11,
+  kWebRtcNonCellular = 12,
+  kAwdl = 13,
+  kWifiAwareR4 = 14,
 };
 
 // Log severity levels. This is passed as a member of
