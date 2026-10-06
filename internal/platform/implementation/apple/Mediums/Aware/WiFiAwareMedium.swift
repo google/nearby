@@ -235,7 +235,8 @@ enum PairedPeerRegistry {
         return nil
       }
       guard let device = devices[entry.deviceId] else { return nil }
-      logger.info("peer \(peerId) resolves to paired device \(entry.deviceId) (\(device.displayName))")
+      logger.info(
+        "peer \(peerId) resolves to paired device \(entry.deviceId) (\(device.displayName))")
       return device
     } catch {
       logger.error("failed to read paired devices: \(error)")
@@ -1359,6 +1360,20 @@ public class AwareManager: NSObject, @unchecked Sendable {
         self.latestConnectionLock.withLock { $0 = wrapper }
         completion(nil)
       } catch {
+        let isTerminalDataPathFailure =
+          (error as NSError).localizedDescription.contains(kTerminalDataPathFailureReason)
+          || isTerminalWiFiAwareDataPathError(error)
+        if isTerminalDataPathFailure {
+          if !peerId.isEmpty {
+            self.logger.error(
+              "Evicting stale pairing for peer \(peerId) after terminal Wi-Fi Aware data-path error"
+            )
+            PairedPeerRegistry.forget(peerId: peerId)
+          }
+          self.logger.error("browse error: \(error)")
+          completion(error as NSError)
+          return
+        }
         // A narrowed browse is the new behaviour and the riskier one: `.userSpecifiedDevices` with
         // an empty list is rejected outright by wifip2pd with -11992 ("has no Paired Devices"), and
         // if `.selected()` turns out to share that fate then every upgrade would fail. Retrying
