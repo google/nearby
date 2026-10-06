@@ -16,15 +16,8 @@
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_H_
 
 #include <memory>
-#include <string>
 
-#include "absl/functional/any_invocable.h"
 #include "connections/implementation/bwu_handler.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
-#include "connections/implementation/mediums/webrtc_socket.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "internal/platform/cancellation_flag.h"
-#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -34,46 +27,11 @@ namespace mediums {
 // devices via WebRtc.
 class WebRtc {
  public:
-  // Callback that is invoked when a new connection is accepted.
-  using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      const std::string& service_id, std::shared_ptr<WebRtcSocket> socket)>;
-
   virtual ~WebRtc() = default;
 
   // Returns if WebRtc is available as a medium for nearby to transport data.
   // Runs on @MainThread.
   virtual bool IsAvailable() { return false; }
-
-  // Returns if the device is accepting connection with specific service id.
-  // Runs on @MainThread.
-  virtual bool IsAcceptingConnections(const std::string& service_id) {
-    return false;
-  }
-
-  // Prepares the device to accept incoming WebRtc connections. Returns a
-  // boolean value indicating if the device has started accepting connections.
-  // Runs on @MainThread.
-  virtual bool StartAcceptingConnections(
-      const std::string& service_id, const WebrtcPeerId& self_peer_id,
-      const location::nearby::connections::LocationHint& location_hint,
-      AcceptedConnectionCallback callback, bool non_cellular) {
-    return false;
-  }
-
-  // Try to stop (accepting) the specific connection with provided service id.
-  // Runs on @MainThread
-  virtual void StopAcceptingConnections(const std::string& service_id) {}
-
-  // Initiates a WebRtc connection with peer device identified by |peer_id|
-  // with internal retry for maximum attempts of kConnectAttemptsLimit.
-  // Runs on @MainThread.
-  virtual ErrorOr<std::shared_ptr<WebRtcSocket>> Connect(
-      const std::string& service_id, const WebrtcPeerId& peer_id,
-      const location::nearby::connections::LocationHint& location_hint,
-      CancellationFlag* cancellation_flag, bool non_cellular) {
-    return {Error(location::nearby::proto::connections::OperationResultCode::
-                      DETAIL_UNKNOWN)};
-  }
 
   virtual bool IsUsingCellular() { return false; }
 

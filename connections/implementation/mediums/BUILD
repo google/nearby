@@ -49,8 +49,6 @@ cc_library(
         ":bluetooth_radio",
         ":utils",
         ":webrtc",
-        ":webrtc_peer_id",
-        ":webrtc_socket",
         "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
@@ -123,7 +121,6 @@ cc_library(
     hdrs = ["webrtc_peer_id.h"],
     visibility = [
         "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums:__pkg__",
         "//connections/implementation/mediums/webrtc:__pkg__",
     ],
     deps = [
@@ -163,28 +160,10 @@ cc_library(
 )
 
 cc_library(
-    name = "webrtc_socket",
-    hdrs = ["webrtc_socket.h"],
-    visibility = ["//connections/implementation:__subpackages__"],
-    deps = [
-        "//internal/platform:base",
-        "@com_google_absl//absl/strings:string_view",
-    ],
-)
-
-cc_library(
     name = "webrtc",
     hdrs = ["webrtc.h"],
     visibility = ["//connections/implementation:__subpackages__"],
-    deps = [
-        ":webrtc_peer_id",
-        ":webrtc_socket",
-        "//connections/implementation:bwu_handler",
-        "//connections/implementation/proto:offline_wire_formats_cc_proto",
-        "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
-        "@com_google_absl//absl/functional:any_invocable",
-    ],
+    deps = ["//connections/implementation:bwu_handler"],
 )
 
 cc_test(
