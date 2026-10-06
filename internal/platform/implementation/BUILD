@@ -50,7 +50,6 @@ cc_library(
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
     ],
     deps = [
         "//internal/base:file_path",
@@ -131,8 +130,6 @@ cc_library(
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//third_party/nearby/presence:__subpackages__",
-        "//third_party/nearby/presence/implementation:__subpackages__",
     ],
     deps = [
         "//internal/platform:base",
@@ -164,7 +161,6 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
-        "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing/internal/impl/common:__subpackages__",
     ],
