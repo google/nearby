@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -34,7 +35,10 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -78,6 +82,143 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
   handler->RevertInitiatorState();
   SUCCEED();
   handler.reset();
+}
+
+// Verifies that WifiHotspotBwuHandler in the Client (STA) role can join a
+// remote peer's SoftAP and establish an upgraded WIFI_HOTSPOT EndpointChannel.
+TEST_F(WifiHotspotTest, ClientStaRoleJoinsRemoteSoftApIndependently) {
+  // Stand up a remote SoftAP at the platform layer to decouple the STA test
+  // from local WifiHotspot SoftAP availability.
+  WifiHotspotMedium remote_ap_medium;
+  ASSERT_TRUE(remote_ap_medium.StartWifiHotspot());
+  WifiHotspotServerSocket server_socket = remote_ap_medium.ListenForService();
+  ASSERT_TRUE(server_socket.IsValid());
+
+  HotspotCredentials* remote_credentials = remote_ap_medium.GetCredential();
+  ASSERT_NE(remote_credentials, nullptr);
+  server_socket.PopulateHotspotCredentials(*remote_credentials);
+  ASSERT_FALSE(remote_credentials->GetAddressCandidates().empty());
+
+  CountDownLatch accept_latch(1);
+  WifiHotspotSocket accepted_socket;
+  SingleThreadExecutor server_executor;
+  absl::Cleanup cleanup = [&server_socket, &accepted_socket,
+                           &remote_ap_medium]() {
+    server_socket.Close();
+    if (accepted_socket.IsValid()) {
+      accepted_socket.Close();
+    }
+    remote_ap_medium.StopWifiHotspot();
+  };
+  server_executor.Execute([&server_socket, &accepted_socket, &accept_latch]() {
+    accepted_socket = server_socket.Accept();
+    if (accepted_socket.IsValid()) {
+      accept_latch.CountDown();
+    }
+  });
+
+  ClientProxy client_sta;
+  client_sta.AddCancellationFlag(std::string(kEndpointID));
+  Mediums mediums_sta;
+  WifiHotspotBwuHandler sta_handler(&mediums_sta.GetWifiHotspot(), nullptr);
+
+  UpgradePathInfo path_info;
+  auto* credentials = path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid(remote_credentials->GetSSID());
+  credentials->set_password(remote_credentials->GetPassword());
+  for (const ServiceAddress& candidate :
+       remote_credentials->GetAddressCandidates()) {
+    ServiceAddressToProto(candidate, *(credentials->add_address_candidates()));
+    if (candidate.address.size() == 4) {
+      credentials->set_port(candidate.port);
+    }
+  }
+  if (!credentials->has_port()) {
+    credentials->set_port(remote_credentials->GetAddressCandidates()[0].port);
+  }
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
+      sta_handler.CreateUpgradedEndpointChannel(
+          &client_sta, std::string(kServiceID), std::string(kEndpointID),
+          path_info);
+  ASSERT_TRUE(result.has_value());
+  std::unique_ptr<EndpointChannel> channel = std::move(result.value());
+  ASSERT_NE(channel, nullptr);
+  EXPECT_EQ(channel->GetMedium(),
+            location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(mediums_sta.GetWifiHotspot().IsConnectedToHotspot());
+
+  channel->Close();
+  sta_handler.RevertResponderState(std::string(kServiceID));
+  EXPECT_FALSE(mediums_sta.GetWifiHotspot().IsConnectedToHotspot());
+}
+
+// Verifies that WifiHotspotBwuHandler in the Client (STA) role returns
+// CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE and leaves the STA
+// disconnected when the remote SoftAP is unreachable.
+TEST_F(WifiHotspotTest, ClientStaRoleFailsWhenRemoteSoftApUnreachable) {
+  ClientProxy client_sta;
+  client_sta.AddCancellationFlag(std::string(kEndpointID));
+  Mediums mediums_sta;
+  WifiHotspotBwuHandler sta_handler(&mediums_sta.GetWifiHotspot(), nullptr);
+
+  UpgradePathInfo path_info;
+  auto* credentials = path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid("UnreachableHotspot_SSID");
+  credentials->set_password("12345678");
+  credentials->set_gateway("192.168.43.1");
+  credentials->set_port(8080);
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
+      sta_handler.CreateUpgradedEndpointChannel(
+          &client_sta, std::string(kServiceID), std::string(kEndpointID),
+          path_info);
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::
+                CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE);
+  EXPECT_FALSE(mediums_sta.GetWifiHotspot().IsConnectedToHotspot());
+}
+
+// Verifies that when an endpoint cancellation flag is triggered after STA joins
+// the remote SoftAP, CreateUpgradedEndpointChannel aborts with
+// CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION and
+// RevertResponderState cleanly disconnects from the SoftAP.
+TEST_F(WifiHotspotTest, ClientStaRoleRevertsCleanlyWhenCancelledMidUpgrade) {
+  WifiHotspotMedium remote_ap_medium;
+  ASSERT_TRUE(remote_ap_medium.StartWifiHotspot());
+  absl::Cleanup cleanup = [&]() { remote_ap_medium.StopWifiHotspot(); };
+
+  HotspotCredentials* remote_credentials = remote_ap_medium.GetCredential();
+  ASSERT_NE(remote_credentials, nullptr);
+
+  ClientProxy client_sta;
+  client_sta.AddCancellationFlag(std::string(kEndpointID));
+  // Cancel the endpoint before socket connection completes.
+  client_sta.CancelEndpoint(std::string(kEndpointID));
+
+  Mediums mediums_sta;
+  WifiHotspotBwuHandler sta_handler(&mediums_sta.GetWifiHotspot(), nullptr);
+
+  UpgradePathInfo path_info;
+  auto* credentials = path_info.mutable_wifi_hotspot_credentials();
+  credentials->set_ssid(remote_credentials->GetSSID());
+  credentials->set_password(remote_credentials->GetPassword());
+  credentials->set_gateway("192.168.43.1");
+  credentials->set_port(8080);
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
+      sta_handler.CreateUpgradedEndpointChannel(
+          &client_sta, std::string(kServiceID), std::string(kEndpointID),
+          path_info);
+  ASSERT_TRUE(result.has_error());
+  EXPECT_EQ(result.error().operation_result_code().value(),
+            OperationResultCode::
+                CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION);
+
+  sta_handler.RevertResponderState(std::string(kServiceID));
+  EXPECT_FALSE(mediums_sta.GetWifiHotspot().IsConnectedToHotspot());
 }
 
 TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {

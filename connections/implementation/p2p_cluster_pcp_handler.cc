@@ -47,7 +47,7 @@
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble_endpoint_channel.h"
 #include "connections/implementation/mediums/ble_l2cap_endpoint_channel.h"
-#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
@@ -121,8 +121,6 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       ble_medium_(mediums->GetBle()),
       wifi_lan_medium_(mediums->GetWifiLan()),
       wifi_aware_medium_(mediums->GetWifiAware()),
-      wifi_hotspot_medium_(mediums->GetWifiHotspot()),
-      wifi_direct_medium_(mediums->GetWifiDirect()),
       webrtc_medium_(mediums->GetWebRtc()),
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 

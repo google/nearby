@@ -21,6 +21,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -584,6 +585,11 @@ std::unique_ptr<BwuHandler> BluetoothClassic::CreateBwuHandler(
   MutexLock lock(&mutex_);
   return std::make_unique<BluetoothBwuHandler>(
       &radio_, this, std::move(incoming_connection_callback));
+}
+
+std::unique_ptr<BluetoothClassicInterface> CreateBluetoothClassic(
+    BluetoothRadio& radio) {
+  return std::make_unique<BluetoothClassic>(radio);
 }
 
 }  // namespace connections

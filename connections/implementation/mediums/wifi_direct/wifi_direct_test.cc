@@ -1,4 +1,3 @@
-
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__APPLE__)
 #include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
+#endif  // !defined(__APPLE__)
 
 #include <cstddef>
 #include <memory>
@@ -23,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"  // IWYU pragma: keep
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -33,6 +35,8 @@
 namespace nearby {
 namespace connections {
 namespace {
+
+#if !defined(__APPLE__)
 
 using FeatureFlags = FeatureFlags::Flags;
 
@@ -225,6 +229,45 @@ TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Unsupported) {
   EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
             WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
 }
+
+#endif  // !defined(__APPLE__)
+
+// Verifies that WifiDirectStub reports Group Owner and Group Client roles as
+// unavailable via WifiDirectInterface.
+#if defined(__APPLE__)
+TEST(WifiDirectAppleTest, IsStubbedOnApple) {
+  std::unique_ptr<WifiDirectInterface> wifi_direct_ptr = CreateWifiDirect();
+  ASSERT_NE(wifi_direct_ptr, nullptr);
+  WifiDirectInterface& wifi_direct = *wifi_direct_ptr;
+
+  EXPECT_FALSE(wifi_direct.IsGOAvailable());
+  EXPECT_FALSE(wifi_direct.IsGCAvailable());
+  EXPECT_FALSE(wifi_direct.IsGOStarted());
+  EXPECT_FALSE(wifi_direct.StartWifiDirect());
+  EXPECT_FALSE(wifi_direct.StopWifiDirect());
+  EXPECT_FALSE(wifi_direct.IsConnectedToGO());
+  EXPECT_FALSE(wifi_direct.ConnectWifiDirect({}));
+  EXPECT_FALSE(wifi_direct.DisconnectWifiDirect());
+  EXPECT_FALSE(wifi_direct.StartAcceptingConnections("service_id", {}));
+  EXPECT_FALSE(wifi_direct.StopAcceptingConnections("service_id"));
+  EXPECT_FALSE(wifi_direct.IsAcceptingConnections("service_id"));
+  EXPECT_EQ(wifi_direct.GetCredentials("service_id"), nullptr);
+  EXPECT_TRUE(wifi_direct.GetSupportedWifiDirectAuthTypes().empty());
+  EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
+            WifiDirectInterface::WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN);
+  EXPECT_FALSE(wifi_direct.SetPreferredWifiDirectAuthType(
+      WifiDirectInterface::WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN));
+  EXPECT_EQ(wifi_direct.CreateBwuHandler(nullptr), nullptr);
+
+  CancellationFlag cancellation_flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel = wifi_direct.Connect(
+      "service_id", "192.168.49.1", 1234, &cancellation_flag);
+  ASSERT_TRUE(channel.has_error());
+  EXPECT_EQ(channel.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_WIFI_DIRECT_NOT_AVAILABLE);
+}
+#endif  // defined(__APPLE__)
 
 }  // namespace
 }  // namespace connections

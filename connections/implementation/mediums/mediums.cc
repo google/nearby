@@ -18,7 +18,7 @@
 
 #include "connections/implementation/mediums/awdl/awdl.h"
 #include "connections/implementation/mediums/ble.h"
-#include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #ifndef NO_WEBRTC
 #include "connections/implementation/mediums/webrtc/webrtc_impl.h"
@@ -26,24 +26,29 @@
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
-#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
 
-Mediums::Mediums() {
+Mediums::Mediums()
+    : bluetooth_classic_(CreateBluetoothClassic(bluetooth_radio_)),
+      wifi_direct_(CreateWifiDirect()),
 #ifndef NO_WEBRTC
-  webrtc_ = std::make_unique<mediums::WebRtcImpl>();
+      webrtc_(std::make_unique<mediums::WebRtcImpl>())
 #else
-  webrtc_ = std::make_unique<mediums::WebRtc>();
+      webrtc_(std::make_unique<mediums::WebRtc>())
 #endif
+{
 }
 
 BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
 
-BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
+BluetoothClassicInterface& Mediums::GetBluetoothClassic() {
+  return *bluetooth_classic_;
+}
 
 Ble& Mediums::GetBle() { return ble_; }
 
@@ -55,7 +60,7 @@ WifiAware& Mediums::GetWifiAware() { return wifi_aware_; }
 
 WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 
-WifiDirect& Mediums::GetWifiDirect() { return wifi_direct_; }
+WifiDirectInterface& Mediums::GetWifiDirect() { return *wifi_direct_; }
 
 mediums::WebRtc& Mediums::GetWebRtc() { return *webrtc_; }
 

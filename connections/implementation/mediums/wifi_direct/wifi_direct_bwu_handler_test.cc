@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__APPLE__)
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
 
 #include <memory>
@@ -27,6 +28,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
@@ -68,8 +70,8 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
   ClientProxy client;
   Mediums mediums;
 
-  auto handler =
-      std::make_unique<WifiDirectBwuHandler>(&mediums.GetWifiDirect(), nullptr);
+  auto handler = std::make_unique<WifiDirectBwuHandler>(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
 
   handler->InitializeUpgradedMediumForEndpoint(&client, std::string(kServiceID),
                                                std::string(kEndpointID));
@@ -88,9 +90,10 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   ExceptionOr<OfflineFrame> upgrade_frame;
 
   auto wfd_go_bwu_handler = std::make_unique<WifiDirectBwuHandler>(
-      &mediums_wfd_go.GetWifiDirect(), [&](ClientProxy* client,
-                     std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                         mutable_connection) {
+      static_cast<WifiDirect*>(&mediums_wfd_go.GetWifiDirect()),
+      [&](ClientProxy* client,
+          std::unique_ptr<BwuHandler::IncomingSocketConnection>
+              mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back";
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
@@ -113,8 +116,8 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
   EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
   std::unique_ptr<BwuHandler> wfd_gc_bwu_handler =
-      std::make_unique<WifiDirectBwuHandler>(&mediums_wfd_gc.GetWifiDirect(),
-                                             nullptr);
+      std::make_unique<WifiDirectBwuHandler>(
+          static_cast<WifiDirect*>(&mediums_wfd_gc.GetWifiDirect()), nullptr);
 
   wfd_gc_executor.Execute([&]() {
     UpgradePathInfo upgrade_path_info;
@@ -170,8 +173,8 @@ TEST_F(WifiDirectTest,
 
   wifi_direct_gc.AddCancellationFlag(std::string(kEndpointID));
   std::unique_ptr<BwuHandler> wfd_gc_bwu_handler =
-      std::make_unique<WifiDirectBwuHandler>(&mediums_wfd_gc.GetWifiDirect(),
-                                             nullptr);
+      std::make_unique<WifiDirectBwuHandler>(
+          static_cast<WifiDirect*>(&mediums_wfd_gc.GetWifiDirect()), nullptr);
 
   std::string upgrade_path_available_frame =
       parser::ForBwuWifiDirectPathAvailable(
@@ -198,3 +201,5 @@ TEST_F(WifiDirectTest,
 
 }  // namespace connections
 }  // namespace nearby
+
+#endif  // !defined(__APPLE__)

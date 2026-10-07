@@ -19,13 +19,47 @@ licenses(["notice"])
 
 cc_library(
     name = "bluetooth",
-    textual_hdrs = ["bluetooth_classic.h"],
+    textual_hdrs = ["bluetooth_classic_interface.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
     ],
+    deps = select({
+        "@platforms//os:ios": [":bluetooth_classic_stub"],
+        "//conditions:default": [":bluetooth_internal"],
+    }),
+)
+
+cc_library(
+    name = "bluetooth_classic_interface",
+    hdrs = ["bluetooth_classic_interface.h"],
+    visibility = ["//visibility:private"],
     deps = [
-        ":bluetooth_internal",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//connections/implementation/mediums:bluetooth_radio",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform:mac_address",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
+cc_library(
+    name = "bluetooth_classic_stub",
+    srcs = ["bluetooth_classic_stub.cc"],
+    hdrs = ["bluetooth_classic_stub.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":bluetooth_classic_interface",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//connections/implementation/mediums:bluetooth_radio",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform:mac_address",
     ],
 )
 
@@ -43,6 +77,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        ":bluetooth_classic_interface",
         "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
@@ -72,7 +107,11 @@ cc_test(
         "bluetooth_classic_test.cc",
     ],
     deps = [
-        ":bluetooth_internal",
+        ":bluetooth_classic_interface",
+    ] + select({
+        "@platforms//os:ios": [":bluetooth_classic_stub"],
+        "//conditions:default": [":bluetooth_internal"],
+    }) + [
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
@@ -83,10 +122,11 @@ cc_test(
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:platform_impl",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

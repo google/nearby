@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__APPLE__)
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
+#endif  // !defined(__APPLE__)
 
 #include <memory>
 #include <string>
@@ -22,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"  // IWYU pragma: keep
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -31,11 +34,14 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace connections {
 namespace {
+
+#if !defined(__APPLE__)
 
 using FeatureFlags = FeatureFlags::Flags;
 
@@ -192,7 +198,7 @@ TEST_P(BluetoothClassicTest, CannotStartAcceptingConnections) {
   env_.SetFeatureFlags(feature_flags);
 
   BluetoothRadio& radio_for_client = *radio_a_;
-  BluetoothClassic& bt_client = *bt_a_;
+  BluetoothClassicInterface& bt_client = *bt_a_;
 
   // Cannot start accepting connections to an empty service ID.
   EXPECT_FALSE(bt_client.StartAcceptingConnections(
@@ -261,7 +267,7 @@ TEST_P(BluetoothClassicTest, CanConnect) {
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   BluetoothClassic& bt_client = *bt_a_;
-  BluetoothClassic& bt_server = *bt_b_;
+  BluetoothClassicInterface& bt_server = *bt_b_;
 
   EXPECT_TRUE(radio_for_client.IsEnabled());
   EXPECT_TRUE(radio_for_server.IsEnabled());
@@ -313,7 +319,7 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   TestBluetoothClassic& bt_client = *bt_a_;
-  TestBluetoothClassic& bt_server = *bt_b_;
+  BluetoothClassicInterface& bt_server = *bt_b_;
 
   EXPECT_TRUE(radio_for_client.IsEnabled());
   EXPECT_TRUE(radio_for_server.IsEnabled());
@@ -378,7 +384,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   TestBluetoothClassic& bt_client = *bt_a_;
-  TestBluetoothClassic& bt_server = *bt_b_;
+  BluetoothClassicInterface& bt_server = *bt_b_;
 
   // Simulate the flag being cancelled during connection attempt.
   medium_a_->CancelDuringConnectToService();
@@ -449,7 +455,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   TestBluetoothClassic& bt_client = *bt_a_;
-  TestBluetoothClassic& bt_server = *bt_b_;
+  BluetoothClassicInterface& bt_server = *bt_b_;
   EXPECT_TRUE(radio_for_client.IsEnabled());
   EXPECT_TRUE(radio_for_server.IsEnabled());
 
@@ -643,7 +649,7 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   BluetoothClassic& bt_client = *bt_a_;
-  BluetoothClassic& bt_server = *bt_b_;
+  BluetoothClassicInterface& bt_server = *bt_b_;
 
   EXPECT_TRUE(radio_for_client.IsEnabled());
   EXPECT_TRUE(radio_for_server.IsEnabled());
@@ -705,6 +711,64 @@ TEST_F(BluetoothClassicTest, GetRemoteDevice) {
       bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetAddress())
           .IsValid());
 }
+
+#endif  // !defined(__APPLE__)
+
+// Verifies that BluetoothClassicStub reports all operations as unavailable via
+// BluetoothClassicInterface.
+#if defined(__APPLE__)
+TEST(BluetoothClassicAppleTest, IsStubbedOnApple) {
+  BluetoothRadio radio;
+  std::unique_ptr<BluetoothClassicInterface> bluetooth_ptr =
+      CreateBluetoothClassic(radio);
+  ASSERT_NE(bluetooth_ptr, nullptr);
+  BluetoothClassicInterface& bluetooth = *bluetooth_ptr;
+
+  EXPECT_FALSE(bluetooth.IsAvailable());
+  EXPECT_FALSE(bluetooth.IsMediumValid());
+  EXPECT_FALSE(bluetooth.IsAdapterValid());
+  EXPECT_FALSE(bluetooth.TurnOffDiscoverability());
+  EXPECT_FALSE(bluetooth.StopDiscovery("service_id"));
+  bluetooth.StopAllDiscovery();
+  EXPECT_FALSE(bluetooth.IsDiscovering("service_id"));
+  EXPECT_FALSE(bluetooth.IsAcceptingConnections("service_id"));
+  EXPECT_FALSE(bluetooth.StopAcceptingConnections("service_id"));
+  EXPECT_FALSE(bluetooth.GetAddress().IsSet());
+  EXPECT_EQ(bluetooth.CreateBwuHandler(nullptr), nullptr);
+
+  BluetoothDevice remote_device = bluetooth.GetRemoteDevice(MacAddress());
+  EXPECT_FALSE(remote_device.IsValid());
+
+  CancellationFlag cancellation_flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel =
+      bluetooth.Connect(remote_device, "service_id", "local_service_id",
+                        "channel_name", &cancellation_flag);
+  ASSERT_TRUE(channel.has_error());
+  EXPECT_EQ(channel.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> discoverability =
+      bluetooth.TurnOnDiscoverability("test_device");
+  ASSERT_TRUE(discoverability.has_error());
+  EXPECT_EQ(discoverability.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> discovery = bluetooth.StartDiscovery("service_id", {});
+  ASSERT_TRUE(discovery.has_error());
+  EXPECT_EQ(discovery.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+
+  ErrorOr<bool> accepting =
+      bluetooth.StartAcceptingConnections("service_id", {});
+  ASSERT_TRUE(accepting.has_error());
+  EXPECT_EQ(accepting.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE);
+}
+#endif  // defined(__APPLE__)
 
 }  // namespace
 }  // namespace connections

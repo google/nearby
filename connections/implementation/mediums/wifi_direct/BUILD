@@ -19,13 +19,43 @@ licenses(["notice"])
 
 cc_library(
     name = "wifi_direct",
-    textual_hdrs = ["wifi_direct.h"],
+    textual_hdrs = ["wifi_direct_interface.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
     ],
+    deps = select({
+        "@platforms//os:ios": [":wifi_direct_stub"],
+        "//conditions:default": [":wifi_direct_internal"],
+    }),
+)
+
+cc_library(
+    name = "wifi_direct_interface",
+    hdrs = ["wifi_direct_interface.h"],
+    visibility = ["//visibility:private"],
     deps = [
-        ":wifi_direct_internal",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "wifi_direct_stub",
+    srcs = ["wifi_direct_stub.cc"],
+    hdrs = ["wifi_direct_stub.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":wifi_direct_interface",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -43,6 +73,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        ":wifi_direct_interface",
         "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
@@ -70,14 +101,18 @@ cc_test(
         "wifi_direct_test.cc",
     ],
     deps = [
-        ":wifi_direct_internal",
+        ":wifi_direct_interface",
+    ] + select({
+        "@platforms//os:ios": [":wifi_direct_stub"],
+        "//conditions:default": [":wifi_direct_internal"],
+    }) + [
         "//connections/implementation:endpoint_channel",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:test_util",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
@@ -90,8 +125,10 @@ cc_test(
     srcs = [
         "wifi_direct_bwu_handler_test.cc",
     ],
-    deps = [
-        ":wifi_direct_internal",
+    deps = select({
+        "@platforms//os:ios": [":wifi_direct_stub"],
+        "//conditions:default": [":wifi_direct_internal"],
+    }) + [
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
@@ -103,7 +140,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

@@ -25,6 +25,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -319,6 +320,10 @@ std::unique_ptr<BwuHandler> WifiDirect::CreateBwuHandler(
   MutexLock lock(&mutex_);
   return std::make_unique<WifiDirectBwuHandler>(
       this, std::move(incoming_connection_callback));
+}
+
+std::unique_ptr<WifiDirectInterface> CreateWifiDirect() {
+  return std::make_unique<WifiDirect>();
 }
 
 }  // namespace connections

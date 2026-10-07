@@ -317,6 +317,13 @@ let package = Package(
         "internal/platform/implementation/apple/Tests",
         "internal/platform/implementation/windows",
         "third_party",
+        // non-Apple mediums
+        "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.cc",
+        "connections/implementation/mediums/bluetooth/bluetooth_classic.cc",
+        "connections/implementation/mediums/bluetooth/bluetooth_endpoint_channel.cc",
+        "connections/implementation/mediums/wifi_direct/wifi_direct.cc",
+        "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.cc",
+        "connections/implementation/mediums/wifi_direct/wifi_direct_endpoint_channel.cc",
         // build files
         "connections/implementation/analytics/BUILD",
         "connections/implementation/flags/BUILD",
