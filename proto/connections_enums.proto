@@ -1325,6 +1325,8 @@ enum OperationResultCode {
   // Outgoing AWDL channel creation failure (IOException on
   // socket#getInputStream and socket#getOutputStream)
   NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612;
+  // Failed to verify paired key during connection setup
+  NEARBY_PAIRED_KEY_VERIFICATION_FAILURE = 4613;
 
   // Section of CATEGORY_DCT_ERROR, from 5000
   // BLE is disabled
