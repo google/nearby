@@ -370,6 +370,32 @@ typedef struct NC_EVENT_LOGGER {
   NcLogConnectionsEvent log_connections_event;
 } NC_EVENT_LOGGER;
 
+// Types of events that require a decision from the client.
+typedef enum NC_EVENT_TYPE {
+  // The local device is about to join the remote endpoint's Wi-Fi hotspot.
+  // `data` contains the SSID of the hotspot.
+  NC_EVENT_TYPE_JOIN_HOTSPOT_PROMPT = 1,
+  // Reserved. `data` contains the PIN to display.
+  NC_EVENT_TYPE_DISPLAY_PIN = 2,
+  // Reserved. `data` is empty.
+  NC_EVENT_TYPE_ENTER_PIN = 3,
+} NC_EVENT_TYPE;
+
+// An event that requires a decision from the client. The event and its data
+// are only valid for the duration of the handler call.
+typedef struct NC_EVENT {
+  NC_EVENT_TYPE type;
+  int endpoint_id;
+  NC_DATA data;
+} NC_EVENT;
+
+// Handles an event synchronously. Returns true if the operation that
+// triggered the event may proceed, false to cancel it. Called on an internal
+// Nearby Connections thread, which is blocked until the handler returns.
+typedef bool (*NcCallbackEventHandler)(NC_INSTANCE instance,
+                                       const NC_EVENT* event,
+                                       CALLER_CONTEXT context);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

@@ -35,6 +35,7 @@
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/listeners.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag.h"
@@ -214,6 +215,16 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
             << hotspot_credentials.GetSSID()
             << ",  Password:" << masker::Mask(hotspot_credentials.GetPassword())
             << ",  Frequency:" << hotspot_credentials.GetFrequency();
+
+  if (!client->OnEvent(
+          {.endpoint_id = endpoint_id,
+           .data = ClientEvent::JoinHotspotPrompt{
+               .ssid = hotspot_credentials.GetSSID()}})) {
+    LOG(INFO) << "Client rejected joining Hotspot for endpoint " << endpoint_id;
+    return {
+        Error(OperationResultCode::
+                  CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
+  }
 
   if (!wifi_hotspot_medium_.ConnectWifiHotspot(hotspot_credentials)) {
     LOG(ERROR) << "Connect to Hotspot failed";

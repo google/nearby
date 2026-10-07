@@ -20,6 +20,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -566,6 +567,58 @@ TEST_F(ClientProxyTest, ResetClearsState) {
   EXPECT_FALSE(client1()->IsDiscovering());
   EXPECT_TRUE(client1()->GetAdvertisingServiceId().empty());
   EXPECT_TRUE(client1()->GetDiscoveryServiceId().empty());
+}
+
+TEST_F(ClientProxyTest, OnEventWithoutHandlerReturnsTrue) {
+  EXPECT_TRUE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
+}
+
+TEST_F(ClientProxyTest, OnEventReturnsHandlerResult) {
+  std::vector<ClientEvent> events;
+  bool decision = false;
+  client1()->RegisterEventHandler([&](const ClientEvent& event) {
+    events.push_back(event);
+    return decision;
+  });
+  ClientEvent event = {.endpoint_id = "ABCD",
+                       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}};
+
+  EXPECT_FALSE(client1()->OnEvent(event));
+  decision = true;
+  EXPECT_TRUE(client1()->OnEvent(event));
+
+  ASSERT_EQ(events.size(), 2);
+  EXPECT_EQ(events[0].endpoint_id, "ABCD");
+  const auto* prompt =
+      std::get_if<ClientEvent::JoinHotspotPrompt>(&events[0].data);
+  ASSERT_NE(prompt, nullptr);
+  EXPECT_EQ(prompt->ssid, "SSID");
+}
+
+TEST_F(ClientProxyTest, OnEventAfterUnregisterReturnsTrue) {
+  auto resource = std::make_shared<int>(42);
+  std::weak_ptr<int> weak_resource = resource;
+  auto move_only =
+      std::make_unique<std::shared_ptr<int>>(std::move(resource));
+  client1()->RegisterEventHandler(
+      [captured = std::move(move_only)](const ClientEvent&) { return false; });
+  EXPECT_FALSE(weak_resource.expired());
+
+  client1()->UnregisterEventHandler();
+  EXPECT_TRUE(weak_resource.expired());
+  EXPECT_TRUE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
+}
+
+TEST_F(ClientProxyTest, EventHandlerSurvivesReset) {
+  client1()->RegisterEventHandler([](const ClientEvent&) { return false; });
+  client1()->Reset();
+  EXPECT_FALSE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
 }
 
 TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {

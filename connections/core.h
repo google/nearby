@@ -539,6 +539,24 @@ class Core {
     client_.RegisterConnectionsDeviceProvider(std::move(provider));
   }
 
+  // Registers a handler for events that require a decision from the client,
+  // e.g. before joining a remote Wi-Fi hotspot during a bandwidth upgrade.
+  // The handler is invoked synchronously on the thread that raises the event
+  // (i.e. the caller of `ClientProxy::OnEvent`) and blocks it until it returns.
+  // Concurrent `OnEvent` calls are serialized, so the handler is never invoked
+  // concurrently from multiple threads. The handler must not call
+  // `RegisterEventHandler()` or `UnregisterEventHandler()` synchronously from
+  // within the callback, as doing so will deadlock. Replaces any previously
+  // registered handler. If no handler is registered, all events proceed.
+  void RegisterEventHandler(ClientEventHandler handler) {
+    client_.RegisterEventHandler(std::move(handler));
+  }
+
+  // Unregisters the currently registered event handler and releases any
+  // resources associated with it. Waits for any in-flight handler invocation to
+  // complete before returning.
+  void UnregisterEventHandler() { client_.UnregisterEventHandler(); }
+
  private:
   ClientProxy client_;
   ServiceControllerRouter* router_ = nullptr;

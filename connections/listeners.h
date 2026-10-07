@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <variant>
 
 // This file defines all the protocol listeners and their parameter structures.
 // Listeners are defined as collections of std::function<T> instances, which is
@@ -188,6 +189,30 @@ struct PayloadListener {
       payload_progress_cb =
           [](absl::string_view, const PayloadProgressInfo&) {};
 };
+
+// An event that requires a decision from the client.
+struct ClientEvent {
+  // The local device is about to join the remote endpoint's Wi-Fi hotspot.
+  struct JoinHotspotPrompt {
+    std::string ssid;
+  };
+  // Reserved.
+  struct DisplayPin {
+    std::string pin;
+  };
+  // Reserved.
+  struct EnterPin {};
+
+  using Data = std::variant<JoinHotspotPrompt, DisplayPin, EnterPin>;
+
+  std::string endpoint_id;
+  Data data;
+};
+
+// Handles a `ClientEvent` synchronously. Returns true if the operation that
+// triggered the event may proceed, false to cancel it. The handler blocks the
+// calling thread until it returns.
+using ClientEventHandler = absl::AnyInvocable<bool(const ClientEvent& event)>;
 
 }  // namespace connections
 }  // namespace nearby

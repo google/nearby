@@ -313,6 +313,22 @@ class ClientProxy final {
     connections_device_provider_ = std::move(provider);
   }
 
+  // Registers a handler for events that require a decision from the client.
+  // Replaces any previously registered handler. The handler must not call
+  // `RegisterEventHandler()` or `UnregisterEventHandler()` synchronously from
+  // within the callback, as doing so will deadlock.
+  void RegisterEventHandler(ClientEventHandler handler);
+
+  // Unregisters the currently registered event handler and releases any
+  // resources associated with it.
+  void UnregisterEventHandler();
+
+  // Dispatches `event` to the registered handler and returns its decision.
+  // Returns true if no handler is registered. Concurrent calls are serialized
+  // by `event_handler_mutex_` (without holding `mutex_`) and block the calling
+  // thread.
+  bool OnEvent(const ClientEvent& event);
+
   const bool& IsSupportSafeToDisconnect() const {
     return supports_safe_to_disconnect_;
   }
@@ -549,6 +565,12 @@ class ClientProxy final {
   NearbyDeviceProvider* external_device_provider_ = nullptr;
   // For Nearby Connections' own device provider.
   std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
+  // Mutex serializing registration and invocation of `event_handler_`. Kept
+  // separate from `mutex_` so `OnEvent` does not block other `ClientProxy`
+  // operations or deadlock if the handler queries `ClientProxy`.
+  mutable Mutex event_handler_mutex_;
+  // Handler for events that require a decision from the client.
+  ClientEventHandler event_handler_ ABSL_GUARDED_BY(event_handler_mutex_);
   bool supports_safe_to_disconnect_;
   // Allowed to use WebRTC over non-cellular networks.
   bool webrtc_non_cellular_ = false;

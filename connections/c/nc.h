@@ -197,6 +197,21 @@ NC_API void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
 NC_API void NcSetPhenotypeFlagReader(
     READER_CONTEXT context, NC_PHENOTYPE_FLAG_READER phenotype_flag_reader);
 
+// Registers a handler for events that require a decision from the client,
+// e.g. before joining a remote Wi-Fi hotspot during a bandwidth upgrade.
+//
+// instance - The returned instance by NcOpenService.
+// event_handler - Called synchronously on the thread that raises the event,
+//                 which is blocked until it returns. Concurrent invocations are
+//                 serialized. Returns true to proceed, false to cancel the
+//                 operation. Pass NULL to unregister. If no handler is
+//                 registered, all operations proceed.
+// context - Passed to `event_handler`. Must stay valid until the handler is
+//           replaced, unregistered, or the service is closed.
+NC_API void NcRegisterEventHandler(NC_INSTANCE instance,
+                                   NcCallbackEventHandler event_handler,
+                                   CALLER_CONTEXT context);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

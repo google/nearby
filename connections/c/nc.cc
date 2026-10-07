@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #if !defined(NC_OSS_BUILD)
@@ -69,6 +70,9 @@ class OfflineServiceController;
 }  // namespace nearby::connections
 
 namespace {
+
+using ::nearby::connections::ClientEvent;
+
 class FlagReaderWrapper : public nearby::flags::FlagReader {
  public:
   explicit FlagReaderWrapper(READER_CONTEXT context,
@@ -833,4 +837,44 @@ void NcSetPhenotypeFlagReader(READER_CONTEXT context,
   static absl::NoDestructor<FlagReaderWrapper> kNearbyFlags(
       context, phenotype_flag_reader);
   nearby::NearbyFlags::GetInstance().SetFlagReader(*kNearbyFlags);
+}
+
+void NcRegisterEventHandler(NC_INSTANCE instance,
+                            NcCallbackEventHandler event_handler,
+                            CALLER_CONTEXT context) {
+  NcContext* nc_context = GetContext(instance);
+  if (nc_context == nullptr) {
+    LOG(WARNING) << "Trying to register event handler on not existent service "
+                 << instance;
+    return;
+  }
+
+  if (event_handler == nullptr) {
+    nc_context->core->UnregisterEventHandler();
+    return;
+  }
+
+  nc_context->core->RegisterEventHandler(
+      [instance, event_handler, context](const ClientEvent& event) {
+        NC_EVENT nc_event{};
+        nc_event.endpoint_id = convertStringToInt(event.endpoint_id);
+        if (const auto* prompt =
+                std::get_if<ClientEvent::JoinHotspotPrompt>(&event.data)) {
+          nc_event.type = NC_EVENT_TYPE_JOIN_HOTSPOT_PROMPT;
+          nc_event.data.data = const_cast<char*>(prompt->ssid.data());
+          nc_event.data.size = prompt->ssid.size();
+        } else if (const auto* pin =
+                       std::get_if<ClientEvent::DisplayPin>(&event.data)) {
+          nc_event.type = NC_EVENT_TYPE_DISPLAY_PIN;
+          nc_event.data.data = const_cast<char*>(pin->pin.data());
+          nc_event.data.size = pin->pin.size();
+        } else if (std::holds_alternative<ClientEvent::EnterPin>(event.data)) {
+          nc_event.type = NC_EVENT_TYPE_ENTER_PIN;
+          nc_event.data.data = nullptr;
+          nc_event.data.size = 0;
+        } else {
+          return true;
+        }
+        return event_handler(instance, &nc_event, context);
+      });
 }

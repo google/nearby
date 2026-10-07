@@ -100,6 +100,7 @@ cc_test(
     ],
     deps = [
         ":wifi_hotspot_internal",
+        "//connections:core_types",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",

@@ -411,6 +411,28 @@ void ClientProxy::Reset() {
   ExitStableEndpointIdMode();
 }
 
+void ClientProxy::RegisterEventHandler(ClientEventHandler handler) {
+  MutexLock lock(&event_handler_mutex_);
+  event_handler_ = std::move(handler);
+}
+
+void ClientProxy::UnregisterEventHandler() {
+  MutexLock lock(&event_handler_mutex_);
+  event_handler_ = nullptr;
+}
+
+bool ClientProxy::OnEvent(const ClientEvent& event) {
+  MutexLock lock(&event_handler_mutex_);
+  if (!event_handler_) {
+    return true;
+  }
+  bool result = event_handler_(event);
+  LOG(INFO) << "ClientProxy [OnEvent]: client=" << GetClientId()
+            << "; endpoint_id=" << event.endpoint_id
+            << "; type_index=" << event.data.index() << "; result=" << result;
+  return result;
+}
+
 void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
