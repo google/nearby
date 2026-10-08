@@ -113,8 +113,12 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   class PendingPayload {
    public:
     PendingPayload(
-        std::unique_ptr<InternalPayload> internal_payload,
-        const std::vector<std::string>& endpoint_ids, bool is_incoming,
+        std::unique_ptr<IncomingInternalPayload> incoming_payload,
+        const std::vector<std::string>& endpoint_ids,
+        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
+    PendingPayload(
+        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
+        const std::vector<std::string>& endpoint_ids,
         absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
     PendingPayload(PendingPayload&&) = default;
     PendingPayload& operator=(PendingPayload&&) = default;
@@ -128,7 +132,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     Payload::Id GetId() const;
 
-    InternalPayload* GetInternalPayload();
+    InternalPayload* GetInternalPayload() const;
+    IncomingInternalPayload* GetIncomingInternalPayload() const {
+      return incoming_payload_.get();
+    }
+    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
+      return outgoing_payload_.get();
+    }
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceledAndClose();
@@ -158,8 +168,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void SetOffsetForEndpoint(const std::string& endpoint_id, int64_t offset)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
-    // Closes internal_payload_.
-    // Close is called when a pending peyload does not have associated
+    // Closes the underlying payload.
+    // Close is called when a pending payload does not have associated
     // endpoints.
     void Close();
 
@@ -171,10 +181,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     int DecRefCount() { return --refcount_; }
 
    private:
+    void InitEndpoints(const std::vector<std::string>& endpoint_ids)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+
     mutable Mutex mutex_;
-    const bool is_incoming_;
     AtomicBoolean is_locally_canceled_{false};
-    const std::unique_ptr<InternalPayload> internal_payload_;
+    const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
+    const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
     absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
@@ -289,7 +302,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   int GetOptimalChunkSize(const std::vector<std::string>& endpoint_ids);
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader
-  CreatePayloadHeader(const InternalPayload& internal_payload, size_t offset);
+  CreatePayloadHeader(const OutgoingInternalPayload& outgoing_payload,
+                      size_t offset);
 
   location::nearby::connections::PayloadTransferFrame::PayloadChunk
   CreatePayloadChunk(int64_t offset, ByteArray body, int index);

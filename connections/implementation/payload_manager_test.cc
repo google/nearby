@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/offline_frames.h"
@@ -30,6 +31,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/file.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -193,6 +195,42 @@ TEST_P(PayloadManagerTest, CanSendBytePayload) {
   EXPECT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   EXPECT_EQ(user_a.GetPayload().AsBytes(), ByteArray(std::string(kMessage)));
   LOG(INFO) << "Test completed.";
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, CanSendFilePayload) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string src_file_path =
+      absl::StrCat(::testing::TempDir(), "/test_send_file_src.txt");
+  {
+    OutputFile out_file(src_file_path);
+    ASSERT_TRUE(out_file.IsValid());
+    ASSERT_TRUE(out_file.Write(kMessage).Ok());
+    ASSERT_TRUE(out_file.Close().Ok());
+  }
+
+  user_a.GetClient().OverrideSavePath(user_a.GetDiscovered().endpoint_id,
+                                      ::testing::TempDir());
+  user_a.ExpectPayload(payload_latch_);
+  user_b.SendPayload(Payload("parent_folder", "test_send_file_dst.txt",
+                             InputFile(src_file_path)));
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kSuccess;
+      },
+      kProgressTimeout));
+  ASSERT_NE(user_a.GetPayload().AsFile(), nullptr);
+  EXPECT_EQ(user_a.GetPayload().GetFileName(), "test_send_file_dst.txt");
+  EXPECT_EQ(user_a.GetPayload().GetParentFolder(), "parent_folder");
+  user_a.GetPayload().AsFile()->Close();
 
   user_a.Stop();
   user_b.Stop();

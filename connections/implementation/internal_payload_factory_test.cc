@@ -46,44 +46,49 @@ constexpr char kText[] = "data chunk";
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
   ByteArray data(kText);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{data});
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  Payload payload = internal_payload->ReleasePayload();
-  EXPECT_EQ(payload.AsFile(), nullptr);
-  EXPECT_EQ(payload.AsStream(), nullptr);
-  EXPECT_EQ(payload.AsBytes(), ByteArray(kText));
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetType(),
+            PayloadTransferFrame::PayloadHeader::BYTES);
+  EXPECT_EQ(internal_payload->GetTotalSize(), ByteArray(kText).size());
+  EXPECT_EQ(internal_payload->DetachNextChunk(512), ByteArray(kText));
+  EXPECT_TRUE(internal_payload->DetachNextChunk(512).Empty());
 }
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
   auto [input, output] = CreatePipe();
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload(std::move(input)));
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  Payload payload = internal_payload->ReleasePayload();
-  EXPECT_EQ(payload.AsFile(), nullptr);
-  EXPECT_NE(payload.AsStream(), nullptr);
-  EXPECT_EQ(payload.AsBytes(), ByteArray());
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetType(),
+            PayloadTransferFrame::PayloadHeader::STREAM);
+  EXPECT_EQ(internal_payload->GetTotalSize(),
+            InternalPayload::kIndeterminateSize);
+  ASSERT_TRUE(output->Write(kText).Ok());
+  ASSERT_TRUE(output->Close().Ok());
+  EXPECT_EQ(internal_payload->DetachNextChunk(512), ByteArray(kText));
 }
 
 #if defined(NEARBY_CHROMIUM)
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
   InputFile inputFile(payload_id);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  Payload payload = internal_payload->ReleasePayload();
-  EXPECT_NE(payload.AsFile(), nullptr);
-  EXPECT_EQ(payload.AsStream(), nullptr);
-  EXPECT_EQ(payload.AsBytes(), ByteArray());
-  EXPECT_EQ(payload.GetId(), payload_id);
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetType(),
+            PayloadTransferFrame::PayloadHeader::FILE);
+  EXPECT_EQ(internal_payload->GetId(), payload_id);
 }
 #endif  // !defined(NEARBY_CHROMIUM)
 
@@ -102,11 +107,16 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   header.set_id(12345);
   header.set_total_size(512);
   *frame.mutable_payload_chunk() = std::move(payload_chunk);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetType(),
+            PayloadTransferFrame::PayloadHeader::BYTES);
+  EXPECT_EQ(internal_payload->GetTotalSize(), ByteArray(kText).size());
+  EXPECT_TRUE(internal_payload->AttachNextChunk("").Ok());
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.AsFile(), nullptr);
   EXPECT_EQ(payload.AsStream(), nullptr);
@@ -121,10 +131,11 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
   header.set_type(PayloadTransferFrame::PayloadHeader::STREAM);
   header.set_id(12345);
   header.set_total_size(0);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   EXPECT_NE(internal_payload, nullptr);
   {
     Payload payload = internal_payload->ReleasePayload();
@@ -146,10 +157,11 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_id(12345);
   header.set_total_size(512);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_NE(payload.AsFile(), nullptr);
@@ -166,7 +178,7 @@ TEST(InternalPayloadFactoryTest,
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_total_size(512);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   EXPECT_TRUE(result.has_error());
 }
@@ -180,10 +192,11 @@ TEST(InternalPayloadFactoryTest,
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
   header.set_id(12345);
   header.set_total_size(512);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   EXPECT_NE(internal_payload, nullptr);
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "12345");
@@ -199,12 +212,12 @@ TEST(InternalPayloadFactoryTest,
   header.set_id(12345);
   header.set_total_size(512);
   header.set_file_name("test.file.name");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   EXPECT_NE(internal_payload, nullptr);
-  auto test = internal_payload->GetFileName();
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "test.file.name");
 }
@@ -222,18 +235,19 @@ TEST(InternalPayloadFactoryTest,
   header.set_parent_folder("test_parent_folder");
   int64_t time_millis = absl::ToUnixMillis(absl::Now());
   header.set_last_modified_timestamp_millis(time_millis);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  EXPECT_EQ(internal_payload->GetFileName(), "test_file_name");
-  EXPECT_EQ(internal_payload->GetParentFolder(), "test_parent_folder");
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  Payload payload = internal_payload->ReleasePayload();
+  EXPECT_EQ(payload.GetFileName(), "test_file_name");
+  EXPECT_EQ(payload.GetParentFolder(), "test_parent_folder");
   // Allow for a 1ms error in the timestamp. This is due to the time being
   // converted to a double for the proto and then back to a time.
   EXPECT_LE(
-      std::abs(absl::ToUnixMillis(internal_payload->GetLastModifiedTime()) -
-               time_millis),
+      std::abs(absl::ToUnixMillis(payload.GetLastModifiedTime()) - time_millis),
       1);
 }
 
@@ -248,13 +262,40 @@ TEST(InternalPayloadFactoryTest,
   header.set_total_size(512);
   header.set_file_name("bad\\test_file_name");
   header.set_parent_folder("bad/../../test_parent_folder");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  EXPECT_EQ(internal_payload->GetFileName(), "test_file_name");
-  EXPECT_EQ(internal_payload->GetParentFolder(), "bad/test_parent_folder");
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  Payload payload = internal_payload->ReleasePayload();
+  EXPECT_EQ(payload.GetFileName(), "test_file_name");
+  EXPECT_EQ(payload.GetParentFolder(), "bad/test_parent_folder");
+}
+
+TEST(InternalPayloadFactoryTest,
+     VerifyOutgoingFilePayloadFileNameParentFolderAndLastModifiedTime) {
+  std::string file_path =
+      absl::StrCat(::testing::TempDir(), "/test_outgoing_file_name");
+  {
+    OutputFile out_file(file_path);
+    ASSERT_TRUE(out_file.IsValid());
+    ASSERT_TRUE(out_file.Write(kText).Ok());
+    ASSERT_TRUE(out_file.Close().Ok());
+  }
+  Payload payload("test_parent_folder", "test_outgoing_file_name",
+                  InputFile(file_path));
+  absl::Time expected_last_modified_time = payload.GetLastModifiedTime();
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
+      CreateOutgoingInternalPayload(std::move(payload));
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+  EXPECT_EQ(internal_payload->GetFileName(), "test_outgoing_file_name");
+  EXPECT_EQ(internal_payload->GetParentFolder(), "test_parent_folder");
+  EXPECT_EQ(internal_payload->GetLastModifiedTime(),
+            expected_last_modified_time);
 }
 
 TEST(InternalPayloadFactoryTest,
@@ -269,7 +310,7 @@ TEST(InternalPayloadFactoryTest,
   header.set_total_size(512);
   header.set_file_name("test.file.name");
   header.set_parent_folder("Downloads2");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_TRUE(result.has_error());
 }
@@ -290,10 +331,10 @@ TEST(InternalPayloadFactoryTest,
   Payload::Id payload_id = Payload::GenerateId();
   CreateFileWithContents(payload_id, contents);
   InputFile inputFile(payload_id);
-  ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   ASSERT_FALSE(internal_payload_result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload =
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
       std::move(internal_payload_result.value());
   EXPECT_NE(internal_payload, nullptr);
 
@@ -311,24 +352,13 @@ TEST(InternalPayloadFactoryTest,
 TEST(InternalPayloadFactoryTest,
      SkipToOffsetForBytesPayloadFailsIfOffsetIsTooLarge) {
   ByteArray data(kText);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{data});
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
   ASSERT_NE(internal_payload, nullptr);
   EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
-}
-
-TEST(InternalPayloadFactoryTest, AttachNextChunkForOutgoingStreamPayloadFails) {
-  auto [input, output] = CreatePipe();
-  ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
-      CreateOutgoingInternalPayload(Payload(std::move(input)));
-  ASSERT_FALSE(internal_payload_result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload =
-      std::move(internal_payload_result.value());
-  EXPECT_NE(internal_payload, nullptr);
-  EXPECT_EQ(internal_payload->AttachNextChunk("data"),
-            Exception{Exception::kIo});
 }
 
 TEST(InternalPayloadFactoryTest,
@@ -336,10 +366,10 @@ TEST(InternalPayloadFactoryTest,
   absl::string_view contents("0123456789");
   constexpr size_t kOffset = 6;
   auto [input, output] = CreatePipe();
-  ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload(std::move(input)));
   ASSERT_FALSE(internal_payload_result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload =
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
       std::move(internal_payload_result.value());
   EXPECT_NE(internal_payload, nullptr);
   output->Write(contents);
@@ -365,17 +395,16 @@ TEST(InternalPayloadFactoryTest, IncomingFilePayloadBehavesCorrectly) {
   header.set_file_name("test_file_name");
   header.set_parent_folder("test_parent_folder");
   header.set_last_modified_timestamp_millis(1234567890);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   ASSERT_NE(internal_payload, nullptr);
 
   EXPECT_EQ(internal_payload->GetType(),
             PayloadTransferFrame::PayloadHeader::FILE);
   EXPECT_EQ(internal_payload->GetTotalSize(), total_size);
-  EXPECT_TRUE(internal_payload->DetachNextChunk(1024).Empty());
-  EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
 
   // Attach a chunk.
   std::string chunk1 = "chunk1";
@@ -409,17 +438,16 @@ TEST(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
   header.set_type(PayloadTransferFrame::PayloadHeader::STREAM);
   header.set_id(12345);
   header.set_total_size(0);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   ASSERT_NE(internal_payload, nullptr);
 
   EXPECT_EQ(internal_payload->GetType(),
             PayloadTransferFrame::PayloadHeader::STREAM);
   EXPECT_EQ(internal_payload->GetTotalSize(), -1);
-  EXPECT_TRUE(internal_payload->DetachNextChunk(1024).Empty());
-  EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
 
   // Attach a chunk.
   std::string chunk1 = "chunk1";
@@ -462,10 +490,11 @@ TEST(InternalPayloadFactoryTest,
   const int64_t total_size = 10;
   header.set_total_size(total_size);
   header.set_file_name("test_file_size_exceeded");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   ASSERT_NE(internal_payload, nullptr);
 
   std::string chunk1 = "123456789012345";  // exceeds 10 bytes: truncate
@@ -497,10 +526,11 @@ TEST(InternalPayloadFactoryTest,
   const int64_t total_size = 10;
   header.set_total_size(total_size);
   header.set_file_name("test_file_size_exceeded");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, path);
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   ASSERT_NE(internal_payload, nullptr);
 
   std::string chunk1 = "1234567890";  // 10 bytes: allowed
@@ -528,10 +558,10 @@ class CountingInputStream : public InputStream {
 };
 
 TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingBytesPayload) {
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{ByteArray(kText)});
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> payload = std::move(result.value());
+  std::unique_ptr<OutgoingInternalPayload> payload = std::move(result.value());
   payload->Close();
   payload->Close();
 }
@@ -540,11 +570,11 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingBytesPayload) {
 // hits EOF and Close() is called multiple times.
 TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingStreamPayload) {
   int close_count = 0;
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(
           Payload(std::make_unique<CountingInputStream>(&close_count)));
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> payload = std::move(result.value());
+  std::unique_ptr<OutgoingInternalPayload> payload = std::move(result.value());
   EXPECT_TRUE(payload->DetachNextChunk(1024).Empty());
   payload->Close();
   payload->Close();
@@ -557,10 +587,10 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingStreamPayload) {
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::STREAM);
   header.set_id(12345);
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, ::testing::TempDir());
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> payload = std::move(result.value());
   EXPECT_TRUE(payload->AttachNextChunk("").Ok());
   payload->Close();
   payload->Close();
@@ -574,10 +604,10 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingFilePayload) {
   header.set_id(12345);
   header.set_total_size(10);
   header.set_file_name("test_close_idempotent_incoming");
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
       CreateIncomingInternalPayload(frame, ::testing::TempDir());
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> payload = std::move(result.value());
   EXPECT_TRUE(payload->AttachNextChunk("").Ok());
   payload->Close();
   payload->Close();
@@ -592,11 +622,11 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingFilePayload) {
     ASSERT_TRUE(out_file.Write(kText).Ok());
     ASSERT_TRUE(out_file.Close().Ok());
   }
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(
           Payload("", "test_close_idempotent_outgoing", InputFile(file_path)));
   ASSERT_FALSE(result.has_error());
-  std::unique_ptr<InternalPayload> payload = std::move(result.value());
+  std::unique_ptr<OutgoingInternalPayload> payload = std::move(result.value());
   EXPECT_EQ(payload->DetachNextChunk(1024), ByteArray(kText));
   EXPECT_TRUE(payload->DetachNextChunk(1024).Empty());
   payload->Close();

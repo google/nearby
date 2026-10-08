@@ -44,17 +44,7 @@ class InternalPayload {
   explicit InternalPayload(Payload payload);
   virtual ~InternalPayload() = default;
 
-  Payload ReleasePayload();
-
   Payload::Id GetId() const;
-
-  const std::string& GetParentFolder() const {
-    return payload_.GetParentFolder();
-  }
-  const std::string& GetFileName() const { return payload_.GetFileName(); }
-  absl::Time GetLastModifiedTime() const {
-    return payload_.GetLastModifiedTime();
-  }
 
   // Returns the PayloadType of the Payload to which this object is bound.
   //
@@ -73,34 +63,6 @@ class InternalPayload {
   // dealing with streaming data).
   virtual std::int64_t GetTotalSize() const = 0;
 
-  // Breaks off the next chunk from the Payload to which this object is bound.
-  //
-  // <p>Used when we have a complete Payload that we want to break into smaller
-  // byte blobs for sending across a hard boundary (like the other side of
-  // a Binder, or another device altogether).
-  //
-  // @param chunk_size The preferred size of the next chunk. Depending on
-  // payload type, the provided size may be ignored.
-  // @return The next chunk from the Payload, or null if we've reached the end.
-  virtual ByteArray DetachNextChunk(int chunk_size) = 0;
-
-  // Adds the next chunk that comprises the Payload to which this object is
-  // bound.
-  //
-  // Used when we are trying to reconstruct a Payload that lives on the
-  // other side of a hard boundary (like another device), one chunk at a time.
-  //
-  // `chunk` is the next chunk.
-  virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
-
-  // Skips current stream pointer to the offset.
-  //
-  // Used when this is a resume outgoing transfer, so we want to skip
-  // some data until the offset position.
-  //
-  // @return the offset really skipped
-  virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
-
   // Cleans up any resources used by this Payload. Called when we're stopping
   // early, e.g. after being cancelled or having no more recipients left.
   // Implementations must be idempotent (safe to call multiple times) and safe
@@ -112,7 +74,62 @@ class InternalPayload {
   // We're caching the payload ID here because the backing payload will be
   // released to another owner during the lifetime of an incoming
   // InternalPayload.
-  Payload::Id payload_id_;
+  const Payload::Id payload_id_;
+};
+
+// Defines the operations layered atop an incoming Payload, for use inside the
+// OfflineServiceController.
+class IncomingInternalPayload : public InternalPayload {
+ public:
+  using InternalPayload::InternalPayload;
+  ~IncomingInternalPayload() override = default;
+
+  Payload ReleasePayload();
+
+  // Adds the next chunk that comprises the Payload to which this object is
+  // bound.
+  //
+  // Used when we are trying to reconstruct a Payload that lives on the
+  // other side of a hard boundary (like another device), one chunk at a time.
+  //
+  // `chunk` is the next chunk. An empty chunk signals the end of the payload.
+  virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
+};
+
+// Defines the operations layered atop an outgoing Payload, for use inside the
+// OfflineServiceController.
+class OutgoingInternalPayload : public InternalPayload {
+ public:
+  using InternalPayload::InternalPayload;
+  ~OutgoingInternalPayload() override = default;
+
+  const std::string& GetParentFolder() const {
+    return payload_.GetParentFolder();
+  }
+  const std::string& GetFileName() const { return payload_.GetFileName(); }
+  absl::Time GetLastModifiedTime() const {
+    return payload_.GetLastModifiedTime();
+  }
+
+  // Breaks off the next chunk from the Payload to which this object is bound.
+  //
+  // <p>Used when we have a complete Payload that we want to break into smaller
+  // byte blobs for sending across a hard boundary (like the other side of
+  // a Binder, or another device altogether).
+  //
+  // @param chunk_size The preferred size of the next chunk. Depending on
+  // payload type, the provided size may be ignored.
+  // @return The next chunk from the Payload, or an empty ByteArray if we've
+  // reached the end.
+  virtual ByteArray DetachNextChunk(int chunk_size) = 0;
+
+  // Skips current stream pointer to the offset.
+  //
+  // Used when this is a resume outgoing transfer, so we want to skip
+  // some data until the offset position.
+  //
+  // @return the offset really skipped
+  virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
 };
 
 }  // namespace connections

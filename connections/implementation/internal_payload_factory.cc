@@ -56,12 +56,11 @@ std::string make_path(const std::string& custom_save_path,
                                                    parent_folder, file_name);
 }
 
-class BytesInternalPayload : public InternalPayload {
+class OutgoingBytesInternalPayload : public OutgoingInternalPayload {
  public:
-  explicit BytesInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
-        total_size_(payload_.AsBytes().size()),
-        detached_only_chunk_(false) {}
+  explicit OutgoingBytesInternalPayload(Payload payload)
+      : OutgoingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -83,14 +82,44 @@ class BytesInternalPayload : public InternalPayload {
     return std::move(payload_).AsBytes();
   }
 
-  // Does nothing.
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kSuccess};
-  }
-
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
     LOG(WARNING) << "Bytes payload does not support offsets";
     return {Exception::kIo};
+  }
+
+ private:
+  const std::int64_t total_size_;
+  bool detached_only_chunk_ = false;
+};
+
+// Unlike STREAM and FILE payloads, which are transferred across multiple chunks
+// and written incrementally via AttachNextChunk() after ReleasePayload() hands
+// the read handle to the client, a BYTES payload is sent in its entirety in the
+// initial DATA frame (offset == 0), followed by an empty LAST_CHUNK frame.
+// Because Payload holds a ByteArray by value and is immediately moved to the
+// client via ReleasePayload() upon receipt of the initial frame, `payload` is
+// populated with the full data at construction time.
+class IncomingBytesInternalPayload : public IncomingInternalPayload {
+ public:
+  explicit IncomingBytesInternalPayload(Payload payload)
+      : IncomingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
+
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        BYTES;
+  }
+
+  std::int64_t GetTotalSize() const override { return total_size_; }
+
+  // No-op. PayloadManager::ProcessDataPacket() calls AttachNextChunk() for
+  // every incoming DATA frame (both the initial data frame and the trailing
+  // empty LAST_CHUNK frame), but the full byte array was already placed into
+  // `payload_` at construction time.
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    return {Exception::kSuccess};
   }
 
  private:
@@ -98,13 +127,12 @@ class BytesInternalPayload : public InternalPayload {
   // moved to another owner during the lifetime of an incoming
   // InternalPayload.
   const std::int64_t total_size_;
-  bool detached_only_chunk_;
 };
 
-class OutgoingStreamInternalPayload : public InternalPayload {
+class OutgoingStreamInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingStreamInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)) {}
+      : OutgoingInternalPayload(std::move(payload)) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -113,7 +141,9 @@ class OutgoingStreamInternalPayload : public InternalPayload {
         STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
+  std::int64_t GetTotalSize() const override {
+    return InternalPayload::kIndeterminateSize;
+  }
 
   ByteArray DetachNextChunk(int chunk_size) override {
     InputStream* input_stream = payload_.AsStream();
@@ -136,10 +166,6 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     }
 
     return scoped_bytes_read;
-  }
-
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kIo};
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -172,19 +198,20 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   AtomicBoolean is_closed_{false};
 };
 
-class IncomingStreamInternalPayload : public InternalPayload {
+class IncomingStreamInternalPayload : public IncomingInternalPayload {
  public:
   IncomingStreamInternalPayload(Payload payload,
                                 std::unique_ptr<OutputStream> output)
-      : InternalPayload(std::move(payload)), output_(std::move(output)) {}
+      : IncomingInternalPayload(std::move(payload)),
+        output_(std::move(output)) {}
 
   PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
     return PayloadTransferFrame::PayloadHeader::STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
-
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
+  std::int64_t GetTotalSize() const override {
+    return InternalPayload::kIndeterminateSize;
+  }
 
   Exception AttachNextChunk(absl::string_view chunk) override {
     if (chunk.empty()) {
@@ -197,11 +224,6 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return output_->Write(chunk);
   }
 
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming Payload " << this;
-    return {Exception::kIo};
-  }
-
   void Close() override {
     if (is_closed_.Set(true)) return;
     output_->Close();
@@ -212,10 +234,10 @@ class IncomingStreamInternalPayload : public InternalPayload {
   std::unique_ptr<OutputStream> output_;
 };
 
-class OutgoingFileInternalPayload : public InternalPayload {
+class OutgoingFileInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingFileInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
+      : OutgoingInternalPayload(std::move(payload)),
         total_size_{payload_.AsFile()->GetTotalSize()} {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
@@ -246,10 +268,6 @@ class OutgoingFileInternalPayload : public InternalPayload {
     }
 
     return bytes;
-  }
-
-  Exception AttachNextChunk(absl::string_view chunk) override {
-    return {Exception::kIo};
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -285,12 +303,12 @@ class OutgoingFileInternalPayload : public InternalPayload {
   std::int64_t total_size_;
 };
 
-class IncomingFileInternalPayload : public InternalPayload {
+class IncomingFileInternalPayload : public IncomingInternalPayload {
  public:
   IncomingFileInternalPayload(Payload payload, OutputFile output_file,
                               absl::Time last_modified_time,
                               std::int64_t total_size)
-      : InternalPayload(std::move(payload)),
+      : IncomingInternalPayload(std::move(payload)),
         output_file_(std::move(output_file)),
         last_modified_time_(last_modified_time),
         total_size_(total_size) {}
@@ -303,8 +321,6 @@ class IncomingFileInternalPayload : public InternalPayload {
   }
 
   std::int64_t GetTotalSize() const override { return total_size_; }
-
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
   Exception AttachNextChunk(absl::string_view chunk) override {
     if (chunk.empty()) {
@@ -332,11 +348,6 @@ class IncomingFileInternalPayload : public InternalPayload {
     return output_file_.Write(chunk);
   }
 
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming file Payload " << this;
-    return {Exception::kIo};
-  }
-
   void Close() override {
     if (is_closed_.Set(true)) return;
     output_file_.SetLastModifiedTime(last_modified_time_);
@@ -354,11 +365,12 @@ class IncomingFileInternalPayload : public InternalPayload {
 
 }  // namespace
 
-ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
+ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
     case PayloadType::kBytes:
-      return {std::make_unique<BytesInternalPayload>(std::move(payload))};
+      return {
+          std::make_unique<OutgoingBytesInternalPayload>(std::move(payload))};
 
     case PayloadType::kFile: {
       return {
@@ -375,7 +387,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
   }
 }
 
-ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
+ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path) {
   if (frame.packet_type() !=
@@ -387,7 +399,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
   const Payload::Id payload_id = frame.payload_header().id();
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
-      return {std::make_unique<BytesInternalPayload>(
+      return {std::make_unique<IncomingBytesInternalPayload>(
           Payload(payload_id, ByteArray(frame.payload_chunk().body())))};
     }
 

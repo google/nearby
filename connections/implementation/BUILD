@@ -607,6 +607,7 @@ cc_test(
         ":offline_frames",
         "//connections:core_types",
         "//internal/platform:base",
+        "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
