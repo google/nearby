@@ -120,7 +120,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 }
 
 - (BOOL)isListeningForAnyService {
-  return _serverSockets.count > 0;
+  return _serverSockets.keyEnumerator.nextObject != nil;
 }
 
 - (BOOL)isDiscoveringAnyService {

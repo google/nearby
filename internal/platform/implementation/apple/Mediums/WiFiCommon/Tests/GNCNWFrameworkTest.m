@@ -27,6 +27,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWListenerImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWBrowseResult.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWBrowser.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
@@ -68,6 +69,36 @@ static NSString *const kHostAddress = @"127.0.0.1";
 
 - (void)testIsListeningForAnyServiceWhenNoServicesAreListening {
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  XCTAssertFalse([framework isListeningForAnyService]);
+}
+
+- (void)testIsListeningForAnyServiceWhenServerSocketIsDeallocated {
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+
+  @autoreleasepool {
+    GNCFakeNWFrameworkServerSocket *fakeServerSocket =
+        [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:kPort];
+
+    id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
+    OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
+    OCMStub([mockServerSocketAlloc initWithPort:kPort]).andReturn(fakeServerSocket);
+
+    OCMStub([mockServerSocketAlloc startListeningWithError:[OCMArg anyObjectRef]
+                                         includePeerToPeer:NO])
+        .andReturn(YES);
+
+    NSError *error = nil;
+    GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
+                                                                           error:&error];
+    XCTAssertNotNil(serverSocket);
+    XCTAssertNil(error);
+    XCTAssertTrue([framework isListeningForAnyService]);
+
+    [mockServerSocketAlloc stopMocking];
+  }
+
+  // Verify that once the strong reference is released, the weak entry in NSMapTable
+  // is no longer counted as an active listener.
   XCTAssertFalse([framework isListeningForAnyService]);
 }
 
