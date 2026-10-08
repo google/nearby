@@ -29,15 +29,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, nullable) NSString* startedAdvertisingServiceType;
 @property(nonatomic, nullable) NSNumber* stoppedAdvertisingPort;
 @property(nonatomic, nullable) NSString* startedDiscoveryServiceType;
-@property(nonatomic) BOOL startedDiscoveryIncludePeerToPeer;
 @property(nonatomic, nullable) NSString* stoppedDiscoveryServiceType;
 @property(nonatomic, nullable) NSString* connectedToServiceName;
 @property(nonatomic, nullable) NSString* connectedToServiceType;
 @property(nonatomic, nullable) GNCIPv4Address* connectedToHost;
 @property(nonatomic) NSInteger connectedToPort;
-@property(nonatomic) BOOL connectedToIncludePeerToPeer;
 @property(nonatomic) NSInteger listenedForServiceOnPort;
-@property(nonatomic) BOOL listenedForServiceIncludePeerToPeer;
 @property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkSocket*>* sockets;
 @property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkServerSocket*>* serverSockets;
 @property(nonatomic, nullable) dispatch_source_t connectedWithCancelSource;

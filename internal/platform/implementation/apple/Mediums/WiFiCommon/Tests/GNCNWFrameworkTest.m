@@ -82,7 +82,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
 
   NSError *error = nil;
   GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                             includePeerToPeer:NO
                                                                          error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
@@ -105,7 +104,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
 
   NSError *error = nil;
   GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                             includePeerToPeer:NO
                                                                          error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
@@ -116,7 +114,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
   NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
   NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
 
-  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCNWFramework *framework = [[GNCNWFramework alloc] initWithPeerToPeer:YES];
   id mockServerSocket = OCMClassMock([GNCNWFrameworkServerSocket class]);
   id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
@@ -132,7 +130,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       [framework listenForServiceWithPSKIdentity:pskIdentity
                                  PSKSharedSecret:pskSharedSecret
                                             port:kPort
-                               includePeerToPeer:YES
                                            error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
@@ -165,7 +162,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       [framework listenForServiceWithPSKIdentity:pskIdentity
                                  PSKSharedSecret:pskSharedSecret
                                             port:kPort
-                               includePeerToPeer:NO
                                            error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
@@ -239,7 +235,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
 
   XCTAssertTrue(result);
@@ -289,7 +284,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
 
   XCTAssertTrue(result);
@@ -330,7 +324,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
   XCTAssertNil(error);
 
@@ -342,7 +335,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
 
   XCTAssertFalse(result);
@@ -367,7 +359,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
 
   XCTAssertFalse(result);
@@ -397,7 +388,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
         lostServiceName = serviceName;
         [serviceLostExpectation fulfill];
       }
-      includePeerToPeer:NO
       error:&error];
   XCTAssertNil(error);
 
@@ -450,7 +440,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
         lostServiceName = serviceName;
         [serviceLostExpectation fulfill];
       }
-      includePeerToPeer:NO
       error:&error];
   XCTAssertNil(error);
 
@@ -502,7 +491,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
   XCTAssertNil(error);
 
@@ -542,7 +530,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
                            NSDictionary<NSString *, NSString *> *txtRecords) {
         [serviceLostExpectation fulfill];
       }
-      includePeerToPeer:NO
       error:&error];
   XCTAssertNil(error);
 
@@ -579,7 +566,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
       serviceLostHandler:^(NSString *serviceName,
                            NSDictionary<NSString *, NSString *> *txtRecords) {
       }
-      includePeerToPeer:NO
       error:&error];
 
   XCTAssertTrue(result);
@@ -751,7 +737,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
   NSError *error = nil;
   GNCNWFrameworkSocket *socket = [framework connectToHost:address
                                                      port:kPort
-                                        includePeerToPeer:NO
                                              cancelSource:nil
                                                     queue:nil
                                                     error:&error];
@@ -771,7 +756,6 @@ static NSString *const kHostAddress = @"127.0.0.1";
   NSError *error = nil;
   GNCNWFrameworkSocket *socket = [framework connectToHost:address
                                                      port:kPort
-                                        includePeerToPeer:NO
                                              cancelSource:nil
                                                     queue:nil
                                                     error:&error];

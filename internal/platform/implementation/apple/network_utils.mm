@@ -50,7 +50,7 @@ bool StopAdvertising(GNCNWFramework* medium, const NsdServiceInfo& nsd_service_i
 }
 
 bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
-                    NetworkDiscoveredServiceCallback callback, bool include_peer_to_peer) {
+                    NetworkDiscoveredServiceCallback callback) {
   if (medium.isDiscoveringAnyService) {
     GNCLoggerError(@"Error already discovering for service");
     return false;
@@ -82,7 +82,6 @@ bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
             }];
         client_callback.network_service_lost_cb(nsd_service_info);
       }
-      includePeerToPeer:include_peer_to_peer
       error:&error];
   if (error != nil) {
     GNCLoggerError(@"Error starting discovery for service type<%@>: %@", serviceType, error);
@@ -143,7 +142,6 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
 
 GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
                                        const ServiceAddress& service_address,
-                                       bool include_peer_to_peer,
                                        CancellationFlag* cancellation_flag) {
   NSError* error = nil;
   if (service_address.address.size() != 4) {
@@ -156,7 +154,6 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
   GNCIPv4Address* host = [GNCIPv4Address addressFromData:hostData];
   GNCNWFrameworkSocket* socket = [medium connectToHost:host
                                                   port:service_address.port
-                                     includePeerToPeer:include_peer_to_peer
                                           cancelSource:nil
                                                  queue:nil
                                                  error:&error];
@@ -169,15 +166,13 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
   return nil;
 }
 
-GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
-                                             bool include_peer_to_peer) {
+GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port) {
   if (medium.isListeningForAnyService) {
     GNCLoggerError(@"Error already listening for service");
     return nil;
   }
   NSError* error = nil;
   GNCNWFrameworkServerSocket* serverSocket = [medium listenForServiceOnPort:port
-                                                          includePeerToPeer:include_peer_to_peer
                                                                       error:&error];
   if (serverSocket != nil) {
     return serverSocket;
@@ -189,7 +184,7 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
 }
 
 GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::PskInfo& psk_info,
-                                             int port, bool include_peer_to_peer) {
+                                             int port) {
   if (medium.isListeningForAnyService) {
     GNCLoggerError(@"Error already listening for service");
     return nil;
@@ -203,7 +198,6 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::
       [medium listenForServiceWithPSKIdentity:pskIdentity
                               PSKSharedSecret:pskPassword
                                          port:port
-                            includePeerToPeer:include_peer_to_peer
                                         error:&error];
   if (serverSocket != nil) {
     return serverSocket;

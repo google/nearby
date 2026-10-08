@@ -74,7 +74,6 @@
   XCTAssertTrue(_wifiLanMedium->StartDiscovery(
       serviceType, nearby::api::WifiLanMedium::DiscoveredServiceCallback{}));
   XCTAssertEqualObjects(_fakeNWFramework.startedDiscoveryServiceType, @"_my-service._tcp");
-  XCTAssertFalse(_fakeNWFramework.startedDiscoveryIncludePeerToPeer);
 }
 
 - (void)testStopDiscovery {
@@ -106,7 +105,6 @@
 
   XCTAssertEqualObjects([_fakeNWFramework.connectedToHost dottedRepresentation], @"192.168.1.1");
   XCTAssertEqual(_fakeNWFramework.connectedToPort, 1234);
-  XCTAssertFalse(_fakeNWFramework.connectedToIncludePeerToPeer);
 }
 
 - (void)testListenForService {
@@ -117,7 +115,6 @@
 
   XCTAssertTrue(serverSocket != nullptr);
   XCTAssertEqual(_fakeNWFramework.listenedForServiceOnPort, 1234);
-  XCTAssertFalse(_fakeNWFramework.listenedForServiceIncludePeerToPeer);
 }
 
 - (void)testSocketAndStream {

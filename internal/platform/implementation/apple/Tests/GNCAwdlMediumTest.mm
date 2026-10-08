@@ -78,7 +78,6 @@ static const int kTestPort = 1234;
   XCTAssertTrue(_awdlMedium->StartDiscovery(serviceType,
                                             nearby::api::AwdlMedium::DiscoveredServiceCallback{}));
   XCTAssertEqualObjects(_fakeNWFramework.startedDiscoveryServiceType, kTestServiceType);
-  XCTAssertTrue(_fakeNWFramework.startedDiscoveryIncludePeerToPeer);
 }
 
 - (void)testStopDiscovery {
@@ -117,7 +116,6 @@ static const int kTestPort = 1234;
 
   XCTAssertTrue(serverSocket != nullptr);
   XCTAssertEqual(_fakeNWFramework.listenedForServiceOnPort, kTestPort);
-  XCTAssertTrue(_fakeNWFramework.listenedForServiceIncludePeerToPeer);
 }
 
 - (void)testListenForServiceWithPsk {
@@ -128,7 +126,6 @@ static const int kTestPort = 1234;
 
   XCTAssertTrue(serverSocket != nullptr);
   XCTAssertEqual(_fakeNWFramework.listenedForServiceOnPort, kTestPort);
-  XCTAssertTrue(_fakeNWFramework.listenedForServiceIncludePeerToPeer);
 }
 
 - (void)testSocketAndStream {

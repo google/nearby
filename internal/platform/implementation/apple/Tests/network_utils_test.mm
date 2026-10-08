@@ -70,20 +70,10 @@ static NSString *const kServiceType = @"_test._tcp";
 - (void)testStartDiscovery {
   nearby::apple::network_utils::NetworkDiscoveredServiceCallback callback;
   BOOL result = nearby::apple::network_utils::StartDiscovery(
-      _fakeNWFramework, kServiceType.UTF8String, std::move(callback), YES);
+      _fakeNWFramework, kServiceType.UTF8String, std::move(callback));
 
   XCTAssertTrue(result);
   XCTAssertEqualObjects(_fakeNWFramework.startedDiscoveryServiceType, kServiceType);
-  XCTAssertTrue(_fakeNWFramework.startedDiscoveryIncludePeerToPeer);
-}
-
-- (void)testStartDiscoveryNoPeerToPeer {
-  nearby::apple::network_utils::NetworkDiscoveredServiceCallback callback;
-  BOOL result = nearby::apple::network_utils::StartDiscovery(
-      _fakeNWFramework, kServiceType.UTF8String, std::move(callback), NO);
-
-  XCTAssertTrue(result);
-  XCTAssertFalse(_fakeNWFramework.startedDiscoveryIncludePeerToPeer);
 }
 
 - (void)testStopDiscovery {
@@ -113,7 +103,7 @@ static NSString *const kServiceType = @"_test._tcp";
   };
 
   GNCNWFrameworkSocket *socket =
-      nearby::apple::network_utils::ConnectToService(_fakeNWFramework, service_address, YES, &flag);
+      nearby::apple::network_utils::ConnectToService(_fakeNWFramework, service_address, &flag);
 
   XCTAssertNotNil(socket);
   XCTAssertEqual(_fakeNWFramework.connectedToPort, 1234);
@@ -121,7 +111,7 @@ static NSString *const kServiceType = @"_test._tcp";
 
 - (void)testListenForService {
   GNCNWFrameworkServerSocket *serverSocket =
-      nearby::apple::network_utils::ListenForService(_fakeNWFramework, 1234, YES);
+      nearby::apple::network_utils::ListenForService(_fakeNWFramework, 1234);
   XCTAssertNotNil(serverSocket);
   XCTAssertEqual(_fakeNWFramework.listenedForServiceOnPort, 1234);
 }
@@ -147,7 +137,7 @@ static NSString *const kServiceType = @"_test._tcp";
   };
 
   BOOL result = nearby::apple::network_utils::StartDiscovery(
-      _fakeNWFramework, kServiceType.UTF8String, std::move(callback), YES);
+      _fakeNWFramework, kServiceType.UTF8String, std::move(callback));
   XCTAssertTrue(result);
 
   NSDictionary<NSString *, NSString *> *txtRecords = @{@"key" : @"value"};
@@ -174,7 +164,7 @@ static NSString *const kServiceType = @"_test._tcp";
   };
 
   BOOL result = nearby::apple::network_utils::StartDiscovery(
-      _fakeNWFramework, kServiceType.UTF8String, std::move(callback), YES);
+      _fakeNWFramework, kServiceType.UTF8String, std::move(callback));
   XCTAssertTrue(result);
 
   [_fakeNWFramework triggerServiceFound:nil txtRecords:@{}];

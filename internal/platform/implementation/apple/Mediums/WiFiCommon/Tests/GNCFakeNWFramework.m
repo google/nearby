@@ -44,10 +44,8 @@
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(nonnull ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(nonnull ServiceUpdateHandler)serviceLostHandler
-                   includePeerToPeer:(BOOL)includePeerToPeer
                                error:(NSError **)error {
   self.startedDiscoveryServiceType = serviceType;
-  self.startedDiscoveryIncludePeerToPeer = includePeerToPeer;
   self.serviceFoundHandler = serviceFoundHandler;
   self.serviceLostHandler = serviceLostHandler;
   return YES;
@@ -83,13 +81,11 @@
 
 - (GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                    port:(NSInteger)port
-                      includePeerToPeer:(BOOL)includePeerToPeer
                            cancelSource:(nullable dispatch_source_t)cancelSource
                                   queue:(nullable dispatch_queue_t)queue
                                   error:(NSError **)error {
   self.connectedToHost = host;
   self.connectedToPort = port;
-  self.connectedToIncludePeerToPeer = includePeerToPeer;
   self.connectedWithCancelSource = cancelSource;
   self.connectedWithQueue = queue;
   GNCFakeNWFrameworkSocket *socket =
@@ -99,10 +95,8 @@
 }
 
 - (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
-                                     includePeerToPeer:(BOOL)includePeerToPeer
                                                  error:(NSError **)error {
   self.listenedForServiceOnPort = port;
-  self.listenedForServiceIncludePeerToPeer = includePeerToPeer;
   GNCFakeNWFrameworkServerSocket *serverSocket =
       [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
   [self.serverSockets addObject:serverSocket];
@@ -112,10 +106,8 @@
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)pskIdentity
                                                          PSKSharedSecret:(NSData *)pskSharedSecret
                                                                     port:(NSInteger)port
-                                                       includePeerToPeer:(BOOL)includePeerToPeer
                                                                    error:(NSError **)error {
   self.listenedForServiceOnPort = port;
-  self.listenedForServiceIncludePeerToPeer = includePeerToPeer;
   GNCFakeNWFrameworkServerSocket *serverSocket =
       [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
   [self.serverSockets addObject:serverSocket];

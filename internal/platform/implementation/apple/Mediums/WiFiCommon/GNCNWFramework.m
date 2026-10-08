@@ -81,7 +81,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (nullable GNCNWFrameworkSocket *)internalConnectToEndpoint:(nw_endpoint_t)endpoint
                                                  PSKIdentity:(nullable NSData *)PSKIdentity
                                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
-                                           includePeerToPeer:(BOOL)includePeerToPeer
                                                 cancelSource:
                                                     (nullable dispatch_source_t)cancelSource
                                                        queue:(nullable dispatch_queue_t)queue
@@ -107,8 +106,12 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 }
 
 - (instancetype)init {
+  return [self initWithPeerToPeer:NO];
+}
+
+- (instancetype)initWithPeerToPeer:(BOOL)includePeerToPeer {
   if (self = [super init]) {
-    _includePeerToPeer = NO;
+    _includePeerToPeer = includePeerToPeer;
     _serverSockets = [NSMapTable strongToWeakObjectsMapTable];
     _serviceBrowsers = [[NSMutableDictionary alloc] init];
     _dispatchQueue = dispatch_queue_create("GNCNWFramework", DISPATCH_QUEUE_SERIAL);
@@ -125,12 +128,10 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 }
 
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
-                                              includePeerToPeer:(BOOL)includePeerToPeer
                                                           error:(NSError **)error {
   GNCLoggerInfo(@"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@.", (long)port,
-                (includePeerToPeer ? @"true" : @"false"));
+                (_includePeerToPeer ? @"true" : @"false"));
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
-  _includePeerToPeer = includePeerToPeer;
   BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];
   if (success) {
     [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
@@ -142,14 +143,12 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)PSKIdentity
                                                          PSKSharedSecret:(NSData *)PSKSharedSecret
                                                                     port:(NSInteger)port
-                                                       includePeerToPeer:(BOOL)includePeerToPeer
                                                                    error:
                                                                        (NSError **_Nullable)error {
   GNCLoggerInfo(
       @"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@, and PSKIdentity: %@.",
-      (long)port, (includePeerToPeer ? @"true" : @"false"), PSKIdentity);
+      (long)port, (_includePeerToPeer ? @"true" : @"false"), PSKIdentity);
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
-  _includePeerToPeer = includePeerToPeer;
   BOOL success = [serverSocket startListeningWithPSKIdentity:PSKIdentity
                                              PSKSharedSecret:PSKSharedSecret
                                            includePeerToPeer:_includePeerToPeer
@@ -180,7 +179,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
-                   includePeerToPeer:(BOOL)includePeerToPeer
                                error:(NSError **)error {
   if ([_serviceBrowsers objectForKey:serviceType] != nil) {
     if (error != nil) {
@@ -193,7 +191,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 
   // Create a parameters object configured to support TCP. TLS MUST be disabled for Nearby to
   // function properly.
-  _includePeerToPeer = includePeerToPeer;
   nw_parameters_t parameters = GNCBuildNonTLSParameters(/*includePeerToPeer=*/_includePeerToPeer);
   if (!parameters) {
     GNCLoggerError(@"[GNCNWFramework] Failed to create NW parameters.");
@@ -378,7 +375,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return [self internalConnectToEndpoint:endpoint
                              PSKIdentity:nil
                          PSKSharedSecret:nil
-                       includePeerToPeer:_includePeerToPeer
                             cancelSource:nil
                                    queue:nil
                                    error:error];
@@ -397,7 +393,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return [self internalConnectToEndpoint:endpoint
                              PSKIdentity:PSKIdentity
                          PSKSharedSecret:PSKSharedSecret
-                       includePeerToPeer:_includePeerToPeer
                             cancelSource:nil
                                    queue:nil
                                    error:error];
@@ -405,7 +400,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 
 - (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
-                               includePeerToPeer:(BOOL)includePeerToPeer
                                     cancelSource:(nullable dispatch_source_t)cancelSource
                                            queue:(nullable dispatch_queue_t)queue
                                            error:(NSError **)error {
@@ -416,7 +410,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return [self internalConnectToEndpoint:endpoint
                              PSKIdentity:nil
                          PSKSharedSecret:nil
-                       includePeerToPeer:(BOOL)includePeerToPeer
                             cancelSource:cancelSource
                                    queue:queue
                                    error:error];
@@ -427,7 +420,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (nullable GNCNWFrameworkSocket *)internalConnectToEndpoint:(nw_endpoint_t)endpoint
                                                  PSKIdentity:(nullable NSData *)PSKIdentity
                                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
-                                           includePeerToPeer:(BOOL)includePeerToPeer
                                                 cancelSource:
                                                     (nullable dispatch_source_t)cancelSource
                                                        queue:(nullable dispatch_queue_t)queue
@@ -438,7 +430,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   __block nw_connection_state_t blockResult = nw_connection_state_invalid;
   __block NSError *blockError = nil;
 
-  _includePeerToPeer = includePeerToPeer;
   nw_parameters_t parameters =
       (PSKIdentity == nil || PSKSharedSecret == nil)
           ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/_includePeerToPeer)

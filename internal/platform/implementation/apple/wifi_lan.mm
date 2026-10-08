@@ -166,7 +166,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
             service_callback_.service_lost_cb(service_info);
           }};
 
-  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback), false);
+  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback));
 }
 
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
@@ -185,8 +185,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const ServiceAddress& service_address, CancellationFlag* cancellation_flag) {
-  GNCNWFrameworkSocket* socket = network_utils::ConnectToService(
-      medium_, service_address, /*include_peer_to_peer=*/false, cancellation_flag);
+  GNCNWFrameworkSocket* socket =
+      network_utils::ConnectToService(medium_, service_address, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }
@@ -194,8 +194,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 }
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
-  GNCNWFrameworkServerSocket* serverSocket =
-      network_utils::ListenForService(medium_, port, /*include_peer_to_peer=*/false);
+  GNCNWFrameworkServerSocket* serverSocket = network_utils::ListenForService(medium_, port);
   if (serverSocket != nil) {
     return std::make_unique<WifiLanServerSocket>(serverSocket);
   }

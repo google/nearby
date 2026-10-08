@@ -64,7 +64,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 }
 
 - (instancetype)initWithQueue:(dispatch_queue_t)queue {
-  return [self initWithQueue:queue nwFramework:[[GNCNWFramework alloc] init]];
+  return [self initWithQueue:queue nwFramework:[[GNCNWFramework alloc] initWithPeerToPeer:YES]];
 }
 
 - (instancetype)initWithQueue:(dispatch_queue_t)queue nwFramework:(GNCNWFramework *)nwFramework {
@@ -247,7 +247,6 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
   return [_nwFramework connectToHost:host
                                 port:port
-                   includePeerToPeer:YES
                         cancelSource:cancelSource
                                queue:_hotspot_queue
                                error:error];

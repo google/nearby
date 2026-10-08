@@ -196,7 +196,7 @@ class WifiAwareServerSocket : public api::WifiAwareServerSocket {
 #pragma mark - WifiAwareMedium
 
 WifiAwareMedium::WifiAwareMedium() {
-  medium_ = [[GNCNWFramework alloc] init];
+  medium_ = [[GNCNWFramework alloc] initWithPeerToPeer:YES];
   if (@available(iOS 26.0, *)) {
     aware_manager_ = [[GNCAwareManager alloc] init];
   } else {
@@ -229,8 +229,7 @@ bool WifiAwareMedium::StartDiscovery(const std::string& service_type,
             service_callback_.service_lost_cb(WifiAwareServiceInfo(nsd_info));
           }};
 
-  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback),
-                                       /*include_peer_to_peer=*/true);
+  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback));
 }
 
 bool WifiAwareMedium::StopDiscovery(const std::string& service_type) {

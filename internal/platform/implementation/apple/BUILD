@@ -138,9 +138,11 @@ objc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform:cancellation_flag",
+        "@com_google_protobuf//:protobuf",
     ] + select({
         "@platforms//os:platform_ios": [
             "//internal/platform/implementation/apple/Mediums/Aware:WiFiAwareMedium",
+            "//third_party/apple_frameworks:UIKit",
         ],
         "//conditions:default": [],
     }),

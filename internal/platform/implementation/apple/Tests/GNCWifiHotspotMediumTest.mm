@@ -97,7 +97,6 @@ const char kIPAddress[] = "192.168.1.2";
   XCTAssertEqualObjects(_fakeNWFramework.connectedToHost.dottedRepresentation,
                         [NSString stringWithUTF8String:kIPAddress]);
   XCTAssertEqual(_fakeNWFramework.connectedToPort, kPort);
-  XCTAssertTrue(_fakeNWFramework.connectedToIncludePeerToPeer);
 }
 
 - (void)testInputStreamRead {

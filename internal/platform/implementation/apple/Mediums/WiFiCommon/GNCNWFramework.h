@@ -34,6 +34,18 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 @property(atomic, readonly) BOOL includePeerToPeer;
 
 /**
+ * Initializes the network framework without peer-to-peer services.
+ */
+- (instancetype)init;
+
+/**
+ * Initializes the network framework.
+ *
+ * @param includePeerToPeer Whether to include peer-to-peer services (AWDL).
+ */
+- (instancetype)initWithPeerToPeer:(BOOL)includePeerToPeer NS_DESIGNATED_INITIALIZER;
+
+/**
  * Listens for incoming connections on a given port.
  *
  * This function will always be called before a call to
@@ -46,12 +58,10 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param port The port on which the listener can accept connections. Should be a number between 1
  *             and 65536 to open a server socket on that exact port. Zero can be used to listen on
  *             a random port.
- * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a server socket or nil if an error has occured.
  */
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
-                                              includePeerToPeer:(BOOL)includePeerToPeer
                                                           error:(NSError **_Nullable)error;
 
 /**
@@ -69,14 +79,12 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  *             a random port.
  * @param PSKIdentity The PSK identity of the service.
  * @param PSKSharedSecret The PSK shared secret of the service.
- * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a server socket or nil if an error has occured.
  */
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)PSKIdentity
                                                          PSKSharedSecret:(NSData *)PSKSharedSecret
                                                                     port:(NSInteger)port
-                                                       includePeerToPeer:(BOOL)includePeerToPeer
                                                                    error:(NSError **_Nullable)error;
 
 /**
@@ -105,14 +113,12 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param serviceType The Bonjour type of the service.
  * @param serviceFoundHandler A handler called when a new service is found.
  * @param serviceLostHandler A handler called when a previously discovered service is lost.
- * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when discovery has successfully started.
  */
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
-                   includePeerToPeer:(BOOL)includePeerToPeer
                                error:(NSError **_Nullable)error;
 
 /**
@@ -155,7 +161,6 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  *
  * @param host The IPv4 address to connect to.
  * @param port The port to connect to.
- * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param cancelSource An optional dispatch source to cancel the connection attempt.
  * @param queue An optional dispatch queue to use for connection events. If nil, the main queue is
  * used.
@@ -164,7 +169,6 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  */
 - (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
-                               includePeerToPeer:(BOOL)includePeerToPeer
                                     cancelSource:(nullable dispatch_source_t)cancelSource
                                            queue:(nullable dispatch_queue_t)queue
                                            error:(NSError **_Nullable)error;
