@@ -34,6 +34,13 @@ constexpr auto kBlePeripheralLostTimeoutMillis =
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);
+// Enable/Disable Wi-Fi Aware as a PCP medium (advertising, discovery and
+// listening for incoming connections). When false, WIFI_AWARE_R4 requested via
+// AdvertisingOptions/DiscoveryOptions/ConnectionListeningOptions is ignored by
+// the PCP handler; Wi-Fi Aware stays available as a bandwidth upgrade medium
+// under kEnableWifiAware.
+constexpr auto kEnableAwarePcp =
+    flags::Flag<bool>(kConfigPackage, "45856767", false);
 // Disable/Enable BLE L2CAP in Nearby Connections SDK.
 constexpr auto kEnableBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45685706", false);

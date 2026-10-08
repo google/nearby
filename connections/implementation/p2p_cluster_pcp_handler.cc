@@ -93,6 +93,21 @@ using ::location::nearby::proto::connections::Medium::WIFI_AWARE_R4;
 using ::location::nearby::proto::connections::Medium::WIFI_LAN;
 using ::nearby::analytics::OperationResultWithMedium;
 
+// Wi-Fi Aware may only be used as a PCP medium (advertising, discovery,
+// listening for incoming connections) when both the medium itself and its PCP
+// usage are enabled. Clients that request WIFI_AWARE_R4 in their
+// AdvertisingOptions/DiscoveryOptions/ConnectionListeningOptions are ignored
+// otherwise; the medium remains usable for bandwidth upgrades under
+// kEnableWifiAware alone.
+bool IsWifiAwarePcpEnabled() {
+  return NearbyFlags::GetInstance().GetBoolFlag(
+             config_package_nearby::nearby_connections_feature::
+                 kEnableWifiAware) &&
+         NearbyFlags::GetInstance().GetBoolFlag(
+             config_package_nearby::nearby_connections_feature::
+                 kEnableAwarePcp);
+}
+
 }  // namespace
 
 ByteArray P2pClusterPcpHandler::GenerateHash(const std::string& source,
@@ -213,10 +228,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   }
 
   // WifiAware
-  if (advertising_options.allowed.wifi_aware_r4 &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableWifiAware)) {
+  if (advertising_options.allowed.wifi_aware_r4 && IsWifiAwarePcpEnabled()) {
     ErrorOr<Medium> wifi_aware_result =
         StartWifiAwareAdvertising(client, service_id, local_endpoint_id,
                                   local_endpoint_info, web_rtc_state);
@@ -1123,10 +1135,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   // WifiAware
-  if (discovery_options.allowed.wifi_aware_r4 &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableWifiAware)) {
+  if (discovery_options.allowed.wifi_aware_r4 && IsWifiAwarePcpEnabled()) {
     ErrorOr<Medium> wifi_aware_result =
         StartWifiAwareDiscovery(client, service_id);
     Medium wifi_aware_medium = UNKNOWN_MEDIUM;
@@ -1412,7 +1421,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   }
 
   // wifi aware
-  if (options.enable_wifi_aware_listening &&
+  if (options.enable_wifi_aware_listening && IsWifiAwarePcpEnabled() &&
       !wifi_aware_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_aware_result =
         wifi_aware_medium_.StartAcceptingConnections(
@@ -1631,10 +1640,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     }
   }
   // wifi aware
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableWifiAware) &&
-      new_mediums.wifi_aware_r4 && !advertising_options.low_power) {
+  if (IsWifiAwarePcpEnabled() && new_mediums.wifi_aware_r4 &&
+      !advertising_options.low_power) {
     if (old_mediums.wifi_aware_r4 && !needs_restart) {
       restarted_mediums.push_back(WIFI_AWARE_R4);
       operation_result_with_mediums.push_back(
@@ -1873,10 +1880,8 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
     }
   }
   // wifi aware
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableWifiAware) &&
-      new_mediums.wifi_aware_r4 && !discovery_options.low_power) {
+  if (IsWifiAwarePcpEnabled() && new_mediums.wifi_aware_r4 &&
+      !discovery_options.low_power) {
     should_start_discovery = true;
     if (!needs_restart && old_mediums.wifi_aware_r4) {
       restarted_mediums.push_back(WIFI_AWARE_R4);
