@@ -47,7 +47,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
@@ -1229,8 +1228,14 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void FlushTesting() {
-    absl::SleepFor(absl::Milliseconds(200));
-    EXPECT_TRUE(
+    // Drain tasks posted from the test/timer thread, then drain any follow-up
+    // task posted onto sharing_service_task_runner_ by an in-flight task (e.g.
+    // a timer callback updating settings and posting an observer task).
+    // Short-circuit via ASSERT_TRUE so a wedged task runner fails after one
+    // kTaskWaitTimeout instead of stalling twice.
+    ASSERT_TRUE(
+        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+    ASSERT_TRUE(
         sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   }
 
@@ -1401,20 +1406,28 @@ TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertising) {
   EXPECT_EQ(fast_initiation->StartAdvertisingCount(), 1);
 }
 
-TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertisingError) {
+// Verifies that registering a send surface handles
+// StartFastInitiationAdvertising errors correctly.
+TEST_F(NearbySharingServiceImplTest,
+       StartFastInitiationAdvertisingHandlesStartFailure) {
+  FakeNearbyFastInitiation* fast_initiation =
+      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
   SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
-  nearby_fast_initiation_factory_->GetNearbyFastInitiation()
-      ->SetStartAdvertisingError(true);
+  fast_initiation->SetStartAdvertisingError(true);
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
                                 SendSurfaceState::kForeground),
             NearbySharingService::StatusCodes::kOk);
   ScopedSendSurface s(service_.get(), &transfer_callback);
+  EXPECT_GT(fast_initiation->StartAdvertisingCount(), 0);
+  EXPECT_FALSE(fast_initiation->IsAdvertising());
 }
 
+// Verifies that registering a background send surface does not start fast
+// initiation advertising.
 TEST_F(NearbySharingServiceImplTest,
-       BackgroundStartFastInitiationAdvertisingError) {
+       BackgroundDoesNotStartFastInitiationAdvertising) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
   SetLanConnected(true);
@@ -2321,7 +2334,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionClosedAfterShutdown) {
 
   StartIncomingConnection();
 
-  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest,
@@ -2349,7 +2362,7 @@ TEST_F(NearbySharingServiceImplTest,
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
-  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest,
@@ -2508,7 +2521,7 @@ TEST_F(NearbySharingServiceImplTest,
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
-  sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout);
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
@@ -4888,11 +4901,10 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
     logout_notification.Notify();
   });
   EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  absl::SleepFor(absl::Milliseconds(100));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   // data collection flag is not reset on logout.
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   EXPECT_FALSE(service_->GetAccountManager()->GetCurrentAccount().has_value());
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   device_id = preference_manager_.GetString(PrefNames::kDeviceId, "");
   EXPECT_TRUE(device_id.empty());
 }
