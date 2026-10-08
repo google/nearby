@@ -413,6 +413,7 @@ void NearbySharingServiceImpl::Cleanup() {
   absl::flat_hash_map<int64_t, IncomingShareSession> tmp_incoming_session_map;
   tmp_incoming_session_map.swap(incoming_share_session_map_);
   tmp_incoming_session_map.clear();
+  DeleteUnknownFilePaths();
 
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
@@ -2440,10 +2441,7 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
       // up.
       RemoveIncomingPayloads(session);
     } else {
-      if (!nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete()
-               .empty()) {
-        LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
-      }
+      DeleteUnknownFilePaths();
     }
     // If backup session, update last backup time in preference.
     if (session.session_usage() == ShareSessionUsage::kFileSync) {
@@ -2530,6 +2528,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
 
 void NearbySharingServiceImpl::CloseConnection(absl::string_view endpoint_id) {
   nearby_connections_manager_->Disconnect(endpoint_id);
+  DeleteUnknownFilePaths();
 }
 
 void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
@@ -3160,6 +3159,18 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
 }
 
+void NearbySharingServiceImpl::DeleteUnknownFilePaths() {
+  auto file_paths_to_delete =
+      nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
+  if (file_paths_to_delete.empty()) {
+    return;
+  }
+  LOG(WARNING) << __func__ << ": Unknown file paths are not empty.";
+  std::vector<FilePath> files_for_deletion(file_paths_to_delete.begin(),
+                                           file_paths_to_delete.end());
+  file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
+}
+
 IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
@@ -3216,6 +3227,7 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
 
     // Clear legacy incoming payloads to release resources.
     nearby_connections_manager_->ClearIncomingPayloads();
+    DeleteUnknownFilePaths();
   } else {
     if (last_outgoing_metadata_ &&
         std::get<0>(*last_outgoing_metadata_).id == share_target_id) {
