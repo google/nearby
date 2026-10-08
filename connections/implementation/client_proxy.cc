@@ -1559,7 +1559,8 @@ location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
     // the publisher role (see BwuManager::NeedToSwitchRole). Advertising this
     // lets the peer's CanHost() check decide on the right capability instead of
     // falling back to the hotspot client bit.
-    medium_role.set_support_wifi_aware_subscriber(true);
+    medium_role.set_support_wifi_aware_subscriber(
+        mediums_availability.is_wifi_aware_available);
     return medium_role;
   }
 
@@ -1571,6 +1572,10 @@ location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
       mediums_availability.is_wifi_hotspot_ap_available && !IsUsingP2pMedium());
   medium_role.set_support_wifi_hotspot_client(
       mediums_availability.is_wifi_hotspot_client_available);
+  medium_role.set_support_wifi_aware_publisher(
+      mediums_availability.is_wifi_aware_available && !IsUsingP2pMedium());
+  medium_role.set_support_wifi_aware_subscriber(
+      mediums_availability.is_wifi_aware_available && !IsUsingP2pMedium());
   LOG(INFO) << "medium_role: " << medium_role.DebugString();
   return medium_role;
 }

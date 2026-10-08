@@ -1621,6 +1621,8 @@ TEST_F(ClientProxyTest, GetSavePathDefaultsToEmpty) {
   EXPECT_THAT(client1()->GetSavePath(advertising_endpoint.id), IsEmpty());
 }
 
+// Verifies that GetLocalMediumRole disables all medium roles (including Wi-Fi
+// Aware) when kEnableDynamicRoleSwitch is disabled.
 TEST_F(ClientProxyTest, GetLocalMediumRoleFlagDisabled) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
@@ -1631,6 +1633,7 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleFlagDisabled) {
   availability.is_wifi_direct_gc_available = true;
   availability.is_wifi_hotspot_ap_available = true;
   availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
 
   location::nearby::connections::MediumRole role =
       client1()->GetLocalMediumRole(availability);
@@ -1640,8 +1643,12 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleFlagDisabled) {
   EXPECT_FALSE(role.support_wifi_direct_group_client());
   EXPECT_FALSE(role.support_wifi_hotspot_host());
   EXPECT_FALSE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
 }
 
+// Verifies that on Apple OS, GetLocalMediumRole enables Wi-Fi Aware subscriber
+// (and disables publisher) when Wi-Fi Aware is available.
 TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOs) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
@@ -1649,13 +1656,15 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOs) {
       true);
   client1()->SetLocalOsType(location::nearby::connections::OsInfo::APPLE);
   ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_aware_available = true;
 
   location::nearby::connections::MediumRole role =
       client1()->GetLocalMediumRole(availability);
   EXPECT_TRUE(role.support_awdl_publisher());
   EXPECT_TRUE(role.support_awdl_subscriber());
   EXPECT_TRUE(role.support_wifi_hotspot_client());
-  // Apple can subscribe to a Wi-Fi Aware R4 service but never publishes one.
+  // Apple can subscribe to a Wi-Fi Aware R4 service when Wi-Fi Aware is
+  // available, but never publishes one.
   EXPECT_TRUE(role.support_wifi_aware_subscriber());
   EXPECT_FALSE(role.support_wifi_aware_publisher());
   EXPECT_FALSE(role.support_wifi_direct_group_owner());
@@ -1663,6 +1672,26 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOs) {
   EXPECT_FALSE(role.support_wifi_hotspot_host());
 }
 
+// Verifies that on Apple OS, GetLocalMediumRole disables Wi-Fi Aware subscriber
+// support when Wi-Fi Aware is unavailable.
+TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOsWifiAwareUnavailable) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::APPLE);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_aware_available = false;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+}
+
+// Verifies that on non-Apple OS without an active P2P connection,
+// GetLocalMediumRole enables Wi-Fi Aware publisher and subscriber support when
+// Wi-Fi Aware is available.
 TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsNoP2pConnection) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
@@ -1674,6 +1703,7 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsNoP2pConnection) {
   availability.is_wifi_direct_gc_available = true;
   availability.is_wifi_hotspot_ap_available = true;
   availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
 
   location::nearby::connections::MediumRole role =
       client1()->GetLocalMediumRole(availability);
@@ -1681,8 +1711,39 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsNoP2pConnection) {
   EXPECT_TRUE(role.support_wifi_direct_group_client());
   EXPECT_TRUE(role.support_wifi_hotspot_host());
   EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_TRUE(role.support_wifi_aware_publisher());
+  EXPECT_TRUE(role.support_wifi_aware_subscriber());
 }
 
+// Verifies that on non-Apple OS without an active P2P connection,
+// GetLocalMediumRole disables Wi-Fi Aware publisher and subscriber support when
+// Wi-Fi Aware is unavailable.
+TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWifiAwareUnavailable) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_direct_go_available = true;
+  availability.is_wifi_direct_gc_available = true;
+  availability.is_wifi_hotspot_ap_available = true;
+  availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = false;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_TRUE(role.support_wifi_direct_group_owner());
+  EXPECT_TRUE(role.support_wifi_direct_group_client());
+  EXPECT_TRUE(role.support_wifi_hotspot_host());
+  EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+}
+
+// Verifies that on non-Apple OS with an active P2P connection,
+// GetLocalMediumRole disables Wi-Fi Aware publisher and subscriber support even
+// when Wi-Fi Aware is available.
 TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWithP2pConnection) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
@@ -1702,6 +1763,7 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWithP2pConnection) {
   availability.is_wifi_direct_gc_available = true;
   availability.is_wifi_hotspot_ap_available = true;
   availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
 
   location::nearby::connections::MediumRole role =
       client1()->GetLocalMediumRole(availability);
@@ -1709,6 +1771,8 @@ TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWithP2pConnection) {
   EXPECT_TRUE(role.support_wifi_direct_group_client());
   EXPECT_FALSE(role.support_wifi_hotspot_host());
   EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
 }
 
 TEST_F(ClientProxyTest, GetNumIncomingAndOutgoingConnections) {

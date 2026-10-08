@@ -1829,6 +1829,23 @@ bool BwuManager::CanHost(
   if (!is_dynamic_role_switch_enabled_) {
     return false;
   }
+  const location::nearby::connections::MediumRole local_medium_role =
+      GetLocalMediumRole(client);
+  if ((local_medium_role.support_wifi_direct_group_owner() &&
+       medium_role.support_wifi_direct_group_client()) ||
+      (local_medium_role.support_wifi_hotspot_host() &&
+       medium_role.support_wifi_hotspot_client()) ||
+      (local_medium_role.support_wifi_aware_publisher() &&
+       medium_role.support_wifi_aware_subscriber())) {
+    LOG(INFO) << "BwuManager: Can host the upgrade medium.";
+    return true;
+  }
+  LOG(INFO) << "BwuManager: Can't host the upgrade medium.";
+  return false;
+}
+
+location::nearby::connections::MediumRole BwuManager::GetLocalMediumRole(
+    ClientProxy* client) const {
   ClientProxy::MediumsAvailability mediums_availability;
   mediums_availability.is_wifi_direct_go_available =
       mediums_->GetWifiDirect().IsGOAvailable();
@@ -1838,21 +1855,9 @@ bool BwuManager::CanHost(
       mediums_->GetWifiHotspot().IsAPAvailable();
   mediums_availability.is_wifi_hotspot_client_available =
       mediums_->GetWifiHotspot().IsClientAvailable();
-  const location::nearby::connections::MediumRole& local_medium_role =
-      client->GetLocalMediumRole(mediums_availability);
-  if ((local_medium_role.support_wifi_direct_group_owner() &&
-       medium_role.support_wifi_direct_group_client() &&
-       mediums_->GetWifiDirect().IsGOAvailable()) ||
-      (local_medium_role.support_wifi_hotspot_host() &&
-       medium_role.support_wifi_hotspot_client() &&
-       mediums_->GetWifiHotspot().IsAPAvailable()) ||
-      (local_medium_role.support_wifi_aware_publisher() &&
-       medium_role.support_wifi_aware_subscriber())) {
-    LOG(INFO) << "BwuManager: Can host the upgrade medium.";
-    return true;
-  }
-  LOG(INFO) << "BwuManager: Can't host the upgrade medium.";
-  return false;
+  mediums_availability.is_wifi_aware_available =
+      mediums_->GetWifiAware().IsAvailable();
+  return client->GetLocalMediumRole(mediums_availability);
 }
 
 const location::nearby::connections::OsInfo& BwuManager::GetLocalOsInfo(

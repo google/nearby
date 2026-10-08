@@ -28,9 +28,11 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
@@ -132,6 +134,10 @@ class BwuManager : public EndpointManager::FrameProcessor {
   std::vector<Medium> StripOutDisallowedUpgradeMediums(
       std::vector<Medium> mediums) const;
 
+  // Returns the local endpoint's MediumRole populated from `mediums_`.
+  location::nearby::connections::MediumRole GetLocalMediumRole(
+      ClientProxy* client) const;
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);
@@ -153,7 +159,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
       ClientProxy* client,
       const location::nearby::connections::BandwidthUpgradeNegotiationFrame&
           frame,
-      const string& endpoint_id);
+      const std::string& endpoint_id);
 
   // Called to revert any state changed in the course of setting up the upgraded
   // medium for an endpoint.

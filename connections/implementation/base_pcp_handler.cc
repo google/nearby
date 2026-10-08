@@ -911,17 +911,8 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
             config_package_nearby::nearby_connections_feature::
                 kEnableDynamicRoleSwitch)) {
       LOG(INFO) << "kEnableDynamicRoleSwitch is enabled";
-      ClientProxy::MediumsAvailability mediums_availability;
-      mediums_availability.is_wifi_direct_go_available =
-          mediums_->GetWifiDirect().IsGOAvailable();
-      mediums_availability.is_wifi_direct_gc_available =
-          mediums_->GetWifiDirect().IsGCAvailable();
-      mediums_availability.is_wifi_hotspot_ap_available =
-          mediums_->GetWifiHotspot().IsAPAvailable();
-      mediums_availability.is_wifi_hotspot_client_available =
-          mediums_->GetWifiHotspot().IsClientAvailable();
       connection_info.medium_role.emplace(
-          client->GetLocalMediumRole(mediums_availability));
+          bwu_manager_->GetLocalMediumRole(client));
     }
     LOG(INFO) << "Query for WIFI information: is_supports_5_ghz="
               << connection_info.supports_5_ghz

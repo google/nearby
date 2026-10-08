@@ -65,6 +65,9 @@ struct EnvironmentConfig {
   // If true, the app data path will be a temporary directory, instead of the
   // actual app data path, so that we can test the preferences manager under G3.
   bool use_temporary_directory_for_app_path = false;
+
+  // Control whether WIFI_AWARE medium is enabled in the environment.
+  bool wifi_aware_enabled = false;
 };
 
 // MediumEnvironment is a simulated environment which allows multiple instances

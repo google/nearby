@@ -32,6 +32,7 @@
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_aware.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_aware_connection_info.h"
@@ -250,6 +251,44 @@ TEST(WifiAwareMediumTest, DefaultPlatformImplementation) {
 
   WifiAwareServerSocket server_socket = medium.ListenForService(1234);
   EXPECT_FALSE(server_socket.IsValid());
+}
+
+// Verifies that enabling wifi_aware_enabled in MediumEnvironment causes the
+// default platform implementation to create a valid WifiAwareMedium.
+TEST(WifiAwareMediumTest, MediumEnvironmentWifiAwareEnabledCreatesMedium) {
+  MediumEnvironment::Instance().Stop();
+  MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
+  WifiAwareMedium medium;
+  ASSERT_TRUE(medium.IsValid());
+  ASSERT_NE(medium.GetImpl(), nullptr);
+
+  WifiAwareServiceInfo service_info;
+  service_info.SetServiceName("service_test");
+  service_info.SetServiceType("_nearby._tcp");
+  EXPECT_FALSE(medium.StartAdvertising(service_info));
+  EXPECT_FALSE(medium.StopAdvertising(service_info));
+
+  WifiAwareMedium::DiscoveredServiceCallback callback;
+  EXPECT_FALSE(medium.StartDiscovery("_nearby._tcp", std::move(callback)));
+  EXPECT_FALSE(medium.StopDiscovery("_nearby._tcp"));
+  EXPECT_FALSE(medium.GetImpl()->StopDiscovery("_nearby._tcp"));
+
+  EXPECT_FALSE(medium.IsPublishing());
+  EXPECT_FALSE(medium.StartPublishing());
+  EXPECT_FALSE(medium.StopPublishing());
+
+  EXPECT_FALSE(medium.IsSubscribing());
+  EXPECT_FALSE(medium.StartSubscribing());
+  EXPECT_FALSE(medium.StopSubscribing());
+
+  CancellationFlag flag;
+  WifiAwareSocket socket = medium.ConnectToService(service_info, &flag);
+  EXPECT_FALSE(socket.IsValid());
+
+  WifiAwareServerSocket server_socket = medium.ListenForService(1234);
+  EXPECT_FALSE(server_socket.IsValid());
+
+  MediumEnvironment::Instance().Stop();
 }
 
 TEST(WifiAwareMediumTest, AdvertisingAndPublishing) {

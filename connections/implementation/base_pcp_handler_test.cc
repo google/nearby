@@ -444,7 +444,10 @@ class BasePcpHandlerTest
     MacAddress::FromString("12:34:56:78:9a:bc", remote_mac_address_);
   }
 
-  void TearDown() override { env_.Stop(); }
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+    env_.Stop();
+  }
 
   std::unique_ptr<analytics::AnalyticsRecorder> CreateAnalyticsRecorder() {
     auto recorder = std::make_unique<analytics::MockAnalyticsRecorder>();
@@ -3145,10 +3148,6 @@ TEST_P(BasePcpHandlerTest,
   EXPECT_TRUE(connection_info.medium_role.has_value());
 
   bwu.Shutdown();
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableDynamicRoleSwitch,
-      false);
 }
 
 std::string CreateConnectionRequestFrame(absl::string_view endpoint_id,
@@ -3401,6 +3400,82 @@ TEST_F(BasePcpHandlerTest,
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
   env_.Stop();
+}
+
+// Verifies that FillConnectionInfo populates Wi-Fi Aware publisher and
+// subscriber support in the connection's MediumRole when dynamic role switching
+// and Wi-Fi Aware are enabled.
+TEST_F(BasePcpHandlerTest,
+       FillConnectionInfoPopulatesWifiAwareMediumRoleWhenAvailable) {
+  env_.Stop();
+  env_.Start({.wifi_aware_enabled = true});
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      true);
+  client_->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  ConnectionRequestInfo request_info = {
+      .endpoint_info = ByteArray("EndpointInfo"),
+  };
+  ConnectionOptions connection_options = {};
+
+  ConnectionInfo connection_info = pcp_handler.FillConnectionInfo(
+      client_.get(), request_info, connection_options);
+
+  ASSERT_TRUE(connection_info.medium_role.has_value());
+  EXPECT_TRUE(connection_info.medium_role->support_wifi_aware_publisher());
+  EXPECT_TRUE(connection_info.medium_role->support_wifi_aware_subscriber());
+
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+}
+
+// Verifies that FillConnectionInfo disables Wi-Fi Aware publisher and
+// subscriber support in the connection's MediumRole when the Wi-Fi Aware medium
+// is unavailable in MediumEnvironment, even if the feature flags are enabled.
+TEST_F(BasePcpHandlerTest,
+       FillConnectionInfoSetsWifiAwareRolesDisabledWhenMediumUnavailable) {
+  env_.Stop();
+  env_.Start({.wifi_aware_enabled = false});
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      true);
+  client_->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  ConnectionRequestInfo request_info = {
+      .endpoint_info = ByteArray("EndpointInfo"),
+  };
+  ConnectionOptions connection_options = {};
+
+  ConnectionInfo connection_info = pcp_handler.FillConnectionInfo(
+      client_.get(), request_info, connection_options);
+
+  ASSERT_TRUE(connection_info.medium_role.has_value());
+  EXPECT_FALSE(connection_info.medium_role->support_wifi_aware_publisher());
+  EXPECT_FALSE(connection_info.medium_role->support_wifi_aware_subscriber());
+
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
 }
 
 }  // namespace

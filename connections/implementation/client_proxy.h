@@ -370,6 +370,7 @@ class ClientProxy final {
     bool is_wifi_direct_gc_available = false;
     bool is_wifi_hotspot_ap_available = false;
     bool is_wifi_hotspot_client_available = false;
+    bool is_wifi_aware_available = false;
   };
 
   location::nearby::connections::MediumRole GetLocalMediumRole(

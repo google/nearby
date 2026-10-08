@@ -54,6 +54,7 @@
 #include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/implementation/g3/timer.h"
 #include "internal/platform/implementation/g3/wifi.h"
+#include "internal/platform/implementation/g3/wifi_aware.h"
 #include "internal/platform/implementation/g3/wifi_direct.h"
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
 #include "internal/platform/implementation/g3/wifi_lan.h"
@@ -74,6 +75,7 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/os_name.h"
 
 namespace nearby {
@@ -178,6 +180,9 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 
 std::unique_ptr<WifiAwareMedium>
 ImplementationPlatform::CreateWifiAwareMedium() {
+  if (MediumEnvironment::Instance().GetEnvironmentConfig().wifi_aware_enabled) {
+    return std::make_unique<g3::WifiAwareMedium>();
+  }
   return nullptr;
 }
 

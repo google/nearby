@@ -45,6 +45,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/service_address.h"
 #include "proto/connections_enums.pb.h"
 
@@ -477,7 +478,37 @@ class BwuManagerTest : public ::testing::Test {
     bwu_manager_->MakeSingleThreadedForTesting();
   }
 
-  ~BwuManagerTest() override { bwu_manager_->Shutdown(); }
+  ~BwuManagerTest() override {
+    if (bwu_manager_ != nullptr) {
+      bwu_manager_->Shutdown();
+    }
+  }
+
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+        true);
+    MediumEnvironment::Instance().Stop();
+  }
+
+  FakeBwuHandler* ReinitBwuManagerForSingleMedium(
+      Medium medium, BooleanMediumSelector allow_upgrade_to) {
+    bwu_manager_->Shutdown();
+    bwu_manager_.reset();
+    custom_mediums_ = std::make_unique<Mediums>();
+    absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+    auto fake_handler = std::make_unique<FakeBwuHandler>(medium);
+    FakeBwuHandler* fake_handler_ptr = fake_handler.get();
+    handlers.emplace(medium, std::move(fake_handler));
+
+    BwuManager::Config config;
+    config.allow_upgrade_to = allow_upgrade_to;
+    bwu_manager_ = std::make_unique<BwuManager>(*custom_mediums_, em_, ecm_,
+                                                std::move(handlers), config);
+    bwu_manager_->MakeSingleThreadedForTesting();
+    return fake_handler_ptr;
+  }
 
   void SetSupportMultipleBwuMediums(bool support_multiple_bwu_mediums) {
     FeatureFlags& feature_flags = FeatureFlags::GetMutableInstanceForTesting();
@@ -563,6 +594,7 @@ class BwuManagerTest : public ::testing::Test {
   // It's okay there are no actual Mediums (i.e., implementations). These won't
   // be needed if we pass in an explict medium to InitiateBwuForEndpoint.
   Mediums mediums_;
+  std::unique_ptr<Mediums> custom_mediums_;
   FakeBwuHandler* fake_web_rtc_bwu_handler_ = nullptr;
   FakeBwuHandler* fake_wifi_lan_bwu_handler_ = nullptr;
   FakeBwuHandler* fake_wifi_direct_bwu_handler_ = nullptr;
@@ -1359,6 +1391,76 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_True) {
       config_package_nearby::nearby_connections_feature::
           kEnableDynamicRoleSwitch,
       false);
+}
+
+// Verifies that BwuManager initiates a Bandwidth Upgrade using Wi-Fi Aware when
+// the local device can host as publisher and the Wi-Fi Aware medium is
+// available.
+TEST_F(BwuManagerTest,
+       ProcessUpgradePathRequestCanHostWifiAwareAvailableSuccess) {
+  MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      true);
+
+  FakeBwuHandler* fake_wifi_aware_handler_ptr = ReinitBwuManagerForSingleMedium(
+      Medium::WIFI_AWARE_R4, BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  location::nearby::connections::MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_subscriber(true);
+  std::string bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4}, remote_medium_role,
+      /*supports_5_ghz=*/true);
+  OfflineFrame frame;
+  frame.ParseFromString(bytes);
+
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_aware_handler_ptr->handle_initialize_calls().size(), 1u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that BwuManager does not initiate a Bandwidth Upgrade using Wi-Fi
+// Aware when the Wi-Fi Aware medium is unavailable in MediumEnvironment, even
+// if the feature flags and remote peer support it.
+TEST_F(BwuManagerTest,
+       ProcessUpgradePathRequestCanHostWifiAwareUnavailableFails) {
+  MediumEnvironment::Instance().Start({.wifi_aware_enabled = false});
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      true);
+
+  FakeBwuHandler* fake_wifi_aware_handler_ptr = ReinitBwuManagerForSingleMedium(
+      Medium::WIFI_AWARE_R4, BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  location::nearby::connections::MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_subscriber(true);
+  std::string bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4}, remote_medium_role,
+      /*supports_5_ghz=*/true);
+  OfflineFrame frame;
+  frame.ParseFromString(bytes);
+
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_aware_handler_ptr->handle_initialize_calls().size(), 0u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
 TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_False) {

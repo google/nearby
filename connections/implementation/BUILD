@@ -355,6 +355,7 @@ cc_test(
         "//connections/implementation/mediums",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:platform",  # build_cleaner: keep
         "//internal/platform/implementation/g3",  # build_cleaner: keep
