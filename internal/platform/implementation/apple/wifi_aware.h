@@ -69,7 +69,7 @@ class WifiAwareOutputStream : public OutputStream {
 class WifiAwareSocket : public api::WifiAwareSocket {
  public:
   explicit WifiAwareSocket(GNCWiFiAwareConnectionWrapper* socket);
-  ~WifiAwareSocket() override = default;
+  ~WifiAwareSocket() override;
 
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;

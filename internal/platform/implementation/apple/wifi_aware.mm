@@ -48,14 +48,18 @@ WifiAwareInputStream::WifiAwareInputStream(GNCWiFiAwareConnectionWrapper* socket
 
 ExceptionOr<ByteArray> WifiAwareInputStream::Read(std::int64_t size) {
   NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
+  GNCWiFiAwareConnectionWrapper* socket = socket_;
+  if (socket == nil) {
+    return ExceptionOr<ByteArray>{ByteArray()};
+  }
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSData* blockData = nil;
 
-  [socket_ readMaxLength:size
-       completionHandler:^(NSData* _Nullable data) {
-         blockData = data;
-         dispatch_semaphore_signal(semaphore);
-       }];
+  [socket readMaxLength:size
+      completionHandler:^(NSData* _Nullable data) {
+        blockData = data;
+        dispatch_semaphore_signal(semaphore);
+      }];
 
   dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
 
@@ -67,7 +71,9 @@ ExceptionOr<ByteArray> WifiAwareInputStream::Read(std::int64_t size) {
 }
 
 Exception WifiAwareInputStream::Close() {
-  [socket_ close];
+  GNCWiFiAwareConnectionWrapper* socket = socket_;
+  socket_ = nil;
+  [socket close];
   return {Exception::kSuccess};
 }
 
@@ -78,11 +84,15 @@ WifiAwareOutputStream::WifiAwareOutputStream(GNCWiFiAwareConnectionWrapper* sock
 
 Exception WifiAwareOutputStream::Write(absl::string_view data) {
   NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
+  GNCWiFiAwareConnectionWrapper* socket = socket_;
+  if (socket == nil) {
+    return {Exception::kIo};
+  }
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError* blockError = nil;
 
   NSData* nsData = [NSData dataWithBytes:data.data() length:data.size()];
-  [socket_ write:nsData
+  [socket write:nsData
       completionHandler:^(NSError* _Nullable error) {
         blockError = error;
         dispatch_semaphore_signal(semaphore);
@@ -99,7 +109,10 @@ Exception WifiAwareOutputStream::Write(absl::string_view data) {
 
 Exception WifiAwareOutputStream::Flush() { return {Exception::kSuccess}; }
 
-Exception WifiAwareOutputStream::Close() { return {Exception::kSuccess}; }
+Exception WifiAwareOutputStream::Close() {
+  socket_ = nil;
+  return {Exception::kSuccess};
+}
 
 #pragma mark - WifiAwareSocket
 
@@ -108,12 +121,22 @@ WifiAwareSocket::WifiAwareSocket(GNCWiFiAwareConnectionWrapper* socket)
       input_stream_(std::make_unique<WifiAwareInputStream>(socket)),
       output_stream_(std::make_unique<WifiAwareOutputStream>(socket)) {}
 
+WifiAwareSocket::~WifiAwareSocket() { Close(); }
+
 InputStream& WifiAwareSocket::GetInputStream() { return *input_stream_; }
 
 OutputStream& WifiAwareSocket::GetOutputStream() { return *output_stream_; }
 
 Exception WifiAwareSocket::Close() {
-  [socket_ close];
+  if (input_stream_ != nullptr) {
+    input_stream_->Close();
+  }
+  if (output_stream_ != nullptr) {
+    output_stream_->Close();
+  }
+  GNCWiFiAwareConnectionWrapper* socket = socket_;
+  socket_ = nil;
+  [socket close];
   return {Exception::kSuccess};
 }
 
@@ -655,6 +678,8 @@ WifiAwareSocket::WifiAwareSocket(GNCWiFiAwareConnectionWrapper* socket)
     : socket_(socket),
       input_stream_(std::make_unique<WifiAwareInputStream>(socket)),
       output_stream_(std::make_unique<WifiAwareOutputStream>(socket)) {}
+
+WifiAwareSocket::~WifiAwareSocket() = default;
 
 InputStream& WifiAwareSocket::GetInputStream() { return *input_stream_; }
 

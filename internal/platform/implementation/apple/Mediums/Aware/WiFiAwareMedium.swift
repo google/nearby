@@ -151,12 +151,12 @@ func logPairedDevices() async -> Int {
 /// always towards showing the pairing UI again, which costs the user a tap and never strands them.
 @available(iOS 26.0, *)
 enum PairedPeerRegistry {
-  private static let defaultsKey = "QSAwarePairedPeerIdentifiers"
+  static let defaultsKey = "QSAwarePairedPeerIdentifiers"
   private static let logger = Logger(component: "PairedPeerRegistry")
 
   /// A paired device, plus enough of its identity to notice when its ID gets handed to someone
   /// else.
-  private struct Entry {
+  struct Entry: Equatable {
     var deviceId: WAPairedDevice.ID
     var fingerprint: String
   }
@@ -177,7 +177,7 @@ enum PairedPeerRegistry {
 
   /// `UserDefaults` cannot store `UInt64` in a dictionary directly, so entries are encoded as
   /// `"<id>|<fingerprint>"`.
-  private static func load() -> [String: Entry] {
+  static func load() -> [String: Entry] {
     guard let raw = UserDefaults.standard.dictionary(forKey: defaultsKey) as? [String: String]
     else {
       return [:]
@@ -192,7 +192,7 @@ enum PairedPeerRegistry {
     }
   }
 
-  private static func save(_ map: [String: Entry]) {
+  static func save(_ map: [String: Entry]) {
     UserDefaults.standard.set(
       map.mapValues { "\($0.deviceId)|\($0.fingerprint)" }, forKey: defaultsKey)
   }
@@ -294,12 +294,13 @@ typealias WiFiAwareConnection = NetworkConnection<TCP>
 typealias WiFiAwareConnectionID = String
 
 @available(iOS 26.0, *)
-typealias WiFiAwareConnectionState = (WiFiAwareConnection, WiFiAwareConnection.State)
+typealias WiFiAwareConnectionState = WiFiAwareConnection.State
 
 @available(iOS 26.0, *)
 private struct ConnectionInfo: Sendable {
   let receiverTask: Task<Void, Error>
   let stateUpdateTask: Task<Void, Error>
+  let stateContinuation: AsyncStream<WiFiAwareConnectionState>.Continuation
   var remoteDevice: WAPairedDevice?
 }
 
@@ -307,7 +308,7 @@ private struct ConnectionInfo: Sendable {
 
 @available(iOS 26.0, *)
 actor InternalConnectionWrapper {
-  private let connection: WiFiAwareConnection
+  private var connection: WiFiAwareConnection?
   private let onClose: @Sendable () -> Void
   private var buffer = Data()
   private var continuation: CheckedContinuation<Void, Never>?
@@ -325,7 +326,7 @@ actor InternalConnectionWrapper {
   private let maxQueueBytes = 256 * 1024  // 256 KB High-Water Mark
   private let lowWaterQueueBytes = 64 * 1024  // 64 KB Low-Water Mark
 
-  init(connection: WiFiAwareConnection, onClose: @escaping @Sendable () -> Void = {}) {
+  init(connection: WiFiAwareConnection? = nil, onClose: @escaping @Sendable () -> Void = {}) {
     self.connection = connection
     self.onClose = onClose
   }
@@ -351,6 +352,9 @@ actor InternalConnectionWrapper {
   func signalClosed(reason: String = "Connection closed during handshake") {
     guard !isClosed else { return }
     isClosed = true
+    senderTask?.cancel()
+    senderTask = nil
+    connection = nil
     continuation?.resume()
     continuation = nil
     readyContinuation?.resume(
@@ -372,9 +376,41 @@ actor InternalConnectionWrapper {
     readyContinuation = nil
   }
 
+  private func cancelReadyContinuation() {
+    readyContinuation?.resume(throwing: CancellationError())
+    readyContinuation = nil
+  }
+
   private func waitForReadyContinuation() async throws {
-    try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
-      self.readyContinuation = c
+    if isReady { return }
+    if isClosed {
+      throw NSError(
+        domain: "InternalConnectionWrapper", code: -1,
+        userInfo: [NSLocalizedDescriptionKey: "Connection was closed before handshake completed"])
+    }
+    try Task.checkCancellation()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
+        if self.isReady {
+          c.resume(returning: ())
+        } else if self.isClosed {
+          c.resume(
+            throwing: NSError(
+              domain: "InternalConnectionWrapper", code: -1,
+              userInfo: [
+                NSLocalizedDescriptionKey: "Connection was closed before handshake completed"
+              ]))
+        } else if Task.isCancelled {
+          c.resume(throwing: CancellationError())
+        } else {
+          self.readyContinuation?.resume(throwing: CancellationError())
+          self.readyContinuation = c
+        }
+      }
+    } onCancel: {
+      Task {
+        await self.cancelReadyContinuation()
+      }
     }
   }
 
@@ -469,9 +505,13 @@ actor InternalConnectionWrapper {
         if isClosed { break }
         continue
       }
+      guard let conn = self.connection else {
+        self.signalClosed()
+        break
+      }
 
       do {
-        try await connection.send(packet)
+        try await conn.send(packet)
       } catch {
         logger.error("runSenderLoop error sending packet: \(error)")
         self.signalClosed()
@@ -513,8 +553,14 @@ actor InternalConnectionWrapper {
     return nil
   }
 
+  func hasPendingWrites() -> Bool {
+    return !isClosed && isReady && !writeQueue.isEmpty
+  }
+
   func close() {
     senderTask?.cancel()
+    senderTask = nil
+    connection = nil
     isClosed = true
     continuation?.resume()
     continuation = nil
@@ -531,6 +577,7 @@ actor InternalConnectionWrapper {
 
   deinit {
     senderTask?.cancel()
+    connection = nil
   }
 }
 
@@ -622,6 +669,13 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
     super.init()
   }
 
+  @objc public init(forTestingWithOnClose onClose: @escaping @Sendable () -> Void = {}) {
+    self.internalWrapper = InternalConnectionWrapper(connection: nil, onClose: onClose)
+    self.internalListenerWrapper = nil
+    self.onClose = onClose
+    super.init()
+  }
+
   @objc public func readMaxLength(_ length: Int) async -> Data? {
     guard let wrapper = internalWrapper else {
       logger.error("readMaxLength called on listener wrapper")
@@ -643,7 +697,7 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
     try await internalWrapper?.awaitReady()
   }
 
-  func awaitReady(timeoutSeconds: Double) async throws {
+  @objc public func awaitReady(timeoutSeconds: Double) async throws {
     try await internalWrapper?.awaitReady(timeoutSeconds: timeoutSeconds)
   }
 
@@ -653,13 +707,13 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
     }
   }
 
-  func signalClosed(reason: String = "Connection closed during handshake") {
+  @objc public func signalClosed(reason: String = "Connection closed during handshake") {
     Task {
       await internalWrapper?.signalClosed(reason: reason)
     }
   }
 
-  func appendIncomingData(_ data: Data) async {
+  @objc public func appendIncomingData(_ data: Data) async {
     await internalWrapper?.appendIncomingData(data)
   }
 
@@ -683,9 +737,12 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
         await internalListenerWrapper?.close()
         onClose()
       } else {
+        if await internalWrapper?.hasPendingWrites() == true {
+          // Give the sender loop up to 200ms to flush any remaining queued packets before
+          // tearing down the connection.
+          try? await Task.sleep(nanoseconds: 200_000_000)
+        }
         await internalWrapper?.close()
-        // Give the network stack 500ms to flush any pending packets before deallocating the connection.
-        try? await Task.sleep(nanoseconds: 500_000_000)
         onClose()
       }
     }
@@ -698,26 +755,34 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
 /// setup. Unlike most `.waiting` errors this one is never recovered from: Apple's `wifip2pd`
 /// performs "no data path retries when pairing is enabled", so the connection sits in `.waiting`
 /// until an upper-layer timeout fires.
-private let kWiFiAwareDataPathError = -11987
+let kWiFiAwareDataPathError = -11987
+
+/// Maximum number of browse + connection attempts when NAN Data Path setup fails with
+/// `kWiFiAwareDataPathError` (`-11987`).
+let kMaxDataPathBrowseAttempts = 3
+
+/// Delay between consecutive browse attempts after a terminal NAN Data Path error so `wifip2pd`
+/// and the peer can finish tearing down the aborted data session and update NAN availability
+/// schedules before the next Discovery Window.
+let kDataPathRetryDelayNanoseconds: UInt64 = 500_000_000
 
 /// Human-readable explanation attached to the error that aborts the handshake when
 /// `kWiFiAwareDataPathError` is seen.
 ///
-/// The data path is only refused this way when the peer fails to complete NAN pairing. In practice
-/// the peer runs *Pair Verify* (resuming a cached pairing) rather than *Pair Setup* (a fresh PIN
-/// exchange), and some peers cannot service Pair Verify as the responder. Forgetting the peer on
-/// this device clears the cached record and forces the next attempt back onto Pair Setup.
-private let kTerminalDataPathFailureReason =
-  "Wi-Fi Aware data path refused by peer (\(kWiFiAwareDataPathError)): peer did not complete NAN "
-  + "pairing. If the peer only fails when resuming a cached pairing, forget it on this device so "
-  + "the next attempt performs a fresh Pair Setup."
+/// The data path can be refused or aborted during NAN Data Path (NDP) setup (for example, due to a
+/// transient NAN channel/availability schedule mismatch or a lingering datapath teardown). Because
+/// `wifip2pd` does not retry the data path on the same `NWConnection` when pairing is enabled, the
+/// active connection must be closed so the caller can retry with a fresh browser and connection.
+let kTerminalDataPathFailureReason =
+  "Wi-Fi Aware data path refused by peer (\(kWiFiAwareDataPathError)): NAN Data Path setup "
+  + "aborted. Closing the connection so a fresh browse/connection attempt can be started."
 
 /// Returns true when `error` is the terminal Wi-Fi Aware data-path failure (see
 /// `kWiFiAwareDataPathError`).
 ///
 /// The concrete error type here is `NWError`, whose bridging to `NSError` is not guaranteed to
 /// preserve the underlying numeric code, so the textual form is checked as a fallback.
-private func isTerminalWiFiAwareDataPathError(_ error: Error) -> Bool {
+func isTerminalWiFiAwareDataPathError(_ error: Error) -> Bool {
   let nsError = error as NSError
   if nsError.code == kWiFiAwareDataPathError {
     return true
@@ -740,11 +805,14 @@ actor ConnectionManager: Sendable {
   func add(_ connection: WiFiAwareConnection, wrapper: WiFiAwareConnectionWrapper) {
     let id = connection.id
     logger.info("Add connection: \(id)")
+    let (stream, continuation) = AsyncStream.makeStream(of: WiFiAwareConnectionState.self)
     connections[id] = connection
     wrappers[id] = wrapper
     connectionsInfo[id] = ConnectionInfo(
       receiverTask: setupReceiver(connection, wrapper: wrapper),
-      stateUpdateTask: setupStateUpdateHandler(connection, wrapper: wrapper)
+      stateUpdateTask: setupStateUpdateHandler(
+        connection, wrapper: wrapper, stream: stream, continuation: continuation),
+      stateContinuation: continuation
     )
   }
 
@@ -852,17 +920,18 @@ actor ConnectionManager: Sendable {
   }
 
   private func setupStateUpdateHandler(
-    _ connection: WiFiAwareConnection, wrapper: WiFiAwareConnectionWrapper
+    _ connection: WiFiAwareConnection,
+    wrapper: WiFiAwareConnectionWrapper,
+    stream: AsyncStream<WiFiAwareConnectionState>,
+    continuation: AsyncStream<WiFiAwareConnectionState>.Continuation
   ) -> Task<Void, Error> {
-    let (stream, continuation) = AsyncStream.makeStream(of: WiFiAwareConnectionState.self)
-
-    connection.onStateUpdate { conn, state in
-      continuation.yield((conn, state))
+    connection.onStateUpdate { _, state in
+      continuation.yield(state)
     }
 
     let connId = connection.id
     return Task(priority: .userInitiated) { [weak self] in
-      for await (_, state) in stream {
+      for await state in stream {
         self?.logger.info("Connection \(connId) onStateUpdate: \(state)")
         switch state {
         case .setup, .preparing:
@@ -883,6 +952,7 @@ actor ConnectionManager: Sendable {
             self?.logger.error(
               "Connection \(connId) had \(pairedCount) cached Wi-Fi Aware pairing record(s)")
             wrapper.signalClosed(reason: kTerminalDataPathFailureReason)
+            continuation.finish()
             if let self = self {
               await self.stop(connId)
             }
@@ -895,6 +965,7 @@ actor ConnectionManager: Sendable {
         case .failed(let error):
           self?.logger.error("Connection \(connId) failed with error: \(error)")
           wrapper.signalClosed()
+          continuation.finish()
           if let self = self {
             await self.stop(connId)
           }
@@ -902,6 +973,7 @@ actor ConnectionManager: Sendable {
         case .cancelled:
           self?.logger.info("Connection \(connId) cancelled")
           wrapper.signalClosed()
+          continuation.finish()
           if let self = self {
             await self.stop(connId)
           }
@@ -932,7 +1004,7 @@ actor ConnectionManager: Sendable {
       } catch {
         self?.logger.error("Error receiving messages on \(connId): \(error)")
       }
-      wrapper.signalClosed()
+      await wrapper.internalWrapper?.signalClosed()
       if let self = self {
         await self.stop(connId)
       }
@@ -940,7 +1012,11 @@ actor ConnectionManager: Sendable {
   }
 
   func stop(_ id: WiFiAwareConnectionID) {
+    guard connectionsInfo[id] != nil || connections[id] != nil || wrappers[id] != nil else {
+      return
+    }
     logger.info("Stop connection: \(id)")
+    connectionsInfo[id]?.stateContinuation.finish()
     connectionsInfo[id]?.receiverTask.cancel()
     connectionsInfo[id]?.stateUpdateTask.cancel()
     connectionsInfo.removeValue(forKey: id)
@@ -954,6 +1030,7 @@ actor ConnectionManager: Sendable {
 
   deinit {
     for info in connectionsInfo.values {
+      info.stateContinuation.finish()
       info.receiverTask.cancel()
       info.stateUpdateTask.cancel()
     }
@@ -1084,7 +1161,10 @@ actor NetworkManager: Sendable {
   ///   answered first. Nil falls back to the whole paired store, which is what we have to do for
   ///   peers that send no identifier.
   func browse(
-    connectionManager: ConnectionManager, port: Int = 0, peerDevice: WAPairedDevice? = nil
+    connectionManager: ConnectionManager,
+    port: Int = 0,
+    peerDevice: WAPairedDevice? = nil,
+    peerId: String = ""
   ) async throws
     -> WiFiAwareConnectionWrapper
   {
@@ -1111,6 +1191,7 @@ actor NetworkManager: Sendable {
     let browser = NWBrowser(for: descriptor, using: parameters)
     self.activeBrowser = browser
 
+    var createdWrapper: WiFiAwareConnectionWrapper?
     do {
       // Discover the first endpoint WITHOUT cancelling NWBrowser so Subscriber 1 and nan0 stay
       // active in wifip2pd while NWConnection resolves and establishes the NAN Data Path.
@@ -1193,15 +1274,23 @@ actor NetworkManager: Sendable {
         nwEndpoint: discovered.nwEndpoint,
         port: port
       )
+      createdWrapper = wrapper
 
       logger.info("Awaiting connection handshake (.ready) while NWBrowser remains active...")
       try await wrapper.awaitReady(timeoutSeconds: 30.0)
+      if !peerId.isEmpty {
+        PairedPeerRegistry.remember(peerId: peerId, device: discovered.waEndpoint.device)
+      }
       logger.info("Connection ready and handshake completed! Stopping NWBrowser now.")
       cancelBrowse()
       return wrapper
     } catch {
       logger.error(
         "Discovery, connection setup, or handshake failed (\(error)), stopping NWBrowser.")
+      if let createdWrapper {
+        await createdWrapper.internalWrapper?.signalClosed(
+          reason: "Browse failed or cancelled: \(error.localizedDescription)")
+      }
       cancelBrowse()
       throw error
     }
@@ -1247,6 +1336,12 @@ public class AwareManager: NSObject, @unchecked Sendable {
   private let pairingWatchTaskLock = OSAllocatedUnfairLock(
     initialState: Optional<Task<Void, Never>>.none)
   private let logger = Logger(component: "AwareManager")
+  var retryDelayNanoseconds: UInt64 = kDataPathRetryDelayNanoseconds
+  var browseHookForTesting:
+    (
+      @Sendable (_ port: Int, _ peerDevice: WAPairedDevice?, _ peerId: String) async throws
+        -> WiFiAwareConnectionWrapper
+    )?
 
   @objc public var latestListenerWrapper: WiFiAwareConnectionWrapper? {
     get {
@@ -1341,6 +1436,20 @@ public class AwareManager: NSObject, @unchecked Sendable {
     }
   }
 
+  private func performSingleBrowse(
+    port: Int, peerDevice: WAPairedDevice?, peerId: String
+  ) async throws -> WiFiAwareConnectionWrapper {
+    if let browseHookForTesting {
+      return try await browseHookForTesting(port, peerDevice, peerId)
+    }
+    return try await networkManager.browse(
+      connectionManager: connectionManager,
+      port: port,
+      peerDevice: peerDevice,
+      peerId: peerId
+    )
+  }
+
   @objc(browseWithPort:peerId:completionHandler:)
   public func browse(
     port: NSInteger, peerId: String, completion: @escaping @Sendable (NSError?) -> Void
@@ -1350,55 +1459,81 @@ public class AwareManager: NSObject, @unchecked Sendable {
     latestConnectionLock.withLock { $0 = nil }
 
     let task = Task(priority: .userInitiated) {
-      let peerDevice = await PairedPeerRegistry.pairedDevice(forPeerId: peerId)
-      do {
-        let wrapper = try await self.networkManager.browse(
-          connectionManager: self.connectionManager,
-          port: port,
-          peerDevice: peerDevice
-        )
-        self.latestConnectionLock.withLock { $0 = wrapper }
-        completion(nil)
-      } catch {
-        let isTerminalDataPathFailure =
-          (error as NSError).localizedDescription.contains(kTerminalDataPathFailureReason)
-          || isTerminalWiFiAwareDataPathError(error)
-        if isTerminalDataPathFailure {
-          if !peerId.isEmpty {
-            self.logger.error(
-              "Evicting stale pairing for peer \(peerId) after terminal Wi-Fi Aware data-path error"
-            )
-            PairedPeerRegistry.forget(peerId: peerId)
-          }
-          self.logger.error("browse error: \(error)")
-          completion(error as NSError)
-          return
+      let peerDevice: WAPairedDevice? =
+        if self.browseHookForTesting != nil {
+          nil
+        } else {
+          await PairedPeerRegistry.pairedDevice(forPeerId: peerId)
         }
-        // A narrowed browse is the new behaviour and the riskier one: `.userSpecifiedDevices` with
-        // an empty list is rejected outright by wifip2pd with -11992 ("has no Paired Devices"), and
-        // if `.selected()` turns out to share that fate then every upgrade would fail. Retrying
-        // unrestricted costs one round trip and keeps us no worse than before.
-        if peerDevice != nil, !Task.isCancelled {
-          self.logger.error(
-            "narrowed browse failed (\(error)); retrying across all paired devices")
-          do {
-            let wrapper = try await self.networkManager.browse(
-              connectionManager: self.connectionManager,
-              port: port,
-              peerDevice: nil
+      var lastError: Error?
+
+      for attempt in 1...kMaxDataPathBrowseAttempts {
+        if Task.isCancelled { break }
+        do {
+          let wrapper = try await self.performSingleBrowse(
+            port: port,
+            peerDevice: peerDevice,
+            peerId: peerId
+          )
+          self.latestConnectionLock.withLock { $0 = wrapper }
+          completion(nil)
+          return
+        } catch {
+          lastError = error
+          let isTerminalDataPathFailure =
+            (error as NSError).localizedDescription.contains(kTerminalDataPathFailureReason)
+            || isTerminalWiFiAwareDataPathError(error)
+          if isTerminalDataPathFailure {
+            if attempt < kMaxDataPathBrowseAttempts, !Task.isCancelled {
+              self.logger.warning(
+                "browse attempt \(attempt)/\(kMaxDataPathBrowseAttempts) hit terminal Wi-Fi Aware "
+                  + "data-path error (\(error)); retrying with a fresh browser and connection"
+              )
+              try? await Task.sleep(nanoseconds: self.retryDelayNanoseconds)
+              continue
+            }
+            self.logger.error(
+              "browse failed after \(attempt) attempt(s) due to terminal Wi-Fi Aware data-path "
+                + "error: \(error)"
             )
-            self.latestConnectionLock.withLock { $0 = wrapper }
-            completion(nil)
-            return
-          } catch {
-            self.logger.error("fallback browse also failed: \(error)")
             completion(error as NSError)
             return
           }
+          break
         }
-        self.logger.error("browse error: \(error)")
-        completion(error as NSError)
       }
+
+      // A narrowed browse is the new behaviour and the riskier one: `.userSpecifiedDevices` with
+      // an empty list is rejected outright by wifip2pd with -11992 ("has no Paired Devices"), and
+      // if `.selected()` turns out to share that fate then every upgrade would fail. Retrying
+      // unrestricted costs one round trip and keeps us no worse than before.
+      if peerDevice != nil, !Task.isCancelled {
+        self.logger.error(
+          "narrowed browse failed (\(String(describing: lastError))); retrying across all paired "
+            + "devices"
+        )
+        do {
+          let wrapper = try await self.performSingleBrowse(
+            port: port,
+            peerDevice: nil,
+            peerId: peerId
+          )
+          self.latestConnectionLock.withLock { $0 = wrapper }
+          completion(nil)
+          return
+        } catch {
+          self.logger.error("fallback browse also failed: \(error)")
+          completion(error as NSError)
+          return
+        }
+      }
+      let finalError =
+        lastError
+        ?? NSError(
+          domain: "AwareManager", code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "Browse cancelled"])
+      self.logger.error("browse error: \(finalError)")
+      completion(finalError as NSError)
     }
     browseTaskLock.withLock { $0 = task }
   }
@@ -1500,7 +1635,14 @@ public class AwareManager: NSObject, @unchecked Sendable {
   }
 
   @objc public func getLatestConnectionWrapper() -> WiFiAwareConnectionWrapper? {
-    return latestConnectionLock.withLock { $0 }
+    return latestConnectionLock.withLock { wrapper in
+      defer { wrapper = nil }
+      return wrapper
+    }
+  }
+
+  @objc public func setLatestConnectionWrapperForTesting(_ wrapper: WiFiAwareConnectionWrapper?) {
+    latestConnectionLock.withLock { $0 = wrapper }
   }
 
   @objc public func getConnectionWrapper(for id: String) -> WiFiAwareConnectionWrapper? {

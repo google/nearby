@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_apple//apple:ios.bzl", "ios_unit_test")
+load("//third_party/nearby:minimum_os.bzl", "IOS_LATEST_TEST_RUNNER", "IOS_MINIMUM_OS")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
@@ -23,6 +25,7 @@ package(default_visibility = [
 swift_library(
     name = "WiFiAwareMedium",
     srcs = ["WiFiAwareMedium.swift"],
+    copts = ["-enable-testing"],
     generates_header = True,
     target_compatible_with = ["//third_party/bazel_platforms/os:ios"],
     deps = [
@@ -42,4 +45,26 @@ swift_library(
 alias(
     name = "Aware",
     actual = ":WiFiAwareMedium",
+)
+
+swift_library(
+    name = "WiFiAwareMediumTestsLib",
+    testonly = True,
+    srcs = ["Tests/WiFiAwareMediumTests.swift"],
+    target_compatible_with = ["//third_party/bazel_platforms/os:ios"],
+    deps = [
+        ":WiFiAwareMedium",
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:XCTest",
+        "//third_party/apple_frameworks:os",
+    ],
+)
+
+ios_unit_test(
+    name = "WiFiAwareMediumTests",
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = IOS_LATEST_TEST_RUNNER,
+    deps = [
+        ":WiFiAwareMediumTestsLib",
+    ],
 )
