@@ -51,6 +51,7 @@
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
@@ -220,7 +221,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
                   kEnableWifiAware)) {
-        WifiAwareConnectionInfo info("_qs-aware._tcp", {});
+        WifiAwareConnectionInfo info(WifiAware::GetServiceName(), {});
         connection_infos.push_back(info);
       }
     }

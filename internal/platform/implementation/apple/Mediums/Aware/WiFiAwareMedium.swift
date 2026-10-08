@@ -43,11 +43,23 @@ struct LocalLogger {
 }
 typealias Logger = LocalLogger
 
+/// Builds the error thrown when a Wi-Fi Aware service is not declared in the app's Info.plist.
+private func missingWiFiAwareServiceError(_ name: String, role: String) -> NSError {
+  return NSError(
+    domain: "WiFiAwareMedium", code: -1,
+    userInfo: [
+      NSLocalizedDescriptionKey:
+        "Missing Wi-Fi Aware \(role) service \(name); declare it under WiFiAwareServices in the "
+        + "app's Info.plist"
+    ])
+}
+
 @available(iOS 26.0, *)
 extension WAPublishableService {
-  public static var qsService: WAPublishableService {
-    guard let service = allServices["_qs-aware._tcp"] else {
-      fatalError("Missing Wi-Fi Aware publishable service for _qs-aware._tcp")
+  /// Returns the publishable service called `name`, as declared in the app's Info.plist.
+  public static func named(_ name: String) throws -> WAPublishableService {
+    guard let service = allServices[name] else {
+      throw missingWiFiAwareServiceError(name, role: "publishable")
     }
     return service
   }
@@ -55,9 +67,10 @@ extension WAPublishableService {
 
 @available(iOS 26.0, *)
 extension WASubscribableService {
-  public static var qsService: WASubscribableService {
-    guard let service = allServices["_qs-aware._tcp"] else {
-      fatalError("Missing Wi-Fi Aware subscribable service for _qs-aware._tcp")
+  /// Returns the subscribable service called `name`, as declared in the app's Info.plist.
+  public static func named(_ name: String) throws -> WASubscribableService {
+    guard let service = allServices[name] else {
+      throw missingWiFiAwareServiceError(name, role: "subscribable")
     }
     return service
   }
@@ -983,10 +996,15 @@ actor NetworkManager: Sendable {
     }
   }
 
-  func listen(connectionManager: ConnectionManager, listenerWrapper: InternalListenerWrapper)
+  /// - Parameter serviceName: the Wi-Fi Aware service to publish. Must be declared under
+  ///   `WiFiAwareServices` in the app's Info.plist.
+  func listen(
+    serviceName: String, connectionManager: ConnectionManager,
+    listenerWrapper: InternalListenerWrapper
+  )
     async throws
   {
-    logger.info("Start NetworkListener")
+    logger.info("Start NetworkListener (service: \(serviceName))")
     cancelListen()
 
     try await waitForPairedDevices()
@@ -999,8 +1017,9 @@ actor NetworkManager: Sendable {
 
       let task: Task<Void, Error> = Task(priority: .userInitiated) {
         do {
+          let service = try WAPublishableService.named(serviceName)
           let listener = try NetworkListener(
-            for: .wifiAware(.connecting(to: .qsService, from: .allPairedDevices)),
+            for: .wifiAware(.connecting(to: service, from: .allPairedDevices)),
             using: .parameters {
               TCP().noDelay(true).keepalive(idleTimeInSeconds: 5, count: 5, intervalInSeconds: 1)
             }
@@ -1077,6 +1096,8 @@ actor NetworkManager: Sendable {
     }
   }
 
+  /// - Parameter serviceName: the Wi-Fi Aware service to subscribe to. Must be declared under
+  ///   `WiFiAwareServices` in the app's Info.plist.
   /// - Parameter peerDevice: the device we expect to find, when the peer identified itself and we
   ///   have a pairing on record for it. Restricting the browse to that one device is both more
   ///   precise and, with several devices paired, the only way to be sure we connect to the right
@@ -1084,12 +1105,14 @@ actor NetworkManager: Sendable {
   ///   answered first. Nil falls back to the whole paired store, which is what we have to do for
   ///   peers that send no identifier.
   func browse(
-    connectionManager: ConnectionManager, port: Int = 0, peerDevice: WAPairedDevice? = nil
+    serviceName: String, connectionManager: ConnectionManager, port: Int = 0,
+    peerDevice: WAPairedDevice? = nil
   ) async throws
     -> WiFiAwareConnectionWrapper
   {
-    logger.info("Start NetworkBrowser (targetPort: \(port))")
+    logger.info("Start NetworkBrowser (service: \(serviceName), targetPort: \(port))")
     cancelBrowse()
+    let service = try WASubscribableService.named(serviceName)
 
     try await waitForPairedDevices()
     // Brief pause to allow Android Synaptics firmware to finalize NAN pairing context (b/451755510)
@@ -1104,7 +1127,7 @@ actor NetworkManager: Sendable {
       devices = .allPairedDevices
     }
     let subscriber: WASubscriberBrowser = .wifiAware(
-      .connecting(to: devices, from: .qsService)
+      .connecting(to: devices, from: service)
     )
     let descriptor = subscriber.makeDescriptor()
     let parameters = subscriber.configureParameters(nil)
@@ -1313,9 +1336,9 @@ public class AwareManager: NSObject, @unchecked Sendable {
     }
   }
 
-  @objc(listenWithCompletionHandler:)
-  public func listen(completion: @escaping @Sendable (NSError?) -> Void) {
-    logger.info("listen(completion:) called")
+  @objc(listenWithServiceName:completionHandler:)
+  public func listen(serviceName: String, completion: @escaping @Sendable (NSError?) -> Void) {
+    logger.info("listen(serviceName: \(serviceName), completion:) called")
     guard let listenerWrapper = self.latestListenerWrapper,
       let internalListener = listenerWrapper.internalListenerWrapper
     else {
@@ -1330,6 +1353,7 @@ public class AwareManager: NSObject, @unchecked Sendable {
     Task(priority: .userInitiated) {
       do {
         try await self.networkManager.listen(
+          serviceName: serviceName,
           connectionManager: self.connectionManager,
           listenerWrapper: internalListener
         )
@@ -1341,11 +1365,13 @@ public class AwareManager: NSObject, @unchecked Sendable {
     }
   }
 
-  @objc(browseWithPort:peerId:completionHandler:)
+  @objc(browseWithServiceName:port:peerId:completionHandler:)
   public func browse(
-    port: NSInteger, peerId: String, completion: @escaping @Sendable (NSError?) -> Void
+    serviceName: String, port: NSInteger, peerId: String,
+    completion: @escaping @Sendable (NSError?) -> Void
   ) {
-    logger.info("browse(port: \(port), peerId: \(peerId), completion:) called")
+    logger.info(
+      "browse(serviceName: \(serviceName), port: \(port), peerId: \(peerId), completion:) called")
     cancelBrowseTask()
     latestConnectionLock.withLock { $0 = nil }
 
@@ -1353,6 +1379,7 @@ public class AwareManager: NSObject, @unchecked Sendable {
       let peerDevice = await PairedPeerRegistry.pairedDevice(forPeerId: peerId)
       do {
         let wrapper = try await self.networkManager.browse(
+          serviceName: serviceName,
           connectionManager: self.connectionManager,
           port: port,
           peerDevice: peerDevice
@@ -1383,6 +1410,7 @@ public class AwareManager: NSObject, @unchecked Sendable {
             "narrowed browse failed (\(error)); retrying across all paired devices")
           do {
             let wrapper = try await self.networkManager.browse(
+              serviceName: serviceName,
               connectionManager: self.connectionManager,
               port: port,
               peerDevice: nil
@@ -1401,16 +1429,6 @@ public class AwareManager: NSObject, @unchecked Sendable {
       }
     }
     browseTaskLock.withLock { $0 = task }
-  }
-
-  @objc(browseWithPort:completionHandler:)
-  public func browse(port: NSInteger, completion: @escaping @Sendable (NSError?) -> Void) {
-    browse(port: port, peerId: "", completion: completion)
-  }
-
-  @objc(browseWithCompletionHandler:)
-  public func browse(completion: @escaping @Sendable (NSError?) -> Void) {
-    browse(port: 0, completion: completion)
   }
 
   /// Reports whether we already hold a Wi-Fi Aware pairing with the peer identified by `peerId`.
@@ -1543,10 +1561,20 @@ public class GNCWiFiAwareMedium: NSObject {
 
     @available(iOS 26.0, *)
     @MainActor
-    @objc public func showAwarePublishingViewAtTop(completion: @escaping () -> Void) {
+    @objc public func showAwarePublishingViewAtTop(
+      serviceName: String, completion: @escaping () -> Void
+    ) {
       self.logger.info("start of showAwarePublishingViewAtTop")
+      let service: WAPublishableService
+      do {
+        service = try WAPublishableService.named(serviceName)
+      } catch {
+        self.logger.error("showAwarePublishingViewAtTop: \(error)")
+        completion()
+        return
+      }
       let paringVC = DDDevicePairingViewController(
-        listenerProvider: .wifiAware(.connecting(to: .qsService, from: .userSpecifiedDevices)),
+        listenerProvider: .wifiAware(.connecting(to: service, from: .userSpecifiedDevices)),
         access: .default
       )
 
@@ -1567,10 +1595,20 @@ public class GNCWiFiAwareMedium: NSObject {
 
     @available(iOS 26.0, *)
     @MainActor
-    @objc public func showAwareSubscribingViewAtTop(completion: @escaping () -> Void) {
+    @objc public func showAwareSubscribingViewAtTop(
+      serviceName: String, completion: @escaping () -> Void
+    ) {
       self.logger.info("start of showAwareSubscribingViewAtTop")
+      let service: WASubscribableService
+      do {
+        service = try WASubscribableService.named(serviceName)
+      } catch {
+        self.logger.error("showAwareSubscribingViewAtTop: \(error)")
+        completion()
+        return
+      }
       let subscriber: WASubscriberBrowser = .wifiAware(
-        .connecting(to: .userSpecifiedDevices, from: .qsService)
+        .connecting(to: .userSpecifiedDevices, from: service)
       )
 
       let descriptor = subscriber.makeDescriptor()
@@ -1602,12 +1640,16 @@ public class GNCWiFiAwareMedium: NSObject {
       topVC.present(pickerVC, animated: true, completion: nil)
     }
   #else
-    @objc public func showAwarePublishingViewAtTop(completion: @escaping () -> Void) {
+    @objc public func showAwarePublishingViewAtTop(
+      serviceName: String, completion: @escaping () -> Void
+    ) {
       self.logger.info("showAwarePublishingViewAtTop not supported on this platform")
       completion()
     }
 
-    @objc public func showAwareSubscribingViewAtTop(completion: @escaping () -> Void) {
+    @objc public func showAwareSubscribingViewAtTop(
+      serviceName: String, completion: @escaping () -> Void
+    ) {
       self.logger.info("showAwareSubscribingViewAtTop not supported on this platform")
       completion()
     }
