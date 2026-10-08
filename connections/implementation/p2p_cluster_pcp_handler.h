@@ -35,7 +35,7 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
-#include "connections/implementation/mediums/awdl/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
@@ -163,7 +163,8 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       BluetoothClassicInterface::DiscoveredDeviceCallback;
   using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
   using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
-  using AwdlDiscoveredServiceCallback = Awdl::DiscoveredServiceCallback;
+  using AwdlDiscoveredServiceCallback =
+      AwdlInterface::DiscoveredServiceCallback;
 
   static constexpr BluetoothDeviceName::Version kBluetoothDeviceNameVersion =
       BluetoothDeviceName::Version::kV1;
@@ -322,7 +323,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   Status InjectBleEndpoint(ClientProxy* client, const std::string& service_id,
                            const OutOfBandConnectionMetadata& metadata);
 
-  Awdl& awdl_medium_;
+  AwdlInterface& awdl_medium_;
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassicInterface& bluetooth_medium_;
   Ble& ble_medium_;

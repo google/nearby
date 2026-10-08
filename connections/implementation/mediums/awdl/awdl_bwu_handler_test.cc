@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(_WIN32)
 #include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
 
 #include <cstdint>
@@ -120,7 +121,7 @@ constexpr absl::string_view kChannelName{"channel_name"};
 class AwdlBwuHandlerTest : public ::testing::Test {
  protected:
   AwdlBwuHandlerTest()
-      : handler_(&mediums_.GetAwdl(),
+      : handler_(static_cast<Awdl*>(&mediums_.GetAwdl()),
                  incoming_connection_callback_.AsStdFunction()) {}
 
   void SetUp() override {
@@ -448,3 +449,5 @@ std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
 
 }  // namespace api
 }  // namespace nearby
+
+#endif  // !defined(_WIN32)

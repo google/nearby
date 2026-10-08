@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include "connections/implementation/mediums/awdl/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -65,7 +65,7 @@ class Mediums {
   mediums::WebRtc& GetWebRtc();
 
   // Returns a handle to the Awdl medium.
-  Awdl& GetAwdl();
+  AwdlInterface& GetAwdl();
 
  private:
   // The order of declaration is critical for both construction and
@@ -85,7 +85,7 @@ class Mediums {
   WifiHotspot wifi_hotspot_;
   const std::unique_ptr<WifiDirectInterface> wifi_direct_;
   const std::unique_ptr<mediums::WebRtc> webrtc_;
-  Awdl awdl_;
+  const std::unique_ptr<AwdlInterface> awdl_;
 };
 
 }  // namespace connections

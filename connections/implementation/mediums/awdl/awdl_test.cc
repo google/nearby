@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(_WIN32)
 #include "connections/implementation/mediums/awdl/awdl.h"
+#endif  // !defined(_WIN32)
 
 #include <memory>
 #include <string>
@@ -22,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"  // IWYU pragma: keep
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
@@ -35,6 +38,8 @@
 namespace nearby {
 namespace connections {
 namespace {
+
+#if !defined(_WIN32)
 
 using FeatureFlags = FeatureFlags::Flags;
 
@@ -528,6 +533,77 @@ TEST_F(AwdlTest, CanDiscoverThatOtherMediumAdvertise) {
   EXPECT_TRUE(awdl_a.StopDiscovery(service_id));
   env_.Stop();
 }
+
+#endif  // !defined(_WIN32)
+
+// Verifies that AwdlStub reports AWDL operations as unavailable via
+// AwdlInterface.
+#if defined(_WIN32)
+TEST(AwdlWindowsTest, IsStubbedOnWindows) {
+  std::unique_ptr<AwdlInterface> awdl_ptr = CreateAwdl();
+  ASSERT_NE(awdl_ptr, nullptr);
+  AwdlInterface& awdl = *awdl_ptr;
+
+  EXPECT_FALSE(awdl.IsAvailable());
+
+  NsdServiceInfo nsd_service_info;
+  ErrorOr<bool> advertise_result =
+      awdl.StartAdvertising("service_id", nsd_service_info);
+  ASSERT_TRUE(advertise_result.has_error());
+  EXPECT_EQ(advertise_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+  EXPECT_FALSE(awdl.StopAdvertising("service_id"));
+  EXPECT_FALSE(awdl.IsAdvertising("service_id"));
+
+  ErrorOr<bool> discover_result = awdl.StartDiscovery("service_id", {});
+  ASSERT_TRUE(discover_result.has_error());
+  EXPECT_EQ(discover_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+  EXPECT_FALSE(awdl.StopDiscovery("service_id"));
+  EXPECT_FALSE(awdl.IsDiscovering("service_id"));
+
+  ErrorOr<bool> accept_result =
+      awdl.StartAcceptingConnections("service_id", "channel_name", {});
+  ASSERT_TRUE(accept_result.has_error());
+  EXPECT_EQ(accept_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+
+  api::PskInfo psk_info;
+  ErrorOr<bool> accept_psk_result = awdl.StartAcceptingConnections(
+      "service_id", "channel_name", psk_info, {});
+  ASSERT_TRUE(accept_psk_result.has_error());
+  EXPECT_EQ(accept_psk_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+  EXPECT_FALSE(awdl.StopAcceptingConnections("service_id"));
+  EXPECT_FALSE(awdl.IsAcceptingConnections("service_id"));
+
+  CancellationFlag cancellation_flag;
+  ErrorOr<std::unique_ptr<EndpointChannel>> connect_result = awdl.Connect(
+      "service_id", "channel_name", nsd_service_info, &cancellation_flag);
+  ASSERT_TRUE(connect_result.has_error());
+  EXPECT_EQ(connect_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+
+  ErrorOr<std::unique_ptr<EndpointChannel>> connect_psk_result = awdl.Connect(
+      "service_id", nsd_service_info, psk_info, &cancellation_flag);
+  ASSERT_TRUE(connect_psk_result.has_error());
+  EXPECT_EQ(connect_psk_result.error().operation_result_code(),
+            location::nearby::proto::connections::OperationResultCode::
+                MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE);
+
+  AwdlInterface::AwdlCredential credential = awdl.GetCredentials("service_id");
+  EXPECT_TRUE(credential.service_name.empty());
+  EXPECT_TRUE(credential.service_type.empty());
+  EXPECT_TRUE(credential.password.empty());
+
+  EXPECT_EQ(awdl.CreateBwuHandler(nullptr), nullptr);
+}
+#endif  // defined(_WIN32)
 
 }  // namespace
 }  // namespace connections

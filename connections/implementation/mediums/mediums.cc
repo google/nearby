@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "connections/implementation/mediums/awdl/awdl.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -37,11 +37,11 @@ Mediums::Mediums()
     : bluetooth_classic_(CreateBluetoothClassic(bluetooth_radio_)),
       wifi_direct_(CreateWifiDirect()),
 #ifndef NO_WEBRTC
-      webrtc_(std::make_unique<mediums::WebRtcImpl>())
+      webrtc_(std::make_unique<mediums::WebRtcImpl>()),
 #else
-      webrtc_(std::make_unique<mediums::WebRtc>())
+      webrtc_(std::make_unique<mediums::WebRtc>()),
 #endif
-{
+      awdl_(CreateAwdl()) {
 }
 
 BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
@@ -64,7 +64,7 @@ WifiDirectInterface& Mediums::GetWifiDirect() { return *wifi_direct_; }
 
 mediums::WebRtc& Mediums::GetWebRtc() { return *webrtc_; }
 
-Awdl& Mediums::GetAwdl() { return awdl_; }
+AwdlInterface& Mediums::GetAwdl() { return *awdl_; }
 
 }  // namespace connections
 }  // namespace nearby

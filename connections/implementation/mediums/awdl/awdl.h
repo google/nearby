@@ -27,6 +27,7 @@
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -38,7 +39,7 @@
 namespace nearby {
 namespace connections {
 
-class Awdl {
+class Awdl : public AwdlInterface {
  public:
   using DiscoveredServiceCallback = AwdlMedium::DiscoveredServiceCallback;
 
@@ -46,65 +47,60 @@ class Awdl {
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
       const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
-  struct AwdlCredential {
-    std::string service_name;
-    std::string service_type;
-    std::string password;
-  };
-
   Awdl() = default;
-  ~Awdl();
+  ~Awdl() override;
 
   // Returns true, if Awdl communications are supported by a platform.
-  bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Sets custom service info name, endpoint info name in NsdServiceInfo and
   // then enables Awdl advertising.
   // Returns true, if NsdServiceInfo is successfully set, and false otherwise.
   ErrorOr<bool> StartAdvertising(const std::string& service_id,
-                                 NsdServiceInfo& nsd_service_info)
+                                 NsdServiceInfo& nsd_service_info) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables Awdl advertising.
   // Returns false if no successful call StartAdvertising() was previously
   // made, otherwise returns true.
-  bool StopAdvertising(const std::string& service_id)
+  bool StopAdvertising(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsAdvertising(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAdvertising(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enables Awdl discovery. Will report any discoverable services
   // through a callback.
   // Returns true, if discovery was enabled, false otherwise.
   ErrorOr<bool> StartDiscovery(const std::string& service_id,
-                               DiscoveredServiceCallback callback)
+                               DiscoveredServiceCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables Awdl discovery.
-  bool StopDiscovery(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopDiscovery(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsDiscovering(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsDiscovering(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a Awdl socket, associates it with a
   // service id.
-  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
-                                          const std::string& channel_name,
-                                          AcceptedConnectionCallback callback)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<bool> StartAcceptingConnections(
+      const std::string& service_id, const std::string& channel_name,
+      AcceptedConnectionCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a PSK-based Awdl socket, associates it with
   // a service id.
-  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
-                                          const std::string& channel_name,
-                                          const api::PskInfo& psk_info,
-                                          AcceptedConnectionCallback callback)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<bool> StartAcceptingConnections(
+      const std::string& service_id, const std::string& channel_name,
+      const api::PskInfo& psk_info,
+      AcceptedConnectionCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
-  bool StopAcceptingConnections(const std::string& service_id)
+  bool StopAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsAcceptingConnections(const std::string& service_id)
+  bool IsAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to Awdl service that was might be started on
@@ -114,7 +110,7 @@ class Awdl {
   ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
       const std::string& service_id, const std::string& channel_name,
       const NsdServiceInfo& service_info,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to PSK-based Awdl service that was might be started
   // on another service with StartAcceptingConnections() using the same
@@ -123,18 +119,19 @@ class Awdl {
   // is returned.
   ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
       const std::string& service_id, const NsdServiceInfo& service_info,
-      const api::PskInfo& psk_info, CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      const api::PskInfo& psk_info,
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets ip address + port for remote services on the network to identify and
   // connect to this service.
   //
   // Credential is for the currently-hosted Wifi ServerSocket (if any).
-  AwdlCredential GetCredentials(const std::string& service_id)
+  AwdlCredential GetCredentials(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<BwuHandler> CreateBwuHandler(
-      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback)
+      override;
 
  private:
   struct AdvertisingInfo {

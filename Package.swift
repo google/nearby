@@ -318,6 +318,7 @@ let package = Package(
         "internal/platform/implementation/windows",
         "third_party",
         // non-Apple mediums
+        "connections/implementation/mediums/awdl/awdl_stub.cc",
         "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.cc",
         "connections/implementation/mediums/bluetooth/bluetooth_classic.cc",
         "connections/implementation/mediums/bluetooth/bluetooth_endpoint_channel.cc",

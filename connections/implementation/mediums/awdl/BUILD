@@ -19,13 +19,45 @@ licenses(["notice"])
 
 cc_library(
     name = "awdl",
-    textual_hdrs = ["awdl.h"],
+    textual_hdrs = ["awdl_interface.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
     ],
+    deps = select({
+        "@platforms//os:windows": [":awdl_stub"],
+        "//conditions:default": [":awdl_internal"],
+    }),
+)
+
+cc_library(
+    name = "awdl_interface",
+    hdrs = ["awdl_interface.h"],
+    visibility = ["//visibility:private"],
     deps = [
-        ":awdl_internal",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
+        "@com_google_absl//absl/functional:any_invocable",
+    ],
+)
+
+cc_library(
+    name = "awdl_stub",
+    srcs = ["awdl_stub.cc"],
+    hdrs = ["awdl_stub.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":awdl_interface",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform/implementation:comm",
+        "//proto:connections_enums_cc_proto",
     ],
 )
 
@@ -43,6 +75,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        ":awdl_interface",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
@@ -75,7 +108,11 @@ cc_test(
         "awdl_test.cc",
     ],
     deps = [
-        ":awdl_internal",
+        ":awdl_interface",
+    ] + select({
+        "@platforms//os:windows": [":awdl_stub"],
+        "//conditions:default": [":awdl_internal"],
+    }) + [
         "//connections/implementation:endpoint_channel",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -84,7 +121,7 @@ cc_test(
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
@@ -98,8 +135,10 @@ cc_test(
     srcs = [
         "awdl_bwu_handler_test.cc",
     ],
-    deps = [
-        ":awdl_internal",
+    deps = select({
+        "@platforms//os:windows": [":awdl_stub"],
+        "//conditions:default": [":awdl_internal"],
+    }) + [
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:service_id_constants",
@@ -112,7 +151,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

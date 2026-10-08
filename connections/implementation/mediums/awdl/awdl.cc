@@ -27,6 +27,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
 #include "connections/implementation/mediums/awdl/awdl_endpoint_channel.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/byte_array.h"
@@ -496,6 +497,10 @@ std::unique_ptr<BwuHandler> Awdl::CreateBwuHandler(
     BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
   return std::make_unique<AwdlBwuHandler>(
       this, std::move(incoming_connection_callback));
+}
+
+std::unique_ptr<AwdlInterface> CreateAwdl() {
+  return std::make_unique<Awdl>();
 }
 
 }  // namespace connections

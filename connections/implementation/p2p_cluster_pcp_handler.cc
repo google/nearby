@@ -42,6 +42,7 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
