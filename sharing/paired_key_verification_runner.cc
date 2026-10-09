@@ -70,6 +70,7 @@ PairedKeyVerificationRunner::PairedKeyVerificationResult Convert(
 
     case PairedKeyResultFrame::UNKNOWN:
     case PairedKeyResultFrame::UNABLE:
+    case PairedKeyResultFrame::SHOULD_PROVISION:
       return PairedKeyVerificationRunner::PairedKeyVerificationResult::kUnable;
   }
 }

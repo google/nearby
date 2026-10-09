@@ -391,6 +391,9 @@ message PairedKeyEncryptionFrame {
   // For outgoing connection contains an HKDF of the connection token and of the
   // UKEY2 token
   optional bytes qr_code_handshake_data = 4;
+
+  // Whether the local device supports provisioning.
+  optional bool supports_provisioning = 5;
 }
 
 // A paired key verification result packet sent between devices.
@@ -401,6 +404,8 @@ message PairedKeyResultFrame {
     SUCCESS = 1;
     FAIL = 2;
     UNABLE = 3;
+    // Unable to authenticate, but both devices support provisioning.
+    SHOULD_PROVISION = 4;
   }
 
   // The verification result.
