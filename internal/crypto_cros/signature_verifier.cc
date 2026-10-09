@@ -68,7 +68,7 @@ bool SignatureVerifier::VerifyInit(SignatureAlgorithm signature_algorithm,
   if (verify_context_) return false;
 
   verify_context_ = std::make_unique<VerifyContext>();
-  signature_.assign(signature.data(), signature.data() + signature.size());
+  signature_.assign(signature.begin(), signature.end());
 
   CBS cbs;
   CBS_init(&cbs, public_key_info.data(), public_key_info.size());
