@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_APPLE_WIFI_AWARE_H_
 #define PLATFORM_IMPL_APPLE_WIFI_AWARE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -25,6 +26,7 @@
 
 @class GNCNWFramework;
 @class GNCWiFiAwareConnectionWrapper;
+@class GNCWiFiAwareSwiftWrapper;
 @class GNCAwareManager;
 @class NSObject;
 @protocol OS_dispatch_semaphore;
@@ -120,6 +122,10 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   std::unique_ptr<api::WifiAwareServerSocket> ListenForService(int port) override;
 
  private:
+  // Dismisses the subscribing pairing UI, if it is on screen, once the upgrade attempt that
+  // presented it has been abandoned. Safe to call from any thread.
+  void DismissAbandonedSubscribingPairingUi();
+
   bool is_publishing_ = false;
   bool is_subscribing_ = false;
   GNCNWFramework* medium_;
@@ -128,6 +134,11 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   NSObject<OS_dispatch_semaphore>* publish_pairing_semaphore_ = nullptr;
   NSObject<OS_dispatch_semaphore>* subscribe_pairing_semaphore_ = nullptr;
   bool is_showing_pairing_ui_ = false;
+  // Presenter of the subscribing pairing UI while it is on screen. Main queue only.
+  GNCWiFiAwareSwiftWrapper* pairing_ui_presenter_ = nullptr;
+  // Bumped whenever a subscribing pairing UI is presented or abandoned, so that the delayed
+  // dismissal callback of an older UI cannot reset the state of a newer one. Main queue only.
+  uint64_t pairing_ui_generation_ = 0;
   // Stable identifier of the peer whose upgrade request we are currently servicing, as supplied by
   // that peer. Empty when it sent none. Set by SetExpectedPeerId() just before StartSubscribing().
   // TODO: edwinwu - Only a single expected peer is tracked, so this supports the 1:1 upgrade case
