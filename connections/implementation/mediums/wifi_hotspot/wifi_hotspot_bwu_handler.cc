@@ -262,5 +262,28 @@ void WifiHotspotBwuHandler::OnIncomingWifiHotspotConnection(
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 
+bool WifiHotspotBwuHandler::CanBeClient(
+    const location::nearby::connections::MediumRole& role) const {
+  return role.support_wifi_hotspot_client();
+}
+
+bool WifiHotspotBwuHandler::CanHost(
+    const location::nearby::connections::MediumRole& local_role,
+    const location::nearby::connections::MediumRole& remote_role) const {
+  return local_role.support_wifi_hotspot_host() &&
+         remote_role.support_wifi_hotspot_client();
+}
+
+bool WifiHotspotBwuHandler::NeedToSwitchRole(
+    const location::nearby::connections::MediumRole& remote_medium_role,
+    const location::nearby::connections::OsInfo& local_os_info,
+    const location::nearby::connections::OsInfo& remote_os_info,
+    bool is_incoming_connection) const {
+  if (local_os_info.type() == location::nearby::connections::OsInfo::APPLE) {
+    return remote_medium_role.support_wifi_hotspot_host();
+  }
+  return false;
+}
+
 }  // namespace connections
 }  // namespace nearby

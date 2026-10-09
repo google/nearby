@@ -54,6 +54,13 @@ using ::location::nearby::proto::connections::OperationResultCode;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kEndpointID{"Hotspot_Server"};
+
+location::nearby::connections::OsInfo MakeOsInfo(
+    location::nearby::connections::OsInfo::OsType type) {
+  location::nearby::connections::OsInfo os_info;
+  os_info.set_type(type);
+  return os_info;
+}
 }  // namespace
 
 class WifiHotspotTest : public testing::Test {
@@ -85,6 +92,77 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
   handler->RevertInitiatorState();
   SUCCEED();
   handler.reset();
+}
+
+// Verifies that WIFI_HOTSPOT exposes a role-switch policy that lets a station
+// client join as a client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAcceptsHotspotClient) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole client;
+  client.set_support_wifi_hotspot_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanBeClient(client));
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy lets a local AP host serve
+// a remote station client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyHostsForHotspotClient) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole host;
+  host.set_support_wifi_hotspot_host(true);
+  location::nearby::connections::MediumRole client;
+  client.set_support_wifi_hotspot_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanHost(/*local_role=*/host, /*remote_role=*/client));
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy makes an Apple device ask a
+// peer that can host a hotspot to host it, since Apple can only join as a
+// station client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAppleDelegatesToHotspotHost) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_hotspot_host(true);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, MakeOsInfo(location::nearby::connections::OsInfo::APPLE),
+      MakeOsInfo(location::nearby::connections::OsInfo::ANDROID),
+      /*is_incoming_connection=*/true);
+
+  EXPECT_TRUE(need_to_switch);
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy lets a non-Apple device
+// host the hotspot itself even when the peer could host.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyWindowsHostsHotspotLocally) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_hotspot_host(true);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, MakeOsInfo(location::nearby::connections::OsInfo::WINDOWS),
+      MakeOsInfo(location::nearby::connections::OsInfo::ANDROID),
+      /*is_incoming_connection=*/true);
+
+  EXPECT_FALSE(need_to_switch);
 }
 
 // Verifies that WifiHotspotBwuHandler in the Client (STA) role can join a

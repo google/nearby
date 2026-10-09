@@ -155,5 +155,47 @@ void WifiAwareBwuHandler::OnIncomingWifiAwareConnection(
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 
+bool WifiAwareBwuHandler::CanBeClient(
+    const location::nearby::connections::MediumRole& role) const {
+  return role.support_wifi_aware_subscriber();
+}
+
+bool WifiAwareBwuHandler::CanHost(
+    const location::nearby::connections::MediumRole& local_role,
+    const location::nearby::connections::MediumRole& remote_role) const {
+  return local_role.support_wifi_aware_publisher() &&
+         remote_role.support_wifi_aware_subscriber();
+}
+
+bool WifiAwareBwuHandler::NeedToSwitchRole(
+    const location::nearby::connections::MediumRole& remote_medium_role,
+    const location::nearby::connections::OsInfo& local_os_info,
+    const location::nearby::connections::OsInfo& remote_os_info,
+    bool is_incoming_connection) const {
+  if (local_os_info.type() == location::nearby::connections::OsInfo::APPLE) {
+    // Apple can only take the Wi-Fi Aware R4 subscriber role: its publisher
+    // path advertises a bootstrapping method set (PIN_CODE_DISPLAY only)
+    // that an Android subscriber cannot negotiate against, so first-time
+    // pairing always fails. Hand the publisher role to the peer instead,
+    // but only when all three of the following hold:
+    //   1. the peer is Android,
+    //   2. the peer advertised that it can publish, and
+    //   3. the peer is the discoverer (i.e. we are the advertiser, so the
+    //      default host would have been us). In the other direction the
+    //      peer is already the publisher and switching would only force a
+    //      redundant re-publish on a new port.
+    const bool peer_is_android =
+        remote_os_info.type() == location::nearby::connections::OsInfo::ANDROID;
+    const bool peer_can_publish =
+        remote_medium_role.support_wifi_aware_publisher();
+    const bool we_are_advertiser = is_incoming_connection;
+    LOG(INFO) << "NeedToSwitchRole(WIFI_AWARE) peer_is_android="
+              << peer_is_android << ", peer_can_publish=" << peer_can_publish
+              << ", we_are_advertiser=" << we_are_advertiser;
+    return peer_is_android && peer_can_publish && we_are_advertiser;
+  }
+  return false;
+}
+
 }  // namespace connections
 }  // namespace nearby
