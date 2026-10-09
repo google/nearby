@@ -67,6 +67,10 @@ class BwuHandlerImpl : public BaseBwuHandler {
           upgrade_path_info) final {
     return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override {
+    return false;
+  }
   Medium GetUpgradeMedium() const final { return Medium::UNKNOWN_MEDIUM; }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}

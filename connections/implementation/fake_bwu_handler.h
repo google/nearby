@@ -60,6 +60,10 @@ class FakeBwuHandler : public BaseBwuHandler {
       : BaseBwuHandler(nullptr), medium_(medium) {}
   ~FakeBwuHandler() override = default;
 
+  void set_return_null_channel(bool return_null_channel) {
+    return_null_channel_ = return_null_channel;
+  }
+
   const std::vector<InputData>& create_calls() const { return create_calls_; }
   const std::vector<InputData>& disconnect_calls() const {
     return disconnect_calls_;
@@ -101,6 +105,59 @@ class FakeBwuHandler : public BaseBwuHandler {
     return upgraded_channel_raw;
   }
 
+  bool CanHost(const location::nearby::connections::MediumRole& local_role,
+               const location::nearby::connections::MediumRole& remote_role)
+      const override {
+    switch (medium_) {
+      case location::nearby::proto::connections::Medium::WIFI_DIRECT:
+        return local_role.support_wifi_direct_group_owner() &&
+               remote_role.support_wifi_direct_group_client();
+      case location::nearby::proto::connections::Medium::WIFI_HOTSPOT:
+        return local_role.support_wifi_hotspot_host() &&
+               remote_role.support_wifi_hotspot_client();
+      case location::nearby::proto::connections::Medium::WIFI_AWARE:
+      case location::nearby::proto::connections::Medium::WIFI_AWARE_R4:
+        return local_role.support_wifi_aware_publisher() &&
+               remote_role.support_wifi_aware_subscriber();
+      default:
+        return false;
+    }
+  }
+
+  bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const override {
+    if (local_os_info.type() == location::nearby::connections::OsInfo::APPLE) {
+      switch (medium_) {
+        case location::nearby::proto::connections::Medium::WIFI_HOTSPOT:
+          return remote_medium_role.support_wifi_hotspot_host();
+        case location::nearby::proto::connections::Medium::WIFI_AWARE:
+        case location::nearby::proto::connections::Medium::WIFI_AWARE_R4: {
+          const bool peer_is_android =
+              remote_os_info.type() ==
+              location::nearby::connections::OsInfo::ANDROID;
+          const bool peer_can_publish =
+              remote_medium_role.support_wifi_aware_publisher();
+          return peer_is_android && peer_can_publish && is_incoming_connection;
+        }
+        default:
+          break;
+      }
+    }
+    if (local_os_info.type() ==
+            location::nearby::connections::OsInfo::WINDOWS &&
+        remote_os_info.type() ==
+            location::nearby::connections::OsInfo::ANDROID) {
+      if (medium_ ==
+          location::nearby::proto::connections::Medium::WIFI_DIRECT) {
+        return remote_medium_role.support_wifi_direct_group_owner();
+      }
+    }
+    return false;
+  }
+
  private:
   // BwuHandler:
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
@@ -111,9 +168,27 @@ class FakeBwuHandler : public BaseBwuHandler {
     create_calls_.push_back({.client = client,
                              .service_id = service_id,
                              .endpoint_id = endpoint_id});
+    if (return_null_channel_) {
+      return {Error(location::nearby::proto::connections::OperationResultCode::
+                        NEARBY_GENERIC_NEW_ENDPOINT_CHANNEL_NULL)};
+    }
     return {std::make_unique<FakeEndpointChannel>(medium_, service_id)};
   }
 
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override {
+    switch (medium_) {
+      case location::nearby::proto::connections::Medium::WIFI_DIRECT:
+        return role.support_wifi_direct_group_client();
+      case location::nearby::proto::connections::Medium::WIFI_HOTSPOT:
+        return role.support_wifi_hotspot_client();
+      case location::nearby::proto::connections::Medium::WIFI_AWARE:
+      case location::nearby::proto::connections::Medium::WIFI_AWARE_R4:
+        return role.support_wifi_aware_subscriber();
+      default:
+        return false;
+    }
+  }
   Medium GetUpgradeMedium() const final { return medium_; }
 
   void OnEndpointDisconnect(ClientProxy* client,
@@ -193,6 +268,7 @@ class FakeBwuHandler : public BaseBwuHandler {
   }
 
   Medium medium_;
+  bool return_null_channel_ = false;
   std::vector<InputData> create_calls_;
   std::vector<InputData> disconnect_calls_;
   std::vector<InputData> handle_initialize_calls_;
