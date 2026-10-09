@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 84
+// Next id: 85
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -341,6 +341,9 @@ enum EventType {
 
   // The initiative of syncing files.
   FILE_SYNC = 83;
+
+  // Unpair a paired device.
+  UNPAIR_DEVICE = 84;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -1202,4 +1205,14 @@ enum FileSyncStatus {
   // File sync is skipped due to policy, e.g. before
   // min_duration_between_scheduled_sync expires.
   FILE_SYNC_STATUS_SKIPPED = 16;
+}
+
+// The trigger source for unpairing (deleting a paired device binding).
+// Next id: 3
+enum UnpairTriggerType {
+  UNPAIR_TRIGGER_TYPE_UNKNOWN = 0;
+  // Triggered by user action on the local device.
+  UNPAIR_TRIGGER_TYPE_LOCAL = 1;
+  // Triggered when the remote paired device deletes the binding.
+  UNPAIR_TRIGGER_TYPE_REMOTE = 2;
 }
