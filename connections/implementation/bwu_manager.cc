@@ -1571,9 +1571,12 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
           const bool remote_is_android =
               client->GetRemoteOsInfo(endpoint_id).value_or(OsInfo()).type() ==
               OsInfo::ANDROID;
-          bool can_host_publisher = mediums_->GetWifiAware().IsAvailable() &&
-                                    (!is_dynamic_role_switch_enabled_ ||
-                                     (!is_apple || !remote_is_android));
+          const bool we_are_advertiser =
+              client->IsIncomingConnection(endpoint_id);
+          bool can_host_publisher =
+              mediums_->GetWifiAware().IsAvailable() &&
+              (!is_dynamic_role_switch_enabled_ ||
+               (!we_are_advertiser || !is_apple || !remote_is_android));
           bool can_switch_role =
               mediums_->GetWifiAware().IsAvailable() &&
               local_medium_role.support_wifi_aware_subscriber() &&
@@ -1779,6 +1782,8 @@ bool BwuManager::NeedToSwitchRole(
     switch (medium) {
       case Medium::WIFI_DIRECT:
         return medium_role.support_wifi_direct_group_owner();
+      case Medium::WIFI_HOTSPOT:
+        return medium_role.support_wifi_hotspot_host();
       default:
         break;
     }

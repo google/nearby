@@ -2346,7 +2346,8 @@ TEST_F(BwuManagerTest,
   remote_medium_role.set_support_wifi_direct_group_owner(true);
   remote_medium_role.set_support_wifi_hotspot_host(true);
   FakeEndpointChannel* channel_ptr = CreateConnectedEndpoint(
-      kEndpointId1, remote_medium_role, allowed, OsInfo::ANDROID);
+      kEndpointId1, remote_medium_role, allowed, OsInfo::ANDROID,
+      /*is_incoming_connection=*/true);
 
   // Initial auto-selection picks WIFI_DIRECT and sends UPGRADE_PATH_REQUEST.
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
@@ -2782,6 +2783,80 @@ TEST_F(BwuManagerTest,
 
   UnRegisterChannelForEndpoint(kEndpointId1);
   UnRegisterChannelForEndpoint(kEndpointId2);
+}
+
+// Verifies that when a delegated upgrade falls back to a medium that the local
+// host cannot switch role for (e.g. WEB_RTC on Windows), the Advertiser aborts
+// the upgrade.
+TEST_F(BwuManagerTest, InitiateBwuRoleSwitchAbortsIfFallbackUnsupported) {
+  SetSupportMultipleBwuMediums(true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.web_rtc = true, .wifi_hotspot = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::WINDOWS);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                          OsInfo::ANDROID,
+                          /*is_incoming_connection=*/true);
+
+  // Initial auto-selection picks WIFI_HOTSPOT and sends UPGRADE_PATH_REQUEST.
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  // Remote host falls back to WEB_RTC and replies with
+  // UPGRADE_PATH_AVAILABLE for WEB_RTC.
+  location::nearby::connections::LocationHint location_hint;
+  ExceptionOr<OfflineFrame> webrtc_available = parser::FromBytes(
+      parser::ForBwuWebrtcPathAvailable("peer_id", location_hint));
+  ASSERT_TRUE(webrtc_available.ok());
+  OfflineFrame available_frame = webrtc_available.result();
+  available_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(available_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+
+  // The upgrade should be aborted because Windows cannot switch role for
+  // WEB_RTC.
+  EXPECT_TRUE(fake_web_rtc_bwu_handler_->create_calls().empty());
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that an outgoing Apple Discoverer connection to an Android peer
+// that supports Wi-Fi Aware publishing keeps WIFI_AWARE_R4 as an available
+// medium, because the remote Android peer will be the host (Advertiser).
+TEST_F(BwuManagerTest, InitiateBwuAppleAwareR4AndroidDiscoverKeepsMedium) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ReinitBwuManager(BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_publisher(true);
+  CreateConnectedEndpoint(kEndpointId1, remote_medium_role,
+                          BooleanMediumSelector{.wifi_aware_r4 = true},
+                          OsInfo::ANDROID, /*is_incoming_connection=*/false);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_EQ(fake_wifi_aware_r4_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
 }  // namespace
