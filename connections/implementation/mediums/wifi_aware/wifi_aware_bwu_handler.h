@@ -49,6 +49,18 @@ class WifiAwareBwuHandler : public BaseBwuHandler {
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) override {}
 
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override;
+
+  bool CanHost(const location::nearby::connections::MediumRole& local_role,
+               const location::nearby::connections::MediumRole& remote_role)
+      const override;
+  bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const override;
+
  private:
   // BaseBwuHandler implementation:
   std::string HandleInitializeUpgradedMediumForEndpoint(
