@@ -85,6 +85,25 @@ class BwuHandler {
   virtual location::nearby::proto::connections::Medium GetUpgradeMedium()
       const = 0;
 
+  virtual bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const {
+    return false;
+  }
+
+  virtual bool CanHost(
+      const location::nearby::connections::MediumRole& local_role,
+      const location::nearby::connections::MediumRole& remote_role) const {
+    return false;
+  }
+
+  virtual bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const {
+    return false;
+  }
+
   virtual void OnEndpointDisconnect(ClientProxy* client,
                                     const std::string& endpoint_id) = 0;
 };

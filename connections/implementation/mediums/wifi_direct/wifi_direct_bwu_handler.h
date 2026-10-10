@@ -37,6 +37,18 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
       WifiDirect* absl_nonnull wifi_direct_medium,
       IncomingConnectionCallback incoming_connection_callback);
 
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override;
+
+  bool CanHost(const location::nearby::connections::MediumRole& local_role,
+               const location::nearby::connections::MediumRole& remote_role)
+      const override;
+  bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const override;
+
  private:
   // Called by BWU target. Retrieves a new medium info from incoming message,
   // Windows doesn't support WIFIDirect as GC because phone side uses simplified

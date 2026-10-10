@@ -155,5 +155,36 @@ void WifiAwareBwuHandler::OnIncomingWifiAwareConnection(
   NotifyOnIncomingConnection(client, std::move(connection));
 }
 
+bool WifiAwareBwuHandler::CanBeClient(
+    const location::nearby::connections::MediumRole& role) const {
+  return role.support_wifi_aware_subscriber();
+}
+
+bool WifiAwareBwuHandler::CanHost(
+    const location::nearby::connections::MediumRole& local_role,
+    const location::nearby::connections::MediumRole& remote_role) const {
+  return local_role.support_wifi_aware_publisher() &&
+         remote_role.support_wifi_aware_subscriber();
+}
+
+bool WifiAwareBwuHandler::NeedToSwitchRole(
+    const location::nearby::connections::MediumRole& remote_medium_role,
+    const location::nearby::connections::OsInfo& local_os_info,
+    const location::nearby::connections::OsInfo& remote_os_info,
+    bool is_incoming_connection) const {
+  if (local_os_info.type() == location::nearby::connections::OsInfo::APPLE) {
+    const bool peer_is_android =
+        remote_os_info.type() == location::nearby::connections::OsInfo::ANDROID;
+    const bool peer_can_publish =
+        remote_medium_role.support_wifi_aware_publisher();
+    const bool we_are_advertiser = is_incoming_connection;
+    LOG(INFO) << "NeedToSwitchRole(WIFI_AWARE) peer_is_android="
+              << peer_is_android << ", peer_can_publish=" << peer_can_publish
+              << ", we_are_advertiser=" << we_are_advertiser;
+    return peer_is_android && peer_can_publish && we_are_advertiser;
+  }
+  return false;
+}
+
 }  // namespace connections
 }  // namespace nearby
