@@ -26,8 +26,8 @@ namespace {
 TEST(BluetoothUtil, ParseBluetoothAddress) {
   std::array<uint8_t, 6> output;
   std::array<uint8_t, 6> expected_output{{26, 43, 60, 77, 94, 111}};
-  EXPECT_TRUE(ParseBluetoothAddress(
-      "1A:2B:3C:4D:5E:6F", absl::MakeSpan(output.data(), output.size())));
+  EXPECT_TRUE(
+      ParseBluetoothAddress("1A:2B:3C:4D:5E:6F", absl::MakeSpan(output)));
   EXPECT_EQ(output, expected_output);
 }
 

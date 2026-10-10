@@ -113,7 +113,6 @@ cc_test(
     deps = [
         ":bluetooth_address",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
