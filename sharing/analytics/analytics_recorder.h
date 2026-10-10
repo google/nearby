@@ -208,6 +208,9 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::PairingResultStatus status,
       absl::Duration duration) = 0;
 
+  virtual void NewUnpairDevice(
+      location::nearby::proto::sharing::UnpairTriggerType trigger_type) = 0;
+
   // Generates a random number for session ID or flow ID.
   virtual int64_t GenerateNextId() = 0;
 };
