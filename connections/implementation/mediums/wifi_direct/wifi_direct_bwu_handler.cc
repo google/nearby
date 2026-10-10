@@ -201,5 +201,36 @@ void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
       std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
 }
+bool WifiDirectBwuHandler::CanBeClient(
+    const location::nearby::connections::MediumRole& role) const {
+  return role.support_wifi_direct_group_client();
+}
+
+bool WifiDirectBwuHandler::CanHost(
+    const location::nearby::connections::MediumRole& local_role,
+    const location::nearby::connections::MediumRole& remote_role) const {
+  return local_role.support_wifi_direct_group_owner() &&
+         remote_role.support_wifi_direct_group_client();
+}
+
+bool WifiDirectBwuHandler::NeedToSwitchRole(
+    const location::nearby::connections::MediumRole& remote_medium_role,
+    const location::nearby::connections::OsInfo& local_os_info,
+    const location::nearby::connections::OsInfo& remote_os_info,
+    bool is_incoming_connection) const {
+  if (local_os_info.type() == location::nearby::connections::OsInfo::APPLE) {
+    return remote_medium_role.support_wifi_direct_group_owner();
+  }
+  if (local_os_info.type() == location::nearby::connections::OsInfo::WINDOWS &&
+      remote_os_info.type() == location::nearby::connections::OsInfo::ANDROID) {
+    LOG(INFO) << "Local: Windows OS, Remote: Android device detected. "
+                 "WifiDirect NeedToSwitchRole and let Android be GO. "
+                 "medium_role.support_wifi_direct_group_owner(): "
+              << remote_medium_role.support_wifi_direct_group_owner();
+    return remote_medium_role.support_wifi_direct_group_owner();
+  }
+  return false;
+}
+
 }  // namespace connections
 }  // namespace nearby

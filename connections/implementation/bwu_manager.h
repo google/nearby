@@ -256,6 +256,12 @@ class BwuManager : public EndpointManager::FrameProcessor {
       const location::nearby::connections::MediumRole& remote_medium_role,
       Medium medium) const;
 
+  // Requester-side mirror of CanHost(): whether the local device can take the
+  // client role for |medium| once it has delegated hosting to the peer.
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& local_medium_role,
+      Medium medium) const;
+
   virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
       ClientProxy* client) const;
 
@@ -299,6 +305,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // retry happen, then we can not find the last delay used in the alarm. Thus
   // using a different map to keep track of the delays per endpoint.
   absl::flat_hash_map<std::string, absl::Duration> retry_delays_;
+
+  // Endpoints for which we wrote an UPGRADE_PATH_REQUEST and are waiting for
+  // the peer to host the upgrade. While an endpoint is in this set, an
+  // advertiser accepts UPGRADE_PATH_AVAILABLE for any medium it can join as a
+  // client (see CanBeClient()); otherwise it only accepts the medium
+  // NeedToSwitchRole() selected. Cleared when the frame is consumed, when we
+  // host locally instead, and on endpoint disconnect / shutdown.
+  absl::flat_hash_set<std::string> delegated_upgrade_endpoints_;
 
   // Whether the dynamic role switch feature is enabled.
   bool is_dynamic_role_switch_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
