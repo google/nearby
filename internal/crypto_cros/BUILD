@@ -68,6 +68,7 @@ cc_library(
         "-DCRYPTO_IMPLEMENTATION",
     ],
     deps = [
+        "//internal/platform:logging",
         "@boringssl//:crypto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log",
