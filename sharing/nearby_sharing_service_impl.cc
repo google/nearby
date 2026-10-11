@@ -1432,6 +1432,9 @@ void NearbySharingServiceImpl::OnSuspendResumeEvent(
             }
             LOG(INFO) << "InvalidateSurfaceState due to system resume";
             InvalidateSurfaceState();
+            LOG(INFO) << "Reschedule schedulers due to system resume";
+            certificate_manager_->StopScheduledTasks();
+            certificate_manager_->StartScheduledTasks();
           });
     }
   }
