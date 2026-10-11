@@ -365,14 +365,22 @@ bool WifiAwareMedium::StartSubscribing() {
           return;
         }
         is_showing_pairing_ui_ = true;
+        pairing_ui_presenter_ = awareSwiftWrapper;
+        const uint64_t generation = ++pairing_ui_generation_;
         dispatch_async(dispatch_get_main_queue(), ^{
           [awareSwiftWrapper showAwareSubscribingViewAtTopWithCompletion:^{
-            // Backstop: also covers the user cancelling without ever pairing.
-            is_showing_pairing_ui_ = false;
-            // The attempt is over either way. A successful pairing has already been bound by now
-            // (the store updates well before the sheet's success animation ends); an abandoned one
-            // must not leave a watch behind to bind whatever gets paired next to this `peerId`.
-            [awareManager cancelPairingWatch];
+            // If this UI was abandoned (see DismissAbandonedSubscribingPairingUi()), a newer
+            // attempt may own the UI state and the pairing watch by now; leave both alone.
+            if (pairing_ui_generation_ == generation) {
+              // Backstop: also covers the user cancelling without ever pairing.
+              is_showing_pairing_ui_ = false;
+              pairing_ui_presenter_ = nil;
+              // The attempt is over either way. A successful pairing has already been bound by
+              // now (the store updates well before the sheet's success animation ends); an
+              // abandoned one must not leave a watch behind to bind whatever gets paired next to
+              // this `peerId`.
+              [awareManager cancelPairingWatch];
+            }
             releaseGate(@"pairing UI dismissal");
           }];
         });
@@ -446,6 +454,23 @@ void WifiAwareMedium::SetExpectedPeerId(const std::string& peer_id) {
   expected_peer_id_ = peer_id;
 }
 
+void WifiAwareMedium::DismissAbandonedSubscribingPairingUi() {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!is_showing_pairing_ui_) {
+      return;
+    }
+    GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Dismissing abandoned subscribing pairing View");
+    // Hand the UI state back right away: the dismissal callback of this UI only runs after the
+    // dismissal animation and a settling delay, and the next upgrade attempt must not take the
+    // "already showing" shortcut meanwhile. Bumping the generation makes that callback a no-op.
+    ++pairing_ui_generation_;
+    is_showing_pairing_ui_ = false;
+    GNCWiFiAwareSwiftWrapper* presenter = pairing_ui_presenter_;
+    pairing_ui_presenter_ = nil;
+    [presenter dismissAwareSubscribingView];
+  });
+}
+
 std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
     const WifiAwareServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
   NSCAssert(![NSThread isMainThread], @"This method must not be called on the main thread");
@@ -472,6 +497,7 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
       pairing_cancellation_listener =
           std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
             GNCLoggerInfo(@"[NEARBY] ConnectToService: cancellation requested during pairing UI");
+            DismissAbandonedSubscribingPairingUi();
             if (subscribe_pairing_semaphore_ != nil) {
               dispatch_semaphore_signal(subscribe_pairing_semaphore_);
             }
@@ -570,6 +596,7 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
       pairing_cancellation_listener =
           std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
             NSLog(@"QS_AWARE ConnectToService: cancellation requested during pairing UI");
+            DismissAbandonedSubscribingPairingUi();
             [aware_manager_ cancelPairingWatch];
             if (subscribe_pairing_semaphore_ != nil) {
               dispatch_semaphore_signal(subscribe_pairing_semaphore_);

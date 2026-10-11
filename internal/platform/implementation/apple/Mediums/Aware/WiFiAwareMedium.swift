@@ -1661,6 +1661,9 @@ public class GNCWiFiAwareMedium: NSObject {
   }
 
   #if canImport(UIKit)
+    /// The pairing UI presented by `showAwareSubscribingViewAtTop(completion:)`, while it exists.
+    private weak var presentedSubscribingViewController: UIViewController?
+
     @MainActor
     private func findTopViewController(controller: UIViewController? = nil) -> UIViewController? {
       let controller =
@@ -1741,7 +1744,21 @@ public class GNCWiFiAwareMedium: NSObject {
         completion()
         return
       }
+      presentedSubscribingViewController = pickerVC
       topVC.present(pickerVC, animated: true, completion: nil)
+    }
+
+    /// Dismisses the pairing UI presented by `showAwareSubscribingViewAtTop(completion:)`, if it
+    /// is still on screen. The `completion` passed to that method runs once the UI is gone.
+    @MainActor
+    @objc public func dismissAwareSubscribingView() {
+      guard let viewController = presentedSubscribingViewController,
+        viewController.presentingViewController != nil
+      else {
+        return
+      }
+      self.logger.info("dismissing abandoned subscribing view")
+      viewController.dismiss(animated: true, completion: nil)
     }
   #else
     @objc public func showAwarePublishingViewAtTop(completion: @escaping () -> Void) {
@@ -1753,6 +1770,8 @@ public class GNCWiFiAwareMedium: NSObject {
       self.logger.info("showAwareSubscribingViewAtTop not supported on this platform")
       completion()
     }
+
+    @objc public func dismissAwareSubscribingView() {}
   #endif
 
   @available(iOS 26.0, *)
