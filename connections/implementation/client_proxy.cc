@@ -1120,6 +1120,27 @@ bool ClientProxy::AutoUpgradeBandwidth() const {
   return result;
 }
 
+Strategy ClientProxy::GetEndpointStrategy(absl::string_view endpoint_id) const {
+  MutexLock lock(&mutex_);
+  auto it = connections_.find(endpoint_id);
+  if (it != connections_.end()) {
+    Strategy strategy = it->second.first.connection_options.strategy;
+    if (strategy.IsNone()) {
+      if (it->second.first.is_incoming) {
+        if (IsAdvertising()) {
+          strategy = advertising_options_.strategy;
+        } else {
+          strategy = listening_options_.strategy;
+        }
+      } else {
+        strategy = discovery_options_.strategy;
+      }
+    }
+    return strategy;
+  }
+  return Strategy::kNone;
+}
+
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
   MutexLock lock(&mutex_);
   bool result = false;
@@ -1366,6 +1387,7 @@ void ClientProxy::OnSessionComplete() {
 
 bool ClientProxy::ConnectionStatusesContains(
     const std::string& endpoint_id, Connection::Status status_to_match) const {
+  MutexLock lock(&mutex_);
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     return (item->first.status & status_to_match) != 0;
@@ -1375,6 +1397,7 @@ bool ClientProxy::ConnectionStatusesContains(
 
 void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
                                          Connection::Status status_to_append) {
+  MutexLock lock(&mutex_);
   ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
     item->first.status =
@@ -1693,6 +1716,7 @@ std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
 }
 
 std::string ClientProxy::Dump() {
+  MutexLock lock(&mutex_);
   std::stringstream sstream;
   sstream << "Nearby Connections State" << std::endl;
   sstream << "  Client ID: " << GetClientId() << std::endl;
