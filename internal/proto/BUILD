@@ -16,6 +16,7 @@
 load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@com_google_protobuf//build_defs:kt_jvm_proto_library.bzl", "kt_jvm_lite_proto_library")
 
 proto_library(
     name = "credential_proto",
@@ -24,6 +25,14 @@ proto_library(
         "//location/nearby/presence/proto:__pkg__",
         "//location/nearby/sharing/proto:__pkg__",
     ],
+)
+
+kt_jvm_lite_proto_library(
+    name = "credential_kt_proto_lite",
+    visibility = [
+        "//javatests/com/google/android/gmscore/integ/modules/nearby/mobly/snippets/presence:__subpackages__",
+    ],
+    deps = [":credential_proto"],
 )
 
 cc_proto_library(
