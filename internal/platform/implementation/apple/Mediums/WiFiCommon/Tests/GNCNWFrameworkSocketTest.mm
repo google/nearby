@@ -20,9 +20,95 @@
 #include <optional>
 #include <string>
 
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 
 NS_ASSUME_NONNULL_BEGIN
+
+// Declare the private getter only for deterministic close-between-validation
+// and-submission injection. This does not create a Network.framework connection.
+@interface GNCNWFrameworkSocket (CloseSubmissionTest)
+- (id<GNCNWConnection>)connection;
+@end
+
+@interface GNCCountingNWConnection : GNCFakeNWConnection
+@property(nonatomic) NSUInteger receiveCalls;
+@property(nonatomic) NSUInteger sendCalls;
+@property(nonatomic) NSUInteger cancelCalls;
+@end
+
+@implementation GNCCountingNWConnection
+- (void)cancel {
+  self.cancelCalls += 1;
+  [super cancel];
+}
+- (void)receiveMessageWithMinLength:(uint32_t)minimum
+                          maxLength:(uint32_t)maximum
+                    completionHandler:(void (^)(dispatch_data_t _Nullable,
+                                              nw_content_context_t _Nullable, bool,
+                                              nw_error_t _Nullable))handler {
+  self.receiveCalls += 1;
+  [super receiveMessageWithMinLength:minimum maxLength:maximum completionHandler:handler];
+}
+- (void)sendData:(dispatch_data_t)content
+              context:(nw_content_context_t)context
+           isComplete:(BOOL)complete
+    completionHandler:(void (^)(nw_error_t _Nullable))handler {
+  self.sendCalls += 1;
+  [super sendData:content context:context isComplete:complete completionHandler:handler];
+}
+@end
+
+@interface GNCCloseBeforeSubmissionSocket : GNCNWFrameworkSocket
+@property(nonatomic) BOOL closedDuringValidation;
+@end
+
+@implementation GNCCloseBeforeSubmissionSocket
+- (id<GNCNWConnection>)connection {
+  id<GNCNWConnection> captured = [super connection];
+  if (!self.closedDuringValidation) {
+    self.closedDuringValidation = YES;
+    [super close];
+  }
+  return captured;
+}
+@end
+
+// Inline completion is an adapter seam: it deterministically completes before
+// the waiting code runs. Actual Network.framework callbacks are asynchronous.
+@interface GNCInlineNWConnection : GNCCountingNWConnection
+@end
+@implementation GNCInlineNWConnection
+- (void)receiveMessageWithMinLength:(uint32_t)minimum
+                          maxLength:(uint32_t)maximum
+                    completionHandler:(void (^)(dispatch_data_t _Nullable,
+                                              nw_content_context_t _Nullable, bool,
+                                              nw_error_t _Nullable))handler {
+  self.receiveCalls += 1;
+  const char value = 'x';
+  handler(dispatch_data_create(&value, 1, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT), nil, YES, nil);
+}
+- (void)sendData:(dispatch_data_t)content
+              context:(nw_content_context_t)context
+           isComplete:(BOOL)complete
+    completionHandler:(void (^)(nw_error_t _Nullable))handler {
+  self.sendCalls += 1;
+  handler(nil);
+}
+@end
+
+@interface GNCHeldWriteNWConnection : GNCCountingNWConnection
+@property(nonatomic, copy, nullable) void (^pendingWrite)(nw_error_t _Nullable);
+@end
+@implementation GNCHeldWriteNWConnection
+- (void)sendData:(dispatch_data_t)content
+              context:(nw_content_context_t)context
+           isComplete:(BOOL)complete
+    completionHandler:(void (^)(nw_error_t _Nullable))handler {
+  self.sendCalls += 1;
+  self.pendingWrite = handler;
+}
+@end
 
 @interface GNCNWFrameworkSocketTests : XCTestCase
 @end
@@ -164,6 +250,132 @@ NS_ASSUME_NONNULL_BEGIN
   XCTAssertFalse([_socket write:[NSData data] error:&error]);
   XCTAssertFalse([_socket writeBytes:"test" length:4 error:&error]);
 }
+
+- (void)testReadMaxLength_ClosedBetweenValidationAndSubmission {
+  GNCCountingNWConnection *peer = [[GNCCountingNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCCloseBeforeSubmissionSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertNil([socket readMaxLength:1 error:&error]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorNotConnected);
+  XCTAssertEqual(peer.receiveCalls, 0u);
+  XCTAssertEqual(peer.cancelCalls, 1u);
+}
+
+- (void)testReadString_ClosedBetweenValidationAndSubmission {
+  GNCCountingNWConnection *peer = [[GNCCountingNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCCloseBeforeSubmissionSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertFalse([socket readStringWithMaxLength:1 error:&error].has_value());
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorNotConnected);
+  XCTAssertEqual(peer.receiveCalls, 0u);
+  XCTAssertEqual(peer.cancelCalls, 1u);
+}
+
+- (void)testWrite_ClosedBetweenValidationAndSubmission {
+  GNCCountingNWConnection *peer = [[GNCCountingNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCCloseBeforeSubmissionSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertFalse([socket write:[NSData dataWithBytes:"x" length:1] error:&error]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorNotConnected);
+  XCTAssertEqual(peer.sendCalls, 0u);
+  XCTAssertEqual(peer.cancelCalls, 1u);
+}
+
+- (void)testWriteBytes_ClosedBetweenValidationAndSubmission {
+  GNCCountingNWConnection *peer = [[GNCCountingNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCCloseBeforeSubmissionSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertFalse([socket writeBytes:"x" length:1 error:&error]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorNotConnected);
+  XCTAssertEqual(peer.sendCalls, 0u);
+  XCTAssertEqual(peer.cancelCalls, 1u);
+}
+
+- (void)testRepeatedCloseCancelsDetachedConnectionOnce {
+  for (NSUInteger round = 0; round < 1000; ++round) {
+    @autoreleasepool {
+      GNCCountingNWConnection *peer = [[GNCCountingNWConnection alloc] init];
+      GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+      [socket close];
+      [socket close];
+      XCTAssertEqual(peer.cancelCalls, 1u);
+      NSError *error = nil;
+      XCTAssertFalse([socket writeBytes:"x" length:1 error:&error]);
+      XCTAssertNotNil(error);
+      XCTAssertEqual(peer.sendCalls, 0u);
+    }
+  }
+}
+
+- (void)testReadMaxLength_CompletesBeforeWaiting {
+  GNCInlineNWConnection *peer = [[GNCInlineNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertEqualObjects([socket readMaxLength:1 error:&error], [@"x" dataUsingEncoding:NSUTF8StringEncoding]);
+  XCTAssertNil(error);
+  XCTAssertEqual(peer.receiveCalls, 1u);
+}
+
+- (void)testReadString_CompletesBeforeWaiting {
+  GNCInlineNWConnection *peer = [[GNCInlineNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  auto result = [socket readStringWithMaxLength:1 error:&error];
+  XCTAssertTrue(result.has_value());
+  if (result) XCTAssertTrue(result.value() == "x");
+  XCTAssertNil(error);
+}
+
+- (void)testWrite_CompletesBeforeWaiting {
+  GNCInlineNWConnection *peer = [[GNCInlineNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertTrue([socket write:[@"x" dataUsingEncoding:NSUTF8StringEncoding] error:&error]);
+  XCTAssertNil(error);
+  XCTAssertEqual(peer.sendCalls, 1u);
+}
+
+- (void)testWriteBytes_CompletesBeforeWaiting {
+  GNCInlineNWConnection *peer = [[GNCInlineNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  XCTAssertTrue([socket writeBytes:"x" length:1 error:&error]);
+  XCTAssertNil(error);
+  XCTAssertEqual(peer.sendCalls, 1u);
+}
+
+- (void)assertWriteTimeoutWithRawBytes:(BOOL)raw {
+  GNCHeldWriteNWConnection *peer = [[GNCHeldWriteNWConnection alloc] init];
+  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:peer];
+  NSError *error = nil;
+  NSTimeInterval start = NSProcessInfo.processInfo.systemUptime;
+  BOOL result = raw ? [socket writeBytes:"x" length:1 error:&error]
+                    : [socket write:[@"x" dataUsingEncoding:NSUTF8StringEncoding] error:&error];
+  NSTimeInterval elapsed = NSProcessInfo.processInfo.systemUptime - start;
+  XCTAssertFalse(result);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorTimedOut);
+  XCTAssertGreaterThanOrEqual(elapsed, 4.9);
+  XCTAssertLessThan(elapsed, 8.0);
+  void (^late)(nw_error_t _Nullable) = peer.pendingWrite;
+  peer.pendingWrite = nil;
+  XCTAssertNotNil(late);
+  if (late) late(nil);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorTimedOut);
+  XCTAssertEqual(peer.sendCalls, 1u);  // No replay after an uncertain timeout.
+  [socket close];
+}
+
+- (void)testWrite_TimeoutAndLateCompletion { [self assertWriteTimeoutWithRawBytes:NO]; }
+- (void)testWriteBytes_TimeoutAndLateCompletion { [self assertWriteTimeoutWithRawBytes:YES]; }
 
 @end
 

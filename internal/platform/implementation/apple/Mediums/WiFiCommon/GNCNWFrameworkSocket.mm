@@ -30,9 +30,21 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
 
 @property(nonatomic, readonly) id<GNCNWConnection> connection;
 
+- (BOOL)sendDispatchData:(dispatch_data_t)data
+             isComplete:(BOOL)isComplete
+                  error:(NSError **)error;
+
 @end
 
 @implementation GNCNWFrameworkSocket {
+}
+
+@synthesize connection = _connection;
+
+- (id<GNCNWConnection>)connection {
+  @synchronized(self) {
+    return _connection;
+  }
 }
 
 - (instancetype)initWithConnection:(nonnull id<GNCNWConnection>)connection {
@@ -54,38 +66,58 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   }
 
   NSCondition *condition = [[NSCondition alloc] init];
-  [condition lock];
+  __block BOOL completed = NO;
 
   __block NSData *blockResult = nil;
   __block NSError *blockError = nil;
 
-  [self.connection
-      receiveMessageWithMinLength:(uint32_t)length
-                        maxLength:(uint32_t)length
-                completionHandler:^(dispatch_data_t _Nullable content,
-                                    nw_content_context_t _Nullable context, bool isComplete,
-                                    nw_error_t _Nullable receiveError) {
-                  [condition lock];
-                  if (receiveError) {
-                    blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
-                  }
+  @synchronized(self) {
+    if (!_connection) {
+      if (error) {
+        *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                     code:GNCNWFrameworkErrorNotConnected
+                                 userInfo:nil];
+      }
+      return nil;
+    }
+    [_connection
+        receiveMessageWithMinLength:(uint32_t)length
+                          maxLength:(uint32_t)length
+                  completionHandler:^(dispatch_data_t _Nullable content,
+                                      nw_content_context_t _Nullable context, bool isComplete,
+                                      nw_error_t _Nullable receiveError) {
+                    [condition lock];
+                    if (completed) {
+                      [condition unlock];
+                      return;
+                    }
+                    if (receiveError) {
+                      blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                    }
 #if __LP64__
-                  // This cast is only safe in a 64-bit runtime.
-                  blockResult = [(NSData *)content copy];
+                    // This cast is only safe in a 64-bit runtime.
+                    blockResult = [(NSData *)content copy];
 #else
-        blockResult = nil;
+                    blockResult = nil;
 #endif
-                  [condition signal];
-                  [condition unlock];
-                }];
+                    completed = YES;
+                    [condition signal];
+                    [condition unlock];
+                  }];
+  }
 
-  [condition wait];
+  [condition lock];
+  while (!completed) {
+    [condition wait];
+  }
+  NSData *result = blockResult;
+  NSError *resultError = blockError;
   [condition unlock];
 
   if (error != nil) {
-    *error = blockError;
+    *error = resultError;
   }
-  return blockResult;
+  return result;
 }
 
 - (std::optional<std::string>)readStringWithMaxLength:(NSUInteger)length error:(NSError **)error {
@@ -103,27 +135,37 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   __block NSError *blockError = nil;
   __block BOOL contentReceived = NO;
 
-  [self.connection
-      receiveMessageWithMinLength:(uint32_t)length
-                        maxLength:(uint32_t)length
-                completionHandler:^(dispatch_data_t _Nullable content,
-                                    nw_content_context_t _Nullable context, bool isComplete,
-                                    nw_error_t _Nullable receiveError) {
-                  if (receiveError) {
-                    blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
-                  }
-                  if (content) {
-                    contentReceived = YES;
-                    // OPTIMIZATION: Copy directly from dispatch_data_t into std::string
-                    resultString.reserve(dispatch_data_get_size(content));
-                    dispatch_data_apply(content, ^bool(dispatch_data_t region, size_t offset,
-                                                       const void *buffer, size_t size) {
-                      resultString.append((const char *)buffer, size);
-                      return true;
-                    });
-                  }
-                  dispatch_semaphore_signal(semaphore);
-                }];
+  @synchronized(self) {
+    if (!_connection) {
+      if (error) {
+        *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                     code:GNCNWFrameworkErrorNotConnected
+                                 userInfo:nil];
+      }
+      return std::nullopt;
+    }
+    [_connection
+        receiveMessageWithMinLength:(uint32_t)length
+                          maxLength:(uint32_t)length
+                  completionHandler:^(dispatch_data_t _Nullable content,
+                                      nw_content_context_t _Nullable context, bool isComplete,
+                                      nw_error_t _Nullable receiveError) {
+                    if (receiveError) {
+                      blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                    }
+                    if (content) {
+                      contentReceived = YES;
+                      // OPTIMIZATION: Copy directly from dispatch_data_t into std::string
+                      resultString.reserve(dispatch_data_get_size(content));
+                      dispatch_data_apply(content, ^bool(dispatch_data_t region, size_t offset,
+                                                         const void *buffer, size_t size) {
+                        resultString.append((const char *)buffer, size);
+                        return true;
+                      });
+                    }
+                    dispatch_semaphore_signal(semaphore);
+                  }];
+  }
 
   // Block the current thread until the network callback completes.
   dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
@@ -144,12 +186,6 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     return NO;
   }
 
-  NSCondition *condition = [[NSCondition alloc] init];
-  [condition lock];
-
-  __block BOOL blockSuccess = NO;
-  __block NSError *blockError = nil;
-
   __block NSData *blockData = [data copy];
   dispatch_data_t dispatchData =
       dispatch_data_create(blockData.bytes, blockData.length, dispatch_get_main_queue(), ^{
@@ -161,28 +197,7 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
         blockData = nil;
       });
 
-  [self.connection sendData:dispatchData
-                    context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
-                 isComplete:false
-          completionHandler:^(nw_error_t _Nullable sendError) {
-            [condition lock];
-            blockSuccess = sendError == nil;
-            if (sendError) {
-              blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
-            }
-            [condition signal];
-            [condition unlock];
-          }];
-
-  // Wait until the condition is signaled or 5 seconds pass
-  BOOL signaled =
-      [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:kConnectionWriteTimeout]];
-  [condition unlock];
-
-  if (error != nil) {
-    *error = blockError;
-  }
-  return signaled && blockSuccess;
+  return [self sendDispatchData:dispatchData isComplete:NO error:error];
 }
 
 - (BOOL)writeBytes:(const void *)bytes length:(NSUInteger)length error:(NSError **)error {
@@ -195,10 +210,6 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     return NO;
   }
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-
-  __block NSError *blockError = nil;
-
   // OPTIMIZATION: Use DISPATCH_DATA_DESTRUCTOR_DEFAULT to perform a
   // single copy into a GCD-managed buffer. No NSData required.
   // TODO: edwinwu - Investigate to see if it is worth to make it zero-copy by replacing
@@ -209,29 +220,75 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   dispatch_data_t dispatchData =
       dispatch_data_create(bytes, length, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 
-  [self.connection sendData:dispatchData
-                    context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
-                 isComplete:NO
-          completionHandler:^(nw_error_t _Nullable sendError) {
-            if (sendError) {
-              blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
-            }
-            dispatch_semaphore_signal(semaphore);
-          }];
+  return [self sendDispatchData:dispatchData isComplete:NO error:error];
+}
 
-  // Wait until signaled or the 5-second timeout passes
+- (BOOL)sendDispatchData:(dispatch_data_t)data
+             isComplete:(BOOL)isComplete
+                  error:(NSError **)error {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  NSObject *completionMonitor = [[NSObject alloc] init];
+  __block BOOL completed = NO;
+  __block NSError *blockError = nil;
+  @synchronized(self) {
+    if (!_connection) {
+      if (error) {
+        *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                    code:GNCNWFrameworkErrorNotConnected
+                                userInfo:nil];
+      }
+      return NO;
+    }
+    [_connection sendData:data
+                 context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
+              isComplete:isComplete
+       completionHandler:^(nw_error_t _Nullable sendError) {
+         @synchronized(completionMonitor) {
+           if (completed) {
+             return;
+           }
+         }
+         // Conversion must not prevent the waiting caller from timing out.
+         NSError *sendNSError = sendError ?
+             (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError) : nil;
+         @synchronized(completionMonitor) {
+           if (completed) {
+             return;
+           }
+           blockError = sendNSError;
+           completed = YES;
+         }
+         dispatch_semaphore_signal(semaphore);
+       }];
+  }
   intptr_t waitResult = dispatch_semaphore_wait(
       semaphore,
       dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kConnectionWriteTimeout * NSEC_PER_SEC)));
-  if (error != nil) {
-    *error = blockError;
+  NSError *resultError;
+  @synchronized(completionMonitor) {
+    if (waitResult != 0) {
+      completed = YES;  // Freeze the uncertain timeout; never retry this write.
+      resultError = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                       code:GNCNWFrameworkErrorTimedOut
+                                   userInfo:nil];
+    } else {
+      resultError = blockError;
+    }
   }
-  return (waitResult == 0) && (blockError == nil);
+  if (error) {
+    *error = resultError;
+  }
+  return waitResult == 0 && resultError == nil;
 }
 
 - (void)close {
-  [_connection cancel];
-  _connection = nil;
+  id<GNCNWConnection> connection;
+  @synchronized(self) {
+    connection = _connection;
+    _connection = nil;
+  }
+  // Never hold the lifecycle monitor across cancellation callbacks.
+  [connection cancel];
 }
 
 @end
