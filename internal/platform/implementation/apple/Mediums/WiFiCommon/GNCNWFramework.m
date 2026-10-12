@@ -340,6 +340,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     case nw_browser_state_waiting:
     case nw_browser_state_failed:
     case nw_browser_state_cancelled:
+      [self stopDiscoveryForServiceType:serviceType];
       return NO;
     case nw_browser_state_ready:
       return YES;
