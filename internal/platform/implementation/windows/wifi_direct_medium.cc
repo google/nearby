@@ -35,11 +35,11 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/device_info.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
+#include "winrt/base.h"
 
 // We plan to discard the Windows GO implementation for the following reasons:
 // 1. When GC (Android or Windows) connects to GO, repeated testing results in a

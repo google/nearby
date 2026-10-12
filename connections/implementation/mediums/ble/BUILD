@@ -39,6 +39,7 @@ cc_library(
     name = "bloom_filter",
     srcs = ["bloom_filter.cc"],
     hdrs = ["bloom_filter.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform/implementation/windows:__pkg__",

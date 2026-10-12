@@ -35,8 +35,6 @@
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -47,6 +45,8 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
+#include "winrt/Windows.Devices.Enumeration.h"  // IWYU pragma: keep
+#include "winrt/Windows.Security.Credentials.h"  // IWYU pragma: keep
 
 namespace nearby::windows {
 namespace {

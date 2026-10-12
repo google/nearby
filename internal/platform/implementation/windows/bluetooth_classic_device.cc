@@ -27,15 +27,15 @@
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "winrt/Windows.Devices.Bluetooth.Rfcomm.h"  // IWYU pragma: keep
+#include "winrt/Windows.Devices.Bluetooth.h"  // IWYU pragma: keep
+#include "winrt/Windows.Devices.Enumeration.h"  // IWYU pragma: keep
+#include "winrt/Windows.Foundation.Collections.h"  // IWYU pragma: keep
 #include "winrt/Windows.Foundation.h"
+#include "winrt/base.h"
 
 namespace nearby::windows {
 namespace {
