@@ -42,11 +42,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *pendingConnections;
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *readyConnections;
 
-- (BOOL)internalStartListeningWithPSKIdentity:(nullable NSData *)PSKIdentify
-                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
-                            includePeerToPeer:(BOOL)includePeerToPeer
-                                        error:(NSError **_Nullable)error;
-
 /**
  * Handles a new incoming connection from the listener.
  *
@@ -148,23 +143,6 @@ NS_ASSUME_NONNULL_BEGIN
   _listener = nil;
 }
 
-- (BOOL)startListeningWithError:(NSError **)error includePeerToPeer:(BOOL)includePeerToPeer {
-  return [self internalStartListeningWithPSKIdentity:nil
-                                     PSKSharedSecret:nil
-                                   includePeerToPeer:includePeerToPeer
-                                               error:error];
-}
-
-- (BOOL)startListeningWithPSKIdentity:(NSData *)PSKIdentify
-                      PSKSharedSecret:(NSData *)PSKSharedSecret
-                    includePeerToPeer:(BOOL)includePeerToPeer
-                                error:(NSError **_Nullable)error {
-  return [self internalStartListeningWithPSKIdentity:PSKIdentify
-                                     PSKSharedSecret:PSKSharedSecret
-                                   includePeerToPeer:includePeerToPeer
-                                               error:error];
-}
-
 - (void)startAdvertisingServiceName:(NSString *)serviceName
                         serviceType:(NSString *)serviceType
                          txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
@@ -234,10 +212,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 // MARK: - Private Methods (Implementation)
 
-- (BOOL)internalStartListeningWithPSKIdentity:(nullable NSData *)PSKIdentify
-                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
-                            includePeerToPeer:(BOOL)includePeerToPeer
-                                        error:(NSError **_Nullable)error {
+- (BOOL)startListeningWithPSKIdentity:(nullable NSData *)PSKIdentify
+                      PSKSharedSecret:(nullable NSData *)PSKSharedSecret
+                    includePeerToPeer:(BOOL)includePeerToPeer
+                                error:(NSError **_Nullable)error {
   if (self.testingListener) {
     _listener = self.testingListener;
   } else {

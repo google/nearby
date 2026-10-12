@@ -78,6 +78,12 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 }
 
 @interface GNCNWFramework ()
+- (nullable GNCNWFrameworkServerSocket *)
+    internalListenForServiceWithPSKIdentity:(nullable NSData *)PSKIdentity
+                            PSKSharedSecret:(nullable NSData *)PSKSharedSecret
+                                       port:(NSInteger)port
+                                      error:(NSError **_Nullable)error;
+
 - (nullable GNCNWFrameworkSocket *)internalConnectToEndpoint:(nw_endpoint_t)endpoint
                                                  PSKIdentity:(nullable NSData *)PSKIdentity
                                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
@@ -129,15 +135,10 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
                                                           error:(NSError **)error {
-  GNCLoggerInfo(@"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@.", (long)port,
-                (_includePeerToPeer ? @"true" : @"false"));
-  GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
-  BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];
-  if (success) {
-    [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
-    return serverSocket;
-  }
-  return nil;
+  return [self internalListenForServiceWithPSKIdentity:nil
+                                       PSKSharedSecret:nil
+                                                  port:port
+                                                 error:error];
 }
 
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)PSKIdentity
@@ -145,19 +146,10 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                                                     port:(NSInteger)port
                                                                    error:
                                                                        (NSError **_Nullable)error {
-  GNCLoggerInfo(
-      @"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@, and PSKIdentity: %@.",
-      (long)port, (_includePeerToPeer ? @"true" : @"false"), PSKIdentity);
-  GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
-  BOOL success = [serverSocket startListeningWithPSKIdentity:PSKIdentity
-                                             PSKSharedSecret:PSKSharedSecret
-                                           includePeerToPeer:_includePeerToPeer
-                                                       error:error];
-  if (success) {
-    [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
-    return serverSocket;
-  }
-  return nil;
+  return [self internalListenForServiceWithPSKIdentity:PSKIdentity
+                                       PSKSharedSecret:PSKSharedSecret
+                                                  port:port
+                                                 error:error];
 }
 
 - (void)startAdvertisingPort:(NSInteger)port
@@ -416,6 +408,26 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 }
 
 // MARK: - Private Methods (Implementation)
+
+- (nullable GNCNWFrameworkServerSocket *)
+    internalListenForServiceWithPSKIdentity:(nullable NSData *)PSKIdentity
+                            PSKSharedSecret:(nullable NSData *)PSKSharedSecret
+                                       port:(NSInteger)port
+                                      error:(NSError **_Nullable)error {
+  GNCLoggerInfo(
+      @"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@, and PSKIdentity: %@.",
+      (long)port, (_includePeerToPeer ? @"true" : @"false"), PSKIdentity);
+  GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
+  BOOL success = [serverSocket startListeningWithPSKIdentity:PSKIdentity
+                                             PSKSharedSecret:PSKSharedSecret
+                                           includePeerToPeer:_includePeerToPeer
+                                                       error:error];
+  if (success) {
+    [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
+    return serverSocket;
+  }
+  return nil;
+}
 
 - (nullable GNCNWFrameworkSocket *)internalConnectToEndpoint:(nw_endpoint_t)endpoint
                                                  PSKIdentity:(nullable NSData *)PSKIdentity

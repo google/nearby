@@ -33,32 +33,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, nullable) id<GNCNWListener> testingListener;
 
 /**
- * Starts listening for inbound connections.
+ * Starts listening for inbound connections with optional PSK identity and shared secret.
  *
  * Blocks execution until listening has started or failed.
  *
+ * @param PSKIdentity The optional PSK identity to use for the connection.
+ * @param PSKSharedSecret The optional PSK shared secret to use for the connection.
  * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
  * connections.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when listening has successfully started.
  */
-- (BOOL)startListeningWithError:(NSError **_Nullable)error
-              includePeerToPeer:(BOOL)includePeerToPeer;
-
-/**
- * Starts listening for inbound connections with a PSK identity and shared secret.
- *
- * Blocks execution until listening has started or failed.
- *
- * @param PSKIdentity The PSK identity to use for the connection.
- * @param PSKSharedSecret The PSK shared secret to use for the connection.
- * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
- * connections.
- * @param[out] error Error that will be populated on failure.
- * @return Returns YES when listening has successfully started.
- */
-- (BOOL)startListeningWithPSKIdentity:(NSData *)PSKIdentify
-                      PSKSharedSecret:(NSData *)PSKSharedSecret
+- (BOOL)startListeningWithPSKIdentity:(nullable NSData *)PSKIdentify
+                      PSKSharedSecret:(nullable NSData *)PSKSharedSecret
                     includePeerToPeer:(BOOL)includePeerToPeer
                                 error:(NSError **_Nullable)error;
 

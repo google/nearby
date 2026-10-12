@@ -83,8 +83,10 @@ static NSString *const kHostAddress = @"127.0.0.1";
     OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
     OCMStub([mockServerSocketAlloc initWithPort:kPort]).andReturn(fakeServerSocket);
 
-    OCMStub([mockServerSocketAlloc startListeningWithError:[OCMArg anyObjectRef]
-                                         includePeerToPeer:NO])
+    OCMStub([mockServerSocketAlloc startListeningWithPSKIdentity:nil
+                                                 PSKSharedSecret:nil
+                                               includePeerToPeer:NO
+                                                           error:[OCMArg anyObjectRef]])
         .andReturn(YES);
 
     NSError *error = nil;
@@ -108,7 +110,10 @@ static NSString *const kHostAddress = @"127.0.0.1";
   id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:kPort]).andReturn(mockServerSocket);
-  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef] includePeerToPeer:NO])
+  OCMStub([mockServerSocket startListeningWithPSKIdentity:nil
+                                          PSKSharedSecret:nil
+                                        includePeerToPeer:NO
+                                                    error:[OCMArg anyObjectRef]])
       .andReturn(YES);
 
   NSError *error = nil;
@@ -125,8 +130,12 @@ static NSString *const kHostAddress = @"127.0.0.1";
   id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:kPort]).andReturn(mockServerSocket);
-  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef] includePeerToPeer:NO])
-      .andDo(^(id localSelf, NSError **error, BOOL includePeerToPeer) {
+  OCMStub([mockServerSocket startListeningWithPSKIdentity:nil
+                                          PSKSharedSecret:nil
+                                        includePeerToPeer:NO
+                                                    error:[OCMArg anyObjectRef]])
+      .andDo(^(id localSelf, NSData *PSKIdentity, NSData *PSKSharedSecret, BOOL includePeerToPeer,
+               NSError **error) {
         if (error) {
           *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:EACCES userInfo:nil];
         }

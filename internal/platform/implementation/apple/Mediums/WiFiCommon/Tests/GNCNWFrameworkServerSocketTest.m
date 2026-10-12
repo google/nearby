@@ -70,7 +70,10 @@
 - (void)testCloseMultipleTimes API_AVAILABLE(ios(13.0)) {
   // Start listening to create the listener object
   NSError *error = nil;
-  [_serverSocket startListeningWithError:&error includePeerToPeer:NO];
+  [_serverSocket startListeningWithPSKIdentity:nil
+                               PSKSharedSecret:nil
+                             includePeerToPeer:NO
+                                         error:&error];
 
   [_serverSocket close];
   XCTAssertTrue(_fakeListener.cancelCalled);
@@ -108,7 +111,10 @@
 - (void)testStartListening_Timeout API_AVAILABLE(ios(13.0)) {
   _fakeListener.simulateTimeout = YES;
   NSError *error = nil;
-  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertFalse([_serverSocket startListeningWithPSKIdentity:nil
+                                              PSKSharedSecret:nil
+                                            includePeerToPeer:NO
+                                                        error:&error]);
   XCTAssertNotNil(error);
   XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
   XCTAssertEqual(error.code, GNCNWFrameworkErrorTimedOut);
@@ -118,7 +124,10 @@
   _fakeListener.stateForStart = nw_listener_state_invalid;
   _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
   NSError *error = nil;
-  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertFalse([_serverSocket startListeningWithPSKIdentity:nil
+                                              PSKSharedSecret:nil
+                                            includePeerToPeer:NO
+                                                        error:&error]);
   XCTAssertNotNil(error);
   XCTAssertEqualObjects(error.domain, @"Test");
   XCTAssertEqual(error.code, 123);
@@ -128,7 +137,10 @@
   _fakeListener.stateForStart = nw_listener_state_waiting;
   _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
   NSError *error = nil;
-  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertFalse([_serverSocket startListeningWithPSKIdentity:nil
+                                              PSKSharedSecret:nil
+                                            includePeerToPeer:NO
+                                                        error:&error]);
   XCTAssertNotNil(error);
   XCTAssertEqualObjects(error.domain, @"Test");
   XCTAssertEqual(error.code, 123);
@@ -138,7 +150,10 @@
   _fakeListener.stateForStart = nw_listener_state_cancelled;
   _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
   NSError *error = nil;
-  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertFalse([_serverSocket startListeningWithPSKIdentity:nil
+                                              PSKSharedSecret:nil
+                                            includePeerToPeer:NO
+                                                        error:&error]);
   XCTAssertNotNil(error);
   XCTAssertEqualObjects(error.domain, @"Test");
   XCTAssertEqual(error.code, 123);
@@ -149,7 +164,10 @@
   _fakeListener.port = 12345;
 
   NSError *error = nil;
-  XCTAssertTrue([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertTrue([_serverSocket startListeningWithPSKIdentity:nil
+                                             PSKSharedSecret:nil
+                                           includePeerToPeer:NO
+                                                       error:&error]);
   XCTAssertNil(error, @"Error should be nil on successful start");
   XCTAssertTrue(_fakeListener.startCalled);
   XCTAssertEqual(_serverSocket.port, 12345, @"Port should be updated from fake listener");
@@ -161,7 +179,10 @@
   _serverSocket.listenerError = _fakeListener.simulatedError;
 
   NSError *error = nil;
-  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertFalse([_serverSocket startListeningWithPSKIdentity:nil
+                                              PSKSharedSecret:nil
+                                            includePeerToPeer:NO
+                                                        error:&error]);
   XCTAssertTrue(_fakeListener.startCalled);
   XCTAssertNotNil(error, @"Error should be non-nil on failed start");
   XCTAssertEqualObjects(error.domain, @"TestDomain");
@@ -207,7 +228,10 @@
 - (void)testStartAdvertising API_AVAILABLE(ios(13.0)) {
   // Start listening to create the listener object
   NSError *error = nil;
-  [_serverSocket startListeningWithError:&error includePeerToPeer:NO];
+  [_serverSocket startListeningWithPSKIdentity:nil
+                               PSKSharedSecret:nil
+                             includePeerToPeer:NO
+                                         error:&error];
 
   NSString *serviceName = @"TestService";
   NSString *serviceType = @"_test._tcp";
@@ -224,7 +248,10 @@
 - (void)testStopAdvertising API_AVAILABLE(ios(13.0)) {
   // Start listening to create the listener object
   NSError *error = nil;
-  [_serverSocket startListeningWithError:&error includePeerToPeer:NO];
+  [_serverSocket startListeningWithPSKIdentity:nil
+                               PSKSharedSecret:nil
+                             includePeerToPeer:NO
+                                         error:&error];
 
   // Start advertising first
   [_serverSocket startAdvertisingServiceName:@"TestService"
