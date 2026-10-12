@@ -44,9 +44,4 @@ cc_library(
         "shlwapi.lib",
         "runtimeobject.lib",
     ],
-    visibility = [
-        "//internal:__subpackages__",
-        "//internal/platform/implementation/windows:__subpackages__",
-        "//sharing:__subpackages__",
-    ],
 )

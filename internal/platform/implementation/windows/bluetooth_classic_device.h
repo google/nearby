@@ -18,10 +18,10 @@
 #include <string>
 
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/mac_address.h"
+#include "winrt/Windows.Devices.Bluetooth.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/base.h"
 
 namespace nearby::windows {
 

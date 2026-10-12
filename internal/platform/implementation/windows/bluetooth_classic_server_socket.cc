@@ -26,8 +26,8 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Networking.Sockets.h"  // IWYU pragma: keep
 
 namespace nearby::windows {
 namespace {

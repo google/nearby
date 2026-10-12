@@ -23,12 +23,12 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/windows/generated/winrt/impl/Windows.Devices.Enumeration.0.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/Windows.Devices.Enumeration.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/base.h"
+#include "winrt/impl/Windows.Devices.Enumeration.0.h"
 
 namespace nearby::windows {
 

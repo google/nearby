@@ -43,9 +43,6 @@
 #include "internal/platform/service_address.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/registry.h"
@@ -54,6 +51,9 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
+#include "winrt/Windows.Devices.Enumeration.h"  // IWYU pragma: keep
+#include "winrt/Windows.Foundation.Collections.h"  // IWYU pragma: keep
+#include "winrt/Windows.Networking.Connectivity.h"  // IWYU pragma: keep
 
 namespace nearby::windows {
 namespace {

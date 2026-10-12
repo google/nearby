@@ -31,7 +31,6 @@
 
 // Nearby connections headers
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
@@ -41,9 +40,9 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 
 // WinRT headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/Windows.Devices.WiFiDirect.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/base.h"
 
 #include "internal/platform/wifi_credential.h"
 

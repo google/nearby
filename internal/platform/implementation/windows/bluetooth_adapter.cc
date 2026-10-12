@@ -29,9 +29,9 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "winrt/Windows.Foundation.h"  // IWYU pragma: keep
 
 namespace nearby::windows {
 

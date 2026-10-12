@@ -36,14 +36,14 @@
 #include "internal/platform/implementation/windows/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_pairing.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "winrt/Windows.Devices.Bluetooth.Rfcomm.h"  // IWYU pragma: keep
+#include "winrt/Windows.Devices.Bluetooth.h"  // IWYU pragma: keep
+#include "winrt/Windows.Devices.Enumeration.h"  // IWYU pragma: keep
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/base.h"
 
 namespace nearby::windows {
 namespace {
