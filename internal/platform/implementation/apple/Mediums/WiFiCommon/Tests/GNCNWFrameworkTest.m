@@ -244,7 +244,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
   [framework stopAdvertisingPort:kPort];
 
   XCTAssertTrue(fakeServerSocket.stopAdvertisingCalled);
-  XCTAssertNil([serverSockets objectForKey:@(kPort)]);
+  XCTAssertTrue([[[serverSockets keyEnumerator] allObjects] containsObject:@(kPort)]);
 }
 
 - (void)testIsDiscoveringAnyServiceWhenNoServicesAreDiscovering {

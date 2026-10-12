@@ -165,7 +165,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (void)stopAdvertisingPort:(NSInteger)port {
   GNCNWFrameworkServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
   [serverSocket stopAdvertising];
-  [_serverSockets removeObjectForKey:@(port)];
 }
 
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
