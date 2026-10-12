@@ -47,8 +47,6 @@ cc_library(
     visibility = [
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
-        "//location/nearby/apps/better_together/plugins:__subpackages__",
-        "//location/nearby/apps/better_together/windows/nearby_share:__subpackages__",
         "//sharing:__subpackages__",
         "//third_party/nearby:winrt_users",
     ],
