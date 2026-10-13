@@ -256,6 +256,26 @@ class BwuManager : public EndpointManager::FrameProcessor {
       const location::nearby::connections::MediumRole& remote_medium_role,
       Medium medium) const;
 
+  // Requester-side mirror of CanHost(): whether the local device can take the
+  // client role for |medium| once it has delegated hosting to the peer.
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& local_medium_role,
+      Medium medium) const;
+
+  // Returns the role-switch policy of the handler for |medium|, or nullptr if
+  // there is no handler or the medium has no distinct host and client roles.
+  const BwuHandler::RoleSwitchPolicy* GetRoleSwitchPolicy(Medium medium) const;
+
+  // Evaluates whether a role-switched medium can be used for |endpoint_id|
+  // either by hosting it locally (gated by |is_host_radio_available| and
+  // RoleSwitchPolicy::IsLocalHostingAllowed) or by delegating hosting to the
+  // peer via UPGRADE_PATH_REQUEST (gated by |is_client_radio_available|,
+  // RoleSwitchPolicy::CanBeClient, and CanSwitchRoleForMedium).
+  bool IsRoleSwitchMediumAvailable(
+      ClientProxy* client, const std::string& endpoint_id, Medium medium,
+      const location::nearby::connections::MediumRole& local_medium_role,
+      bool is_host_radio_available, bool is_client_radio_available) const;
+
   virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
       ClientProxy* client) const;
 
@@ -299,6 +319,15 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // retry happen, then we can not find the last delay used in the alarm. Thus
   // using a different map to keep track of the delays per endpoint.
   absl::flat_hash_map<std::string, absl::Duration> retry_delays_;
+
+  // Endpoints for which we wrote an UPGRADE_PATH_REQUEST and are waiting for
+  // the peer to host the upgrade. While an endpoint is in this set, an
+  // advertiser accepts UPGRADE_PATH_AVAILABLE for any medium it can join as a
+  // client (see CanBeClient()); otherwise it only accepts the medium
+  // NeedToSwitchRole() selected. Cleared when the frame is consumed, when we
+  // host locally instead, on upgrade failure, and on endpoint disconnect /
+  // shutdown.
+  absl::flat_hash_set<std::string> delegated_upgrade_endpoints_;
 
   // Whether the dynamic role switch feature is enabled.
   bool is_dynamic_role_switch_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(

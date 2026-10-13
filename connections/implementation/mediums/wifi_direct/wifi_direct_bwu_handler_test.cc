@@ -80,6 +80,126 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
   handler.reset();
 }
 
+// Verifies that WIFI_DIRECT exposes a role-switch policy that lets a group
+// client join as a client.
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyAcceptsGroupClient) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::MediumRole group_client;
+  group_client.set_support_wifi_direct_group_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanBeClient(group_client));
+}
+
+// Verifies that the WIFI_DIRECT role-switch policy lets a local group owner
+// host for a remote group client.
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyHostsForGroupClient) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::MediumRole group_owner;
+  group_owner.set_support_wifi_direct_group_owner(true);
+  location::nearby::connections::MediumRole group_client;
+  group_client.set_support_wifi_direct_group_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanHost(/*local_role=*/group_owner,
+                              /*remote_role=*/group_client));
+}
+
+// Verifies that the WIFI_DIRECT role-switch policy makes a Windows device ask
+// an Android peer that can be group owner to host, since Windows can't join
+// Android's simplified Wi-Fi Direct group as a client.
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyWindowsDelegatesToAndroidGroupOwner) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_direct_group_owner(true);
+  location::nearby::connections::OsInfo windows;
+  windows.set_type(location::nearby::connections::OsInfo::WINDOWS);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, windows, android, /*is_incoming_connection=*/true);
+
+  EXPECT_TRUE(need_to_switch);
+}
+
+// Verifies that the WIFI_DIRECT role-switch policy never makes an Apple device
+// delegate Wi-Fi Direct hosting, matching the behavior before the role rules
+// moved into the handler (Apple has no Wi-Fi Direct support).
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyAppleDoesNotDelegate) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_direct_group_owner(true);
+  location::nearby::connections::OsInfo apple;
+  apple.set_type(location::nearby::connections::OsInfo::APPLE);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, apple, android, /*is_incoming_connection=*/true);
+
+  EXPECT_FALSE(need_to_switch);
+}
+
+// Verifies that the WIFI_DIRECT role-switch policy disallows hosting a local
+// Wi-Fi Direct Group Owner on an Apple device when dynamic role switching is
+// enabled.
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyAppleCannotHostLocally) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::OsInfo apple;
+  apple.set_type(location::nearby::connections::OsInfo::APPLE);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool allowed = policy->IsLocalHostingAllowed(apple, android);
+
+  EXPECT_FALSE(allowed);
+}
+
+// Verifies that the WIFI_DIRECT role-switch policy allows a non-Apple device
+// (Windows) to host a local Wi-Fi Direct Group Owner.
+TEST_F(WifiDirectTest, GetRoleSwitchPolicyWindowsCanHostLocally) {
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()), nullptr);
+  location::nearby::connections::OsInfo windows;
+  windows.set_type(location::nearby::connections::OsInfo::WINDOWS);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool allowed = policy->IsLocalHostingAllowed(windows, android);
+
+  EXPECT_TRUE(allowed);
+}
+
 TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   CountDownLatch start_latch(1);
   CountDownLatch accept_latch(1);

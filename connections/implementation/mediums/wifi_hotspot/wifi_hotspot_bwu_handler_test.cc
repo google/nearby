@@ -87,6 +87,118 @@ TEST_F(WifiHotspotTest, CanCreateBwuHandler) {
   handler.reset();
 }
 
+// Verifies that WIFI_HOTSPOT exposes a role-switch policy that lets a station
+// client join as a client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAcceptsHotspotClient) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole client;
+  client.set_support_wifi_hotspot_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanBeClient(client));
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy lets a local AP host serve
+// a remote station client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyHostsForHotspotClient) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole host;
+  host.set_support_wifi_hotspot_host(true);
+  location::nearby::connections::MediumRole client;
+  client.set_support_wifi_hotspot_client(true);
+
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+
+  ASSERT_NE(policy, nullptr);
+  EXPECT_TRUE(policy->CanHost(/*local_role=*/host, /*remote_role=*/client));
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy makes an Apple device ask a
+// peer that can host a hotspot to host it, since Apple can only join as a
+// station client.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAppleDelegatesToHotspotHost) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_hotspot_host(true);
+  location::nearby::connections::OsInfo apple;
+  apple.set_type(location::nearby::connections::OsInfo::APPLE);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, apple, android, /*is_incoming_connection=*/true);
+
+  EXPECT_TRUE(need_to_switch);
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy lets a non-Apple device
+// host the hotspot itself even when the peer could host.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyWindowsHostsHotspotLocally) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::MediumRole remote_role;
+  remote_role.set_support_wifi_hotspot_host(true);
+  location::nearby::connections::OsInfo windows;
+  windows.set_type(location::nearby::connections::OsInfo::WINDOWS);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool need_to_switch = policy->NeedToSwitchRole(
+      remote_role, windows, android, /*is_incoming_connection=*/true);
+
+  EXPECT_FALSE(need_to_switch);
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy disallows hosting a local
+// Wi-Fi Hotspot SoftAP on an Apple device when dynamic role switching is
+// enabled.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAppleCannotHostLocally) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::OsInfo apple;
+  apple.set_type(location::nearby::connections::OsInfo::APPLE);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool allowed = policy->IsLocalHostingAllowed(apple, android);
+
+  EXPECT_FALSE(allowed);
+}
+
+// Verifies that the WIFI_HOTSPOT role-switch policy allows a non-Apple device
+// (Android) to host a local Wi-Fi Hotspot SoftAP.
+TEST_F(WifiHotspotTest, GetRoleSwitchPolicyAndroidCanHostLocally) {
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(), nullptr);
+  location::nearby::connections::OsInfo android;
+  android.set_type(location::nearby::connections::OsInfo::ANDROID);
+  location::nearby::connections::OsInfo apple;
+  apple.set_type(location::nearby::connections::OsInfo::APPLE);
+  const BwuHandler::RoleSwitchPolicy* policy =
+      static_cast<BwuHandler&>(handler).GetRoleSwitchPolicy();
+  ASSERT_NE(policy, nullptr);
+
+  const bool allowed = policy->IsLocalHostingAllowed(android, apple);
+
+  EXPECT_TRUE(allowed);
+}
+
 // Verifies that WifiHotspotBwuHandler in the Client (STA) role can join a
 // remote peer's SoftAP and establish an upgraded WIFI_HOTSPOT EndpointChannel.
 TEST_F(WifiHotspotTest, ClientStaRoleJoinsRemoteSoftApIndependently) {

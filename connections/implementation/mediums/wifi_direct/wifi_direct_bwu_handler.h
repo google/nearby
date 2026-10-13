@@ -31,11 +31,31 @@ namespace connections {
 
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
-class WifiDirectBwuHandler : public BaseBwuHandler {
+class WifiDirectBwuHandler : public BaseBwuHandler,
+                             public BwuHandler::RoleSwitchPolicy {
  public:
   WifiDirectBwuHandler(
       WifiDirect* absl_nonnull wifi_direct_medium,
       IncomingConnectionCallback incoming_connection_callback);
+
+  const RoleSwitchPolicy* GetRoleSwitchPolicy() const override { return this; }
+
+  // BwuHandler::RoleSwitchPolicy implementation:
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override;
+
+  bool CanHost(const location::nearby::connections::MediumRole& local_role,
+               const location::nearby::connections::MediumRole& remote_role)
+      const override;
+  bool IsLocalHostingAllowed(
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info)
+      const override;
+  bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const override;
 
  private:
   // Called by BWU target. Retrieves a new medium info from incoming message,
