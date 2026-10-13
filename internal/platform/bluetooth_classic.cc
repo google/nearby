@@ -19,11 +19,11 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
 
@@ -74,7 +74,7 @@ BluetoothSocket BluetoothClassicMedium::ConnectToService(
 
 bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
   LOG(INFO) << "BluetoothClassicMedium::StartDiscovery";
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (discovery_enabled_) {
     LOG(INFO) << "BT Discovery already enabled; impl=" << &GetImpl();
     return false;
@@ -85,7 +85,7 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
       .device_discovered_cb =
           [this](api::BluetoothDevice& device) {
             VLOG(1) << "BT .device_discovered_cb for " << device.GetName();
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             if (!discovery_enabled_) return;
             auto pair = devices_.emplace(
                 &device, std::make_unique<DeviceDiscoveryInfo>());
@@ -105,7 +105,7 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
       .device_name_changed_cb =
           [this](api::BluetoothDevice& device) {
             VLOG(1) << "BT .device_name_changed_cb for " << device.GetName();
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             if (!discovery_enabled_) return;
             // If the device is not already in devices_, we should not be able
             // to change its name.
@@ -120,7 +120,7 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
           [this](api::BluetoothDevice& device) {
             VLOG(1) << "BT .device_lost_cb for "
                     << device.GetMacAddress().ToString();
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             if (!discovery_enabled_) return;
             auto item = devices_.extract(&device);
             if (!item) {
@@ -146,7 +146,7 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
 
 bool BluetoothClassicMedium::StopDiscovery() {
   LOG(INFO) << "BT StopDiscovery; impl=" << &GetImpl();
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!discovery_enabled_) return true;
   discovery_enabled_ = false;
   discovery_callback_ = {};

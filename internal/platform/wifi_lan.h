@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -35,7 +36,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/service_address.h"
@@ -278,7 +278,7 @@ class WifiLanMedium {
       const WifiLanServerSocket& server_socket);
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::WifiLanMedium> impl_;
 
   // Used to keep the map from service type to discovery callback.

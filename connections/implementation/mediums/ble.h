@@ -28,6 +28,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/mediums/ble/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
@@ -45,8 +46,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
@@ -226,13 +225,13 @@ class Ble final {
 
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_.IsValid();
   }
 
   // Returns true if the BLE device support extended advertisement.
   bool IsExtendedAdvertisementsAvailable() ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_.IsExtendedAdvertisementsAvailable();
   };
 
@@ -242,7 +241,7 @@ class Ble final {
   // as string format like "0C:24:7A:3E:6E:5F".
   std::optional<BlePeripheral> RetrieveBlePeripheralFromNativeId(
       const std::string& ble_peripheral_native_id) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_.RetrieveBlePeripheralFromNativeId(ble_peripheral_native_id);
   }
 
@@ -334,7 +333,7 @@ class Ble final {
   SingleThreadExecutor serial_executor_;
   ScheduledExecutor alarm_executor_;
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   BleMedium medium_ ABSL_GUARDED_BY(mutex_){adapter_};

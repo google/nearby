@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_WEAVE_PACKET_SEQUENCE_NUMBER_GENERATOR_H_
 
 #include "absl/base/thread_annotations.h"
-#include "internal/platform/mutex.h"
+#include "absl/synchronization/mutex.h"
 
 namespace nearby {
 namespace weave {
@@ -35,7 +35,7 @@ class PacketSequenceNumberGenerator {
   void Reset();
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   int packet_counter_ ABSL_GUARDED_BY(mutex_) = 0;
 };
 

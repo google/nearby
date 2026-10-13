@@ -23,12 +23,12 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
@@ -94,7 +94,7 @@ class WifiHotspot {
       BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  private:
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
   // Same as IsAvailable(), but must be called with mutex_ held.

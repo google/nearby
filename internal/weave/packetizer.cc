@@ -19,15 +19,15 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/weave/packet.h"
 
 namespace nearby {
 namespace weave {
 
 absl::Status Packetizer::AddPacket(Packet packet) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (is_message_complete_) {
     return absl::InvalidArgumentError(
         "Call GetMessage() first to retrieve message before adding another "
@@ -50,7 +50,7 @@ absl::Status Packetizer::AddPacket(Packet packet) {
 }
 
 absl::StatusOr<ByteArray> Packetizer::TakeMessage() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_message_complete_) {
     return absl::UnavailableError(
         "Full message is not available, no last packet added yet.");
@@ -62,7 +62,7 @@ absl::StatusOr<ByteArray> Packetizer::TakeMessage() {
 }
 
 void Packetizer::Reset() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   pending_payloads_.clear();
   is_message_complete_ = false;
 }

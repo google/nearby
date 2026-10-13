@@ -20,11 +20,11 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
@@ -69,7 +69,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
                                 const std::string& service_type,
                                 DiscoveredServiceCallback callback) {
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (service_type_to_callback_map_.contains(service_type)) {
       LOG(INFO) << "Awdl Discovery already start with service_type="
                 << service_type << "; impl=" << &GetImpl();
@@ -79,7 +79,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
   api::AwdlMedium::DiscoveredServiceCallback api_callback = {
       .service_discovered_cb =
           [this](const NsdServiceInfo& service_info) {
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             std::string service_type = service_info.GetServiceType();
             // Check callback for the service type.
             const auto& it = service_type_to_callback_map_.find(service_type);
@@ -118,7 +118,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
           },
       .service_lost_cb =
           [this](const NsdServiceInfo& service_info) {
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             std::string service_type = service_info.GetServiceType();
             std::string service_name = service_info.GetServiceName();
             auto services_it = service_type_to_services_map_.find(service_type);
@@ -145,7 +145,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
   };
   {
     // Insert callback to the map first no matter it succeeds or not.
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto pair = service_type_to_callback_map_.insert(
         {service_type, std::make_unique<DiscoveryCallbackInfo>()});
     auto& context = *pair.first->second;
@@ -161,7 +161,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
   bool success = impl_->StartDiscovery(service_type, std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     service_type_to_callback_map_.erase(service_type);
     service_type_to_services_map_.erase(service_type);
   }
@@ -171,7 +171,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_id,
 }
 
 bool AwdlMedium::StopDiscovery(const std::string& service_type) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!service_type_to_callback_map_.contains(service_type)) {
     return false;
   }

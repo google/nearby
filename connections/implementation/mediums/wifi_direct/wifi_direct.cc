@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
@@ -29,7 +30,6 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_direct.h"
 
@@ -60,7 +60,7 @@ WifiDirect::~WifiDirect() {
 }
 
 bool WifiDirect::IsGOAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsGOAvailableLocked();
 }
@@ -71,7 +71,7 @@ bool WifiDirect::IsGOAvailableLocked() const {
 }
 
 bool WifiDirect::IsGCAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsGCAvailableLocked();
 }
@@ -82,7 +82,7 @@ bool WifiDirect::IsGCAvailableLocked() const {
 }
 
 bool WifiDirect::IsGOStarted() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return is_go_started_;
 }
@@ -90,7 +90,7 @@ bool WifiDirect::IsGOStarted() {
 // Call the Medium to start a softAP and send beacon for Client to scan and
 // connect
 bool WifiDirect::StartWifiDirect() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (is_go_started_) {
     LOG(INFO) << "No need to start GO because it is already started.";
     return true;
@@ -100,7 +100,7 @@ bool WifiDirect::StartWifiDirect() {
 }
 
 bool WifiDirect::StopWifiDirect() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_go_started_) {
     LOG(INFO) << "No need to stop GO because it is not started.";
     return true;
@@ -111,14 +111,14 @@ bool WifiDirect::StopWifiDirect() {
 }
 
 bool WifiDirect::IsConnectedToGO() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return is_connected_to_go_;
 }
 
 bool WifiDirect::ConnectWifiDirect(
     const WifiDirectCredentials& wifi_direct_credentials) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (is_connected_to_go_) {
     LOG(INFO) << "No need to connect to GO because it is already connected.";
     return true;
@@ -128,7 +128,7 @@ bool WifiDirect::ConnectWifiDirect(
 }
 
 bool WifiDirect::DisconnectWifiDirect() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connected_to_go_) {
     LOG(INFO) << "No need to disconnect to GO because it is not connected.";
     return true;
@@ -139,7 +139,7 @@ bool WifiDirect::DisconnectWifiDirect() {
 
 WifiDirectCredentials* WifiDirect::GetCredentials(
     absl::string_view service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   WifiDirectCredentials* crendential = medium_.GetCredential();
   CHECK(crendential);
 
@@ -155,7 +155,7 @@ WifiDirectCredentials* WifiDirect::GetCredentials(
 
 bool WifiDirect::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not to start accepting WifiDirect GC's connections; "
@@ -219,7 +219,7 @@ bool WifiDirect::StartAcceptingConnections(
 }
 
 bool WifiDirect::StopAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Unable to stop accepting WifiDirect GC's connections because "
@@ -260,7 +260,7 @@ bool WifiDirect::StopAcceptingConnections(const std::string& service_id) {
 }
 
 bool WifiDirect::IsAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
@@ -271,7 +271,7 @@ bool WifiDirect::IsAcceptingConnectionsLocked(const std::string& service_id) {
 ErrorOr<std::unique_ptr<EndpointChannel>> WifiDirect::Connect(
     const std::string& service_id, const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client WifiDirect socket because "
@@ -317,7 +317,7 @@ bool WifiDirect::SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) {
 
 std::unique_ptr<BwuHandler> WifiDirect::CreateBwuHandler(
     BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return std::make_unique<WifiDirectBwuHandler>(
       this, std::move(incoming_connection_callback));
 }

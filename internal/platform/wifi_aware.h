@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -32,7 +33,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/wifi_aware_service_info.h"
@@ -178,7 +178,7 @@ class WifiAwareMedium final {
     absl::flat_hash_set<std::string> services;
   };
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   std::unique_ptr<api::WifiAwareMedium> impl_;
   // A map from service type to its discovery callback and discovered services.
   absl::flat_hash_map<std::string, DiscoveryCallbackInfo>

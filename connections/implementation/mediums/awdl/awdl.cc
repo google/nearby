@@ -23,6 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
@@ -36,7 +37,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 
 namespace nearby {
@@ -67,7 +67,7 @@ Awdl::~Awdl() {
 }
 
 bool Awdl::IsAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsAvailableLocked();
 }
@@ -76,7 +76,7 @@ bool Awdl::IsAvailableLocked() const { return medium_.IsValid(); }
 
 ErrorOr<bool> Awdl::StartAdvertising(const std::string& service_id,
                                      NsdServiceInfo& nsd_service_info) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't turn on Awdl advertising. Awdl is not available.";
@@ -130,7 +130,7 @@ ErrorOr<bool> Awdl::StartAdvertising(const std::string& service_id,
 }
 
 bool Awdl::StopAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAdvertisingLocked(service_id)) {
     LOG(INFO) << "Can't turn off Awdl advertising; it is already off";
@@ -147,7 +147,7 @@ bool Awdl::StopAdvertising(const std::string& service_id) {
 }
 
 bool Awdl::IsAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsAdvertisingLocked(service_id);
 }
@@ -158,7 +158,7 @@ bool Awdl::IsAdvertisingLocked(const std::string& service_id) {
 
 ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
                                    DiscoveredServiceCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to start Awdl discovering with empty service_id.";
@@ -193,7 +193,7 @@ ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
 }
 
 bool Awdl::StopDiscovery(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsDiscoveringLocked(service_id)) {
     LOG(INFO) << "Can't turn off Awdl discovering because we never started "
@@ -211,7 +211,7 @@ bool Awdl::StopDiscovery(const std::string& service_id) {
 }
 
 bool Awdl::IsDiscovering(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsDiscoveringLocked(service_id);
 }
 
@@ -222,7 +222,7 @@ bool Awdl::IsDiscoveringLocked(const std::string& service_id) {
 ErrorOr<bool> Awdl::StartAcceptingConnections(
     const std::string& service_id, const std::string& channel_name,
     AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return InternalStartAcceptingConnections(service_id, channel_name,
                                            std::nullopt, std::move(callback));
 }
@@ -230,7 +230,7 @@ ErrorOr<bool> Awdl::StartAcceptingConnections(
 ErrorOr<bool> Awdl::StartAcceptingConnections(
     const std::string& service_id, const std::string& channel_name,
     const api::PskInfo& psk_info, AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   ErrorOr<bool> result = InternalStartAcceptingConnections(
       service_id, channel_name, psk_info, std::move(callback));
 
@@ -242,7 +242,7 @@ ErrorOr<bool> Awdl::StartAcceptingConnections(
 }
 
 bool Awdl::StopAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Unable to stop accepting Awdl connections because "
@@ -285,7 +285,7 @@ bool Awdl::StopAcceptingConnections(const std::string& service_id) {
 }
 
 bool Awdl::IsAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
@@ -296,7 +296,7 @@ bool Awdl::IsAcceptingConnectionsLocked(const std::string& service_id) {
 ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::Connect(
     const std::string& service_id, const std::string& channel_name,
     const NsdServiceInfo& service_info, CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return InternalConnect(service_id, channel_name, service_info, std::nullopt,
                          cancellation_flag);
 }
@@ -304,13 +304,13 @@ ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::Connect(
 ErrorOr<std::unique_ptr<EndpointChannel>> Awdl::Connect(
     const std::string& service_id, const NsdServiceInfo& service_info,
     const api::PskInfo& psk_info, CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return InternalConnect(service_id, /*channel_name=*/service_id, service_info,
                          psk_info, cancellation_flag);
 }
 
 Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   AwdlCredential credential{};
   NsdServiceInfo* service_info = advertising_info_.GetServiceInfo(service_id);
   if (service_info == nullptr || !service_info->IsValid() ||

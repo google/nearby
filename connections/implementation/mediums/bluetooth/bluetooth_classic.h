@@ -22,6 +22,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
@@ -32,7 +33,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace connections {
@@ -103,13 +103,13 @@ class BluetoothClassic : public BluetoothClassicInterface {
 
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_->IsValid();
   }
 
   // Returns true if this object has a valid BluetoothAdapter reference.
   bool IsAdapterValid() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return adapter_.IsValid();
   }
 
@@ -208,7 +208,7 @@ class BluetoothClassic : public BluetoothClassicInterface {
   void RemoveAllDiscoveryCallbacks()
       ABSL_LOCKS_EXCLUDED(discovery_callbacks_mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   BluetoothRadio& radio_ ABSL_GUARDED_BY(mutex_);
   BluetoothAdapter& adapter_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<BluetoothClassicMedium> medium_ ABSL_GUARDED_BY(mutex_);
@@ -237,7 +237,7 @@ class BluetoothClassic : public BluetoothClassicInterface {
       ABSL_GUARDED_BY(mutex_);
 
   // A map of service ID to discovery callback.
-  mutable Mutex discovery_callbacks_mutex_;
+  mutable absl::Mutex discovery_callbacks_mutex_;
   absl::flat_hash_map<std::string, DiscoveredDeviceCallback>
       discovery_callbacks_ ABSL_GUARDED_BY(discovery_callbacks_mutex_);
 };

@@ -22,6 +22,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -245,7 +246,7 @@ class EndpointChannelManager final {
       std::shared_ptr<EndpointChannel> channel, bool enable_encryption)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   ChannelState channel_state_ ABSL_GUARDED_BY(mutex_);
 };
 

@@ -63,5 +63,6 @@ cc_library(
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
     ],
 )

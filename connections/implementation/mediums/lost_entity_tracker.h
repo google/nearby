@@ -15,9 +15,9 @@
 #ifndef CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_LOST_ENTITY_TRACKER_H_
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
+#include "absl/synchronization/mutex.h"
 
 namespace nearby {
 namespace connections {
@@ -46,7 +46,7 @@ class LostEntityTracker {
   EntitySet ComputeLostEntities() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   EntitySet current_entities_ ABSL_GUARDED_BY(mutex_);
   EntitySet previously_found_entities_ ABSL_GUARDED_BY(mutex_);
 };
@@ -63,7 +63,7 @@ LostEntityTracker<Entity>::~LostEntityTracker() {
 
 template <typename Entity>
 void LostEntityTracker<Entity>::RecordFoundEntity(const Entity& entity) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   current_entities_.insert(entity);
 }
@@ -71,7 +71,7 @@ void LostEntityTracker<Entity>::RecordFoundEntity(const Entity& entity) {
 template <typename Entity>
 typename LostEntityTracker<Entity>::EntitySet
 LostEntityTracker<Entity>::ComputeLostEntities() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // The set of lost entities is the previously found set MINUS the currently
   // found set.

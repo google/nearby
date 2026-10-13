@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -38,7 +39,7 @@ const absl::Duration kDataTransferDelay = absl::Milliseconds(500);
 
 EndpointChannelManager::~EndpointChannelManager() {
   LOG(INFO) << "Initiating shutdown of EndpointChannelManager.";
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   channel_state_.DestroyAll();
   LOG(INFO) << "EndpointChannelManager has shut down.";
 }
@@ -46,7 +47,7 @@ EndpointChannelManager::~EndpointChannelManager() {
 void EndpointChannelManager::RegisterChannelForEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
     std::shared_ptr<EndpointChannel> channel) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   LOG(INFO) << "EndpointChannelManager registered channel of type "
             << channel->GetType() << " to endpoint " << endpoint_id;
@@ -61,7 +62,7 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
 void EndpointChannelManager::ReplaceChannelForEndpoint(
     ClientProxy* client, const std::string& endpoint_id,
     std::shared_ptr<EndpointChannel> channel, bool enable_encryption) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::shared_ptr<ChannelState::EndpointData> endpoint =
       channel_state_.GetEndpointData(endpoint_id);
@@ -87,7 +88,7 @@ void EndpointChannelManager::ReplaceChannelForEndpoint(
 bool EndpointChannelManager::EncryptChannelForEndpoint(
     const std::string& endpoint_id,
     std::unique_ptr<EncryptionContext> context) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::shared_ptr<ChannelState::EndpointData> endpoint =
       channel_state_.GetEndpointData(endpoint_id);
@@ -102,7 +103,7 @@ bool EndpointChannelManager::EncryptChannelForEndpoint(
 
 std::shared_ptr<EndpointChannel> EndpointChannelManager::GetChannelForEndpoint(
     absl::string_view endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::shared_ptr<ChannelState::EndpointData> endpoint =
       channel_state_.GetEndpointData(endpoint_id);
@@ -133,23 +134,23 @@ void EndpointChannelManager::SetActiveEndpointChannel(
 }
 
 int EndpointChannelManager::GetConnectedEndpointsCount() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return channel_state_.GetConnectedEndpointsCount();
 }
 
 bool EndpointChannelManager::isWifiLanConnected() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return channel_state_.isWifiLanConnected();
 }
 
 bool EndpointChannelManager::isWifiAwareConnected() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return channel_state_.isWifiAwareConnected();
 }
 
 void EndpointChannelManager::UpdateSafeToDisconnectForEndpoint(
     const std::string& endpoint_id, bool safe_to_disconnect_enabled) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   channel_state_.UpdateSafeToDisconnectForEndpoint(endpoint_id,
                                                    safe_to_disconnect_enabled);
 }
@@ -157,7 +158,7 @@ void EndpointChannelManager::UpdateSafeToDisconnectForEndpoint(
 void EndpointChannelManager::MarkEndpointStopWaitToDisconnect(
     absl::string_view endpoint_id, bool is_safe_to_disconnect,
     bool notify_stop_waiting) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   channel_state_.MarkEndpointStopWaitToDisconnect(
       endpoint_id, is_safe_to_disconnect, notify_stop_waiting);
 }
@@ -166,7 +167,7 @@ bool EndpointChannelManager::CreateNewTimeoutDisconnectedState(
     absl::string_view endpoint_id, absl::Duration timeout_millis) {
   std::shared_ptr<ChannelState::EndpointData> endpoint_data;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     endpoint_data = channel_state_.GetEndpointData(endpoint_id);
   }
   if (!endpoint_data) return false;
@@ -179,20 +180,20 @@ bool EndpointChannelManager::CreateNewTimeoutDisconnectedState(
 }
 
 bool EndpointChannelManager::IsSafeToDisconnect(absl::string_view endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return channel_state_.IsSafeToDisconnect(endpoint_id);
 }
 
 bool EndpointChannelManager::IsWaitingForSafeToDisconnectTimeoutForTesting(
     absl::string_view endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return channel_state_.IsWaitingForSafeToDisconnectTimeoutForTesting(
       endpoint_id);
 }
 
 void EndpointChannelManager::RemoveTimeoutDisconnectedState(
     absl::string_view endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   channel_state_.RemoveTimeoutDisconnectedState(endpoint_id);
 }
 
@@ -405,7 +406,7 @@ void EndpointChannelManager::ChannelState::RemoveTimeoutDisconnectedState(
 bool EndpointChannelManager::UnregisterChannelForEndpoint(
     absl::string_view endpoint_id, DisconnectionReason reason,
     SafeDisconnectionResult result) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!channel_state_.RemoveEndpoint(endpoint_id, reason)) {
     return false;

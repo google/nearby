@@ -80,7 +80,6 @@
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
