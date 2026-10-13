@@ -75,6 +75,12 @@ class WifiLanBwuHandlerTest : public ::testing::Test {
   WifiLanBwuHandler handler_;
 };
 
+// Verifies that WIFI_LAN, which has no distinct host and client roles, exposes
+// no role-switch policy, so BwuManager never asks it role questions.
+TEST_F(WifiLanBwuHandlerTest, GetRoleSwitchPolicyReturnsNull) {
+  EXPECT_EQ(static_cast<BwuHandler&>(handler_).GetRoleSwitchPolicy(), nullptr);
+}
+
 TEST_F(WifiLanBwuHandlerTest,
        CreateUpgradedEndpointChannel_EmptyPathInfo_Fails) {
   ClientProxy client;

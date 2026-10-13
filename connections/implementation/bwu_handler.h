@@ -85,6 +85,69 @@ class BwuHandler {
   virtual location::nearby::proto::connections::Medium GetUpgradeMedium()
       const = 0;
 
+  // Answers the host/client role questions BwuManager asks during dynamic role
+  // switching for an upgrade medium that has distinct host and client roles
+  // (Wi-Fi Direct group owner/client, Wi-Fi Hotspot AP/station, Wi-Fi Aware
+  // publisher/subscriber).
+  class RoleSwitchPolicy {
+   public:
+    virtual ~RoleSwitchPolicy() = default;
+
+    // Returns true if a device whose supported roles are `role` can join this
+    // medium as a client. BwuManager passes the local device's roles to decide
+    // whether a delegated advertiser accepts an UPGRADE_PATH_AVAILABLE frame
+    // for this medium from the remote host.
+    virtual bool CanBeClient(
+        const location::nearby::connections::MediumRole& role) const = 0;
+
+    // Returns true if the local device, whose supported roles are
+    // `local_role`, can host this medium for a remote device whose reported
+    // roles are `remote_role`. BwuManager uses this to pick a medium to host
+    // when the remote device sends UPGRADE_PATH_REQUEST.
+    virtual bool CanHost(
+        const location::nearby::connections::MediumRole& local_role,
+        const location::nearby::connections::MediumRole& remote_role) const = 0;
+
+    // Returns true if the local device on `local_os_info` is allowed to host
+    // this medium locally for a peer on `remote_os_info` when dynamic role
+    // switching is enabled. Unlike CanHost() (which checks MediumRole
+    // capability bits when answering an incoming UPGRADE_PATH_REQUEST) and
+    // NeedToSwitchRole() (which makes a direction-dependent decision to send
+    // UPGRADE_PATH_REQUEST), this encodes OS-pair local-hosting constraints in
+    // StripOutUnavailableMediums that hold regardless of connection direction
+    // (advertiser vs. discoverer).
+    virtual bool IsLocalHostingAllowed(
+        const location::nearby::connections::OsInfo& local_os_info,
+        const location::nearby::connections::OsInfo& remote_os_info) const = 0;
+
+    // Returns true if the local device should ask the remote device to host
+    // this medium (by sending UPGRADE_PATH_REQUEST) instead of hosting it
+    // locally, for example because the local OS can only join it as a client.
+    //   `remote_medium_role`: the roles reported by the remote device.
+    //   `local_os_info` / `remote_os_info`: the OS of the local / remote
+    //     device.
+    //   `is_incoming_connection`: true if the remote device initiated the
+    //     connection, i.e. the local device is the advertiser.
+    virtual bool NeedToSwitchRole(
+        const location::nearby::connections::MediumRole& remote_medium_role,
+        const location::nearby::connections::OsInfo& local_os_info,
+        const location::nearby::connections::OsInfo& remote_os_info,
+        bool is_incoming_connection) const = 0;
+  };
+
+  // Returns this medium's role-switch policy, or nullptr if the medium has no
+  // distinct host and client roles. The returned policy is not owned by the
+  // caller and lives as long as this handler.
+  //
+  // Mediums without distinct host and client roles (WIFI_LAN, AWDL, WEB_RTC,
+  // and BLUETOOTH) return nullptr. BwuManager never asks them role questions:
+  // it never delegates hosting them, never hosts them in response to an
+  // UPGRADE_PATH_REQUEST, and a delegated advertiser ignores an
+  // UPGRADE_PATH_AVAILABLE frame for them.
+  virtual const RoleSwitchPolicy* GetRoleSwitchPolicy() const {
+    return nullptr;
+  }
+
   virtual void OnEndpointDisconnect(ClientProxy* client,
                                     const std::string& endpoint_id) = 0;
 };

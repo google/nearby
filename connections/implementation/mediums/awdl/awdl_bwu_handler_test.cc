@@ -366,6 +366,13 @@ TEST_F(AwdlBwuHandlerTest, GetUpgradeMedium_ReturnsAwdl) {
             location::nearby::proto::connections::Medium::AWDL);
 }
 
+// Verifies that AWDL, which has no distinct host and client roles, exposes no
+// role-switch policy, so BwuManager never asks it role questions.
+TEST_F(AwdlBwuHandlerTest, GetRoleSwitchPolicyReturnsNull) {
+  EXPECT_EQ(static_cast<BwuHandler*>(&handler_)->GetRoleSwitchPolicy(),
+            nullptr);
+}
+
 TEST_F(AwdlBwuHandlerTest, OnEndpointDisconnect_DoesNotCrash) {
   ClientProxy client;
   auto* bwu_handler = static_cast<BwuHandler*>(&handler_);
