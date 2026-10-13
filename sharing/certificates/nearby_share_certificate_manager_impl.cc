@@ -377,7 +377,6 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
       });
 }
 
-
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
     QuerySharedCredentialsWithBindingIdsFetchNextPage() {
   LOG(INFO) << __func__
@@ -439,12 +438,11 @@ bool NearbyShareCertificateManagerImpl::UpdatePublicCertificates(
   // Save certificates to store.
   absl::Notification notification;
   bool is_added_to_store = false;
-  certificate_storage_->AddPublicCertificates(
-      absl::MakeSpan(certificates.data(), certificates.size()),
-      [&](bool success) {
-        is_added_to_store = success;
-        notification.Notify();
-      });
+  certificate_storage_->AddPublicCertificates(absl::MakeSpan(certificates),
+                                              [&](bool success) {
+                                                is_added_to_store = success;
+                                                notification.Notify();
+                                              });
   notification.WaitForNotification();
   if (!is_added_to_store) {
     LOG(ERROR) << "Failed to add certificates to store.";
@@ -901,8 +899,7 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
     }
   }
 
-  certificate_storage_->ReplacePrivateCertificates(
-      absl::MakeSpan(certs.data(), certs.size()));
+  certificate_storage_->ReplacePrivateCertificates(absl::MakeSpan(certs));
   NotifyPrivateCertificatesChanged();
   // force_contacts_update_scheduler_ should only be updated if
   // force_update_contacts is true, otherwise we could miss the 24hr contact

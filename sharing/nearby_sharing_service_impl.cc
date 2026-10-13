@@ -332,9 +332,8 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
         OnLockStateChanged(screen_status ==
                            nearby::api::DeviceInfo::ScreenStatus::kLocked);
       });
-  suspend_resume_listener_id_ =
-      device_info_.RegisterSuspendResumeListener(absl::bind_front(
-          &NearbySharingServiceImpl::OnSuspendResumeEvent, this));
+  suspend_resume_listener_id_ = device_info_.RegisterSuspendResumeListener(
+      absl::bind_front(&NearbySharingServiceImpl::OnSuspendResumeEvent, this));
 
   account_manager_.AddObserver(this);
   settings_->AddSettingsObserver(this);
@@ -1432,6 +1431,11 @@ void NearbySharingServiceImpl::OnSuspendResumeEvent(
             }
             LOG(INFO) << "InvalidateSurfaceState due to system resume";
             InvalidateSurfaceState();
+            LOG(INFO) << "Reschedule schedulers due to system resume";
+            certificate_manager_->StopScheduledTasks();
+            if (account_manager_.GetCurrentAccount().has_value()) {
+              certificate_manager_->StartScheduledTasks();
+            }
           });
     }
   }
