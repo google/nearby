@@ -28,6 +28,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
@@ -49,8 +50,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -227,7 +226,7 @@ class DiscoveredPeripheralTrackerTest
       const BleAdvertisementHeader& header,
       const BleAdvertisement& advertisement_1,
       const BleAdvertisement& advertisement_2) {
-    MutexLock lock(&discovered_peripheral_tracker_->mutex_);
+    absl::MutexLock lock(discovered_peripheral_tracker_->mutex_);
     ByteArray advertisement_bytes_1 = advertisement_1.ByteArrayWithExtraField();
     ByteArray advertisement_bytes_2 = advertisement_2.ByteArrayWithExtraField();
     std::vector<const ByteArray*> gatt_advertisement_bytes_list = {
@@ -254,7 +253,7 @@ class DiscoveredPeripheralTrackerTest
 
   bool CallHandleOnLostAdvertisementLocked(
       const api::ble::BleAdvertisementData& advertisement_data) {
-    MutexLock lock(&discovered_peripheral_tracker_->mutex_);
+    absl::MutexLock lock(discovered_peripheral_tracker_->mutex_);
     return discovered_peripheral_tracker_->HandleOnLostAdvertisementLocked(
         advertisement_data);
   }
@@ -310,7 +309,7 @@ class DiscoveredPeripheralTrackerTest
   }
 
   int GetFetchAdvertisementCallbackCount() const {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return fetch_count_;
   }
 
@@ -323,7 +322,7 @@ class DiscoveredPeripheralTrackerTest
                BlePeripheral peripheral, int num_slots, int psm,
                const std::vector<std::string>& interesting_service_ids,
                mediums::AdvertisementReadResult& advertisement_read_result) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       fetch_count_++;
       int slot = 0;
       for (const auto& advertisement_bytes : advertisement_bytes_list) {
@@ -344,7 +343,7 @@ class DiscoveredPeripheralTrackerTest
                BlePeripheral peripheral, int num_slots, int psm,
                const std::vector<std::string>& interesting_service_ids,
                mediums::AdvertisementReadResult& advertisement_read_result) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       fetch_count_++;
       int slot = 0;
       // In real environment, the GATT fetch may run about 3-5 seconds.
@@ -362,7 +361,7 @@ class DiscoveredPeripheralTrackerTest
   std::unique_ptr<BluetoothAdapter> adapter_central_;
   std::unique_ptr<BleMedium> ble_peripheral_;
   std::unique_ptr<BleMedium> ble_central_;
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   int fetch_count_ ABSL_GUARDED_BY(mutex_) = 0;
   std::unique_ptr<DiscoveredPeripheralTracker> discovered_peripheral_tracker_;
 };

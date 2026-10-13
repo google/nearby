@@ -26,6 +26,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/mediums//lost_entity_tracker.h"
 #include "connections/implementation/mediums/ble/advertisement_read_result.h"
@@ -113,7 +114,7 @@ class DiscoveredPeripheralTracker {
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
 
   void StartFetchExecutorForTesting() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     StartFetchExecutorIfNeeded();
   }
 
@@ -320,7 +321,7 @@ class DiscoveredPeripheralTracker {
   void RemoveExpiredInstantLostAdvertisements()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   const bool is_extended_advertisement_available_;
   const bool start_fetch_executor_;
 

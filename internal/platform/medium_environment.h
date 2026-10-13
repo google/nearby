@@ -26,26 +26,26 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/mac_address.h"
-#include "internal/platform/runnable.h"
-#include "internal/platform/uuid.h"
-#include "internal/test/fake_clock.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/mutex.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/uuid.h"
 #include "internal/platform/wifi_credential.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 
@@ -503,7 +503,7 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::AwdlMedium*, AwdlMediumContext> awdl_mediums_;
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   absl::flat_hash_map<api::WifiDirectMedium*, WifiDirectMediumContext>
       wifi_direct_mediums_ ABSL_GUARDED_BY(mutex_);
 

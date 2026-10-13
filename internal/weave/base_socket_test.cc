@@ -26,8 +26,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/weave/connection.h"
 #include "internal/weave/packet.h"
 #include "internal/weave/socket_callback.h"
@@ -125,17 +123,17 @@ class BaseSocketTest : public ::testing::Test {
         socket_(connection_, SocketCallback{
                                  .on_connected_cb =
                                      [this]() {
-                                       MutexLock lock(&mutex_);
+                                       absl::MutexLock lock(mutex_);
                                        connected_ = true;
                                      },
                                  .on_disconnected_cb =
                                      [this]() {
-                                       MutexLock lock(&mutex_);
+                                       absl::MutexLock lock(mutex_);
                                        connected_ = false;
                                      },
                                  .on_receive_cb =
                                      [this](std::string message) {
-                                       MutexLock lock(&mutex_);
+                                       absl::MutexLock lock(mutex_);
                                        messages_read_.push_back(message);
                                      },
                                  .on_error_cb =
@@ -159,7 +157,7 @@ class BaseSocketTest : public ::testing::Test {
   }
 
  protected:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   FakeConnection connection_;
   FakeSocket socket_;
   bool connected_ ABSL_GUARDED_BY(mutex_) = true;
@@ -195,7 +193,7 @@ TEST_F(BaseSocketTest, TestDisconnect) {
   EXPECT_EQ(connection_.PollWrittenPacket(),
             Packet::CreateErrorPacket().GetBytes());
   EXPECT_TRUE(connection_.NoMorePackets());
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -209,7 +207,7 @@ TEST_F(BaseSocketTest, TestDisconnectTwice) {
   EXPECT_EQ(connection_.PollWrittenPacket(),
             Packet::CreateErrorPacket().GetBytes());
   EXPECT_TRUE(connection_.NoMorePackets());
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -365,7 +363,7 @@ TEST_F(BaseSocketTest, TestOnTransmitFailure) {
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_THAT(error_status_,
               testing::status::StatusIs(absl::StatusCode::kInternal));
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   EXPECT_FALSE(connected_);
 }
 
@@ -483,7 +481,7 @@ TEST_F(BaseSocketTest, TestDisconnectOnBadDataPacketCounter) {
   connection_.OnRemoteTransmitProxy(bad_packet.GetBytes());
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_FALSE(socket_.IsConnected());
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   EXPECT_FALSE(connected_);
 }
 

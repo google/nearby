@@ -18,10 +18,9 @@
 #include <memory>
 #include <type_traits>
 
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
@@ -59,24 +58,24 @@ class AtomicReference<T,
     final {
  public:
   explicit AtomicReference(T value) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     value_ = std::move(value);
   }
   void Set(T value) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     value_ = std::move(value);
   }
   T Get() const& {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return value_;
   }
   T&& Get() const&& {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return std::move(value_);
   }
 
  private:
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   T value_;
 };
 

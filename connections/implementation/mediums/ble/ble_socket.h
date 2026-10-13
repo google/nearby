@@ -21,11 +21,11 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
@@ -403,7 +403,7 @@ class BleSocket final {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   Exception CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   SingleThreadExecutor serial_executor_;
 
   const ByteArray service_id_hash_;

@@ -21,6 +21,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -121,17 +122,17 @@ class BaseEndpointChannel : public EndpointChannel {
 
   // We need a separate mutex to protect read timestamp, because if a read
   // blocks on IO, we don't want timestamp read access to block too.
-  mutable Mutex last_read_mutex_;
+  mutable absl::Mutex last_read_mutex_;
   absl::Time last_read_timestamp_ ABSL_GUARDED_BY(last_read_mutex_) =
       absl::InfinitePast();
 
   // We need a separate mutex to protect write timestamp, because if a write
   // blocks on IO, we don't want timestamp write access to block too.
-  mutable Mutex last_write_mutex_;
+  mutable absl::Mutex last_write_mutex_;
   absl::Time last_write_timestamp_ ABSL_GUARDED_BY(last_write_mutex_) =
       absl::InfinitePast();
 
-  mutable Mutex keep_alive_mutex_;
+  mutable absl::Mutex keep_alive_mutex_;
   mutable uint32_t next_keep_alive_seq_no_ ABSL_GUARDED_BY(keep_alive_mutex_) =
       0;
 
@@ -143,14 +144,14 @@ class BaseEndpointChannel : public EndpointChannel {
 
   // The reader and writer are synchronized independently since we can't have
   // writes waiting on reads that might potentially block forever.
-  Mutex reader_mutex_;
+  absl::Mutex reader_mutex_;
   InputStream* reader_ ABSL_PT_GUARDED_BY(reader_mutex_);
 
-  Mutex writer_mutex_;
+  absl::Mutex writer_mutex_;
   OutputStream* writer_ ABSL_PT_GUARDED_BY(writer_mutex_);
 
   // An encryptor/decryptor. May be null.
-  mutable Mutex crypto_mutex_;
+  mutable absl::Mutex crypto_mutex_;
   std::shared_ptr<EncryptionContext> crypto_context_
       ABSL_GUARDED_BY(crypto_mutex_);
 

@@ -21,11 +21,10 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace network {
@@ -39,22 +38,22 @@ class HttpClient {
     ~CancellableRequest() = default;
 
     bool is_cancelled() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       return is_cancelled_;
     }
 
     void cancel() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_cancelled_ = true;
     }
 
     const HttpRequest& http_request() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       return http_request_;
     }
 
    private:
-    Mutex mutex_;
+    absl::Mutex mutex_;
     bool is_cancelled_ ABSL_GUARDED_BY(mutex_) = false;
     HttpRequest http_request_ ABSL_GUARDED_BY(mutex_);
   };

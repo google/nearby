@@ -24,13 +24,13 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_lan.h"
@@ -203,7 +203,7 @@ class WifiLan {
   int GeneratePort(const std::string& service_id,
                    std::pair<std::int32_t, std::int32_t> port_range);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   WifiLanMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);

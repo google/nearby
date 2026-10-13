@@ -23,6 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/network/debug.h"
 #include "internal/network/http_request.h"
@@ -31,7 +32,6 @@
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -40,7 +40,7 @@ namespace network {
 void NearbyHttpClient::StartRequest(
     const HttpRequest& request, absl::Duration timeout,
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   executor_.Execute([request = std::move(request),
                      callback = std::move(callback), timeout]() mutable {
     LOG(INFO) << __func__ << ": Start async request to url="
@@ -68,7 +68,7 @@ void NearbyHttpClient::StartCancellableRequest(
     std::unique_ptr<CancellableRequest> cancellable_request,
     absl::Duration timeout,
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (cancellable_request == nullptr) {
     LOG(ERROR) << __func__ << ": invalid cancellable request.";
     callback(absl::InvalidArgumentError("invalid cancellable request"));

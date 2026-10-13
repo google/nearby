@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/cancelable.h"
@@ -29,8 +30,6 @@
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/lockable.h"
 #include "internal/platform/monitored_runnable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/thread_check_runnable.h"
 
@@ -49,23 +48,23 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   ScheduledExecutor& operator=(ScheduledExecutor&& other)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     {
-      MutexLock other_lock(&other.mutex_);
+      absl::MutexLock other_lock(other.mutex_);
       impl_ = std::move(other.impl_);
     }
     return *this;
   }
   void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_)
       impl_->Execute(MonitoredRunnable(
           name, ThreadCheckRunnable(this, std::move(runnable))));
   }
 
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_) impl_->Execute(ThreadCheckRunnable(this, std::move(runnable)));
   }
 
@@ -73,7 +72,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   Cancelable Schedule(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_) {
       auto task = std::make_shared<CancellableTask>(
           ThreadCheckRunnable(this, std::move(runnable)));
@@ -87,7 +86,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
   Cancelable ScheduleRepeatedly(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (!impl_) {
         return Cancelable();
       }
@@ -120,7 +119,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
     // Starts the first execution of the task.
     void Start() {
-      MutexLock lock(&executor_->mutex_);
+      absl::MutexLock lock(executor_->mutex_);
       ScheduleNextUnderLock();
     }
 
@@ -131,7 +130,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
       }
 
       // Cancel the pending scheduled task, if any.
-      MutexLock lock(&executor_->mutex_);
+      absl::MutexLock lock(executor_->mutex_);
       if (pending_future_) {
         pending_future_->Cancel();
       }
@@ -152,7 +151,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
       // However, that would require changing the scheduler to allow scheduling
       // an event at a specific time.
       {
-        MutexLock lock(&executor_->mutex_);
+        absl::MutexLock lock(executor_->mutex_);
         ScheduleNextUnderLock();
       }
 
@@ -192,11 +191,11 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   std::unique_ptr<api::ScheduledExecutor> ReleaseExecutor()
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return std::move(impl_);
   }
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   std::unique_ptr<api::ScheduledExecutor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 

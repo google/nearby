@@ -15,10 +15,10 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WIFI_H_
 #define CORE_INTERNAL_MEDIUMS_WIFI_H_
 
-// #include "internal/platform/mutex.h"
 #include <string>
 
-#include "internal/platform/mutex_lock.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/wifi.h"
 
 namespace nearby {
@@ -36,22 +36,22 @@ class Wifi {
 
   // Returns true, if Wifi Medium are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return IsAvailableLocked();
   }
 
   api::WifiCapability& GetCapability() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_.GetCapability();
   }
 
   api::WifiInformation& GetInformation() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return medium_.GetInformation();
   }
 
  private:
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   WifiMedium medium_ ABSL_GUARDED_BY(mutex_);
 
   // Same as IsAvailable(), but must be called with mutex_ held.

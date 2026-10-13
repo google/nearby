@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/array_blocking_queue.h"
@@ -24,7 +25,6 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 class BlockingQueueStream : public InputStream {
@@ -40,7 +40,7 @@ class BlockingQueueStream : public InputStream {
   }
 
  private:
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   bool is_multiplex_enabled_ = false;
   ArrayBlockingQueue<ByteArray> blocking_queue_{
       FeatureFlags::GetInstance()

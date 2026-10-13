@@ -18,11 +18,12 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/system_clock.h"
 
 namespace nearby {
@@ -95,7 +96,7 @@ class AdvertisementReadResult {
   absl::Duration GetDurationSinceReadLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
 
   // Maps slot numbers to the GATT advertisement found in that slot.
   absl::flat_hash_map<int, ByteArray> advertisements_ ABSL_GUARDED_BY(mutex_);
