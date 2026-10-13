@@ -30,6 +30,8 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -538,7 +540,112 @@ TEST(InternalPayloadFactoryTest,
 
   std::string chunk2 = "1";  // Exceeds 10 bytes total_size: rejected
   EXPECT_TRUE(internal_payload->AttachNextChunk(chunk2).Raised(Exception::kIo));
+#if !defined(NEARBY_CHROMIUM)
+  FilePath file_path(absl::StrCat(path, "/test_file_size_exceeded"));
+  EXPECT_FALSE(Files::FileExists(file_path));
+#endif  // !defined(NEARBY_CHROMIUM)
 }
+
+#if !defined(NEARBY_CHROMIUM)
+TEST(InternalPayloadFactoryTest,
+     IncomingFilePayloadDeletesFileWhenClosedBeforeCompletion) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(10);
+  header.set_file_name("incomplete_incoming_file.txt");
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  FilePath file_path(absl::StrCat(path, "/incomplete_incoming_file.txt"));
+  EXPECT_TRUE(Files::FileExists(file_path));
+  EXPECT_TRUE(internal_payload->AttachNextChunk("12345").Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  // Closing before the empty final chunk is received must delete the file.
+  internal_payload->Close();
+  EXPECT_FALSE(Files::FileExists(file_path));
+}
+
+TEST(InternalPayloadFactoryTest,
+     IncomingFilePayloadKeepsFileWhenClosedAfterCompletion) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(5);
+  header.set_file_name("complete_incoming_file.txt");
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  FilePath file_path(absl::StrCat(path, "/complete_incoming_file.txt"));
+  EXPECT_TRUE(internal_payload->AttachNextChunk("12345").Ok());
+  EXPECT_TRUE(internal_payload->AttachNextChunk("").Ok());
+  internal_payload->Close();
+  EXPECT_TRUE(Files::FileExists(file_path));
+  Files::RemoveFile(file_path);
+}
+
+TEST(InternalPayloadFactoryTest,
+     CreateInternalPayloadFailsIfFilePathIsAlreadyInUse) {
+  std::string path = ::testing::TempDir();
+  PayloadTransferFrame frame1;
+  frame1.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header1 = *frame1.mutable_payload_header();
+  header1.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header1.set_id(11111);
+  header1.set_total_size(10);
+  header1.set_file_name("shared_file.txt");
+
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result1 =
+      CreateIncomingInternalPayload(frame1, path);
+  ASSERT_FALSE(result1.has_error());
+  std::unique_ptr<IncomingInternalPayload> payload1 =
+      std::move(result1.value());
+  ASSERT_NE(payload1, nullptr);
+  EXPECT_TRUE(payload1->AttachNextChunk("12345").Ok());
+
+  PayloadTransferFrame frame2;
+  frame2.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header2 = *frame2.mutable_payload_header();
+  header2.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header2.set_id(22222);
+  header2.set_total_size(10);
+  header2.set_file_name("shared_file.txt");
+
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result2 =
+      CreateIncomingInternalPayload(
+          frame2, path, [&payload1](absl::string_view file_path) {
+            return file_path == payload1->GetFilePath();
+          });
+  EXPECT_TRUE(result2.has_error());
+
+  // First payload's file must remain intact and able to complete.
+  EXPECT_TRUE(payload1->AttachNextChunk("67890").Ok());
+  EXPECT_TRUE(payload1->AttachNextChunk("").Ok());
+  Payload released_payload1 = payload1->ReleasePayload();
+  InputFile* input_file = released_payload1.AsFile();
+  ASSERT_NE(input_file, nullptr);
+  ExceptionOr<ByteArray> content = input_file->Read(10);
+  input_file->Close();
+  ASSERT_TRUE(content.ok());
+  EXPECT_EQ(content.result(), ByteArray("1234567890"));
+  Files::RemoveFile(FilePath(payload1->GetFilePath()));
+}
+#endif  // !defined(NEARBY_CHROMIUM)
 
 class CountingInputStream : public InputStream {
  public:

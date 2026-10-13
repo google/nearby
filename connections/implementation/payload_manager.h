@@ -25,6 +25,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -245,6 +246,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
     PendingPayloadHandle GetPayload(Payload::Id payload_id) const
         ABSL_LOCKS_EXCLUDED(mutex_);
+    bool IsFilePathInUse(absl::string_view file_path) const
+        ABSL_LOCKS_EXCLUDED(mutex_);
     // Calls `callback` for each tracked payload. The callback must not call
     // other `PendingPayloads` methods.
     void ForEachPayload(absl::AnyInvocable<void(PendingPayload*)> callback)
@@ -336,14 +339,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
-  void SendClientCallbacksForFinishedIncomingPayload(
-      ClientProxy* client, const std::string& endpoint_id,
-      const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
-          payload_header,
-      int64_t offset_bytes,
-      location::nearby::proto::connections::PayloadStatus status,
-      location::nearby::proto::connections::OperationResultCode
-          operation_result_code);
 
   void SendControlMessage(
       const std::vector<std::string>& endpoint_ids,
@@ -380,7 +375,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
           operation_result_code,
       location::nearby::proto::connections::PayloadStatus status = location::
           nearby::proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
-  void HandleFinishedIncomingPayload(
+  void HandleIncomingPayloadError(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,

@@ -162,6 +162,8 @@ class SimulationUser {
     reject_latch_ = &latch;
   }
 
+  void ExpectDisconnect(CountDownLatch& latch) { disconnect_latch_ = &latch; }
+
   void ExpectPayload(CountDownLatch& latch) { payload_latch_ = &latch; }
 
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
@@ -181,6 +183,7 @@ class SimulationUser {
                              bool is_outgoing);
   void OnConnectionAccepted(const std::string& endpoint_id);
   void OnConnectionRejected(const std::string& endpoint_id, Status status);
+  void OnEndpointDisconnected(const std::string& endpoint_id);
 
   // DiscoveryListener callbacks
   void OnEndpointFound(const std::string& endpoint_id,
@@ -202,6 +205,7 @@ class SimulationUser {
   CountDownLatch* initiated_latch_ = nullptr;
   CountDownLatch* accept_latch_ = nullptr;
   CountDownLatch* reject_latch_ = nullptr;
+  CountDownLatch* disconnect_latch_ = nullptr;
   CountDownLatch* found_latch_ = nullptr;
   CountDownLatch* lost_latch_ = nullptr;
   CountDownLatch* payload_latch_ = nullptr;
