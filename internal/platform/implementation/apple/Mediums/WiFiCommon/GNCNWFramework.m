@@ -77,6 +77,27 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return txtRecords;
 }
 
+static BOOL GNCExtractServiceFromBrowseResult(
+    nw_browse_result_t browseResult, NSString *_Nullable *_Nonnull outName,
+    NSDictionary<NSString *, NSString *> *_Nullable *_Nonnull outTxtRecords) {
+  // If the service has a loopback interface, we probably discovered our own advertisement, so we
+  // ignore it.
+  if (GNCHasLoopbackInterface(browseResult)) {
+    GNCLoggerInfo(@"Ignoring a service event with loopback interface.");
+    return NO;
+  }
+  id<GNCNWBrowseResult> wrapper = [GNCNWBrowseResultImpl sharedInstance];
+  nw_endpoint_t endpoint = [wrapper copyEndpointFromResult:browseResult];
+  NSString *name = [wrapper getBonjourServiceNameFromEndpoint:endpoint];
+  if (name == nil) {
+    GNCLoggerInfo(@"Dropping mDNS result with unrepresentable name.");
+    return NO;
+  }
+  *outName = name;
+  *outTxtRecords = GNCTXTRecordForBrowseResult(browseResult);
+  return YES;
+}
+
 @interface GNCNWFramework ()
 - (nullable GNCNWFrameworkServerSocket *)
     internalListenForServiceWithPSKIdentity:(nullable NSData *)PSKIdentity
@@ -210,86 +231,37 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                  case nw_browse_result_change_interface_removed:
                                    break;
                                  case nw_browse_result_change_result_added: {
-                                   // If the service has a loopback interface, we probably
-                                   // discovered our own advertisement, so we ignore it.
-                                   BOOL hasLoopback = GNCHasLoopbackInterface(new_result);
-                                   if (hasLoopback) {
-                                     GNCLoggerInfo(
-                                         @"Ignoring a service discovered with loopback interface.");
-                                     break;
+                                   NSString *name;
+                                   NSDictionary<NSString *, NSString *> *txtRecords;
+                                   if (GNCExtractServiceFromBrowseResult(new_result, &name,
+                                                                         &txtRecords)) {
+                                     serviceFoundHandler(name, txtRecords);
                                    }
-                                   nw_endpoint_t endpoint =
-                                       [browseResultWrapper copyEndpointFromResult:new_result];
-                                   NSString *name = [browseResultWrapper
-                                       getBonjourServiceNameFromEndpoint:endpoint];
-                                   if (name == nil) {
-                                     GNCLoggerInfo(
-                                         @"Dropping mDNS result with unrepresentable name.");
-                                     break;
-                                   }
-                                   NSDictionary<NSString *, NSString *> *txtRecords =
-                                       GNCTXTRecordForBrowseResult(new_result);
-                                   serviceFoundHandler(name, txtRecords);
                                    break;
                                  }
                                  case nw_browse_result_change_txt_record_changed: {
-                                   // If the service has a loopback interface, we probably lost our
-                                   // own advertisement, so we ignore it.
-                                   BOOL oldHasLoopback = GNCHasLoopbackInterface(old_result);
-                                   BOOL newHasLoopback = GNCHasLoopbackInterface(new_result);
-                                   if (oldHasLoopback || newHasLoopback) {
-                                     GNCLoggerInfo(
-                                         @"Ignoring a service change with loopback interface.");
-                                     break;
+                                   NSString *oldName;
+                                   NSDictionary<NSString *, NSString *> *oldTxtRecords;
+                                   if (GNCExtractServiceFromBrowseResult(old_result, &oldName,
+                                                                         &oldTxtRecords)) {
+                                     serviceLostHandler(oldName, oldTxtRecords);
                                    }
-                                   nw_endpoint_t old_endpoint =
-                                       [browseResultWrapper copyEndpointFromResult:old_result];
-                                   NSString *oldName = [browseResultWrapper
-                                       getBonjourServiceNameFromEndpoint:old_endpoint];
-                                   if (oldName == nil) {
-                                     GNCLoggerInfo(
-                                         @"Dropping mDNS result with unrepresentable old name.");
-                                     break;
-                                   }
-                                   NSDictionary<NSString *, NSString *> *oldTXTRecords =
-                                       GNCTXTRecordForBrowseResult(old_result);
-                                   serviceLostHandler(oldName, oldTXTRecords);
 
-                                   nw_endpoint_t new_endpoint =
-                                       [browseResultWrapper copyEndpointFromResult:new_result];
-                                   NSString *newName = [browseResultWrapper
-                                       getBonjourServiceNameFromEndpoint:new_endpoint];
-                                   if (newName == nil) {
-                                     GNCLoggerInfo(
-                                         @"Dropping mDNS result with unrepresentable new name.");
-                                     break;
+                                   NSString *newName;
+                                   NSDictionary<NSString *, NSString *> *newTxtRecords;
+                                   if (GNCExtractServiceFromBrowseResult(new_result, &newName,
+                                                                         &newTxtRecords)) {
+                                     serviceFoundHandler(newName, newTxtRecords);
                                    }
-                                   NSDictionary<NSString *, NSString *> *newTXTRecords =
-                                       GNCTXTRecordForBrowseResult(new_result);
-                                   serviceFoundHandler(newName, newTXTRecords);
                                    break;
                                  }
                                  case nw_browse_result_change_result_removed: {
-                                   // If the service has a loopback interface, we probably lost our
-                                   // own advertisement, so we ignore it.
-                                   BOOL hasLoopback = GNCHasLoopbackInterface(old_result);
-                                   if (hasLoopback) {
-                                     GNCLoggerInfo(
-                                         @"Ignoring a service lost with loopback interface.");
-                                     break;
+                                   NSString *name;
+                                   NSDictionary<NSString *, NSString *> *txtRecords;
+                                   if (GNCExtractServiceFromBrowseResult(old_result, &name,
+                                                                         &txtRecords)) {
+                                     serviceLostHandler(name, txtRecords);
                                    }
-                                   nw_endpoint_t endpoint =
-                                       [browseResultWrapper copyEndpointFromResult:old_result];
-                                   NSString *name = [browseResultWrapper
-                                       getBonjourServiceNameFromEndpoint:endpoint];
-                                   if (name == nil) {
-                                     GNCLoggerInfo(
-                                         @"Dropping mDNS result with unrepresentable name.");
-                                     break;
-                                   }
-                                   NSDictionary<NSString *, NSString *> *txtRecords =
-                                       GNCTXTRecordForBrowseResult(old_result);
-                                   serviceLostHandler(name, txtRecords);
                                    break;
                                  }
                                }
