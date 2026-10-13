@@ -1216,3 +1216,17 @@ enum UnpairTriggerType {
   // Triggered when the remote paired device deletes the binding.
   UNPAIR_TRIGGER_TYPE_REMOTE = 2;
 }
+
+// The file sync state of the device.
+// Next id: 5
+enum FileSyncState {
+  FILE_SYNC_STATE_UNKNOWN = 0;
+  // Device has never had a file sync binding.
+  FILE_SYNC_STATE_NEVER_BOUND = 1;
+  // Device has active binding(s) and file sync is enabled.
+  FILE_SYNC_STATE_BOUND_ENABLED = 2;
+  // Device has active binding(s) and file sync is disabled.
+  FILE_SYNC_STATE_BOUND_DISABLED = 3;
+  // Device previously had a binding, but currently has no bindings.
+  FILE_SYNC_STATE_UNBOUND = 4;
+}
