@@ -157,6 +157,8 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   // If the WiFi Adaptor supports to start a WifiDirect interface.
   bool IsInterfaceValid() const override { return true; }
+  bool IsGOSupported() const override { return IsInterfaceValid(); }
+  bool IsGCSupported() const override { return IsInterfaceValid(); }
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiDirectSocket> ConnectToService(

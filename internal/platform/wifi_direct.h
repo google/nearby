@@ -202,6 +202,10 @@ class WifiDirectMedium {
     return impl_->IsInterfaceValid();
   }
 
+  bool IsGOSupported() const;
+
+  bool IsGCSupported() const;
+
   bool IsValid() const { return impl_ != nullptr; }
   api::WifiDirectMedium& GetImpl() {
     CHECK(impl_);

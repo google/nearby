@@ -90,6 +90,13 @@ class WifiDirectMedium {
   // If the WiFi Adaptor supports to start a WifiDirect interface.
   virtual bool IsInterfaceValid() const = 0;
 
+  // If the WiFi Adaptor supports to start a WifiDirect Group Owner.
+  virtual bool IsGOSupported() const { return IsInterfaceValid(); }
+
+  // If the WiFi Adaptor supports to connect to a WifiDirect Group Owner as
+  // Group Client.
+  virtual bool IsGCSupported() const { return IsInterfaceValid(); }
+
   // Connects to a WifiDirect service by port.
   // On success, returns a new WifiDirectSocket.
   // On error, returns nullptr.
