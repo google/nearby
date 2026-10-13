@@ -48,7 +48,7 @@ using ::winrt::Windows::Foundation::TimeSpan;
 constexpr int kBluetoothTimeoutInSeconds = 10;
 }  // namespace
 
-BluetoothDevice::~BluetoothDevice() {}
+BluetoothDevice::~BluetoothDevice() = default;
 
 BluetoothDevice::BluetoothDevice(
     const winrt::Windows::Devices::Bluetooth::BluetoothDevice& bluetoothDevice)

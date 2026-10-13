@@ -75,7 +75,7 @@ BluetoothSocket::BluetoothSocket(StreamSocket stream_socket)
   output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
 }
 
-BluetoothSocket::BluetoothSocket() {}
+BluetoothSocket::BluetoothSocket() = default;
 
 BluetoothSocket::~BluetoothSocket() { Close(); }
 
