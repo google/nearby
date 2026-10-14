@@ -31,6 +31,10 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+// Defer sending CLIENT_INTRODUCTION_ACK during bandwidth upgrade until after
+// in_progress_upgrades_ lookup succeeds, and close the channel on lookup miss.
+constexpr auto kDeferBwuClientIntroductionAck =
+    flags::Flag<bool>(kConfigPackage, "45861373", false);
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);

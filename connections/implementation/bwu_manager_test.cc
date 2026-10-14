@@ -97,6 +97,10 @@ class BwuManagerBaseTest : public ::testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDeferBwuClientIntroductionAck,
+        true);
   }
 
   void TearDown() override {
@@ -443,6 +447,10 @@ class BwuManagerTest : public ::testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDeferBwuClientIntroductionAck,
+        true);
   }
 
   static void TearDownTestSuite() {
@@ -467,6 +475,10 @@ class BwuManagerTest : public ::testing::Test {
     NearbyFlags::GetInstance().ResetOverridedValues();
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+        true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDeferBwuClientIntroductionAck,
         true);
     MediumEnvironment::Instance().Stop();
     MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
@@ -2782,6 +2794,71 @@ TEST_F(BwuManagerTest,
 
   UnRegisterChannelForEndpoint(kEndpointId1);
   UnRegisterChannelForEndpoint(kEndpointId2);
+}
+
+TEST_F(BwuManagerTest,
+       OnIncomingConnection_UnrecognizedEndpointClosesChannelWithoutAck) {
+  ReinitBwuManager(BooleanMediumSelector{.web_rtc = true});
+
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WEB_RTC, std::string(kServiceIdA));
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+
+  std::string intro_frame =
+      parser::ForBwuIntroduction("UnknownEndpoint", "UnknownLastEndpoint",
+                                 /*supports_disabling_encryption=*/false);
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(intro_frame)));
+
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
+
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  EXPECT_TRUE(upgraded_channel_raw->GetWrittenFrames().empty());
+  EXPECT_EQ(upgraded_channel_raw->GetLastWriteTimestamp(),
+            absl::InfinitePast());
+  EXPECT_TRUE(upgraded_channel_raw->is_closed());
+}
+
+TEST_F(
+    BwuManagerTest,
+    OnIncomingConnection_AliasesToLastEndpointIdWritesAckAndRegistersChannel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ReinitBwuManager(BooleanMediumSelector{.web_rtc = true});
+  CreateInitialEndpoint(&client_, kServiceIdA, "OldEndpoint",
+                        Medium::BLUETOOTH);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, "OldEndpoint",
+                                       Medium::WEB_RTC);
+
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WEB_RTC, std::string(kServiceIdA));
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+
+  std::string intro_frame = parser::ForBwuIntroduction(
+      "NewEndpoint", "OldEndpoint", /*supports_disabling_encryption=*/false);
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(intro_frame)));
+
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
+
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  EXPECT_FALSE(upgraded_channel_raw->GetWrittenFrames().empty());
+  EXPECT_NE(upgraded_channel_raw->GetLastWriteTimestamp(),
+            absl::InfinitePast());
+  EXPECT_FALSE(upgraded_channel_raw->is_closed());
+  EXPECT_EQ(ecm_.GetChannelForEndpoint("OldEndpoint").get(),
+            upgraded_channel_raw);
+
+  UnRegisterChannelForEndpoint("OldEndpoint");
 }
 
 }  // namespace
