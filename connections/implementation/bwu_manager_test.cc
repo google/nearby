@@ -97,6 +97,10 @@ class BwuManagerBaseTest : public ::testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kPreserveLastLocalEndpointIdInBwu,
+        true);
   }
 
   void TearDown() override {
@@ -443,6 +447,10 @@ class BwuManagerTest : public ::testing::Test {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kPreserveLastLocalEndpointIdInBwu,
+        true);
   }
 
   static void TearDownTestSuite() {
@@ -467,6 +475,10 @@ class BwuManagerTest : public ::testing::Test {
     NearbyFlags::GetInstance().ResetOverridedValues();
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+        true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kPreserveLastLocalEndpointIdInBwu,
         true);
     MediumEnvironment::Instance().Stop();
     MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
@@ -2782,6 +2794,90 @@ TEST_F(BwuManagerTest,
 
   UnRegisterChannelForEndpoint(kEndpointId1);
   UnRegisterChannelForEndpoint(kEndpointId2);
+}
+
+TEST_F(
+    BwuManagerTest,
+    ProcessBwuPathAvailableEvent_PreservesLastLocalEndpointIdAcrossSessions) {
+  client_.SetLastLocalEndpointId("OldSessionId");
+  const std::string current_local_endpoint_id = client_.GetLocalEndpointId();
+
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+
+  ServiceAddress service_address{
+      .address = {'A', 'B', 'C', 'D'},
+      .port = 1234,
+  };
+  ExceptionOr<OfflineFrame> wlan_available =
+      parser::FromBytes(parser::ForBwuWifiLanPathAvailable({service_address}));
+  ASSERT_TRUE(wlan_available.ok());
+  OfflineFrame available_frame = wlan_available.result();
+  available_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(available_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+
+  auto upgraded_channel = std::static_pointer_cast<FakeEndpointChannel>(
+      ecm_.GetChannelForEndpoint(std::string(kEndpointId1)));
+  ASSERT_NE(upgraded_channel, nullptr);
+  ASSERT_FALSE(upgraded_channel->GetWrittenFrames().empty());
+  ExceptionOr<OfflineFrame> written_frame =
+      parser::FromBytes(upgraded_channel->GetWrittenFrames()[0]);
+  ASSERT_TRUE(written_frame.ok());
+  const auto& intro = written_frame.result()
+                          .v1()
+                          .bandwidth_upgrade_negotiation()
+                          .client_introduction();
+  EXPECT_EQ(intro.endpoint_id(), current_local_endpoint_id);
+  EXPECT_EQ(intro.last_endpoint_id(), "OldSessionId");
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(
+    BwuManagerTest,
+    ProcessBwuPathAvailableEvent_UsesChannelEndpointIdOnIntraSessionRotation) {
+  client_.SetLastLocalEndpointId("OldSessionId");
+  const std::string current_local_endpoint_id = client_.GetLocalEndpointId();
+
+  FakeEndpointChannel* initial_channel = CreateInitialEndpoint(
+      &client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+  initial_channel->SetLocalEndpointId("IntraSessionRotatedId");
+
+  ServiceAddress service_address{
+      .address = {'A', 'B', 'C', 'D'},
+      .port = 1234,
+  };
+  ExceptionOr<OfflineFrame> wlan_available =
+      parser::FromBytes(parser::ForBwuWifiLanPathAvailable({service_address}));
+  ASSERT_TRUE(wlan_available.ok());
+  OfflineFrame available_frame = wlan_available.result();
+  available_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(available_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+
+  auto upgraded_channel = std::static_pointer_cast<FakeEndpointChannel>(
+      ecm_.GetChannelForEndpoint(std::string(kEndpointId1)));
+  ASSERT_NE(upgraded_channel, nullptr);
+  ASSERT_FALSE(upgraded_channel->GetWrittenFrames().empty());
+  ExceptionOr<OfflineFrame> written_frame =
+      parser::FromBytes(upgraded_channel->GetWrittenFrames()[0]);
+  ASSERT_TRUE(written_frame.ok());
+  const auto& intro = written_frame.result()
+                          .v1()
+                          .bandwidth_upgrade_negotiation()
+                          .client_introduction();
+  EXPECT_EQ(intro.endpoint_id(), current_local_endpoint_id);
+  EXPECT_EQ(intro.last_endpoint_id(), "IntraSessionRotatedId");
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
 }  // namespace

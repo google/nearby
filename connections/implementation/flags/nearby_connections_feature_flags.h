@@ -110,6 +110,11 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// Preserve ClientProxy.GetLastLocalEndpointId() during bandwidth upgrade unless
+// the previous channel local_endpoint_id is non-empty and differs from the
+// current local_endpoint_id.
+constexpr auto kPreserveLastLocalEndpointIdInBwu =
+    flags::Flag<bool>(kConfigPackage, "45861365", false);
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);

@@ -1057,13 +1057,29 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   std::string last_local_endpoint_id = client->GetLastLocalEndpointId();
   std::shared_ptr<EndpointChannel> previous_channel =
       channel_manager_->GetChannelForEndpoint(endpoint_id);
-  if (previous_channel != nullptr) {
-    last_local_endpoint_id = previous_channel->GetLocalEndpointId();
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPreserveLastLocalEndpointIdInBwu)) {
+    const bool use_channel_endpoint_id =
+        previous_channel != nullptr &&
+        !previous_channel->GetLocalEndpointId().empty() &&
+        previous_channel->GetLocalEndpointId() != client->GetLocalEndpointId();
+    if (use_channel_endpoint_id) {
+      last_local_endpoint_id = previous_channel->GetLocalEndpointId();
+    }
+    LOG(INFO) << "BwuManager get last_local_endpoint_id "
+              << last_local_endpoint_id << " from "
+              << (use_channel_endpoint_id ? "endpoint channel"
+                                          : "client proxy");
+  } else {
+    if (previous_channel != nullptr) {
+      last_local_endpoint_id = previous_channel->GetLocalEndpointId();
+    }
+    LOG(INFO) << "BwuManager get last_local_endpoint_id "
+              << last_local_endpoint_id << " from "
+              << (previous_channel != nullptr ? "endpoint channel"
+                                              : "client proxy");
   }
-  LOG(INFO) << "BwuManager get last_local_endpoint_id "
-            << last_local_endpoint_id << " from "
-            << (previous_channel != nullptr ? "endpoint channel"
-                                            : "client proxy");
 
   bool local_supports_disabling =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint ||
