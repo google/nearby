@@ -83,15 +83,6 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   return [self sendData:dispatchData error:error];
 }
 
-- (BOOL)writeBytes:(const void *)bytes length:(NSUInteger)length error:(NSError **)error {
-  // OPTIMIZATION: Use DISPATCH_DATA_DESTRUCTOR_DEFAULT to perform a single copy into a GCD-managed
-  // buffer. No NSData required. Using a custom empty destructor to make this zero-copy should be
-  // avoided, as it would cause a use-after-free race condition.
-  dispatch_data_t dispatchData =
-      dispatch_data_create(bytes, length, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-  return [self sendData:dispatchData error:error];
-}
-
 - (void)close {
   [_connection cancel];
   _connection = nil;

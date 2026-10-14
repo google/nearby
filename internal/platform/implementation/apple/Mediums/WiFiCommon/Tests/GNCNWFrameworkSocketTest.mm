@@ -132,28 +132,6 @@ NS_ASSUME_NONNULL_BEGIN
   XCTAssertFalse(result);
 }
 
-- (void)testWriteBytes_Success {
-  NSError *error = nil;
-  NSString *testString = @"testData";
-  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
-
-  BOOL result = [_socket writeBytes:testData.bytes length:testData.length error:&error];
-
-  XCTAssertTrue(result);
-  XCTAssertNil(error);
-}
-
-- (void)testWriteBytes_Error {
-  NSError *error = nil;
-  NSString *testString = @"testData";
-  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
-  _fakeConnection.simulateSendFailure = YES;
-
-  BOOL result = [_socket writeBytes:testData.bytes length:testData.length error:&error];
-
-  XCTAssertFalse(result);
-}
-
 - (void)testClose {
   XCTAssertFalse(_fakeConnection.cancelCalled);
   [_socket close];
@@ -162,7 +140,6 @@ NS_ASSUME_NONNULL_BEGIN
   NSError *error = nil;
   XCTAssertNil([_socket readMaxLength:10 error:&error]);
   XCTAssertFalse([_socket write:[NSData data] error:&error]);
-  XCTAssertFalse([_socket writeBytes:"test" length:4 error:&error]);
 }
 
 @end

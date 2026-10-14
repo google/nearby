@@ -66,15 +66,7 @@ AwdlOutputStream::AwdlOutputStream(GNCNWFrameworkSocket* socket) : socket_(socke
 
 Exception AwdlOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
-  BOOL result = NO;
-
-  if (GNCFeatureFlags.singleCopyEnabled) {
-    // OPTIMIZATION: Write raw bytes directly, avoiding NSData creation.
-    result = [socket_ writeBytes:data.data() length:data.size() error:&error];
-  } else {
-    result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
-  }
-
+  BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {
     GNCLoggerError(@"Error writing socket: %@", error);
     return {Exception::kIo};
