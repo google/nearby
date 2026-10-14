@@ -72,6 +72,10 @@ class BwuManager : public EndpointManager::FrameProcessor {
     BooleanMediumSelector allow_upgrade_to;
     absl::Duration bandwidth_upgrade_retry_delay;
     absl::Duration bandwidth_upgrade_retry_max_delay;
+    // When true, never upgrade to WIFI_LAN, regardless of `allow_upgrade_to`
+    // or kEnableWifiLanUpgrade. If `allow_upgrade_to` is all false, the other
+    // mediums still follow the default flag-based selection.
+    bool disable_wifi_lan_upgrade = false;
   };
 
   BwuManager(Mediums& mediums, EndpointManager& endpoint_manager,
