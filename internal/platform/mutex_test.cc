@@ -69,7 +69,12 @@ TEST_F(MutexTest, BasicLockingWorks) {
   VerifyStepReached(2);
 }
 
-#ifdef THREAD_SANITIZER
+// This test re-locks a Mutex that the thread already holds, and then unlocks it
+// from a thread that doesn't hold it. On most platforms nearby::Mutex is an
+// absl::Mutex, which allows neither. TSan and absl's debug-mode deadlock
+// detection report the cross-thread unlock as an error, so only run this test
+// in optimized builds without TSan.
+#if defined(THREAD_SANITIZER) || !defined(NDEBUG)
 TEST_F(MutexTest, DISABLED_DoubleLockIsDeadlock)
 ABSL_NO_THREAD_SAFETY_ANALYSIS {
 #else
