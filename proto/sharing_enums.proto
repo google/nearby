@@ -640,6 +640,9 @@ enum ServerActionName {
 
   // used for analytics logger to record action name.
   DOWNLOAD_CERTIFICATES_INFO = 12;
+  REGISTER_PROVISIONED_CONTACT = 13;
+  LIST_PROVISIONED_CONTACTS = 14;
+  DELETE_PROVISIONED_CONTACT = 15;
 }
 
 // The Fast Share server response state.
