@@ -671,21 +671,27 @@ void BwuManager::OnIncomingConnection(
                    "OfflineFrame on EndpointChannel "
                 << channel->GetName();
 
-        if (!WriteClientIntroductionAckFrame(channel)) {
-          // This was never a fully EstablishedConnection, no need to provide a
-          // closure reason.
-          LOG(ERROR) << "BwuManager failed to write"
-                        "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
-                        "OfflineFrame on EndpointChannel "
-                     << channel->GetName();
-          channel->Close();
-          return;
-        }
+        const bool defer_ack_until_lookup =
+            NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kDeferBwuClientIntroductionAck);
+        if (!defer_ack_until_lookup) {
+          if (!WriteClientIntroductionAckFrame(channel)) {
+            // This was never a fully EstablishedConnection, no need to provide
+            // a closure reason.
+            LOG(ERROR) << "BwuManager failed to write"
+                          "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                          "OfflineFrame on EndpointChannel "
+                       << channel->GetName();
+            channel->Close();
+            return;
+          }
 
-        VLOG(1) << "BwuManager successfully wrote "
-                   "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
-                   "OfflineFrame on EndpointChannel "
-                << channel->GetName();
+          VLOG(1) << "BwuManager successfully wrote "
+                     "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                     "OfflineFrame on EndpointChannel "
+                  << channel->GetName();
+        }
 
         std::string endpoint_id = introduction.endpoint_id();
         if (is_dynamic_role_switch_enabled_ &&
@@ -702,7 +708,12 @@ void BwuManager::OnIncomingConnection(
 
         ClientProxy* mapped_client;
         const auto item = in_progress_upgrades_.find(endpoint_id);
-        if (item == in_progress_upgrades_.end()) return;
+        if (item == in_progress_upgrades_.end()) {
+          if (defer_ack_until_lookup) {
+            channel->Close();
+          }
+          return;
+        }
         mapped_client = item->second;
         CancelRetryUpgradeAlarm(endpoint_id);
         if (mapped_client == nullptr) {
@@ -710,6 +721,24 @@ void BwuManager::OnIncomingConnection(
           // closure reason.
           channel->Close();
           return;
+        }
+
+        if (defer_ack_until_lookup) {
+          if (!WriteClientIntroductionAckFrame(channel)) {
+            // This was never a fully EstablishedConnection, no need to provide
+            // a closure reason.
+            LOG(ERROR) << "BwuManager failed to write"
+                          "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                          "OfflineFrame on EndpointChannel "
+                       << channel->GetName();
+            channel->Close();
+            return;
+          }
+
+          VLOG(1) << "BwuManager successfully wrote "
+                     "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
+                     "OfflineFrame on EndpointChannel "
+                  << channel->GetName();
         }
 
         CHECK(client == mapped_client);
