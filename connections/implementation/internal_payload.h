@@ -26,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
+
 namespace nearby {
 namespace connections {
 
