@@ -76,6 +76,18 @@ TEST_F(BluetoothBwuTest, CanCreateBwuHandler) {
   handler.reset();
 }
 
+// Verifies that BLUETOOTH, which has no distinct host and client roles, exposes
+// no role-switch policy, so BwuManager never asks it role questions.
+TEST_F(BluetoothBwuTest, GetRoleSwitchPolicyReturnsNull) {
+  Mediums mediums;
+  auto handler = std::make_unique<BluetoothBwuHandler>(
+      &mediums.GetBluetoothRadio(),
+      static_cast<BluetoothClassic*>(&mediums.GetBluetoothClassic()), nullptr);
+
+  EXPECT_EQ(static_cast<BwuHandler*>(handler.get())->GetRoleSwitchPolicy(),
+            nullptr);
+}
+
 void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
     bool enable_cancellation) {
   FeatureFlags::Flags flags = original_flags_;

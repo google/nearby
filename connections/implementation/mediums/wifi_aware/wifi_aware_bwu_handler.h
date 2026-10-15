@@ -30,7 +30,8 @@ namespace connections {
 
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
-class WifiAwareBwuHandler : public BaseBwuHandler {
+class WifiAwareBwuHandler : public BaseBwuHandler,
+                            public BwuHandler::RoleSwitchPolicy {
  public:
   explicit WifiAwareBwuHandler(
       WifiAware& wifi_aware_medium,
@@ -48,6 +49,21 @@ class WifiAwareBwuHandler : public BaseBwuHandler {
   }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) override {}
+
+  const RoleSwitchPolicy* GetRoleSwitchPolicy() const override { return this; }
+
+  // BwuHandler::RoleSwitchPolicy implementation:
+  bool CanBeClient(
+      const location::nearby::connections::MediumRole& role) const override;
+
+  bool CanHost(const location::nearby::connections::MediumRole& local_role,
+               const location::nearby::connections::MediumRole& remote_role)
+      const override;
+  bool NeedToSwitchRole(
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      const location::nearby::connections::OsInfo& local_os_info,
+      const location::nearby::connections::OsInfo& remote_os_info,
+      bool is_incoming_connection) const override;
 
  private:
   // BaseBwuHandler implementation:
