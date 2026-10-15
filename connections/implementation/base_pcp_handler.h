@@ -54,6 +54,7 @@
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -455,6 +456,7 @@ class BasePcpHandler : public PcpHandler,
 
     // Client state tracker to report events to. Never changes. Always valid.
     ClientProxy* client = nullptr;
+    ::nearby::Borrowable<ClientProxy*> borrowable_client;
     // Peer endpoint info, or empty, if not discovered yet. May change.
     ByteArray remote_endpoint_info;
     std::int32_t nonce = 0;
