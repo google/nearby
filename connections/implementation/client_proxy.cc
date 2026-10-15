@@ -297,7 +297,10 @@ ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
   }
 }
 
-ClientProxy::~ClientProxy() { Reset(); }
+ClientProxy::~ClientProxy() {
+  lender_.Release();
+  Reset();
+}
 
 std::int64_t ClientProxy::GetClientId() const { return client_id_; }
 

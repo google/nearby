@@ -68,6 +68,7 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
@@ -142,12 +143,23 @@ void BasePcpHandler::Shutdown() {
   LOG(INFO) << "BasePcpHandler(" << strategy_.GetName()
             << ") is bringing down executors.";
 
+  serial_executor_.Execute(
+      "shutdown-pending-connections",
+      [this]() RUN_ON_PCP_HANDLER_THREAD() {
+        for (auto& item : pending_connections_) {
+          if (item.second.channel != nullptr) {
+            item.second.channel->Close(
+                location::nearby::proto::connections::DisconnectionReason::
+                    SHUTDOWN);
+          }
+        }
+      });
+  serial_executor_.Shutdown();
+
   encryption_runner_.Shutdown();
 
   // Stop discovery of Bluetooth Classic.
   mediums_->GetBluetoothClassic().StopAllDiscovery();
-
-  serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
   LOG(INFO) << "BasePcpHandler(" << strategy_.GetName() << ") has shut down.";
 }
@@ -723,6 +735,16 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   if (endpoint_channel != pending_connection_info.channel) {
     return;
   }
+  ::nearby::Borrowed<ClientProxy*> borrowed_client =
+      pending_connection_info.borrowable_client.Borrow();
+  if (!borrowed_client) {
+    LOG(WARNING) << __func__
+                 << ": ClientProxy already destroyed; dropping pending "
+                    "connection for endpoint_id="
+                 << remote_device.GetEndpointId();
+    pending_connections_.erase(it);
+    return;
+  }
   // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
@@ -797,6 +819,17 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
   // Verify pointer equality to avoid accidental action on superseded
   // channels.
   if (endpoint_channel != pending_connection_info.channel) {
+    return;
+  }
+
+  ::nearby::Borrowed<ClientProxy*> borrowed_client =
+      pending_connection_info.borrowable_client.Borrow();
+  if (!borrowed_client) {
+    LOG(WARNING) << __func__
+                 << ": ClientProxy already destroyed; dropping pending "
+                    "connection for endpoint_id="
+                 << endpoint_id;
+    pending_connections_.erase(it);
     return;
   }
 
@@ -881,6 +914,17 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
     LOG(INFO) << "Not destroying channel [mismatch]: passed="
               << endpoint_channel->GetName()
               << "; expected=" << pending_connection_info.channel->GetName();
+    return;
+  }
+
+  ::nearby::Borrowed<ClientProxy*> borrowed_client =
+      pending_connection_info.borrowable_client.Borrow();
+  if (!borrowed_client) {
+    LOG(WARNING) << __func__
+                 << ": ClientProxy already destroyed; dropping pending "
+                    "connection for endpoint_id="
+                 << endpoint_id;
+    pending_connections_.erase(it);
     return;
   }
 
@@ -1055,6 +1099,7 @@ Status BasePcpHandler::RequestConnection(
         // fields.
         PendingConnectionInfo pending_connection_info{};
         pending_connection_info.client = client;
+        pending_connection_info.borrowable_client = client->GetBorrowable();
         pending_connection_info.remote_endpoint_info =
             connected_endpoint->endpoint_info;
         pending_connection_info.nonce = connection_info.nonce;
@@ -1219,6 +1264,7 @@ Status BasePcpHandler::RequestConnectionV3(
         // are supported in the RequestConnectionV3() API.
         PendingConnectionInfo pending_connection_info{};
         pending_connection_info.client = client;
+        pending_connection_info.borrowable_client = client->GetBorrowable();
         pending_connection_info.remote_endpoint_info =
             connected_endpoint->endpoint_info;
         pending_connection_info.nonce = connection_info.nonce;
@@ -1424,6 +1470,8 @@ std::string GetEndpointLostByMediumAlarmKey(absl::string_view endpoint_id,
 void BasePcpHandler::StartEndpointLostByMediumAlarms(
     ClientProxy* client, location::nearby::proto::connections::Medium medium) {
   auto discovered_endpoints_medium = GetDiscoveredEndpoints(medium);
+  ::nearby::Borrowable<ClientProxy*> borrowable_client =
+      client->GetBorrowable();
   for (const auto* discovered_endpoint : discovered_endpoints_medium) {
     std::string endpoint_id = discovered_endpoint->endpoint_id;
     std::string key = GetEndpointLostByMediumAlarmKey(endpoint_id, medium);
@@ -1431,17 +1479,21 @@ void BasePcpHandler::StartEndpointLostByMediumAlarms(
     endpoint_lost_by_medium_alarms_.emplace(
         key, std::make_unique<CancelableAlarm>(
                  absl::StrCat("EndpointLostByMediumAlarm_", key),
-                 [this, client, endpoint_id, medium, key]() {
+                 [this, borrowable_client, endpoint_id, medium, key]() {
                    RunOnPcpHandlerThread(
                        "endpoint-lost-by-medium-alarm",
-                       [this, client, endpoint_id, medium,
+                       [this, borrowable_client, endpoint_id, medium,
                         key]() RUN_ON_PCP_HANDLER_THREAD() {
                          if (endpoint_lost_by_medium_alarms_.erase(key) != 0) {
-                           for (const auto* endpoint :
-                                GetDiscoveredEndpoints(endpoint_id)) {
-                             if (endpoint->medium == medium) {
-                               OnEndpointLost(client, *endpoint);
-                               break;
+                           ::nearby::Borrowed<ClientProxy*> borrowed =
+                               borrowable_client.Borrow();
+                           if (borrowed) {
+                             for (const auto* endpoint :
+                                  GetDiscoveredEndpoints(endpoint_id)) {
+                               if (endpoint->medium == medium) {
+                                 OnEndpointLost(*borrowed, *endpoint);
+                                 break;
+                               }
                              }
                            }
                          }
@@ -2226,6 +2278,7 @@ Exception BasePcpHandler::OnIncomingConnection(
   // out indicating that MediumSelector<bool> is not an aggregate
   PendingConnectionInfo pending_connection_info{};
   pending_connection_info.client = client;
+  pending_connection_info.borrowable_client = client->GetBorrowable();
   pending_connection_info.remote_endpoint_info = endpoint_info;
   pending_connection_info.nonce = connection_request.nonce();
   pending_connection_info.is_incoming = true;
