@@ -16,9 +16,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/platform/payload_id.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
 
 namespace nearby {
 
@@ -66,35 +71,49 @@ Exception InputFile::Close() { return impl_->Close(); }
 InputStream& InputFile::GetInputStream() { return *impl_; }
 
 OutputFile::OutputFile(std::string file_path)
-    : impl_(Platform::CreateOutputFile(file_path)) {}
+    : impl_(Platform::CreateOutputFile(file_path)),
+      file_path_(std::move(file_path)) {}
 #if defined(NEARBY_CHROMIUM)
 OutputFile::OutputFile(PayloadId id) : impl_(Platform::CreateOutputFile(id)) {}
 #endif  // defined(NEARBY_CHROMIUM)
 OutputFile::~OutputFile() = default;
 OutputFile::OutputFile(OutputFile&&) noexcept = default;
-OutputFile& OutputFile::operator=(OutputFile&&) = default;
 
 bool OutputFile::IsValid() const { return impl_ != nullptr; }
 // Writes all data from absl::string_view to the underlying stream.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception OutputFile::Write(absl::string_view data) {
+  if (impl_ == nullptr) {
+    return {Exception::kIo};
+  }
   return impl_->Write(data);
 }
 
 // Disallows further writes to the file and frees system resources,
 // associated with it.
-Exception OutputFile::Close() { return impl_->Close(); }
+Exception OutputFile::Close() {
+  if (impl_ == nullptr) {
+    return {Exception::kSuccess};
+  }
+  return impl_->Close();
+}
 
-// Returns a handle to the underlying  output stream.
-//
-// Returned handle will remain valid even if OutputFile is moved, for as long
-// as original OutputFile lifetime continues.
-// Side effects of any non-const operation invoked for OutputFile (such as
-// Write, or Close will be observable through OutputStream& handle, and vice
-// versa.
-OutputStream& OutputFile::GetOutputStream() { return *impl_; }
+bool OutputFile::Delete() {
+  if (impl_ == nullptr) {
+    return false;
+  }
+  impl_->Close();
+  impl_.reset();
+  if (file_path_.empty()) {
+    return false;
+  }
+  return Files::RemoveFile(FilePath(file_path_));
+}
 
 void OutputFile::SetLastModifiedTime(absl::Time last_modified_time) {
+  if (impl_ == nullptr) {
+    return;
+  }
   impl_->SetLastModifiedTime(last_modified_time);
 }
 
