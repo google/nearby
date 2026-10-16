@@ -1680,10 +1680,8 @@ void PayloadManager::PendingPayloads::StartTrackingPayload(
     Payload::Id payload_id, std::unique_ptr<PendingPayload> pending_payload) {
   MutexLock lock(&mutex_);
 
-  // If the |payload_id| is being re-used, always prefer the newer payload.
-  Remove(pending_payloads_.find(payload_id));
   VLOG(1) << "StartTrackingPayload: " << pending_payload->ToString();
-  pending_payload->IncRefCount();
+  // If the |payload_id| is being re-used, always prefer the newer payload.
   pending_payloads_[payload_id] = std::move(pending_payload);
 }
 
@@ -1691,26 +1689,7 @@ void PayloadManager::PendingPayloads::StopTrackingPayload(
     Payload::Id payload_id) {
   MutexLock lock(&mutex_);
   VLOG(1) << "StopTrackingPayload " << payload_id;
-  Remove(pending_payloads_.find(payload_id));
-}
-
-void PayloadManager::PendingPayloads::Remove(
-    absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>::iterator
-        it) {
-  if (it != pending_payloads_.end()) {
-    int refcount = it->second->DecRefCount();
-    if (refcount == 0) {
-      // Nobody is using the payload, we can remove it.
-      VLOG(1) << "Erase payload " << it->second->ToString();
-      pending_payloads_.erase(it);
-    } else {
-      // Someone is still using the payload. Move it to the garbage bin. The
-      // payload will be removed when they release it.
-      VLOG(1) << "Bin payload " << it->second->ToString();
-      payload_garbage_bin_.push_back(
-          std::move(pending_payloads_.extract(it).mapped()));
-    }
-  }
+  pending_payloads_.erase(payload_id);
 }
 
 PayloadManager::PendingPayloadHandle
@@ -1719,21 +1698,15 @@ PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
 
   auto item = pending_payloads_.find(payload_id);
   if (item == pending_payloads_.end()) {
-    return PendingPayloadHandle();
+    return nullptr;
   }
-  PendingPayload* payload = item->second.get();
-  payload->IncRefCount();
-  return PendingPayloadHandle(
-      payload, absl::bind_front(&PendingPayloads::Release,
-                                const_cast<PendingPayloads*>(this)));
+  return item->second;
 }
 
 void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
   MutexLock lock(&mutex_);
 
-  for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
-    Remove(it++);
-  }
+  pending_payloads_.clear();
 }
 
 void PayloadManager::PendingPayloads::ForEachPayload(
@@ -1742,39 +1715,6 @@ void PayloadManager::PendingPayloads::ForEachPayload(
 
   for (const auto& item : pending_payloads_) {
     callback(item.second.get());
-  }
-}
-
-void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
-  // Called when `PendingPayloadHandle` is destroyed.
-  MutexLock lock(&mutex_);
-  VLOG(1) << __func__ << " " << payload->ToString();
-  auto it = pending_payloads_.find(payload->GetId());
-  if (it != pending_payloads_.end() && it->second.get() == payload) {
-    // The payload is still tracked.
-    payload->DecRefCount();
-    return;
-  }
-  auto bin_it =
-      std::find_if(payload_garbage_bin_.begin(), payload_garbage_bin_.end(),
-                   [payload](auto& item) { return item.get() == payload; });
-  if (bin_it != payload_garbage_bin_.end()) {
-    int refcount = payload->DecRefCount();
-    if (refcount == 0) {
-      // The payload is not tracked and it was the last reference.
-      payload_garbage_bin_.erase(bin_it);
-    }
-  }
-}
-
-PayloadManager::PendingPayloadHandle::PendingPayloadHandle(
-    PendingPayload* payload,
-    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback)
-    : payload_(payload), destroy_callback_(std::move(destroy_callback)) {}
-
-PayloadManager::PendingPayloadHandle::~PendingPayloadHandle() {
-  if (destroy_callback_) {
-    std::move(destroy_callback_)(payload_);
   }
 }
 
