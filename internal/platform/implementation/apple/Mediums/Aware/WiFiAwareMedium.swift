@@ -310,12 +310,26 @@ private struct ConnectionInfo: Sendable {
 actor InternalConnectionWrapper {
   private var connection: WiFiAwareConnection?
   private let onClose: @Sendable () -> Void
-  private var buffer = Data()
   private var continuation: CheckedContinuation<Void, Never>?
   private var readyContinuation: CheckedContinuation<Void, Error>?
   private var isClosed = false
   private var isReady = false
   private let logger = Logger(component: "InternalConnectionWrapper")
+
+  // Bounded receive buffer state.
+  //
+  // Incoming chunks are queued as-is instead of being coalesced into a single `Data`, so that a
+  // read only touches the bytes it returns. Coalescing into one `Data` and calling
+  // `removeFirst(_:)` after taking a `prefix(_:)` slice copies the entire remaining backlog on every
+  // read, which makes the consumer progressively slower as the backlog grows (b/572710164).
+  private var rxChunks: [Data] = []
+  private var rxChunksHead = 0  // Index of the first unread chunk in `rxChunks`.
+  private var rxChunkOffset = 0  // Bytes already consumed from `rxChunks[rxChunksHead]`.
+  private var rxBufferedBytes = 0
+  private var receiveCapacityContinuation: CheckedContinuation<Void, Never>?
+  private let maxRxBufferedBytes = 4 * 1024 * 1024  // 4 MB High-Water Mark
+  private let lowWaterRxBufferedBytes = 1 * 1024 * 1024  // 1 MB Low-Water Mark
+  private let rxChunksCompactionThreshold = 64
 
   // Bounded producer-consumer queue state
   private var writeQueue: [Data] = []
@@ -339,9 +353,47 @@ actor InternalConnectionWrapper {
   }
 
   func appendIncomingData(_ data: Data) {
-    buffer.append(data)
+    if !data.isEmpty {
+      rxChunks.append(data)
+      rxBufferedBytes += data.count
+    }
     continuation?.resume()
     continuation = nil
+  }
+
+  /// Suspends the caller while the receive buffer is at or above its high-water mark.
+  ///
+  /// The receive pump must call this before pulling more data off the `WiFiAwareConnection`, so
+  /// that a slow consumer applies TCP backpressure to the remote sender instead of letting the
+  /// receive buffer grow without bound.
+  ///
+  /// - Returns: `false` if the wrapper has been closed or the calling task was cancelled, in which
+  ///   case the caller should stop receiving.
+  func waitForReceiveCapacity() async -> Bool {
+    while rxBufferedBytes >= maxRxBufferedBytes && !isClosed && !Task.isCancelled {
+      guard receiveCapacityContinuation == nil else {
+        fatalError("Concurrent receivers not supported on this wrapper")
+      }
+      await withTaskCancellationHandler {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+          if Task.isCancelled {
+            c.resume()
+          } else {
+            self.receiveCapacityContinuation = c
+          }
+        }
+      } onCancel: {
+        Task {
+          await self.resumeReceiveCapacityWaiter()
+        }
+      }
+    }
+    return !isClosed && !Task.isCancelled
+  }
+
+  private func resumeReceiveCapacityWaiter() {
+    receiveCapacityContinuation?.resume()
+    receiveCapacityContinuation = nil
   }
 
   /// Closes the wrapper.
@@ -357,6 +409,7 @@ actor InternalConnectionWrapper {
     connection = nil
     continuation?.resume()
     continuation = nil
+    resumeReceiveCapacityWaiter()
     readyContinuation?.resume(
       throwing: NSError(
         domain: "InternalConnectionWrapper", code: -1,
@@ -442,7 +495,7 @@ actor InternalConnectionWrapper {
   func readMaxLength(_ length: Int) async -> Data? {
     guard length > 0 else { return Data() }
 
-    while buffer.isEmpty && !isClosed {
+    while rxBufferedBytes == 0 && !isClosed {
       guard continuation == nil else {
         fatalError("Concurrent reads not supported on this wrapper")
       }
@@ -452,14 +505,64 @@ actor InternalConnectionWrapper {
       }
     }
 
-    if buffer.isEmpty && isClosed {
+    if rxBufferedBytes == 0 && isClosed {
       return nil  // EOF
     }
 
-    let bytesToRead = min(length, buffer.count)
-    let data = buffer.prefix(bytesToRead)
-    buffer.removeFirst(bytesToRead)
+    let bytesToRead = min(length, rxBufferedBytes)
+    let data = dequeueIncomingBytes(bytesToRead)
+
+    // Resume the receive pump once the consumer has drained the buffer below the low-water mark.
+    if rxBufferedBytes <= lowWaterRxBufferedBytes {
+      resumeReceiveCapacityWaiter()
+    }
     return data
+  }
+
+  /// Removes and returns exactly `count` bytes from the front of the receive buffer.
+  ///
+  /// The returned `Data` owns its storage, and only the returned bytes are copied, so the cost is
+  /// O(`count`) regardless of how much data is buffered.
+  ///
+  /// - Precondition: `0 < count <= rxBufferedBytes`.
+  private func dequeueIncomingBytes(_ count: Int) -> Data {
+    // Fast path: the request exactly matches the next unread chunk.
+    if rxChunkOffset == 0 && rxChunks[rxChunksHead].count == count {
+      let chunk = rxChunks[rxChunksHead]
+      rxChunks[rxChunksHead] = Data()
+      rxChunksHead += 1
+      rxBufferedBytes -= count
+      compactRxChunksIfNeeded()
+      return chunk
+    }
+
+    var data = Data(capacity: count)
+    while data.count < count {
+      let chunk = rxChunks[rxChunksHead]
+      let start = chunk.startIndex + rxChunkOffset
+      let n = min(count - data.count, chunk.endIndex - start)
+      data.append(chunk[start..<(start + n)])
+      rxChunkOffset += n
+      if start + n == chunk.endIndex {
+        rxChunks[rxChunksHead] = Data()  // Release the consumed chunk's storage.
+        rxChunksHead += 1
+        rxChunkOffset = 0
+      }
+    }
+    rxBufferedBytes -= count
+    compactRxChunksIfNeeded()
+    return data
+  }
+
+  /// Drops consumed chunk slots from `rxChunks` so the array does not grow without bound.
+  private func compactRxChunksIfNeeded() {
+    if rxChunksHead == rxChunks.count {
+      rxChunks.removeAll(keepingCapacity: true)
+      rxChunksHead = 0
+    } else if rxChunksHead >= rxChunksCompactionThreshold && rxChunksHead * 2 >= rxChunks.count {
+      rxChunks.removeFirst(rxChunksHead)
+      rxChunksHead = 0
+    }
   }
 
   func write(_ data: Data) async throws {
@@ -564,6 +667,7 @@ actor InternalConnectionWrapper {
     isClosed = true
     continuation?.resume()
     continuation = nil
+    resumeReceiveCapacityWaiter()
     readyContinuation?.resume(
       throwing: NSError(
         domain: "InternalConnectionWrapper", code: -1,
@@ -715,6 +819,15 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
 
   @objc public func appendIncomingData(_ data: Data) async {
     await internalWrapper?.appendIncomingData(data)
+  }
+
+  /// Suspends while the receive buffer is at or above its high-water mark.
+  ///
+  /// - Returns: `false` if the wrapper is closed (or is a listener wrapper), `true` once there is
+  ///   room for more incoming data.
+  @objc public func waitForReceiveCapacity() async -> Bool {
+    guard let wrapper = internalWrapper else { return false }
+    return await wrapper.waitForReceiveCapacity()
   }
 
   @objc public func acceptConnection() async -> WiFiAwareConnectionWrapper? {
@@ -992,6 +1105,13 @@ actor ConnectionManager: Sendable {
     return Task(priority: .userInitiated) { [weak self] in
       do {
         while true {
+          // Apply backpressure: stop pulling from the connection while the consumer is behind, so
+          // that TCP flow control throttles the remote sender instead of buffering in memory.
+          if let internalWrapper = wrapper.internalWrapper,
+            !(await internalWrapper.waitForReceiveCapacity())
+          {
+            break
+          }
           let message = try await connection.receive(atLeast: 1, atMost: 64 * 1024)
           if !message.content.isEmpty {
             await wrapper.appendIncomingData(message.content)
