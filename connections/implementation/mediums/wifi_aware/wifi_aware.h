@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
@@ -37,7 +38,7 @@
 namespace nearby {
 namespace connections {
 
-class WifiAware {
+class WifiAware : public WifiAwareInterface {
  public:
   using DiscoveredServiceCallback = WifiAwareMedium::DiscoveredServiceCallback;
 
@@ -46,60 +47,63 @@ class WifiAware {
       const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   WifiAware() = default;
-  ~WifiAware();
+  ~WifiAware() override;
 
   // Returns true, if WifiAware communications are supported by a platform.
-  bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enables WifiAware advertising.
   ErrorOr<bool> StartAdvertising(
       const std::string& service_id,
       absl::string_view channel_name,
       const WifiAwareServiceInfo& wifi_aware_service_info,
-      AcceptedConnectionCallback callback) ABSL_LOCKS_EXCLUDED(mutex_);
+      AcceptedConnectionCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiAware advertising.
-  bool StopAdvertising(const std::string& service_id)
+  bool StopAdvertising(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsAdvertising(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAdvertising(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enables WifiAware discovery.
   ErrorOr<bool> StartDiscovery(const std::string& service_id,
-                               DiscoveredServiceCallback callback)
+                               DiscoveredServiceCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiAware discovery.
-  bool StopDiscovery(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopDiscovery(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsDiscovering(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsDiscovering(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsPublishing() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StartPublishing() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopPublishing() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StartPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StartSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopSubscribing() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StartSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // See api::WifiAwareMedium::SetExpectedPeerId(). Must be called before
   // StartSubscribing(), because that is where a platform decides whether it can
   // reach this peer with the pairings it already holds or has to ask the user
   // to pair first.
-  void SetExpectedPeerId(absl::string_view peer_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  void SetExpectedPeerId(absl::string_view peer_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a WifiAware socket, associates it with a
   // service id.
-  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
-                                          absl::string_view channel_name,
-                                          AcceptedConnectionCallback callback)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<bool> StartAcceptingConnections(
+      const std::string& service_id, absl::string_view channel_name,
+      AcceptedConnectionCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
-  bool StopAcceptingConnections(const std::string& service_id)
+  bool StopAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsAcceptingConnections(const std::string& service_id)
+  bool IsAcceptingConnections(const std::string& service_id) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to WifiAware service.
@@ -107,20 +111,21 @@ class WifiAware {
       const std::string& service_id,
       absl::string_view channel_name,
       const WifiAwareServiceInfo& service_info,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
       const std::string& service_id, const std::string& service_name,
       const ByteArray& service_info, const std::string& passphrase, int port,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the list of ip address candidates that can be used to connect to
   // this device for bandwidth upgrade + port number the service is listening
   // on.
   api::UpgradeAddressInfo GetUpgradeAddressCandidates(
-      const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::unique_ptr<BwuHandler> CreateBwuHandler(
-    BwuHandler::IncomingConnectionCallback incoming_connection_callback);
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback)
+      override;
 
  private:
   static constexpr int kMaxConcurrentAcceptLoops = 5;

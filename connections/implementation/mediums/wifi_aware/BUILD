@@ -18,13 +18,48 @@ licenses(["notice"])
 
 cc_library(
     name = "wifi_aware",
-    textual_hdrs = ["wifi_aware.h"],
+    textual_hdrs = ["wifi_aware_interface.h"],
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums:__pkg__",
     ],
+    deps = select({
+        "@platforms//os:windows": [":wifi_aware_stub"],
+        "//conditions:default": [":wifi_aware_internal"],
+    }),
+)
+
+cc_library(
+    name = "wifi_aware_interface",
+    hdrs = ["wifi_aware_interface.h"],
+    visibility = ["//visibility:private"],
     deps = [
-        ":wifi_aware_internal",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "wifi_aware_stub",
+    srcs = ["wifi_aware_stub.cc"],
+    hdrs = ["wifi_aware_stub.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":wifi_aware_interface",
+        "//connections/implementation:bwu_handler",
+        "//connections/implementation:endpoint_channel",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -40,11 +75,9 @@ cc_library(
         "wifi_aware_bwu_handler.h",
         "wifi_aware_endpoint_channel.h",
     ],
-    visibility = [
-        "//connections/implementation:__pkg__",
-        "//connections/implementation/mediums:__pkg__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
+        ":wifi_aware_interface",
         "//connections/implementation:bwu_handler",
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",

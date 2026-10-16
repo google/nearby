@@ -23,7 +23,7 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
-#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
@@ -53,7 +53,7 @@ class Mediums {
   WifiLan& GetWifiLan();
 
   // Returns a handle to the Wifi-Aware medium.
-  WifiAware& GetWifiAware();
+  WifiAwareInterface& GetWifiAware();
 
   // Returns a handle to the Wifi-Hotspot medium.
   WifiHotspot& GetWifiHotspot();
@@ -81,7 +81,7 @@ class Mediums {
   Ble ble_{bluetooth_radio_};
   Wifi wifi_;
   WifiLan wifi_lan_;
-  WifiAware wifi_aware_;
+  const std::unique_ptr<WifiAwareInterface> wifi_aware_;
   WifiHotspot wifi_hotspot_;
   const std::unique_ptr<WifiDirectInterface> wifi_direct_;
   const std::unique_ptr<mediums::WebRtc> webrtc_;
