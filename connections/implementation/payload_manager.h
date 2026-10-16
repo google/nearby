@@ -176,11 +176,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     std::string ToString() const;
 
-    // Ref counting for `PendingPayloads` use only. `PendingPayloads` class owns
-    // all instances of `PendingPayload`.
-    int IncRefCount() { return ++refcount_; }
-    int DecRefCount() { return --refcount_; }
-
    private:
     void InitEndpoints(const std::vector<std::string>& endpoint_ids)
         ABSL_LOCKS_EXCLUDED(mutex_);
@@ -192,45 +187,9 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
-    int refcount_ = 0;
   };
 
-  // A RAII handle to `PendingPayload`. Holding a `PendingPayloadHandle`
-  // guarantees that `PendingPaylaod` won't be destroyed while in use.
-  // Create instances with `GetPayload(Payload::Id)`.
-  class PendingPayloadHandle {
-   public:
-    PendingPayloadHandle() = default;
-    PendingPayloadHandle(
-        PendingPayload* payload,
-        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
-    PendingPayloadHandle(const PendingPayloadHandle&) = delete;
-    PendingPayloadHandle(PendingPayloadHandle&& other) {
-      payload_ = other.payload_;
-      other.payload_ = nullptr;
-      destroy_callback_ = std::move(other.destroy_callback_);
-    }
-    ~PendingPayloadHandle();
-    PendingPayloadHandle& operator=(const PendingPayloadHandle&) = delete;
-    PendingPayloadHandle& operator=(PendingPayloadHandle&& other) {
-      if (payload_ != nullptr && destroy_callback_) {
-        std::move(destroy_callback_)(payload_);
-      }
-      payload_ = other.payload_;
-      other.payload_ = nullptr;
-      destroy_callback_ = std::move(other.destroy_callback_);
-      return *this;
-    }
-    explicit operator bool() const { return payload_ != nullptr; }
-
-    PendingPayload* operator->() const { return payload_; }
-
-    PendingPayload& operator*() const { return *payload_; }
-
-   private:
-    PendingPayload* payload_ = nullptr;
-    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
-  };
+  using PendingPayloadHandle = std::shared_ptr<PendingPayload>;
 
   // Tracks and manages PendingPayload objects in a synchronized manner.
   class PendingPayloads {
@@ -252,19 +211,12 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
-    void Release(PendingPayload* payload) ABSL_LOCKS_EXCLUDED(mutex_);
     void Remove(absl::flat_hash_map<
-                Payload::Id, std::unique_ptr<PendingPayload>>::iterator it)
+                Payload::Id, std::shared_ptr<PendingPayload>>::iterator it)
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
     mutable absl::Mutex mutex_;
-    absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>
+    absl::flat_hash_map<Payload::Id, std::shared_ptr<PendingPayload>>
         pending_payloads_ ABSL_GUARDED_BY(mutex_);
-    // When we stop tracking a payload but someone is still holding a handle to
-    // the payload, we can't delete it just yet. Instead, we move it to the
-    // garbage bin. When the `PendingPayloadHandle` is released, the payload
-    // will be removed from the bin.
-    std::vector<std::unique_ptr<PendingPayload>> payload_garbage_bin_
-        ABSL_GUARDED_BY(mutex_);
   };
 
   using Endpoints = std::vector<const EndpointInfo*>;
