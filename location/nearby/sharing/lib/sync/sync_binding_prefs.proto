@@ -1,0 +1,28 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+edition = "2024";
+
+package nearby.sharing.sync;
+
+option features.utf8_validation = NONE;
+
+message SyncBindingPrefs {
+  repeated .nearby.sharing.sync.SyncBinding sync_bindings = 1;
+}
+
+message SyncBinding {
+  string binding_id = 1;
+  string source_name = 2;
+  string destination_directory = 3;
+  .nearby.sharing.sync.SyncBinding.SourceDeviceType source_device_type = 4;
+  enum SourceDeviceType {
+    SOURCE_DEVICE_TYPE_UNKNOWN = 0;
+    SOURCE_DEVICE_TYPE_PHONE = 1;
+    SOURCE_DEVICE_TYPE_TABLET = 2;
+    SOURCE_DEVICE_TYPE_LAPTOP = 3;
+    SOURCE_DEVICE_TYPE_CAR = 4;
+    SOURCE_DEVICE_TYPE_FOLDABLE = 5;
+    SOURCE_DEVICE_TYPE_XR = 6;
+  }
+}

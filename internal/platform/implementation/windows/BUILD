@@ -36,6 +36,7 @@ cc_library(
     visibility = [
         "//location/nearby/apps/better_together/plugins/crashpad/windows:__pkg__",
         "//location/nearby/apps/better_together/plugins/logging/windows:__pkg__",
+        "//sharing/internal/impl/windows:__pkg__",
     ],
     deps = [
         "//internal/base:file_path",
@@ -78,6 +79,8 @@ cc_library(
     ],
     linkopts = [
         "powrprof.lib",
+        "user32.lib",
+        "wtsapi32.lib",
     ],
     tags = ["windows"],
     visibility = ["//visibility:private"],
@@ -322,7 +325,12 @@ cc_library(
         "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
     ],
     linkopts = [
+        "dnsapi.lib",
         "iphlpapi.lib",
+        "uuid.lib",
+        "wininet.lib",
+        "wlanapi.lib",
+        "ws2_32.lib",
     ],
     tags = ["windows"],
     visibility = [
@@ -378,7 +386,7 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_protobuf//:protobuf",
-        "@com_google_protobuf//json",
+        "@com_google_protobuf//src/google/protobuf/json",
         "@nlohmann_json//:json",
     ],
 )

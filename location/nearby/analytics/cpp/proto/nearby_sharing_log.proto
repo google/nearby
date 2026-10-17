@@ -1,0 +1,586 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+syntax = "proto2";
+
+package nearby.sharing.analytics.proto;
+
+import "google/protobuf/duration.proto";
+import "proto/sharing_enums.proto";
+
+// LITE_RUNTIME: the OSS enum protos imported here are lite.
+option optimize_for = LITE_RUNTIME;
+
+message SharingLog {
+  optional .location.nearby.proto.sharing.EventType event_type = 1;
+  optional .nearby.sharing.analytics.proto.SharingLog.UnknownEvent unknown_event = 2;
+  optional .nearby.sharing.analytics.proto.SharingLog.AcceptAgreements accept_agreements = 3;
+  optional .nearby.sharing.analytics.proto.SharingLog.EnableNearbySharing enable_nearby_sharing = 4;
+  optional .nearby.sharing.analytics.proto.SharingLog.SetVisibility set_visibility = 5;
+  optional .nearby.sharing.analytics.proto.SharingLog.DescribeAttachments describe_attachments = 6;
+  optional .nearby.sharing.analytics.proto.SharingLog.ScanForShareTargetsStart scan_for_share_targets_start = 7;
+  optional .nearby.sharing.analytics.proto.SharingLog.ScanForShareTargetsEnd scan_for_share_targets_end = 8;
+  optional .nearby.sharing.analytics.proto.SharingLog.AdvertiseDevicePresenceStart advertise_device_presence_start = 9;
+  optional .nearby.sharing.analytics.proto.SharingLog.AdvertiseDevicePresenceEnd advertise_device_presence_end = 10;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendFastInitialization send_initialization = 11;
+  optional .nearby.sharing.analytics.proto.SharingLog.ReceiveFastInitialization receive_initialization = 12;
+  optional .nearby.sharing.analytics.proto.SharingLog.DiscoverShareTarget discover_share_target = 13;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendIntroduction send_introduction = 14;
+  optional .nearby.sharing.analytics.proto.SharingLog.ReceiveIntroduction receive_introduction = 15;
+  optional .nearby.sharing.analytics.proto.SharingLog.RespondToIntroduction respond_introduction = 16;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendAttachmentsStart send_attachments_start = 17;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendAttachmentsEnd send_attachments_end = 18;
+  optional .nearby.sharing.analytics.proto.SharingLog.ReceiveAttachmentsStart receive_attachments_start = 19;
+  optional .nearby.sharing.analytics.proto.SharingLog.ReceiveAttachmentsEnd receive_attachments_end = 20;
+  optional .nearby.sharing.analytics.proto.SharingLog.CancelSendingAttachments cancel_sending_attachments = 21;
+  optional .nearby.sharing.analytics.proto.SharingLog.CancelReceivingAttachments cancel_receiving_attachments = 22;
+  optional .nearby.sharing.analytics.proto.SharingLog.OpenReceivedAttachments open_received_attachments = 23;
+  optional .nearby.sharing.analytics.proto.SharingLog.LaunchActivity launch_activity = 24;
+  optional .nearby.sharing.analytics.proto.SharingLog.AddContact add_contact = 25;
+  optional .nearby.sharing.analytics.proto.SharingLog.RemoveContact remove_contact = 26;
+  optional .location.nearby.proto.sharing.LogSource log_source = 27;
+  optional .nearby.sharing.analytics.proto.SharingLog.FastShareServerResponse fast_share_server_response = 28;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendStart send_start = 29;
+  optional .nearby.sharing.analytics.proto.SharingLog.AcceptFastInitialization accept_fast_initialization = 30;
+  optional .nearby.sharing.analytics.proto.SharingLog.SetDataUsage set_data_usage = 31;
+  optional string version = 32;
+  optional .location.nearby.proto.sharing.EventCategory event_category = 33;
+  optional .nearby.sharing.analytics.proto.SharingLog.DismissFastInitialization dismiss_fast_initialization = 34;
+  optional .nearby.sharing.analytics.proto.SharingLog.CancelConnection cancel_connection = 35;
+  optional .nearby.sharing.analytics.proto.SharingLog.DismissPrivacyNotification dismiss_privacy_notification = 36;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapPrivacyNotification tap_privacy_notification = 37;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapHelp tap_help = 38;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapFeedback tap_feedback = 39;
+  optional .nearby.sharing.analytics.proto.SharingLog.AddQuickSettingsTile add_quick_settings_tile = 40;
+  optional .nearby.sharing.analytics.proto.SharingLog.RemoveQuickSettingsTile remove_quick_settings_tile = 41;
+  optional .nearby.sharing.analytics.proto.SharingLog.LaunchPhoneConsent launch_phone_consent = 42;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapQuickSettingsTile tap_quick_settings_tile = 43;
+  optional .nearby.sharing.analytics.proto.SharingLog.InstallAPKStatus install_apk_status = 44;
+  optional .nearby.sharing.analytics.proto.SharingLog.VerifyAPKStatus verify_apk_status = 45;
+  optional .nearby.sharing.analytics.proto.SharingLog.LaunchConsent launch_consent = 46;
+  optional .nearby.sharing.analytics.proto.SharingLog.ProcessReceivedAttachmentsEnd process_received_attachments_end = 47;
+  optional .nearby.sharing.analytics.proto.SharingLog.ToggleShowNotification toggle_show_notification = 48;
+  optional .nearby.sharing.analytics.proto.SharingLog.SetDeviceName set_device_name = 49;
+  optional string files_migration_phase = 50;
+  optional .nearby.sharing.analytics.proto.SharingLog.DeclineAgreements decline_agreements = 51;
+  optional .nearby.sharing.analytics.proto.SharingLog.RequestSettingPermissions request_setting_permissions = 52;
+  optional .nearby.sharing.analytics.proto.SharingLog.DeviceSettings device_settings = 53;
+  optional .nearby.sharing.analytics.proto.SharingLog.EstablishConnection establish_connection = 54;
+  optional .nearby.sharing.analytics.proto.SharingLog.AutoDismissFastInitialization auto_dismiss_fast_initialization = 55;
+  optional .nearby.sharing.analytics.proto.SharingLog.EventMetadata event_metadata = 56;
+  optional string app_version = 57 [deprecated = true];
+  optional .nearby.sharing.analytics.proto.SharingLog.AppCrash app_crash = 58;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapQuickSettingsFileShare tap_quick_settings_file_share = 59;
+  optional .nearby.sharing.analytics.proto.SharingLog.AppInfo app_info = 60;
+  optional .nearby.sharing.analytics.proto.SharingLog.DisplayPrivacyNotification display_privacy_notification = 61;
+  optional .nearby.sharing.analytics.proto.SharingLog.DisplayPhoneConsent display_phone_consent = 62;
+  optional .nearby.sharing.analytics.proto.SharingLog.PreferencesUsage preferences_usage = 63;
+  optional .nearby.sharing.analytics.proto.SharingLog.DefaultOptIn default_opt_in = 64;
+  optional .nearby.sharing.analytics.proto.SharingLog.SetupWizard setup_wizard = 65;
+  optional .nearby.sharing.analytics.proto.SharingLog.TapQrCode tap_qr_code = 66;
+  optional .nearby.sharing.analytics.proto.SharingLog.QrCodeLinkShown qr_code_link_shown = 67;
+  optional .nearby.sharing.analytics.proto.SharingLog.ParsingFailedEndpointId parsing_failed_endpoint_id = 68;
+  optional .nearby.sharing.analytics.proto.SharingLog.FastInitDiscoverDevice fast_init_discover_device = 69;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendDesktopNotification send_desktop_notification = 70;
+  optional .nearby.sharing.analytics.proto.SharingLog.SendDesktopTransferEvent send_desktop_transfer_event = 72;
+  optional .nearby.sharing.analytics.proto.SharingLog.SetAccount set_account = 73;
+  optional .nearby.sharing.analytics.proto.SharingLog.DecryptCertificateFailure decrypt_certificate_failure = 74;
+  optional .nearby.sharing.analytics.proto.SharingLog.ShowAllowPermissionAutoAccess show_allow_permission_auto_access = 75;
+  optional .nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept show_waiting_for_accept = 76;
+  optional .nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup high_quality_medium_setup = 77;
+  optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus rpc_call_status = 78;
+  optional .nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession start_qr_code_session = 79;
+  optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient qr_code_opened_in_web_client = 80;
+  optional .nearby.sharing.analytics.proto.SharingLog.HatsJointEvent hats_joint_event = 81;
+  optional .nearby.sharing.analytics.proto.SharingLog.ReceivePreviews receive_previews = 82;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest cloud_create_sharing_request = 83;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver cloud_register_receiver = 84;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadStart cloud_upload_start = 85;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd cloud_upload_end = 86;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart cloud_download_start = 87;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd cloud_download_end = 88;
+  optional .nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult cloud_sharing_rpc_result = 89;
+  message AppInfo {
+    optional string app_version = 1;
+    optional string app_language = 2;
+    optional string update_track = 3;
+  }
+  message DeviceSettings {
+    optional .location.nearby.proto.sharing.Visibility visibility = 1;
+    optional .location.nearby.proto.sharing.DataUsage data_usage = 2;
+    optional int32 device_name_size = 3;
+    optional bool is_show_notification_enabled = 4;
+    optional bool is_bt_enabled = 5;
+    optional bool is_location_enabled = 6;
+    optional bool is_wifi_enabled = 7;
+    optional int32 first_successful_transfer_date = 8;
+    optional int32 previous_successful_transfer_date = 9;
+    optional int32 lifetime_transfer_count = 10;
+    optional .location.nearby.proto.sharing.ContactAccess contact_access = 11;
+    optional .location.nearby.proto.sharing.IdentityVerification identity_verification = 12;
+  }
+  message PreferencesUsage {
+    optional .location.nearby.proto.sharing.PreferencesAction action = 1;
+    optional .location.nearby.proto.sharing.PreferencesActionStatus action_status = 2;
+    optional .location.nearby.proto.sharing.PreferencesAction prev_sub_action = 3;
+    optional .location.nearby.proto.sharing.PreferencesAction next_sub_action = 4;
+  }
+  message UnknownEvent {
+  }
+  message EstablishConnection {
+    optional .location.nearby.proto.sharing.EstablishConnectionStatus status = 1;
+    optional int64 session_id = 2;
+    optional int32 transfer_position = 3;
+    optional int32 concurrent_connections = 4;
+    optional int64 duration_millis = 5;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 6;
+    optional string referrer_name = 7;
+    optional bool qr_code_flow = 8 [deprecated = true];
+    optional bool is_incoming_connection = 9;
+    optional .google.protobuf.Duration qr_code_receiver_connect_latency = 10;
+  }
+  message AcceptAgreements {
+  }
+  message DeclineAgreements {
+  }
+  message EnableNearbySharing {
+    optional .location.nearby.proto.sharing.NearbySharingStatus status = 1;
+    optional bool has_opted_in = 2;
+  }
+  message SetAccount {
+    optional .location.nearby.proto.sharing.ActivityName activity_name = 1;
+  }
+  message SetVisibility {
+    optional .location.nearby.proto.sharing.Visibility visibility = 1;
+    optional .location.nearby.proto.sharing.Visibility source_visibility = 2;
+    optional int64 duration_millis = 3;
+    optional .location.nearby.proto.sharing.ActivityName source_activity_name = 4;
+  }
+  message SetDataUsage {
+    optional .location.nearby.proto.sharing.DataUsage original_preference = 1;
+    optional .location.nearby.proto.sharing.DataUsage preference = 2;
+  }
+  message ScanForShareTargetsStart {
+    optional int64 session_id = 1;
+    optional .location.nearby.proto.sharing.SessionStatus status = 2;
+    optional .location.nearby.proto.sharing.ScanType scan_type = 3;
+    optional int64 flow_id = 4;
+    optional string referrer_name = 5;
+    optional bool use_qr_code = 6;
+  }
+  message ScanForShareTargetsEnd {
+    optional int64 session_id = 1;
+  }
+  message AdvertiseDevicePresenceStart {
+    optional int64 session_id = 1 [deprecated = true];
+    optional .location.nearby.proto.sharing.Visibility visibility = 2;
+    optional .location.nearby.proto.sharing.SessionStatus status = 3;
+    optional .location.nearby.proto.sharing.DataUsage data_usage = 4;
+    optional int32 device_name_size = 5 [deprecated = true];
+    optional string referrer_name = 6;
+    optional .location.nearby.proto.sharing.AdvertisingMode advertising_mode = 7;
+    optional bool qr_code_flow = 8;
+  }
+  message AdvertiseDevicePresenceEnd {
+    optional int64 session_id = 1 [deprecated = true];
+  }
+  message SendFastInitialization {
+  }
+  message ReceiveFastInitialization {
+    optional int64 time_elapse_since_screen_unlock_millis = 1;
+    optional bool notifications_enabled = 2;
+    optional bool notifications_filtered = 3;
+  }
+  message DismissFastInitialization {
+  }
+  message AutoDismissFastInitialization {
+  }
+  message EventMetadata {
+    optional .location.nearby.proto.sharing.SharingUseCase use_case = 1;
+    optional bool initial_opt_in = 2 [deprecated = true];
+    optional bool opt_in = 3 [deprecated = true];
+    optional bool initial_enable_status = 4 [deprecated = true];
+    optional int64 flow_id = 5;
+    optional int64 session_id = 6;
+    optional int32 vendor_id = 7;
+    optional string cloud_sharing_id = 8;
+    optional string cloud_receiver_session_id = 9;
+    optional string external_provider_name = 10;
+    optional string external_provider_id = 11;
+    optional bool is_direct_share = 12;
+    optional .location.nearby.proto.sharing.SharingSurface surface = 13;
+  }
+  message DiscoverShareTarget {
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    optional .google.protobuf.Duration duration_since_scanning = 2;
+    optional int64 session_id = 3;
+    optional int64 flow_id = 4;
+    optional string referrer_name = 5;
+    optional int64 latency_since_activity_start_millis = 6 [default = -1];
+    optional .location.nearby.proto.sharing.ScanType scan_type = 7;
+    optional string cloud_receiver_session_id = 8;
+  }
+  message ParsingFailedEndpointId {
+    optional string endpoint_id = 1;
+    optional .google.protobuf.Duration duration_since_scanning = 2;
+    optional int64 session_id = 3;
+    optional int64 flow_id = 4;
+    optional string referrer_name = 5;
+    optional int64 latency_since_activity_start_millis = 6 [default = -1];
+    optional .location.nearby.proto.sharing.ScanType scan_type = 7;
+    optional .google.protobuf.Duration duration_since_last_sync = 8;
+    optional .location.nearby.proto.sharing.ParsingFailedType parsing_failed_type = 9;
+    optional .location.nearby.proto.sharing.DiscoveryMode discovery_mode = 10;
+  }
+  message DescribeAttachments {
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    optional .google.protobuf.Duration download_duration = 2;
+  }
+  message SendIntroduction {
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    optional int64 session_id = 2;
+    optional int32 transfer_position = 3;
+    optional int32 concurrent_connections = 4;
+    optional .location.nearby.proto.sharing.PowerStatus power_status = 5;
+  }
+  message ReceiveIntroduction {
+    optional int64 session_id = 1;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 2;
+    optional string referrer_name = 3;
+    optional .location.nearby.proto.sharing.PowerStatus power_status = 4;
+  }
+  message RespondToIntroduction {
+    optional .location.nearby.proto.sharing.ResponseToIntroduction action = 1;
+    optional int64 session_id = 2;
+    optional bool qr_code_flow = 3;
+  }
+  message SendAttachmentsStart {
+    optional int64 session_id = 1;
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 2;
+    optional int32 transfer_position = 3;
+    optional int32 concurrent_connections = 4;
+    optional bool qr_code_flow = 5 [deprecated = true];
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 6;
+    optional bool advanced_protection_enabled = 7;
+    optional bool advanced_protection_mismatch = 8 [deprecated = true];
+  }
+  message SendAttachmentsEnd {
+    optional int64 session_id = 1;
+    optional int64 sent_bytes = 2;
+    optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 3;
+    optional int32 transfer_position = 4;
+    optional int32 concurrent_connections = 5;
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 6;
+    optional int64 duration_millis = 7;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 8;
+    optional string referrer_name = 9;
+    optional .location.nearby.proto.sharing.ConnectionLayerStatus connection_layer_status = 10;
+    optional int32 first_successful_transfer_date = 11;
+    optional int32 previous_successful_transfer_date = 12;
+    optional int32 lifetime_transfer_count = 13;
+    optional int32 connection_medium = 14;
+    optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+    optional bool is_mutual_contact = 16;
+  }
+  message ReceiveAttachmentsStart {
+    optional int64 session_id = 1;
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 2;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 3;
+  }
+  message ReceiveAttachmentsEnd {
+    optional int64 session_id = 1;
+    optional int64 received_bytes = 2;
+    optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 3;
+    optional string referrer_name = 4;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 5;
+    optional int32 first_successful_transfer_date = 6;
+    optional int32 previous_successful_transfer_date = 7;
+    optional int32 lifetime_transfer_count = 8;
+    optional int32 connection_medium = 14;
+    optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+  }
+  message CancelConnection {
+    optional int64 session_id = 1;
+    optional int32 transfer_position = 2;
+    optional int32 concurrent_connections = 3;
+  }
+  message CancelSendingAttachments {
+  }
+  message CancelReceivingAttachments {
+  }
+  message ProcessReceivedAttachmentsEnd {
+    optional int64 session_id = 1;
+    optional .location.nearby.proto.sharing.ProcessReceivedAttachmentsStatus status = 2;
+  }
+  message OpenReceivedAttachments {
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 3;
+    optional int64 session_id = 4;
+  }
+  message LaunchSetupActivity {
+  }
+  message AddContact {
+    optional bool was_phone_added = 1;
+    optional bool was_email_added = 2;
+  }
+  message RemoveContact {
+    optional bool was_phone_removed = 1;
+    optional bool was_email_removed = 2;
+  }
+  message FastShareServerResponse {
+    optional .location.nearby.proto.sharing.ServerResponseState status = 1;
+    optional .location.nearby.proto.sharing.ServerActionName name = 2;
+    optional int64 latency_millis = 3;
+    optional .location.nearby.proto.sharing.SyncPurpose purpose = 4;
+    optional .location.nearby.proto.sharing.ClientRole requester = 5;
+    optional .location.nearby.proto.sharing.DeviceType device_type = 6;
+  }
+  message SendStart {
+    optional int64 session_id = 1;
+    optional int32 transfer_position = 2;
+    optional int32 concurrent_connections = 3;
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 4;
+  }
+  message AcceptFastInitialization {
+  }
+  message LaunchActivity {
+    optional .location.nearby.proto.sharing.ActivityName activity_name = 1;
+    optional int64 duration_millis = 2;
+    optional string referrer_name = 3;
+    optional bool previous_transfer_in_progress = 4;
+    optional bool has_opted_in = 5;
+    optional .location.nearby.proto.sharing.ActivityName source_activity_name = 6;
+    optional bool is_finishing = 7;
+  }
+  message DismissPrivacyNotification {
+  }
+  message TapPrivacyNotification {
+  }
+  message TapHelp {
+  }
+  message TapFeedback {
+  }
+  message AddQuickSettingsTile {
+  }
+  message RemoveQuickSettingsTile {
+  }
+  message LaunchPhoneConsent {
+  }
+  message DisplayPhoneConsent {
+  }
+  message TapQuickSettingsTile {
+  }
+  message TapQuickSettingsFileShare {
+  }
+  message DisplayPrivacyNotification {
+  }
+  message DefaultOptIn {
+  }
+  message SetDeviceName {
+    optional int32 device_name_size = 1;
+  }
+  message RequestSettingPermissions {
+    optional .location.nearby.proto.sharing.PermissionRequestType permission_type = 1;
+    optional .location.nearby.proto.sharing.PermissionRequestResult permission_request_result = 2;
+  }
+  message LaunchConsent {
+    optional .location.nearby.proto.sharing.ConsentType consent_type = 1;
+    optional .location.nearby.proto.sharing.ConsentAcceptanceStatus status = 2;
+  }
+  message InstallAPKStatus {
+    repeated .location.nearby.proto.sharing.InstallAPKStatus status = 1 [packed = true];
+    repeated .location.nearby.proto.sharing.ApkSource source = 2 [packed = true];
+  }
+  message VerifyAPKStatus {
+    repeated .location.nearby.proto.sharing.VerifyAPKStatus status = 1 [packed = true];
+    repeated .location.nearby.proto.sharing.ApkSource source = 2 [packed = true];
+  }
+  message ToggleShowNotification {
+    optional .location.nearby.proto.sharing.ShowNotificationStatus previous_status = 1;
+    optional .location.nearby.proto.sharing.ShowNotificationStatus current_status = 2;
+  }
+  message DecryptCertificateFailure {
+    optional .location.nearby.proto.sharing.DecryptCertificateFailureStatus status = 1;
+  }
+  message ShowAllowPermissionAutoAccess {
+    optional .location.nearby.proto.sharing.ActivityName activity_name = 1;
+    optional bool allowed_auto_access = 2;
+    optional bool is_wifi_missing = 3;
+    optional bool is_bt_missing = 4;
+  }
+  message TapQrCode {
+  }
+  message QrCodeLinkShown {
+  }
+  message FastInitDiscoverDevice {
+    optional .location.nearby.proto.sharing.FastInitType fast_init_type = 2;
+    optional .location.nearby.proto.sharing.FastInitState fast_init_state = 3;
+    reserved 1 to 1;
+  }
+  message ShareTargetInfo {
+    optional .location.nearby.proto.sharing.DeviceType device_type = 1;
+    optional .location.nearby.proto.sharing.OSType os_type = 2;
+    optional .location.nearby.proto.sharing.DeviceRelationship device_relationship = 3;
+    optional bool has_matching_qr_code = 4;
+    optional bool is_external = 5;
+  }
+  message AttachmentsInfo {
+    repeated .nearby.sharing.analytics.proto.SharingLog.TextAttachment text_attachment = 1;
+    repeated .nearby.sharing.analytics.proto.SharingLog.FileAttachment file_attachment = 2;
+    optional string required_app = 3;
+    repeated .nearby.sharing.analytics.proto.SharingLog.WifiCredentialsAttachment wifi_credentials_attachment = 4;
+    repeated .nearby.sharing.analytics.proto.SharingLog.AppAttachment app_attachment = 5;
+    repeated .nearby.sharing.analytics.proto.SharingLog.StreamAttachment stream_attachment = 6;
+    repeated .nearby.sharing.analytics.proto.SharingLog.FolderAttachment folder_attachment = 7;
+  }
+  message TextAttachment {
+    optional .nearby.sharing.analytics.proto.SharingLog.TextAttachment.Type type = 1;
+    optional int64 size_bytes = 2;
+    optional int64 batch_id = 3;
+    optional .location.nearby.proto.sharing.AttachmentSourceType source_type = 4;
+    enum Type {
+      UNKNOWN_TEXT_TYPE = 0;
+      URL = 1;
+      ADDRESS = 2;
+      PHONE_NUMBER = 3;
+    }
+  }
+  message FileAttachment {
+    optional .nearby.sharing.analytics.proto.SharingLog.FileAttachment.Type type = 1;
+    optional int64 size_bytes = 2;
+    optional int64 offset_bytes = 4;
+    optional int64 batch_id = 5;
+    optional .location.nearby.proto.sharing.AttachmentSourceType source_type = 6;
+    enum Type {
+      UNKNOWN_FILE_TYPE = 0;
+      IMAGE = 1;
+      VIDEO = 2;
+      ANDROID_APP = 3;
+      AUDIO = 4;
+      DOCUMENT = 5;
+      CONTACT_CARD = 6;
+    }
+    reserved 3 to 3;
+  }
+  message WifiCredentialsAttachment {
+    optional int32 security_type = 1;
+    optional int64 batch_id = 2;
+    optional .location.nearby.proto.sharing.AttachmentSourceType source_type = 3;
+  }
+  message AppAttachment {
+    optional string package_name = 1;
+    optional int64 size = 2;
+    optional int64 batch_id = 3;
+    optional .location.nearby.proto.sharing.AttachmentSourceType source_type = 4;
+  }
+  message StreamAttachment {
+    optional string package_name = 1;
+    optional int64 batch_id = 2;
+    optional .location.nearby.proto.sharing.AttachmentSourceType source_type = 3;
+  }
+  message CloudAttachmentInfo {
+    optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 1;
+    oneof CloudAttachment {
+      .nearby.sharing.analytics.proto.SharingLog.TextAttachment text_attachment = 2;
+      .nearby.sharing.analytics.proto.SharingLog.FileAttachment file_attachment = 3;
+      .nearby.sharing.analytics.proto.SharingLog.WifiCredentialsAttachment wifi_credentials_attachment = 4;
+      .nearby.sharing.analytics.proto.SharingLog.AppAttachment app_attachment = 5;
+      .nearby.sharing.analytics.proto.SharingLog.StreamAttachment stream_attachment = 6;
+    }
+    optional int64 transferred_bytes = 7;
+    optional int64 duration_millis = 8;
+  }
+  message FolderAttachment {
+  }
+  message AppCrash {
+    optional .location.nearby.proto.sharing.AppCrashReason crash_reason = 1;
+  }
+  message SetupWizard {
+    optional .location.nearby.proto.sharing.Visibility visibility = 1;
+    optional .location.nearby.proto.sharing.Visibility previous_visibility = 2;
+  }
+  message SendDesktopNotification {
+    optional .location.nearby.proto.sharing.DesktopNotification event = 1;
+    reserved 2 to 2;
+  }
+  message SendDesktopTransferEvent {
+    optional .location.nearby.proto.sharing.DesktopTransferEventType event = 1;
+  }
+  message ShowWaitingForAccept {
+    optional .location.nearby.proto.sharing.ButtonStatus button_status = 1;
+  }
+  message HighQualityMediumSetup {
+    optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    optional int64 session_id = 2;
+    optional int64 duration_millis = 3;
+    optional bool is_timeout = 4;
+    optional int32 original_quality = 5;
+    optional int32 connection_medium = 6;
+    optional int32 connection_mode = 7;
+    optional int32 instant_connection_result = 8;
+  }
+  message RpcCallStatus {
+    optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus.RpcDirection direction = 1;
+    optional string rpc_name = 2;
+    optional int32 error_code = 3;
+    optional int64 latency_millis = 4;
+    enum RpcDirection {
+      UNKNOWN_RPC_DIRECTION = 0;
+      INCOMING = 1;
+      OUTGOING = 2;
+    }
+  }
+  message StartQrCodeSession {
+  }
+  message QrCodeOpenedInWebClient {
+    optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient.ClientPlatform client_platform = 1;
+    optional bool is_retry = 2;
+    enum ClientPlatform {
+      UNKNOWN_CLIENT_PLATFORM = 0;
+      GENERIC = 1;
+      ANDROID = 2;
+      IOS = 3;
+      CHROME_OS = 4;
+      WINDOWS = 5;
+    }
+  }
+  message HatsJointEvent {
+    optional int64 flow_id = 1;
+    optional string hats_session_id = 2;
+  }
+  message ReceivePreviews {
+    optional int32 num_previews = 1;
+  }
+  message CloudCreateSharingRequest {
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    optional .location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
+    optional int64 attachment_download_latency_millis = 3;
+    optional int64 preview_thumbnail_latency_millis = 4;
+    optional int64 rpc_latency_millis = 5;
+  }
+  message CloudRegisterReceiver {
+    optional .location.nearby.proto.sharing.CloudRegisterReceiverResult result = 1;
+  }
+  message CloudUploadStart {
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  }
+  message CloudUploadEnd {
+    repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo upload_infos = 1;
+    optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  }
+  message CloudDownloadStart {
+    optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  }
+  message CloudDownloadEnd {
+    repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo download_infos = 1;
+    optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  }
+  message CloudSharingRpcResult {
+    optional string rpc_name = 1;
+    optional int32 status_code = 2;
+    optional int64 latency_millis = 3;
+    optional string cloud_sharing_id = 4;
+  }
+  reserved 71 to 71;
+}

@@ -1,12 +1,28 @@
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_apple", version = "4.3.3")
-bazel_dep(name = "rules_cc", version = "0.2.16")
+bazel_dep(name = "rules_cc", version = "0.2.17")
+
+# Fixes clang-cl version detection for "clang version X.Y.Z (revision)" banners.
+single_version_override(
+    module_name = "rules_cc",
+    patch_strip = 1,
+    patches = ["//third_party/patches:rules_cc_clang_cl_version.patch"],
+)
+
 bazel_dep(name = "rules_rust", version = "0.68.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "abseil-cpp", version = "20260107.0", repo_name = "com_google_absl")
 
 # version of prebuilt protoc in com_github_protobuf_prebuilt must match this.
 bazel_dep(name = "protobuf", version = "33.4", repo_name = "com_google_protobuf")
+
+# Keeps upb's ARM64 inline-asm encoder off COFF targets (clang-cl SEH failure).
+single_version_override(
+    module_name = "protobuf",
+    patch_strip = 1,
+    patches = ["//third_party/patches:protobuf_upb_windows_arm64_asm.patch"],
+)
+
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.20251124.0")
 

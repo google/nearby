@@ -1,0 +1,15 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+edition = "2024";
+
+package nearby.sharing.sync;
+
+import "google/protobuf/timestamp.proto";
+
+option features.utf8_validation = NONE;
+
+message SyncConfigPrefs {
+  .google.protobuf.Timestamp last_successful_sync_timestamp = 1;
+  .google.protobuf.Timestamp last_failed_sync_timestamp = 2;
+}

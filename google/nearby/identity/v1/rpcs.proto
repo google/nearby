@@ -1,0 +1,75 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+syntax = "proto3";
+
+package google.nearby.identity.v1;
+
+import "google/nearby/identity/v1/resources.proto";
+import "google/protobuf/timestamp.proto";
+
+
+message PublishDeviceRequest {
+  .google.nearby.identity.v1.Device device = 1;
+}
+
+message PublishDeviceResponse {
+  repeated .google.nearby.identity.v1.PublishDeviceResponse.ContactUpdate contact_updates = 1;
+  enum ContactUpdate {
+    CONTACT_UPDATE_UNSPECIFIED = 0;
+    CONTACT_UPDATE_ADDED = 1;
+    CONTACT_UPDATE_REMOVED = 2;
+  }
+}
+
+message QuerySharedCredentialsRequest {
+  string name = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message QuerySharedCredentialsResponse {
+  repeated .google.nearby.identity.v1.SharedCredential shared_credentials = 1;
+  string next_page_token = 2;
+}
+
+message QuerySharedCredentialsWithBindingIdsRequest {
+  string name = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  .google.protobuf.Timestamp join_binding_time = 4;
+}
+
+message QuerySharedCredentialsWithBindingIdsResponse {
+  repeated .google.nearby.identity.v1.SharedCredential shared_credentials = 1;
+  string next_page_token = 2;
+}
+
+message GetAccountInfoRequest {
+}
+
+message GetAccountInfoResponse {
+  .google.nearby.identity.v1.AccountInfo account_info = 1;
+}
+
+message MintTalismansRequest {
+  repeated bytes encrypted_identity_attributes = 1;
+  repeated bytes public_keys = 2;
+}
+
+message MintTalismansResponse {
+  repeated bytes identity_talismans = 1;
+  .google.nearby.identity.v1.IdentityBrokerConfig config = 2;
+}
+
+message UpdateTalismanKeyRequest {
+  bytes key = 1;
+  bool is_revoked = 2;
+}
+
+message UpdateTalismanKeyResponse {
+}
+
+message GetIdentityBrokerConfigRequest {
+  string name = 1;
+}

@@ -1,0 +1,283 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+syntax = "proto2";
+
+package location.nearby.analytics.proto;
+
+import "proto/connections_enums.proto";
+import "proto/errorcode/error_code_enums.proto";
+
+// LITE_RUNTIME: the OSS enum protos imported here are lite.
+option optimize_for = LITE_RUNTIME;
+
+message ConnectionsLog {
+  optional .location.nearby.proto.connections.EventType event_type = 1;
+  optional .location.nearby.analytics.proto.ConnectionsLog.ClientSession client_session = 2;
+  optional string version = 3;
+  optional .location.nearby.analytics.proto.ConnectionsLog.ErrorCode error_code = 4;
+  optional .location.nearby.proto.connections.LogSource log_source = 5;
+  optional string files_migration_phase = 6;
+  message ClientSession {
+    optional int64 duration_millis = 1;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.StrategySession strategy_session = 2;
+    optional int64 client_flow_id = 3;
+    optional string connection_token = 4;
+    reserved 5 to 5;
+  }
+  message OperationResult {
+    optional .location.nearby.proto.connections.OperationResultCategory result_category = 1;
+    optional .location.nearby.proto.connections.OperationResultCode result_code = 2;
+  }
+  message OperationResultWithMedium {
+    optional .location.nearby.proto.connections.Medium medium = 1;
+    optional int32 update_index = 2;
+    optional .location.nearby.proto.connections.OperationResultCategory result_category = 3;
+    optional .location.nearby.proto.connections.OperationResultCode result_code = 4;
+    optional .location.nearby.proto.connections.ConnectionMode connection_mode = 5;
+  }
+  message StrategySession {
+    optional int64 duration_millis = 1;
+    optional .location.nearby.proto.connections.ConnectionsStrategy strategy = 2;
+    repeated .location.nearby.proto.connections.SessionRole role = 3;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase discovery_phase = 4;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase advertising_phase = 5;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt connection_attempt = 6;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection established_connection = 7;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt upgrade_attempt = 9;
+    optional string build_version = 10;
+    optional string device_token = 11;
+  }
+  message DiscoveryPhase {
+    optional int64 duration_millis = 1;
+    repeated .location.nearby.proto.connections.Medium medium = 2;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.DiscoveredEndpoint discovered_endpoint = 3;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.ConnectionRequest sent_connection_request = 4;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.UwbRangingProcess uwb_ranging = 5;
+    optional int64 client_flow_id = 6;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DiscoveryMetadata discovery_metadata = 7;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 8;
+    optional .location.nearby.proto.connections.StopDiscoveringReason stop_reason = 9;
+    optional .location.nearby.proto.connections.DeviceType device_type = 10;
+    optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+  }
+  message DiscoveredEndpoint {
+    optional .location.nearby.proto.connections.Medium medium = 1;
+    optional int64 latency_millis = 2;
+  }
+  message UwbRangingProcess {
+    optional int64 duration_millis = 1;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.RawUwbRangingEvent uwb_ranging_data = 2;
+    optional int32 number_of_ranging_data = 3;
+    optional int32 distance_min = 4;
+    optional int32 distance_max = 5;
+    optional int32 distance_ave = 6;
+    optional int32 distance_variance = 7;
+    optional int32 azimuth_min = 8;
+    optional int32 azimuth_max = 9;
+    optional int32 azimuth_ave = 10;
+    optional int32 azimuth_variance = 11;
+  }
+  message RawUwbRangingEvent {
+    optional int32 distance = 1;
+    optional int32 azimuth_angle = 2;
+    optional int32 polar_angle = 3;
+  }
+  message AdvertisingPhase {
+    optional int64 duration_millis = 1;
+    repeated .location.nearby.proto.connections.Medium medium = 2;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.ConnectionRequest received_connection_request = 3;
+    optional int64 client_flow_id = 4;
+    optional .location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata advertising_metadata = 5;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 6;
+    optional .location.nearby.proto.connections.StopAdvertisingReason stop_reason = 7;
+    optional .location.nearby.proto.connections.DeviceType device_type = 8;
+    optional .location.nearby.proto.connections.SupportedService supported_service = 9;
+  }
+  message ConnectionRequest {
+    optional int64 duration_millis = 1;
+    optional int64 request_delay_millis = 2;
+    optional .location.nearby.proto.connections.ConnectionRequestResponse local_response = 3;
+    optional .location.nearby.proto.connections.ConnectionRequestResponse remote_response = 4;
+    optional int64 client_flow_id = 5;
+  }
+  message ConnectionAttempt {
+    optional int64 duration_millis = 1;
+    optional .location.nearby.proto.connections.ConnectionAttemptType type = 2;
+    optional .location.nearby.proto.connections.ConnectionAttemptDirection direction = 3;
+    optional .location.nearby.proto.connections.Medium medium = 4;
+    optional .location.nearby.proto.connections.ConnectionAttemptResult attempt_result = 5;
+    optional int64 client_flow_id = 6;
+    optional string connection_token = 7;
+    optional .location.nearby.analytics.proto.ConnectionsLog.ConnectionAttemptMetadata connection_attempt_metadata = 8;
+    optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+    optional .location.nearby.proto.connections.ConnectionMode connection_mode = 10;
+    optional .location.nearby.proto.connections.DeviceType device_type = 11;
+    optional .location.nearby.proto.connections.SupportedService supported_service = 12;
+    optional int64 wifi_connection_latency_millis = 13;
+    optional int64 device_attestation_latency_millis = 14;
+    optional int64 play_integrity_error_code = 15;
+    optional bool is_forced_usb = 16;
+  }
+  message DeviceInfo {
+    optional string device_model = 1;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo.Platform device_platform = 2;
+    optional string country_code = 3;
+    optional string manufacturer = 4;
+    enum Platform {
+      UNKNOWN = 0;
+      ANDROID = 1;
+      IOS = 2;
+      CROS = 3;
+      WINDOWS = 4;
+    }
+  }
+  message DisconnectionReasonDetail {
+    optional bool is_local_disconnection = 1;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail.DisconnectionReason disconnection_reason = 2;
+    enum DisconnectionReason {
+      UNKNOWN_DISCONNECTION_REASON = 0;
+      DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 1;
+      DCT_ERROR_MDNS_REGISTER_SERVICE = 2;
+      DCT_ERROR_SUBSEQUENT_TLS_SPAKE = 3;
+      DCT_ERROR_REQUEST_FAILED = 4;
+      DCT_ERROR_RESPONSE_FAILED = 5;
+      DCT_ERROR_CONTROL_MESSAGE_EXCHANGE = 6;
+      DCT_ERROR_CAPABILITY_MISMATCH = 7;
+      DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE = 8;
+      DCT_ERROR_WIFI_DISABLED = 9;
+      DCT_ERROR_WIFI_DISCONNECTED = 10;
+      DCT_ERROR_WIFI_CREDENTIAL_TRANSFER = 11;
+      DCT_ERROR_WIFI_INTERNET_CONNECTION = 12;
+      DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 13;
+      DCT_ERROR_USER_CANCELLED = 14;
+      DCT_ERROR_SERVICE_CANCELLED = 15;
+      DCT_ERROR_UNVERIFIED_INTEGRITY = 16;
+      SESSION_SUCCESS = 17;
+    }
+  }
+  message EstablishedConnection {
+    optional int64 duration_millis = 1;
+    optional .location.nearby.proto.connections.Medium medium = 2;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.Payload sent_payload = 3;
+    repeated .location.nearby.analytics.proto.ConnectionsLog.Payload received_payload = 4;
+    optional .location.nearby.proto.connections.DisconnectionReason disconnection_reason = 5;
+    optional int64 client_flow_id = 6;
+    optional string connection_token = 7;
+    optional .location.nearby.proto.connections.ConnectionAttemptType type = 8;
+    optional .location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.SafeDisconnectionResult safe_disconnection_result = 9;
+    optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 10;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo remote_device_info = 11;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail disconnection_reason_detail = 12;
+    optional .location.nearby.proto.connections.DeviceType device_type = 13;
+    optional .location.nearby.proto.connections.SupportedService supported_service = 14;
+    optional .location.nearby.analytics.proto.ConnectionsLog.SpeedTestReport speed_test_report = 15;
+    optional int32 inactivity_count = 16;
+    optional int32 rssi = 17;
+    optional bool is_forced_usb = 18;
+    enum SafeDisconnectionResult {
+      UNKNOWN_SAFE_DISCONNECTION_RESULT = 0;
+      SAFE_DISCONNECTION = 1;
+      UNSAFE_DISCONNECTION = 2;
+    }
+  }
+  message SpeedTestReport {
+    optional int32 throughput_kbytes_per_sec = 1;
+    optional bool is_incoming = 2;
+  }
+  message DctPayloadTransferStats {
+    optional .location.nearby.proto.connections.DctPayloadType type = 1;
+    optional bool is_multipart = 2;
+    optional int32 num_parts_success = 3;
+    optional int32 num_parts_failure = 4;
+    optional bool is_resumption = 5;
+    optional int32 data_speed_report_kbyte_per_sec = 6;
+  }
+  message Payload {
+    optional int64 duration_millis = 1;
+    optional .location.nearby.proto.connections.PayloadType type = 2;
+    optional int64 total_size_bytes = 3;
+    optional int64 num_bytes_transferred = 4;
+    optional int32 num_chunks = 5;
+    optional .location.nearby.proto.connections.PayloadStatus status = 6;
+    optional int32 num_successful_auto_resume = 7;
+    optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 8;
+    optional int32 num_failed_auto_resume = 9;
+    optional .location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats dct_payload_transfer_stats = 10;
+  }
+  message BandwidthUpgradeAttempt {
+    optional .location.nearby.proto.connections.ConnectionAttemptDirection direction = 1;
+    optional int64 duration_millis = 2;
+    optional .location.nearby.proto.connections.Medium from_medium = 3;
+    optional .location.nearby.proto.connections.Medium to_medium = 4;
+    optional .location.nearby.proto.connections.BandwidthUpgradeResult upgrade_result = 5;
+    optional .location.nearby.proto.connections.BandwidthUpgradeErrorStage error_stage = 6;
+    optional int64 client_flow_id = 7;
+    optional string connection_token = 8;
+    optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+    optional .location.nearby.proto.connections.DeviceType device_type = 10;
+    optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+    optional int32 num_interfaces = 12;
+    optional int32 num_ipv6_only_interfaces = 13;
+    optional int32 try_count = 14;
+    optional bool is_forced_usb = 15;
+  }
+  message ErrorCode {
+    optional .location.nearby.proto.connections.ConnectionAttemptDirection direction = 1;
+    optional string service_id = 2;
+    optional .location.nearby.proto.connections.Medium medium = 3;
+    optional .location.nearby.errorcode.proto.Event event = 4;
+    optional .location.nearby.errorcode.proto.Description description = 5;
+    optional int64 flow_id = 6;
+    oneof ErrorCodeDetail {
+      .location.nearby.errorcode.proto.CommonError common_error = 7;
+      .location.nearby.errorcode.proto.StartAdvertisingError start_advertising_error = 8;
+      .location.nearby.errorcode.proto.StartDiscoveringError start_discovering_error = 9;
+      .location.nearby.errorcode.proto.StopAdvertisingError stop_advertising_error = 10;
+      .location.nearby.errorcode.proto.StopDiscoveringError stop_discovering_error = 11;
+      .location.nearby.errorcode.proto.StartListeningIncomingConnectionError start_listening_incoming_connection_error = 12;
+      .location.nearby.errorcode.proto.StopListeningIncomingConnectionError stop_listening_incoming_connection_error = 13;
+      .location.nearby.errorcode.proto.ConnectError connect_error = 14;
+      .location.nearby.errorcode.proto.DisconnectError disconnect_error = 15;
+      .location.nearby.errorcode.proto.SendPayloadError send_payload_error = 17;
+      .location.nearby.errorcode.proto.ReceivePayloadError receive_payload_error = 18;
+      .location.nearby.errorcode.proto.UpgradeError upgrade_error = 19;
+      .location.nearby.errorcode.proto.AcceptConnectionError accept_connection_error = 20;
+      .location.nearby.errorcode.proto.RejectConnectionError reject_connection_error = 21;
+    }
+    optional string connection_token = 16;
+  }
+  message AdvertisingMetadata {
+    optional bool supports_extended_ble_advertisements = 1;
+    optional int32 connected_ap_frequency = 2;
+    optional bool supports_nfc_technology = 3;
+    optional bool multiple_advertisement_supported = 4;
+    optional .location.nearby.proto.connections.PowerLevel power_level = 5;
+    optional bool supports_dual_band = 6;
+    optional bool supports_wifi_aware = 7;
+    optional int32 endpoint_info_size = 8;
+  }
+  message DiscoveryMetadata {
+    optional bool supports_extended_ble_advertisements = 1;
+    optional int32 connected_ap_frequency = 2;
+    optional bool supports_nfc_technology = 3;
+    optional .location.nearby.proto.connections.PowerLevel power_level = 4;
+  }
+  message ConnectionAttemptMetadata {
+    optional .location.nearby.proto.connections.ConnectionTechnology technology = 1;
+    optional .location.nearby.proto.connections.ConnectionBand band = 2;
+    optional int32 frequency = 3;
+    optional string network_operator = 4;
+    optional string country_code = 5;
+    optional bool is_tdls_used = 6;
+    optional int32 try_counts = 7;
+    optional bool wifi_hotspot_status = 8;
+    optional int32 max_tx_speed = 9;
+    optional int32 max_rx_speed = 10;
+    optional int32 wifi_channel_width = 11;
+    optional int32 send_buffer_size = 12;
+    optional int32 receive_buffer_size = 13;
+    optional int32 connected_ap_frequency = 14;
+    optional bool is_mcc_mode = 15;
+  }
+}

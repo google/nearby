@@ -1,0 +1,58 @@
+// Recovered from the descriptor embedded in Quick Share for Windows 1.0.2697.0 (nearby_share.exe).
+// Annotation-only imports and custom options were dropped.
+
+syntax = "proto3";
+
+package google.nearby.identity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+
+message SharedCredential {
+  int64 id = 1;
+  .google.nearby.identity.v1.SharedCredential.DataType data_type = 2;
+  bytes data = 3;
+  .google.protobuf.Timestamp expiration_time = 5;
+  enum DataType {
+    DATA_TYPE_UNSPECIFIED = 0;
+    DATA_TYPE_PUBLIC_CERTIFICATE = 1;
+    DATA_TYPE_SHARED_CREDENTIAL = 2;
+  }
+}
+
+message PerVisibilitySharedCredentials {
+  .google.nearby.identity.v1.PerVisibilitySharedCredentials.Visibility visibility = 1;
+  repeated .google.nearby.identity.v1.SharedCredential shared_credentials = 2;
+  enum Visibility {
+    VISIBILITY_UNSPECIFIED = 0;
+    VISIBILITY_SELF = 1;
+    VISIBILITY_CONTACTS = 2;
+  }
+}
+
+message Device {
+  string name = 1;
+  string display_name = 2;
+  .google.nearby.identity.v1.Device.Contact contact = 3;
+  repeated .google.nearby.identity.v1.PerVisibilitySharedCredentials per_visibility_shared_credentials = 4;
+  enum Contact {
+    CONTACT_UNSPECIFIED = 0;
+    CONTACT_SELF = 1;
+    CONTACT_GOOGLE_CONTACT = 2;
+    CONTACT_GOOGLE_CONTACT_LATEST = 3;
+  }
+}
+
+message AccountInfo {
+  string current_dusi = 1;
+  repeated .google.nearby.identity.v1.AccountInfo.Capability capabilities = 2;
+  enum Capability {
+    CAPABILITY_UNSPECIFIED = 0;
+    CAPABILITY_TITANIUM = 1;
+  }
+}
+
+message IdentityBrokerConfig {
+  repeated bytes root_authority_public_keys = 1;
+  repeated bytes intermediate_authority_certificates = 2;
+}

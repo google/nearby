@@ -109,7 +109,7 @@ bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
 bool PreferencesManager::SetProtoMessage(absl::string_view key,
   const google::protobuf::Message& value) {
     std::string json_string;
-    if (!proto2::json::MessageToJsonString(value, &json_string).ok()) {
+    if (!google::protobuf::json::MessageToJsonString(value, &json_string).ok()) {
       return false;
     }
     {
@@ -191,7 +191,7 @@ bool PreferencesManager::GetProtoMessage(absl::string_view key,
   if (result == value_.end()) {
     return false;
   }
-  return proto2::json::JsonStringToMessage(result->dump(), value)
+  return google::protobuf::json::JsonStringToMessage(result->dump(), value)
       .ok();
 }
 

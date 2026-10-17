@@ -2,3 +2,9 @@ build --action_env=BAZEL_CXXOPTS=-"std=c++20"
 # Definition of --config=memcheck
 build:memcheck --strip=never --test_timeout=3600
 common --enable_bzlmod
+common --enable_platform_specific_config
+# Windows (clang-cl / MSVC): C++20, and keep <windows.h> from pulling in the
+# legacy winsock.h that conflicts with <winsock2.h>.
+build:windows --cxxopt=/std:c++20 --host_cxxopt=/std:c++20
+build:windows --copt=-DWIN32_LEAN_AND_MEAN --host_copt=-DWIN32_LEAN_AND_MEAN
+try-import %workspace%/user.bazelrc

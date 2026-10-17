@@ -14,7 +14,6 @@
 
 load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
-load("@com_google_protobuf//rust:defs.bzl", "rust_proto_library")
 
 licenses(["notice"])
 
@@ -65,10 +64,4 @@ cc_proto_library(
     name = "enums_cc_proto",
     visibility = ["//visibility:public"],
     deps = [":enums_proto"],
-)
-
-rust_proto_library(
-    name = "share_rust_proto",
-    visibility = ["//visibility:public"],
-    deps = [":share_proto"],
 )
