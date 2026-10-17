@@ -163,6 +163,7 @@ cc_library(
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing/internal/impl/common:__subpackages__",
+        "//sharing/internal/impl/windows:__subpackages__",
     ],
     deps = [
         ":comm",
