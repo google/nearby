@@ -748,6 +748,11 @@ api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
         net_interface.type != InterfaceType::kEthernet) {
       continue;
     }
+    // Virtual adapters (Hyper-V/WSL vEthernet, VPNs) report as Ethernet but
+    // are not reachable from the remote device.
+    if (!net_interface.is_hardware) {
+      continue;
+    }
     for (const SocketAddress& address : net_interface.ipv6_addresses) {
       // Link local addresses cannot be used for upgrade since we can't tell
       // which interface on the remote device the address is valid.

@@ -131,6 +131,10 @@ bool NetworkInfo::Refresh() {
                                               .index = next_address->IfIndex,
                                               .luid = next_address->Luid,
                                           });
+    MIB_IF_ROW2 if_row = {};
+    if_row.InterfaceLuid = next_address->Luid;
+    it->is_hardware = GetIfEntry2(&if_row) == NO_ERROR &&
+                      if_row.InterfaceAndOperStatusFlags.HardwareInterface;
     if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
       it->type = InterfaceType::kEthernet;
       VLOG(1) << "Found ethernet interface: "
