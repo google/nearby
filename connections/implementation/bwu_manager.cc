@@ -53,6 +53,7 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::BandwidthUpgradeRetryFrame;
 using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
@@ -417,6 +418,15 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
                                  const std::string& endpoint_id,
                                  ClientProxy* client, Medium medium) {
   V1Frame::FrameType frame_type = parser::GetFrameType(frame);
+  if (frame_type == V1Frame::BANDWIDTH_UPGRADE_RETRY) {
+    RunOnBwuManagerThread(
+        "bwu-on-retry-frame",
+        [this, client, endpoint_id,
+         retry_frame = frame.v1().bandwidth_upgrade_retry()]() {
+          OnBwuRetryFrame(client, retry_frame, endpoint_id);
+        });
+    return;
+  }
   if (frame_type != V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION) return;
 
   auto bwu_frame = frame.v1().bandwidth_upgrade_negotiation();
@@ -1487,6 +1497,59 @@ void BwuManager::ProcessUpgradeFailureEvent(
   }
 
   TryNextBestUpgradeMediums(client, endpoint_id, untried_mediums);
+}
+
+void BwuManager::OnBwuRetryFrame(ClientProxy* client,
+                                 const BandwidthUpgradeRetryFrame& frame,
+                                 const std::string& endpoint_id) {
+  std::string mediums_string;
+  for (int medium : frame.supported_medium()) {
+    absl::StrAppend(&mediums_string,
+                    BandwidthUpgradeRetryFrame::Medium_Name(medium), "; ");
+  }
+  LOG(INFO) << "OnBwuRetryFrame for endpoint " << endpoint_id
+            << ": is_request=" << frame.is_request()
+            << ", supported mediums: " << mediums_string;
+  // ponytail: an is_request=true frame expects our supported mediums back;
+  // no reply is sent until a peer is seen asking for one.
+
+  // Only an upgrade this device initiated can be retried from here.
+  if (!in_progress_upgrades_.contains(endpoint_id)) {
+    LOG(INFO) << "BwuManager ignoring BANDWIDTH_UPGRADE_RETRY for endpoint "
+              << endpoint_id << " because no upgrade is in progress.";
+    return;
+  }
+
+  // BandwidthUpgradeRetryFrame::Medium mirrors the connections Medium enum.
+  auto supports = [&frame](Medium medium) {
+    return std::find(frame.supported_medium().begin(),
+                     frame.supported_medium().end(),
+                     static_cast<int>(medium)) != frame.supported_medium().end();
+  };
+  BooleanMediumSelector mediums{};
+  mediums.bluetooth = supports(Medium::BLUETOOTH);
+  mediums.ble = supports(Medium::BLE);
+  mediums.web_rtc = supports(Medium::WEB_RTC);
+  mediums.wifi_aware = supports(Medium::WIFI_AWARE);
+  mediums.wifi_lan = supports(Medium::WIFI_LAN);
+  mediums.wifi_hotspot = supports(Medium::WIFI_HOTSPOT);
+  mediums.wifi_direct = supports(Medium::WIFI_DIRECT);
+  mediums.awdl = supports(Medium::AWDL);
+  mediums.wifi_aware_r4 = supports(Medium::WIFI_AWARE_R4);
+  client->SetUpgradeMediums(endpoint_id, mediums);
+
+  // Drop the upgrade the remote endpoint did not take, then start over with
+  // its new list.
+  in_progress_upgrades_.erase(endpoint_id);
+  if (GetBwuMediumForEndpoint(endpoint_id) != Medium::UNKNOWN_MEDIUM) {
+    EndpointChannel* channel =
+        channel_manager_->GetChannelForEndpoint(endpoint_id).get();
+    std::string service_id =
+        channel ? channel->GetServiceId() : std::string(kUnknownServiceId);
+    RevertBwuMediumForEndpoint(WrapInitiatorUpgradeServiceId(service_id),
+                               endpoint_id);
+  }
+  TryNextBestUpgradeMediums(client, endpoint_id, mediums.GetMediums(true));
 }
 
 void BwuManager::TryNextBestUpgradeMediums(

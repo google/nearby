@@ -53,6 +53,7 @@
 namespace nearby::connections {
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::BandwidthUpgradeRetryFrame;
 using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
@@ -1225,6 +1226,30 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
                                      DisconnectionReason::LOCAL_DISCONNECTION);
 
   ASSERT_EQ(fake_wifi_lan_bwu_handler_->handle_revert_calls().size(), 0u);
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(BwuManagerTest, RetryFrame_RevertsHotspotAndUpgradesToWifiLan) {
+  CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_HOTSPOT);
+  ASSERT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+
+  // The remote endpoint did not join the hotspot and asks for another medium.
+  OfflineFrame frame;
+  frame.set_version(OfflineFrame::V1);
+  frame.mutable_v1()->set_type(V1Frame::BANDWIDTH_UPGRADE_RETRY);
+  auto* retry = frame.mutable_v1()->mutable_bandwidth_upgrade_retry();
+  retry->add_supported_medium(BandwidthUpgradeRetryFrame::WIFI_LAN);
+  retry->add_supported_medium(BandwidthUpgradeRetryFrame::WIFI_HOTSPOT);
+  retry->add_supported_medium(BandwidthUpgradeRetryFrame::BLUETOOTH);
+  bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_hotspot_bwu_handler_->handle_revert_calls().size(), 1u);
+  EXPECT_EQ(fake_wifi_lan_bwu_handler_->handle_initialize_calls().size(), 1u);
+  EXPECT_TRUE(client_.GetUpgradeMediums(std::string(kEndpointId1)).wifi_lan);
   UnRegisterChannelForEndpoint(kEndpointId1);
 }
 

@@ -299,7 +299,12 @@ ExceptionOr<bool> EndpointManager::HandleData(
 
     FrameProcessor* processor = nullptr;
     {
-      LockedFrameProcessor frame_processor = GetFrameProcessor(frame_type);
+      // BwuManager takes BANDWIDTH_UPGRADE_RETRY with the negotiation frames,
+      // so it is notified only once when an endpoint disconnects.
+      LockedFrameProcessor frame_processor = GetFrameProcessor(
+          frame_type == V1Frame::BANDWIDTH_UPGRADE_RETRY
+              ? V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION
+              : frame_type);
       processor = frame_processor.get();
     }
     if (!processor) {
