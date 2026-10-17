@@ -56,9 +56,15 @@ namespace connections {
 //    of a ServiceController interface, which does the actual job.
 class ServiceControllerRouter {
  public:
+  enum class AppType {
+    kNone = 0,
+    kHPRealtekDevice = 1,
+    kAppDisableWifiLanUpgrade = 2,
+  };
+
   ServiceControllerRouter();
   explicit ServiceControllerRouter(
-      absl::AnyInvocable<bool()> if_hp_realtek_device);
+      absl::AnyInvocable<AppType()> app_type_provider);
   virtual ~ServiceControllerRouter();
   // Not copyable or movable
   ServiceControllerRouter(const ServiceControllerRouter&) = delete;
@@ -177,7 +183,9 @@ class ServiceControllerRouter {
   ServiceController* GetServiceController();
 
  private:
-  absl::AnyInvocable<bool()> if_hp_realtek_device_ = []() { return false; };
+  absl::AnyInvocable<AppType()> app_type_provider_ = []() {
+    return AppType::kNone;
+  };
   void RouteToServiceController(const std::string& name, Runnable runnable);
   void FinishClientSession(ClientProxy* client);
 

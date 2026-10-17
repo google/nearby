@@ -85,7 +85,9 @@ NearbyConnectionsServiceImpl::NearbyConnectionsServiceImpl(
         // WARNING: there can be only 1 instance of
         // NearbyConnectionsServiceImpl, otherwise the router could be pointing
         // at an invalid instance.
-        return connectivity_manager_.IsHPRealtekDevice();
+        return connectivity_manager_.IsHPRealtekDevice()
+                   ? ServiceControllerRouter::AppType::kHPRealtekDevice
+                   : ServiceControllerRouter::AppType::kNone;
       });
   static Core* core =
       new Core(std::make_unique<AnalyticsRecorderImpl>(event_logger), router);

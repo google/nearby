@@ -31,6 +31,10 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+// When true, use the App bandwidth upgrade configuration in the Nearby
+// Connections C API.
+constexpr auto kDisableWifiLanUpgrade =
+    flags::Flag<bool>(kConfigPackage, "45862577", false);
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);

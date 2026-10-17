@@ -93,6 +93,7 @@ BwuManager::BwuManager(
       config_.bandwidth_upgrade_retry_max_delay = absl::Seconds(10);
     }
   }
+  // TODO: edwinwu - Refactors the default allow_upgrade_to logic.
   if (config_.allow_upgrade_to.All(false)) {
     config_.allow_upgrade_to.web_rtc = true;
     if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -116,6 +117,9 @@ BwuManager::BwuManager(
             config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
       config_.allow_upgrade_to.awdl = true;
     }
+  }
+  if (config_.disable_wifi_lan_upgrade) {
+    config_.allow_upgrade_to.wifi_lan = false;
   }
   if (!handlers.empty()) {
     handlers_ = std::move(handlers);

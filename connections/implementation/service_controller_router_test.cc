@@ -1416,7 +1416,9 @@ TEST_F(ServiceControllerRouterTest, SetCustomSavePathCalled) {
 TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
      disableWifiHotspotForHpRealtekDevices_isHPRealtekDevice_checkBwuConfig) {
   ServiceControllerRouter router(
-      absl::AnyInvocable<bool()>{[]() { return true; }});
+      absl::AnyInvocable<ServiceControllerRouter::AppType()>{[]() {
+        return ServiceControllerRouter::AppType::kHPRealtekDevice;
+      }});
   auto service_controller = router.GetServiceController();
   EXPECT_NE(service_controller, nullptr);
   auto bwu_config = static_cast<OfflineServiceController*>(service_controller)
@@ -1427,6 +1429,43 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
                                  /*web_rtc=*/true, /*wifi_lan=*/true,
                                  /*wifi_aware=*/true,
                                  /*wifi_hotspot=*/false, /*wifi_direct=*/true,
+                                 /*awdl=*/false, /*wifi_aware_r4=*/false));
+}
+
+TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
+     lineApp_checkBwuConfig) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableWifiHotspotClient,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+      false);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableAwdl, false);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiLanUpgrade,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiAware,
+      false);
+  ServiceControllerRouter router(
+      absl::AnyInvocable<ServiceControllerRouter::AppType()>{[]() {
+        return ServiceControllerRouter::AppType::kLineApp;
+      }});
+  auto service_controller = router.GetServiceController();
+  EXPECT_NE(service_controller, nullptr);
+  auto bwu_config = static_cast<OfflineServiceController*>(service_controller)
+                        ->GetBwuConfig();
+  // WIFI_LAN is forced off even though kEnableWifiLanUpgrade is true, while the
+  // other mediums still follow their feature flags.
+  EXPECT_TRUE(bwu_config.disable_wifi_lan_upgrade);
+  EXPECT_THAT(bwu_config.allow_upgrade_to,
+              testing::FieldsAre(/*bluetooth=*/false, /*ble=*/false,
+                                 /*web_rtc_no_cellular=*/false,
+                                 /*web_rtc=*/true, /*wifi_lan=*/false,
+                                 /*wifi_aware=*/false,
+                                 /*wifi_hotspot=*/true, /*wifi_direct=*/false,
                                  /*awdl=*/false, /*wifi_aware_r4=*/false));
 }
 
@@ -1446,7 +1485,9 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
       config_package_nearby::nearby_connections_feature::kEnableWifiAware,
       false);
   ServiceControllerRouter router(
-      absl::AnyInvocable<bool()>{[]() { return false; }});
+      absl::AnyInvocable<ServiceControllerRouter::AppType()>{[]() {
+        return ServiceControllerRouter::AppType::kNone;
+      }});
   auto service_controller = router.GetServiceController();
   EXPECT_NE(service_controller, nullptr);
   auto bwu_config = static_cast<OfflineServiceController*>(service_controller)
