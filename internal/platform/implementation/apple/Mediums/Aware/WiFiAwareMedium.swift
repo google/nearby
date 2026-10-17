@@ -757,13 +757,25 @@ public class WiFiAwareConnectionWrapper: NSObject, @unchecked Sendable {
 /// until an upper-layer timeout fires.
 let kWiFiAwareDataPathError = -11987
 
-/// Maximum number of browse + connection attempts when NAN Data Path setup fails with
-/// `kWiFiAwareDataPathError` (`-11987`).
+/// Maximum number of browse + connection attempts when NAN pairing verification or NAN Data Path
+/// setup fails, or does not complete in time, after the peer's endpoint was discovered.
 let kMaxDataPathBrowseAttempts = 3
 
-/// Delay between consecutive browse attempts after a terminal NAN Data Path error so `wifip2pd`
-/// and the peer can finish tearing down the aborted data session and update NAN availability
-/// schedules before the next Discovery Window.
+/// Per-attempt timeout for an outbound `NWConnection` to reach `.ready` once `NWBrowser` has
+/// discovered the peer.
+///
+/// A healthy NAN Pair Verify + NAN Data Path + TCP handshake completes in under 2 s, and
+/// `wifip2pd` terminates a NAN pairing initiator that has not paired within 6 s without retrying
+/// it or failing the `NWConnection`, which stays in its connecting state. Waiting longer than that
+/// only delays the retry: with a 30 s timeout, a lost first Pair Verify kept the transfer on BLE
+/// for ~30 s before a fresh attempt connected in 1.8 s (b/572731904). This value also keeps all
+/// attempts, including the unrestricted fallback browse, within the 40 s `ConnectToService`
+/// timeout.
+let kConnectionReadyTimeoutSeconds: Double = 8.0
+
+/// Delay between consecutive browse attempts after a failed or timed-out handshake so `wifip2pd`
+/// and the peer can finish tearing down the aborted session and update NAN availability schedules
+/// before the next Discovery Window.
 let kDataPathRetryDelayNanoseconds: UInt64 = 500_000_000
 
 /// Human-readable explanation attached to the error that aborts the handshake when
@@ -776,6 +788,16 @@ let kDataPathRetryDelayNanoseconds: UInt64 = 500_000_000
 let kTerminalDataPathFailureReason =
   "Wi-Fi Aware data path refused by peer (\(kWiFiAwareDataPathError)): NAN Data Path setup "
   + "aborted. Closing the connection so a fresh browse/connection attempt can be started."
+
+/// Human-readable explanation attached to the error that aborts the handshake when an outbound
+/// Wi-Fi Aware connection enters `.waiting` for any other reason.
+///
+/// `wifip2pd` does not retry a failed or timed-out NAN pairing initiator or NAN Data Path setup on
+/// the same `NWConnection`, so the connection is closed and the caller retries with a fresh browser
+/// and connection instead of waiting for the handshake timeout.
+let kWaitingConnectionFailureReason =
+  "Wi-Fi Aware connection entered .waiting before the handshake completed. Closing the "
+  + "connection so a fresh browse/connection attempt can be started."
 
 /// Returns true when `error` is the terminal Wi-Fi Aware data-path failure (see
 /// `kWiFiAwareDataPathError`).
@@ -795,6 +817,27 @@ func isTerminalWiFiAwareDataPathError(_ error: Error) -> Bool {
   return "\(error)".contains("\(kWiFiAwareDataPathError)")
 }
 
+/// Returns true when a failed browse attempt should be retried with a fresh browser and connection.
+///
+/// These are failures after the peer was discovered: the terminal NAN Data Path error, an outbound
+/// connection that entered `.waiting`, or a handshake that did not reach `.ready` within
+/// `kConnectionReadyTimeoutSeconds`. Discovery failures (for example `-11992`) are not retried
+/// here.
+func isRetriableWiFiAwareBrowseError(_ error: Error) -> Bool {
+  if isTerminalWiFiAwareDataPathError(error) {
+    return true
+  }
+  let nsError = error as NSError
+  let description = nsError.localizedDescription
+  if description.contains(kTerminalDataPathFailureReason)
+    || description.contains(kWaitingConnectionFailureReason)
+  {
+    return true
+  }
+  // `InternalConnectionWrapper.awaitReady(timeoutSeconds:)` reports a handshake timeout as -2.
+  return nsError.domain == "InternalConnectionWrapper" && nsError.code == -2
+}
+
 @available(iOS 26.0, *)
 actor ConnectionManager: Sendable {
   private var connections: [WiFiAwareConnectionID: WiFiAwareConnection] = [:]
@@ -802,7 +845,14 @@ actor ConnectionManager: Sendable {
   private var connectionsInfo: [WiFiAwareConnectionID: ConnectionInfo] = [:]
   private let logger = Logger(component: "ConnectionManager")
 
-  func add(_ connection: WiFiAwareConnection, wrapper: WiFiAwareConnectionWrapper) {
+  /// - Parameter failOnWaiting: closes the connection as soon as it enters `.waiting`. Set for
+  ///   outbound Wi-Fi Aware connections, which `wifip2pd` never moves past a failed pairing or data
+  ///   path attempt.
+  func add(
+    _ connection: WiFiAwareConnection,
+    wrapper: WiFiAwareConnectionWrapper,
+    failOnWaiting: Bool = false
+  ) {
     let id = connection.id
     logger.info("Add connection: \(id)")
     let (stream, continuation) = AsyncStream.makeStream(of: WiFiAwareConnectionState.self)
@@ -811,7 +861,8 @@ actor ConnectionManager: Sendable {
     connectionsInfo[id] = ConnectionInfo(
       receiverTask: setupReceiver(connection, wrapper: wrapper),
       stateUpdateTask: setupStateUpdateHandler(
-        connection, wrapper: wrapper, stream: stream, continuation: continuation),
+        connection, wrapper: wrapper, stream: stream, continuation: continuation,
+        failOnWaiting: failOnWaiting),
       stateContinuation: continuation
     )
   }
@@ -915,7 +966,7 @@ actor ConnectionManager: Sendable {
       }
     }
 
-    add(connection, wrapper: wrapper)
+    add(connection, wrapper: wrapper, failOnWaiting: true)
     return wrapper
   }
 
@@ -923,7 +974,8 @@ actor ConnectionManager: Sendable {
     _ connection: WiFiAwareConnection,
     wrapper: WiFiAwareConnectionWrapper,
     stream: AsyncStream<WiFiAwareConnectionState>,
-    continuation: AsyncStream<WiFiAwareConnectionState>.Continuation
+    continuation: AsyncStream<WiFiAwareConnectionState>.Continuation,
+    failOnWaiting: Bool = false
   ) -> Task<Void, Error> {
     connection.onStateUpdate { _, state in
       continuation.yield(state)
@@ -939,19 +991,25 @@ actor ConnectionManager: Sendable {
 
         case .waiting(let error):
           self?.logger.error("Connection \(connId) is .waiting with error: \(error)")
-          // `.waiting` is normally a recoverable state, but the NAN Data Path rejection is not:
-          // wifip2pd does not retry a data path while pairing is enabled, so nothing will move
-          // this connection forward. Fail fast instead of blocking awaitReady() and then the 40 s
-          // ConnectToService timeout, which keeps the transfer on BLE for ~55 s.
-          if isTerminalWiFiAwareDataPathError(error) {
+          // `.waiting` is normally a recoverable state, but not for an outbound Wi-Fi Aware
+          // connection: wifip2pd does not retry a NAN Data Path rejection (-11987) while pairing is
+          // enabled, nor a failed or timed-out NAN pairing initiator, so nothing will move this
+          // connection forward. Fail fast so the caller can retry with a fresh browser and
+          // connection instead of blocking awaitReady() until its timeout.
+          let isTerminalDataPathError = isTerminalWiFiAwareDataPathError(error)
+          if isTerminalDataPathError || failOnWaiting {
             self?.logger.error(
-              "Connection \(connId) hit a terminal Wi-Fi Aware data-path error, failing now")
+              "Connection \(connId) cannot recover from .waiting (terminal data-path error: "
+                + "\(isTerminalDataPathError)), failing now")
             // A cached pairing record is what makes iOS run Pair Verify instead of Pair Setup, so
             // log it here: it is the single most useful fact when triaging this failure.
             let pairedCount = await logPairedDevices()
             self?.logger.error(
               "Connection \(connId) had \(pairedCount) cached Wi-Fi Aware pairing record(s)")
-            wrapper.signalClosed(reason: kTerminalDataPathFailureReason)
+            wrapper.signalClosed(
+              reason: isTerminalDataPathError
+                ? kTerminalDataPathFailureReason
+                : "\(kWaitingConnectionFailureReason) Error: \(error)")
             continuation.finish()
             if let self = self {
               await self.stop(connId)
@@ -1277,7 +1335,7 @@ actor NetworkManager: Sendable {
       createdWrapper = wrapper
 
       logger.info("Awaiting connection handshake (.ready) while NWBrowser remains active...")
-      try await wrapper.awaitReady(timeoutSeconds: 30.0)
+      try await wrapper.awaitReady(timeoutSeconds: kConnectionReadyTimeoutSeconds)
       if !peerId.isEmpty {
         PairedPeerRegistry.remember(peerId: peerId, device: discovered.waEndpoint.device)
       }
@@ -1480,24 +1538,23 @@ public class AwareManager: NSObject, @unchecked Sendable {
           return
         } catch {
           lastError = error
-          let isTerminalDataPathFailure =
-            (error as NSError).localizedDescription.contains(kTerminalDataPathFailureReason)
-            || isTerminalWiFiAwareDataPathError(error)
-          if isTerminalDataPathFailure {
+          // Failures after discovery (data path refused, connection stuck in `.waiting`, or no
+          // `.ready` within kConnectionReadyTimeoutSeconds) are retried with a fresh browser and
+          // connection. Any other error ends the loop. Either way, a narrowed browse falls back to
+          // an unrestricted one below.
+          if isRetriableWiFiAwareBrowseError(error) {
             if attempt < kMaxDataPathBrowseAttempts, !Task.isCancelled {
               self.logger.warning(
-                "browse attempt \(attempt)/\(kMaxDataPathBrowseAttempts) hit terminal Wi-Fi Aware "
-                  + "data-path error (\(error)); retrying with a fresh browser and connection"
+                "browse attempt \(attempt)/\(kMaxDataPathBrowseAttempts) failed after discovery "
+                  + "(\(error)); retrying with a fresh browser and connection"
               )
               try? await Task.sleep(nanoseconds: self.retryDelayNanoseconds)
               continue
             }
             self.logger.error(
-              "browse failed after \(attempt) attempt(s) due to terminal Wi-Fi Aware data-path "
-                + "error: \(error)"
+              "browse failed after \(attempt) attempt(s) due to Wi-Fi Aware connection or "
+                + "data-path error: \(error)"
             )
-            completion(error as NSError)
-            return
           }
           break
         }
