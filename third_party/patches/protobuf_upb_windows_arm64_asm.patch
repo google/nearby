@@ -1,0 +1,14 @@
+--- a/upb/port/def.inc
++++ b/upb/port/def.inc
+@@ -392,7 +392,10 @@
+ #define UPB_PRESERVE_NONE
+ #endif
+
+-#if defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))
++// The ARM64 inline-asm encoder aligns a jump table inside its function, which
++// leaves COFF ARM64 SEH unwind info without a computable function length.
++#if defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__)) && \
++    !defined(_WIN32)
+ #define UPB_ARM64_ASM 1
+ #else
+ #define UPB_ARM64_ASM 0
