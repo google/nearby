@@ -24,6 +24,7 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_bwu_handler.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -379,6 +380,10 @@ std::unique_ptr<BwuHandler> WifiAware::CreateBwuHandler(
     BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
   return std::make_unique<WifiAwareBwuHandler>(
       *this, std::move(incoming_connection_callback));
+}
+
+std::unique_ptr<WifiAwareInterface> CreateWifiAware() {
+  return std::make_unique<WifiAware>();
 }
 
 }  // namespace connections

@@ -322,6 +322,7 @@ let package = Package(
         "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.cc",
         "connections/implementation/mediums/bluetooth/bluetooth_classic.cc",
         "connections/implementation/mediums/bluetooth/bluetooth_endpoint_channel.cc",
+        "connections/implementation/mediums/wifi_aware/wifi_aware_stub.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.cc",
         "connections/implementation/mediums/wifi_direct/wifi_direct_endpoint_channel.cc",

@@ -42,7 +42,7 @@
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/webrtc.h"
-#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
@@ -328,7 +328,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BluetoothClassicInterface& bluetooth_medium_;
   Ble& ble_medium_;
   WifiLan& wifi_lan_medium_;
-  WifiAware& wifi_aware_medium_;
+  WifiAwareInterface& wifi_aware_medium_;
   mediums::WebRtc& webrtc_medium_;
   InjectedBluetoothDeviceStore& injected_bluetooth_device_store_;
   // Maintains a map of client_id to service_id for bluetooth classic

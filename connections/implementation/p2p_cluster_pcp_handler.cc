@@ -51,6 +51,7 @@
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"

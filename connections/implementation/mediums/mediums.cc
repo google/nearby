@@ -25,7 +25,7 @@
 #endif
 #include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/wifi.h"
-#include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
@@ -35,6 +35,7 @@ namespace connections {
 
 Mediums::Mediums()
     : bluetooth_classic_(CreateBluetoothClassic(bluetooth_radio_)),
+      wifi_aware_(CreateWifiAware()),
       wifi_direct_(CreateWifiDirect()),
 #ifndef NO_WEBRTC
       webrtc_(std::make_unique<mediums::WebRtcImpl>()),
@@ -56,7 +57,7 @@ Wifi& Mediums::GetWifi() { return wifi_; }
 
 WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
 
-WifiAware& Mediums::GetWifiAware() { return wifi_aware_; }
+WifiAwareInterface& Mediums::GetWifiAware() { return *wifi_aware_; }
 
 WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 
