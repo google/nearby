@@ -384,6 +384,11 @@ class MediumEnvironment {
   void SetBleExtendedAdvertisementsAvailable(bool enabled);
   bool IsBleExtendedAdvertisementsAvailable() const;
 
+  // Sets whether Wi-Fi Direct Group Owner (GO) mode is supported. It is true
+  // by default.
+  void SetWifiDirectGoSupported(bool supported);
+  bool IsWifiDirectGoSupported() const;
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
@@ -514,6 +519,7 @@ class MediumEnvironment {
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
   std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   bool ble_extended_advertisements_available_ = false;
+  bool wifi_direct_go_supported_ = true;
 };
 
 }  // namespace nearby

@@ -131,6 +131,11 @@ WifiDirectMedium::~WifiDirectMedium() {
   env.UnregisterWifiDirectMedium(*this);
 }
 
+bool WifiDirectMedium::IsGOSupported() const {
+  return IsInterfaceValid() &&
+         MediumEnvironment::Instance().IsWifiDirectGoSupported();
+}
+
 bool WifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(mutex_);

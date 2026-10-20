@@ -114,6 +114,7 @@ void MediumEnvironment::Reset() {
     }
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
+    wifi_direct_go_supported_ = true;
   });
   Sync();
 }
@@ -1396,6 +1397,14 @@ void MediumEnvironment::SetBleExtendedAdvertisementsAvailable(bool enabled) {
 
 bool MediumEnvironment::IsBleExtendedAdvertisementsAvailable() const {
   return ble_extended_advertisements_available_;
+}
+
+void MediumEnvironment::SetWifiDirectGoSupported(bool supported) {
+  wifi_direct_go_supported_ = supported;
+}
+
+bool MediumEnvironment::IsWifiDirectGoSupported() const {
+  return wifi_direct_go_supported_;
 }
 
 }  // namespace nearby

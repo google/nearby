@@ -90,6 +90,7 @@ CreateWifiHotspotCredentials() {
 class BwuManagerBaseTest : public ::testing::Test {
  protected:
   void SetUp() override {
+    MediumEnvironment::Instance().Start();
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableDynamicRoleSwitch,
@@ -101,6 +102,7 @@ class BwuManagerBaseTest : public ::testing::Test {
 
   void TearDown() override {
     NearbyFlags::GetInstance().ResetOverridedValues();
+    MediumEnvironment::Instance().Stop();
   }
 };
 
@@ -143,6 +145,7 @@ TEST_F(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_Success) {
 
 TEST_F(BwuManagerBaseTest,
        InitiateBwu_NeedToSwitchRole_WindowsAndroid_Success) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
   ClientProxy client;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -203,6 +206,7 @@ TEST_F(BwuManagerBaseTest,
 
 TEST_F(BwuManagerBaseTest,
        InitiateBwu_NeedToSwitchRole_WindowsAndroid_NoSwitch_Success) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
   ClientProxy client;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
@@ -438,38 +442,25 @@ TEST_F(BwuManagerBaseTest,
 
 class BwuManagerTest : public ::testing::Test {
  protected:
-  static void SetUpTestSuite() {
+  void SetUp() override {
     MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
         true);
-  }
-
-  static void TearDownTestSuite() {
-    NearbyFlags::GetInstance().ResetOverridedValues();
-    MediumEnvironment::Instance().Stop();
-  }
-
-  BwuManagerTest() {
     ReinitBwuManager(BooleanMediumSelector{.web_rtc = true,
                                            .wifi_lan = true,
                                            .wifi_hotspot = true,
                                            .wifi_direct = true});
   }
 
-  ~BwuManagerTest() override {
+  void TearDown() override {
     if (bwu_manager_ != nullptr) {
       bwu_manager_->Shutdown();
+      bwu_manager_.reset();
     }
-  }
-
-  void TearDown() override {
+    mediums_.reset();
     NearbyFlags::GetInstance().ResetOverridedValues();
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
-        true);
     MediumEnvironment::Instance().Stop();
-    MediumEnvironment::Instance().Start({.wifi_aware_enabled = true});
   }
 
   void ReinitBwuManager(BooleanMediumSelector allow_upgrade_to) {
@@ -1958,6 +1949,7 @@ TEST_F(BwuManagerTest,
 // Owner hosting to an Android peer via UPGRADE_PATH_REQUEST.
 TEST_F(BwuManagerTest,
        InitiateBwuAutoSelectMediumWindowsAndroidRoleSwitchSendsRequest) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableDynamicRoleSwitch,
@@ -1988,11 +1980,11 @@ TEST_F(BwuManagerTest,
             BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
   EXPECT_EQ(bwu_frame.upgrade_path_info().medium(),
             BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_DIRECT);
-  EXPECT_TRUE(bwu_frame.upgrade_path_info()
-                  .upgrade_path_request()
-                  .medium_meta_data()
-                  .medium_role()
-                  .support_wifi_direct_group_owner());
+  EXPECT_FALSE(bwu_frame.upgrade_path_info()
+                   .upgrade_path_request()
+                   .medium_meta_data()
+                   .medium_role()
+                   .support_wifi_direct_group_owner());
   EXPECT_TRUE(bwu_frame.upgrade_path_info()
                   .upgrade_path_request()
                   .medium_meta_data()
@@ -2332,6 +2324,7 @@ TEST_F(BwuManagerTest,
 // chosen by the remote host succeeds.
 TEST_F(BwuManagerTest,
        InitiateBwuRoleSwitchRequestAcceptsFallbackMediumFromRemoteHost) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
   SetSupportMultipleBwuMediums(true);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::

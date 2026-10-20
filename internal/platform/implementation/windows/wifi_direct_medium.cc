@@ -157,6 +157,15 @@ WifiDirectMedium::~WifiDirectMedium() {
 
 bool WifiDirectMedium::IsInterfaceValid() const { return is_interface_valid_; }
 
+bool WifiDirectMedium::IsGOSupported() const {
+  // Windows Wi-Fi Direct GO is disabled by default due to WinRT SDK stability
+  // issues and WPS-PIN API limitations (see the file-level comment above and
+  // b/535138108).
+  return false;
+}
+
+bool WifiDirectMedium::IsGCSupported() const { return is_interface_valid_; }
+
 // Discoverer connects to server socket
 std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,

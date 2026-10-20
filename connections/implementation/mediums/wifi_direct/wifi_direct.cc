@@ -66,7 +66,7 @@ bool WifiDirect::IsGOAvailable() const {
 }
 
 bool WifiDirect::IsGOAvailableLocked() const {
-  if (medium_.IsValid()) return medium_.IsInterfaceValid();
+  if (medium_.IsValid()) return medium_.IsGOSupported();
   return false;
 }
 
@@ -77,7 +77,7 @@ bool WifiDirect::IsGCAvailable() const {
 }
 
 bool WifiDirect::IsGCAvailableLocked() const {
-  if (medium_.IsValid()) return medium_.IsInterfaceValid();
+  if (medium_.IsValid()) return medium_.IsGCSupported();
   return false;
 }
 

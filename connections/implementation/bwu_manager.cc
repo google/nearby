@@ -1768,20 +1768,19 @@ bool BwuManager::NeedToSwitchRole(
         break;
     }
   }
-  // For testing on Windows as a receiver device to request dynamic role switch.
-  // No need for final check in.
-  if (GetLocalOsInfo(client).type() == OsInfo::WINDOWS &&
-      remote_os_info.type() == OsInfo::ANDROID) {
-    LOG(INFO) << "Local: Windows OS, Remote: Android device detected. "
-                 "WifiDirect NeedToSwitchRole and let Android be GO. "
-                 "medium_role.support_wifi_direct_group_owner(): "
-              << medium_role.support_wifi_direct_group_owner();
-    switch (medium) {
-      case Medium::WIFI_DIRECT:
-        return medium_role.support_wifi_direct_group_owner();
-      default:
-        break;
-    }
+  if (medium == Medium::WIFI_DIRECT) {
+    const MediumRole local_medium_role = GetLocalMediumRole(client);
+    const bool local_supports_gc =
+        local_medium_role.support_wifi_direct_group_client();
+    const bool local_supports_go =
+        local_medium_role.support_wifi_direct_group_owner();
+    const bool remote_supports_go =
+        medium_role.support_wifi_direct_group_owner();
+    LOG(INFO) << "NeedToSwitchRole(WIFI_DIRECT) for endpoint " << endpoint_id
+              << ": local_supports_gc=" << local_supports_gc
+              << ", local_supports_go=" << local_supports_go
+              << ", remote_supports_go=" << remote_supports_go;
+    return local_supports_gc && !local_supports_go && remote_supports_go;
   }
 
   return false;
