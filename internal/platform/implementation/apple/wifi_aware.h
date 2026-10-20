@@ -100,11 +100,11 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   bool StopDiscovery(const std::string& service_type) override;
 
   bool IsPublishing() override;
-  bool StartPublishing() override;
+  bool StartPublishing(const std::string& service_name) override;
   bool StopPublishing() override;
 
   bool IsSubscribing() override;
-  bool StartSubscribing() override;
+  bool StartSubscribing(const std::string& service_name) override;
   bool StopSubscribing() override;
 
   void SetExpectedPeerId(const std::string& peer_id) override;
@@ -134,6 +134,10 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   // only. Support the 1:N case (multiple peers upgrading concurrently) by tracking a set of
   // expected peer IDs.
   std::string expected_peer_id_;
+  // Wi-Fi Aware service names passed to StartPublishing() / StartSubscribing(). Each must match a
+  // key under WiFiAwareServices in the app's Info.plist.
+  std::string publish_service_name_;
+  std::string subscribe_service_name_;
 };
 
 }  // namespace apple

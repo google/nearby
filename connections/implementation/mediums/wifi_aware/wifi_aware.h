@@ -47,7 +47,20 @@ class WifiAware : public WifiAwareInterface {
       const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
 
   WifiAware() = default;
-  ~WifiAware() override;
+  ~WifiAware();
+
+  // Returns the Wi-Fi Aware service name Nearby publishes and subscribes to
+  // for |service_id|. Like the Wi-Fi LAN and AWDL mDNS service types, it is
+  // derived from the service ID the client passed in (see
+  // Utils::GenerateServiceType()), so Nearby Connections never hardcodes a
+  // client specific name; pass the upgrade service ID for bandwidth upgrades.
+  // iOS clients must declare the derived name under WiFiAwareServices in their
+  // Info.plist ahead of time, as they already declare the Wi-Fi LAN and AWDL
+  // service types under NSBonjourServices.
+  //
+  // Equivalent to Utils::GenerateWifiAwareServiceName(), which code that must
+  // also build where this medium is stubbed out (Windows) should call instead.
+  static std::string GenerateServiceName(absl::string_view service_id);
 
   // Returns true, if WifiAware communications are supported by a platform.
   bool IsAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
@@ -79,11 +92,15 @@ class WifiAware : public WifiAwareInterface {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StartPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Publishes |service_name| (see GenerateServiceName()).
+  bool StartPublishing(absl::string_view service_name) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopPublishing() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StartSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Subscribes to |service_name| (see GenerateServiceName()).
+  bool StartSubscribing(absl::string_view service_name) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool StopSubscribing() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // See api::WifiAwareMedium::SetExpectedPeerId(). Must be called before
@@ -94,10 +111,11 @@ class WifiAware : public WifiAwareInterface {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a WifiAware socket, associates it with a
-  // service id.
-  ErrorOr<bool> StartAcceptingConnections(
-      const std::string& service_id, absl::string_view channel_name,
-      AcceptedConnectionCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+  // service id, and publishes GenerateServiceName(service_id).
+  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          absl::string_view channel_name,
+                                          AcceptedConnectionCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
   bool StopAcceptingConnections(const std::string& service_id) override

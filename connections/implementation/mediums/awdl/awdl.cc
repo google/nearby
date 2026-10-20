@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -105,7 +104,7 @@ ErrorOr<bool> Awdl::StartAdvertising(const std::string& service_id,
                       CLIENT_DUPLICATE_ACCEPTING_AWDL_CONNECTION_REQUEST)};
   }
 
-  nsd_service_info.SetServiceType(GenerateServiceType(
+  nsd_service_info.SetServiceType(Utils::GenerateServiceType(
       absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType)));
   const auto& it = server_sockets_.find(service_id);
   if (it != server_sockets_.end()) {
@@ -176,7 +175,7 @@ ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
     return {Error(OperationResultCode::CLIENT_AWDL_DUPLICATE_DISCOVERING)};
   }
 
-  std::string service_type = GenerateServiceType(
+  std::string service_type = Utils::GenerateServiceType(
       absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType));
   bool ret =
       medium_.StartDiscovery(service_id, service_type, std::move(callback));
@@ -201,7 +200,7 @@ bool Awdl::StopDiscovery(const std::string& service_id) {
     return false;
   }
 
-  std::string service_type = GenerateServiceType(
+  std::string service_type = Utils::GenerateServiceType(
       absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType));
   LOG(INFO) << "Turned off Awdl discovering with service_id=" << service_id
             << ", service_type=" << service_type;
@@ -327,19 +326,6 @@ Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
   }
   credential.password = psk_info->password;
   return credential;
-}
-
-std::string Awdl::GenerateServiceType(const std::string& service_id) {
-  std::string service_id_hash_string;
-
-  const ByteArray service_id_hash = Utils::Sha256Hash(
-      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
-  for (auto byte : std::string(service_id_hash)) {
-    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
-  }
-
-  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
-                         service_id_hash_string);
 }
 
 int Awdl::GeneratePort(const std::string& service_id,

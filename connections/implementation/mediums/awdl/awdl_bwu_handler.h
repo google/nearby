@@ -63,7 +63,6 @@ class AwdlBwuHandler : public BaseBwuHandler {
                                 const std::string& upgrade_service_id,
                                 std::unique_ptr<EndpointChannel> channel);
 
-  std::string GenerateServiceType(const std::string& service_id);
   std::string GenerateServiceName();
   std::string GeneratePassword();
 

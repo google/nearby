@@ -194,7 +194,7 @@ std::string AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     // Need to advertise the service.
     nsd_service_info_ = NsdServiceInfo();
     nsd_service_info_.SetServiceName(GenerateServiceName());
-    nsd_service_info_.SetServiceType(GenerateServiceType(
+    nsd_service_info_.SetServiceType(Utils::GenerateServiceType(
         absl::StrCat(upgrade_service_id, kAwdlServiceIdSuffixForServiceType)));
 
     if (!awdl_medium_.StartAdvertising(upgrade_service_id, nsd_service_info_)) {
@@ -247,19 +247,6 @@ void AwdlBwuHandler::OnIncomingAwdlConnection(
   auto connection =
       std::make_unique<IncomingSocketConnection>(std::move(channel));
   NotifyOnIncomingConnection(client, std::move(connection));
-}
-
-std::string AwdlBwuHandler::GenerateServiceType(const std::string& service_id) {
-  std::string service_id_hash_string;
-
-  const ByteArray service_id_hash = Utils::Sha256Hash(
-      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
-  for (auto byte : std::string(service_id_hash)) {
-    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
-  }
-
-  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
-                         service_id_hash_string);
 }
 
 std::string AwdlBwuHandler::GenerateServiceName() {

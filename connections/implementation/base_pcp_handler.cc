@@ -220,7 +220,10 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
                   kEnableWifiAware)) {
-        WifiAwareConnectionInfo info("_qs-aware._tcp", {});
+        // The name StartListeningForIncomingConnectionsImpl() published for
+        // this service ID via WifiAware::StartAcceptingConnections().
+        WifiAwareConnectionInfo info(
+            Utils::GenerateWifiAwareServiceName(service_id), {});
         connection_infos.push_back(info);
       }
     }

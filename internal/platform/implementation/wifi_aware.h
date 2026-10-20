@@ -87,11 +87,16 @@ class WifiAwareMedium {
   virtual bool StopDiscovery(const std::string& service_type) = 0;
 
   virtual bool IsPublishing() = 0;
-  virtual bool StartPublishing() = 0;
+  // Starts publishing the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp"). Incoming connections for it are then accepted via
+  // ListenForService().
+  virtual bool StartPublishing(const std::string& service_name) = 0;
   virtual bool StopPublishing() = 0;
 
   virtual bool IsSubscribing() = 0;
-  virtual bool StartSubscribing() = 0;
+  // Starts subscribing to the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp").
+  virtual bool StartSubscribing(const std::string& service_name) = 0;
   virtual bool StopSubscribing() = 0;
 
   // Names the peer that the next ConnectToService() call is meant for, using a

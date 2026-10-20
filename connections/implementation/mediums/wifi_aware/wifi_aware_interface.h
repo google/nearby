@@ -62,11 +62,13 @@ class WifiAwareInterface {
   virtual bool IsDiscovering(const std::string& service_id) = 0;
 
   virtual bool IsPublishing() = 0;
-  virtual bool StartPublishing() = 0;
+  // Publishes |service_name| (see Utils::GenerateWifiAwareServiceName()).
+  virtual bool StartPublishing(absl::string_view service_name) = 0;
   virtual bool StopPublishing() = 0;
 
   virtual bool IsSubscribing() = 0;
-  virtual bool StartSubscribing() = 0;
+  // Subscribes to |service_name| (see Utils::GenerateWifiAwareServiceName()).
+  virtual bool StartSubscribing(absl::string_view service_name) = 0;
   virtual bool StopSubscribing() = 0;
 
   virtual void SetExpectedPeerId(absl::string_view peer_id) = 0;

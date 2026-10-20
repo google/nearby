@@ -49,10 +49,14 @@ class WifiAwareMedium : public api::WifiAwareMedium {
   }
   bool StopDiscovery(const std::string& service_type) override { return false; }
   bool IsPublishing() override { return false; }
-  bool StartPublishing() override { return false; }
+  bool StartPublishing(const std::string& service_name) override {
+    return false;
+  }
   bool StopPublishing() override { return false; }
   bool IsSubscribing() override { return false; }
-  bool StartSubscribing() override { return false; }
+  bool StartSubscribing(const std::string& service_name) override {
+    return false;
+  }
   bool StopSubscribing() override { return false; }
   std::unique_ptr<api::WifiAwareSocket> ConnectToService(
       const WifiAwareServiceInfo& remote_service_info,

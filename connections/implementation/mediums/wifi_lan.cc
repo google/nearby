@@ -20,8 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_lan_bwu_handler.h"
@@ -90,7 +88,7 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
         << "Failed to WifiLan advertise because we're already advertising.";
     return {Error(OperationResultCode::CLIENT_WIFI_LAN_DUPLICATE_ADVERTISING)};
   }
-  nsd_service_info.SetServiceType(GenerateServiceType(service_id));
+  nsd_service_info.SetServiceType(Utils::GenerateServiceType(service_id));
   const auto& it = server_sockets_.find(service_id);
   std::string mdns_service_name = nsd_service_info.GetServiceName();
   int port = 0;
@@ -181,7 +179,7 @@ ErrorOr<bool> WifiLan::StartDiscovery(const std::string& service_id,
     return {Error(OperationResultCode::CLIENT_WIFI_LAN_DUPLICATE_DISCOVERING)};
   }
 
-  std::string service_type = GenerateServiceType(service_id);
+  std::string service_type = Utils::GenerateServiceType(service_id);
   bool ret =
       medium_.StartDiscovery(service_id, service_type, std::move(callback));
   if (!ret) {
@@ -205,7 +203,7 @@ bool WifiLan::StopDiscovery(const std::string& service_id) {
     return false;
   }
 
-  std::string service_type = GenerateServiceType(service_id);
+  std::string service_type = Utils::GenerateServiceType(service_id);
   LOG(INFO) << "Turned off WifiLan discovering with service_id=" << service_id
             << ", service_type=" << service_type;
   bool ret = medium_.StopDiscovery(service_type);
@@ -492,19 +490,6 @@ api::UpgradeAddressInfo WifiLan::GetUpgradeAddressCandidates(
     return {};
   }
   return medium_.GetUpgradeAddressCandidates(it->second);
-}
-
-std::string WifiLan::GenerateServiceType(const std::string& service_id) {
-  std::string service_id_hash_string;
-
-  const ByteArray service_id_hash = Utils::Sha256Hash(
-      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
-  for (auto byte : std::string(service_id_hash)) {
-    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
-  }
-
-  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
-                         service_id_hash_string);
 }
 
 int WifiLan::GeneratePort(const std::string& service_id,

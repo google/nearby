@@ -68,11 +68,15 @@ class WifiAwareStub : public WifiAwareInterface {
   bool IsDiscovering(const std::string& service_id) override { return false; }
 
   bool IsPublishing() override { return false; }
-  bool StartPublishing() override { return false; }
+  bool StartPublishing(absl::string_view service_name) override {
+    return false;
+  }
   bool StopPublishing() override { return false; }
 
   bool IsSubscribing() override { return false; }
-  bool StartSubscribing() override { return false; }
+  bool StartSubscribing(absl::string_view service_name) override {
+    return false;
+  }
   bool StopSubscribing() override { return false; }
 
   void SetExpectedPeerId(absl::string_view peer_id) override {}

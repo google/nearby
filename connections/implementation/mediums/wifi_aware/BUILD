@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
@@ -82,7 +83,9 @@ cc_library(
         "//connections/implementation:client_proxy",
         "//connections/implementation:endpoint_channel",
         "//connections/implementation:offline_frames",
+        "//connections/implementation:service_id_constants",
         "//connections/implementation/flags:connections_flags",
+        "//connections/implementation/mediums:utils",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -95,6 +98,21 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_test(
+    name = "wifi_aware_test",
+    size = "small",
+    srcs = ["wifi_aware_test.cc"],
+    deps = [
+        ":wifi_aware_internal",
+        "//connections/implementation:service_id_constants",
+        "//connections/implementation/mediums:utils",
+        "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

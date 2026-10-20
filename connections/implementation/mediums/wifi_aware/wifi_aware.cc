@@ -22,6 +22,7 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_bwu_handler.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
@@ -37,6 +38,10 @@
 
 namespace nearby {
 namespace connections {
+
+std::string WifiAware::GenerateServiceName(absl::string_view service_id) {
+  return Utils::GenerateWifiAwareServiceName(service_id);
+}
 
 WifiAware::~WifiAware() {
   while (!discovering_info_.empty()) {
@@ -216,7 +221,7 @@ bool WifiAware::IsAcceptingConnectionsLocked(const std::string& service_id) {
 ErrorOr<bool> WifiAware::StartAcceptingConnectionsLocked(
     const std::string& service_id, absl::string_view channel_name,
     AcceptedConnectionCallback callback) {
-  if (medium_.StartPublishing()) {
+  if (medium_.StartPublishing(GenerateServiceName(service_id))) {
     LOG(INFO) << "WifiAware successfully started publishing";
 
     WifiAwareServerSocket server_socket = medium_.ListenForService(0);
@@ -284,9 +289,9 @@ bool WifiAware::IsPublishing() {
   return medium_.IsPublishing();
 }
 
-bool WifiAware::StartPublishing() {
+bool WifiAware::StartPublishing(absl::string_view service_name) {
   MutexLock lock(&mutex_);
-  return medium_.StartPublishing();
+  return medium_.StartPublishing(std::string(service_name));
 }
 
 bool WifiAware::StopPublishing() {
@@ -299,9 +304,9 @@ bool WifiAware::IsSubscribing() {
   return medium_.IsSubscribing();
 }
 
-bool WifiAware::StartSubscribing() {
+bool WifiAware::StartSubscribing(absl::string_view service_name) {
   MutexLock lock(&mutex_);
-  return medium_.StartSubscribing();
+  return medium_.StartSubscribing(std::string(service_name));
 }
 
 bool WifiAware::StopSubscribing() {

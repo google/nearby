@@ -211,9 +211,6 @@ class Awdl : public AwdlInterface {
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Generates mDNS type.
-  std::string GenerateServiceType(const std::string& service_id);
-
   // Generates port number based on port_range_.
   int GeneratePort(const std::string& service_id,
                    std::pair<std::int32_t, std::int32_t> port_range);

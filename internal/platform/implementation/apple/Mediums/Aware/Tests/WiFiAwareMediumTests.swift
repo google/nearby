@@ -98,13 +98,17 @@ final class WiFiAwareMediumTests: XCTestCase {
 
   // MARK: - AwareManager.browse Retry & Registry Preservation Tests
 
+  /// Any Wi-Fi Aware service name will do: `browseHookForTesting` short-circuits the browse before
+  /// the name is resolved against the Info.plist.
+  private let testServiceName = "_test-aware._tcp"
+
   private func runBrowse(
     manager: AwareManager,
     port: Int,
     peerId: String
   ) async -> NSError? {
     await withCheckedContinuation { continuation in
-      manager.browse(port: port, peerId: peerId) { error in
+      manager.browse(serviceName: testServiceName, port: port, peerId: peerId) { error in
         continuation.resume(returning: error)
       }
     }
