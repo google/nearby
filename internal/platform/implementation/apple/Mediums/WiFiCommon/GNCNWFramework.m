@@ -417,8 +417,9 @@ static BOOL GNCExtractServiceFromBrowseResult(
   nw_parameters_t parameters =
       (PSKIdentity == nil || PSKSharedSecret == nil)
           ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/_includePeerToPeer)
-          : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentity,
-                                  /*includePeerToPeer=*/_includePeerToPeer);
+          : GNCBuildTLSParametersForRole(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentity,
+                                         /*includePeerToPeer=*/_includePeerToPeer,
+                                         GNCTLSRoleClient);
   if (!parameters) {
     GNCLoggerError(@"[GNCNWFramework] Failed to create NW parameters.");
     return nil;

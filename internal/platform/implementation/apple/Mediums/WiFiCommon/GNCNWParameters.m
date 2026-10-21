@@ -22,8 +22,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-BOOL GNCConfigureTLSOptions(sec_protocol_options_t _Nullable options, NSData *PSK,
-                            NSData *identity) {
+/// Configures legacy TLS 1.2 PSK (`TLS_PSK_WITH_AES_128_GCM_SHA256`) on `options`.
+BOOL GNCConfigureTLS12PSKOptions(sec_protocol_options_t _Nullable options, NSData *PSK,
+                                 NSData *identity) {
   if (!options) {
     GNCLoggerError(@"[GNCNWParameters] Invalid parameter of options.");
     return NO;
@@ -70,15 +71,15 @@ nw_parameters_t _Nullable GNCBuildNonTLSParameters(BOOL includePeerToPeer) {
   return parameters;
 }
 
-nw_parameters_t _Nullable GNCBuildTLSParameters(NSData *PSK, NSData *identity,
-                                                BOOL includePeerToPeer) {
+nw_parameters_t _Nullable GNCBuildTLS12PSKParameters(NSData *PSK, NSData *identity,
+                                                     BOOL includePeerToPeer) {
   __block BOOL TLSWasConfigured = NO;
   nw_parameters_t parameters = nw_parameters_create_secure_tcp(
       ^(nw_protocol_options_t default_tls_options) {
         // Configure the TLS protocol options.
         sec_protocol_options_t sec_protocol_options =
             nw_tls_copy_sec_protocol_options(default_tls_options);
-        TLSWasConfigured = GNCConfigureTLSOptions(sec_protocol_options, PSK, identity);
+        TLSWasConfigured = GNCConfigureTLS12PSKOptions(sec_protocol_options, PSK, identity);
       },
       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
   if (!TLSWasConfigured) {
@@ -88,6 +89,16 @@ nw_parameters_t _Nullable GNCBuildTLSParameters(NSData *PSK, NSData *identity,
 
   nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
   return parameters;
+}
+
+nw_parameters_t _Nullable GNCBuildTLSParameters(NSData *PSK, NSData *identity,
+                                                BOOL includePeerToPeer) {
+  return GNCBuildTLSParametersForRole(PSK, identity, includePeerToPeer, GNCTLSRoleClient);
+}
+
+nw_parameters_t _Nullable GNCBuildTLSParametersForRole(NSData *PSK, NSData *identity,
+                                                       BOOL includePeerToPeer, GNCTLSRole role) {
+  return GNCBuildTLS12PSKParameters(PSK, identity, includePeerToPeer);
 }
 
 NS_ASSUME_NONNULL_END
