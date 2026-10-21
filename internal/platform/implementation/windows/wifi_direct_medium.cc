@@ -504,11 +504,11 @@ fire_and_forget WifiDirectMedium::OnStatusChanged(
         LOG(INFO) << "WIFI direct Legacy AP ssid: "
                   << winrt::to_string(
                          publisher_.Advertisement().LegacySettings().Ssid());
-        LOG(INFO) << "WIFI direct Legacy AP pw: "
-                  << winrt::to_string(publisher_.Advertisement()
-                                          .LegacySettings()
-                                          .Passphrase()
-                                          .Password());
+        VLOG(1) << "WIFI direct Legacy AP pw: "
+                << winrt::to_string(publisher_.Advertisement()
+                                        .LegacySettings()
+                                        .Passphrase()
+                                        .Password());
       }
       return winrt::fire_and_forget();
     } else if (event.Status() ==
@@ -741,8 +741,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
       return false;
     }
 
-    if (credentials.GetDeviceName().empty() ||
-        credentials.GetPin().empty()) {
+    if (credentials.GetDeviceName().empty() || credentials.GetPin().empty()) {
       LOG(ERROR) << "GC: Device name or pin is empty, return false";
       return false;
     }
@@ -1050,7 +1049,7 @@ fire_and_forget WifiDirectMedium::OnPairingRequested(
     LOG(INFO) << "Handle Pairing Kind";
     switch (event.PairingKind()) {
       case DevicePairingKinds::DisplayPin:
-        LOG(INFO) << "Display pin is: " << winrt::to_string(event.Pin());
+        VLOG(1) << "Display pin is: " << winrt::to_string(event.Pin());
         event.Accept();
         break;
       case DevicePairingKinds::ConfirmOnly:
