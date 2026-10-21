@@ -71,7 +71,7 @@ message FileMetadata {
   optional bool is_sensitive_content = 9;
 }
 
-// NEXT_ID=8
+// NEXT_ID=9
 message TextMetadata {
   enum Type {
     UNKNOWN = 0;
@@ -102,6 +102,11 @@ message TextMetadata {
 
   // True if text is sensitive, e.g. password
   optional bool is_sensitive_text = 7;
+
+  // Untrusted URL from the sender for rendering 1P link previews before
+  // transfer acceptance. Receivers MUST validate against a strict 1P allowlist
+  // and never fetch this URL directly.
+  optional string untrusted_preview_url = 8;
 }
 
 // NEXT_ID=6
