@@ -36,6 +36,8 @@
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
 // Extern C functions for testing.
+typedef nw_error_domain_t (^GNCNWErrorGetDomainHandler)(nw_error_t error);
+extern void GNCSetNWErrorGetDomainOverrideForTesting(GNCNWErrorGetDomainHandler _Nullable handler);
 extern BOOL GNCHasLoopbackInterface(nw_browse_result_t browseResult);
 extern NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(
     nw_browse_result_t browseResult);
@@ -60,6 +62,11 @@ static NSString *const kHostAddress = @"127.0.0.1";
   _mockBrowseResultImpl = OCMClassMock([GNCNWBrowseResultImpl class]);
   _mockBrowserImpl = OCMClassMock([GNCNWBrowserImpl class]);
   _mockConnectionImpl = OCMClassMock([GNCNWConnectionImpl class]);
+}
+
+- (void)tearDown {
+  GNCSetNWErrorGetDomainOverrideForTesting(nil);
+  [super tearDown];
 }
 
 - (void)testGNCNWFrameworkCanBeInstantiated {
@@ -117,8 +124,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
       .andReturn(YES);
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                                         error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
   XCTAssertTrue([framework isListeningForAnyService]);
@@ -143,8 +149,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
       });
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                                         error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
   XCTAssertFalse([framework isListeningForAnyService]);
@@ -765,6 +770,34 @@ static NSString *const kHostAddress = @"127.0.0.1";
 
   XCTAssertNil(socket);
   XCTAssertNil(error);
+}
+
+- (void)
+    testConnectToServiceNameWithPSK_tlsErrorInWaitingState_failsImmediatelyAndCancelsConnection API_AVAILABLE(
+        ios(13.0)) {
+  GNCSetNWErrorGetDomainOverrideForTesting(^nw_error_domain_t(nw_error_t error) {
+    return nw_error_domain_tls;
+  });
+
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  fakeConnection.simulatedState = nw_connection_state_waiting;
+  fakeConnection.simulatedError = (nw_error_t)kCFNull;
+
+  OCMStub([_mockConnectionImpl alloc]).andReturn(fakeConnection);
+
+  NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [framework connectToServiceName:kServiceName
+                                                     serviceType:kServiceType
+                                                     PSKIdentity:pskIdentity
+                                                 PSKSharedSecret:pskSharedSecret
+                                                           error:&error];
+
+  XCTAssertNil(socket);
+  XCTAssertTrue(fakeConnection.cancelCalled);
 }
 
 - (void)testConnectToHostSuccess API_AVAILABLE(ios(13.0)) {
