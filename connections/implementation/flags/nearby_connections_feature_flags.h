@@ -100,6 +100,10 @@ constexpr auto kEnableWifiLanUpgrade =
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
+// When true, enforces local strategy encryption policy on incoming BWU
+// connections (b/574970747).
+constexpr auto kEnforceBwuIncomingEncryptionPolicy =
+    flags::Flag<bool>(kConfigPackage, "45868914", true);
 // Enforces frame filtering on unconfirmed endpoints in EndpointManager and
 // BaseEndpointChannel so application payloads and upgrade requests are blocked
 // before connection acceptance.

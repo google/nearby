@@ -734,9 +734,21 @@ void BwuManager::OnIncomingConnection(
 
         // Use the introductory client information sent over to run the upgrade
         // protocol.
+        bool enable_encryption = !introduction.supports_disabling_encryption();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnforceBwuIncomingEncryptionPolicy)) {
+          bool local_supports_disabling =
+              mapped_client->GetAdvertisingOptions().strategy ==
+                  Strategy::kP2pPointToPoint ||
+              mapped_client->GetDiscoveryOptions().strategy ==
+                  Strategy::kP2pPointToPoint;
+          enable_encryption =
+              !(introduction.supports_disabling_encryption() &&
+                local_supports_disabling);
+        }
         RunUpgradeProtocol(mapped_client, endpoint_id,
-                           std::move(connection->channel),
-                           !introduction.supports_disabling_encryption());
+                           std::move(connection->channel), enable_encryption);
       });
 }
 
