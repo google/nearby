@@ -456,7 +456,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetScreenLocked(false);
     SetLanConnected(true);
     analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorderImpl>(
-        /*vendor_id=*/0, /*event_logger=*/nullptr);
+        /*vendor_id=*/0, /*event_logger=*/&mock_event_logger_);
 
     service_ = CreateService(std::move(fake_task_runner));
   }
@@ -1285,6 +1285,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<NearbyConnectionImpl> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
+  NiceMock<nearby::analytics::MockEventLogger> mock_event_logger_;
   std::unique_ptr<analytics::AnalyticsRecorderImpl> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
@@ -5442,6 +5443,166 @@ TEST_F(NearbySharingServiceImplTest,
   expected_binding.set_source_device_type(
       sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       SendFlowTracksTransferPositionAndConcurrentConnections) {
+  std::vector<int> send_start_positions;
+  std::vector<int> send_start_concurrent;
+  std::vector<int> establish_conn_positions;
+  std::vector<int> establish_conn_concurrent;
+  std::vector<int> send_intro_positions;
+  std::vector<int> send_intro_concurrent;
+  std::vector<int> send_attachments_start_positions;
+  std::vector<int> send_attachments_start_concurrent;
+  std::vector<int> send_attachments_end_positions;
+  std::vector<int> send_attachments_end_concurrent;
+
+  using ::nearby::sharing::analytics::proto::SharingLog;
+  ON_CALL(mock_event_logger_,
+          Log(testing::Matcher<const SharingLog&>(testing::_)))
+      .WillByDefault([&](const SharingLog& log) {
+        using ::location::nearby::proto::sharing::EventType;
+        switch (log.event_type()) {
+          case EventType::SEND_START:
+            send_start_positions.push_back(
+                log.send_start().transfer_position());
+            send_start_concurrent.push_back(
+                log.send_start().concurrent_connections());
+            break;
+          case EventType::ESTABLISH_CONNECTION:
+            establish_conn_positions.push_back(
+                log.establish_connection().transfer_position());
+            establish_conn_concurrent.push_back(
+                log.establish_connection().concurrent_connections());
+            break;
+          case EventType::SEND_INTRODUCTION:
+            send_intro_positions.push_back(
+                log.send_introduction().transfer_position());
+            send_intro_concurrent.push_back(
+                log.send_introduction().concurrent_connections());
+            break;
+          case EventType::SEND_ATTACHMENTS_START:
+            send_attachments_start_positions.push_back(
+                log.send_attachments_start().transfer_position());
+            send_attachments_start_concurrent.push_back(
+                log.send_attachments_start().concurrent_connections());
+            break;
+          case EventType::SEND_ATTACHMENTS_END:
+            send_attachments_end_positions.push_back(
+                log.send_attachments_end().transfer_position());
+            send_attachments_end_concurrent.push_back(
+                log.send_attachments_end().concurrent_connections());
+            break;
+          default:
+            break;
+        }
+      });
+
+  MockTransferUpdateCallback transfer_callback;
+  NiceMock<MockShareTargetDiscoveredCallback> discovery_callback;
+  int64_t target_id =
+      SetUpOutgoingShareTarget(transfer_callback, discovery_callback);
+  ScopedSendSurface s(service_.get(), &transfer_callback);
+
+  // First send in the flow: transfer_position=1, concurrent_connections=1.
+  SetUpOutgoingConnectionUntilAccept(transfer_callback, target_id);
+  PayloadInfo payload_1 = AcceptAndSendPayload(transfer_callback, target_id);
+  FinishOutgoingTransfer(transfer_callback, target_id, /*complete=*/true,
+                         payload_1);
+  sharing_service_task_runner_->PostTask([this]() {
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
+    connection_.reset();
+  });
+  FlushTesting();
+
+  ASSERT_EQ(send_start_positions.size(), 1u);
+  EXPECT_EQ(send_start_positions[0], 1);
+  EXPECT_EQ(send_start_concurrent[0], 1);
+
+  // Advance past kProcessShutdownPendingTimerDelay so OnTransferComplete
+  // finishes and scanning resumes within the same foreground send flow.
+  FastForward(absl::Seconds(20));
+  ASSERT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+
+  int64_t second_target_id = target_id;
+  EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(testing::_))
+      .WillOnce([&](ShareTarget share_target) {
+        second_target_id = share_target.id;
+      });
+  FindEndpoint("EP2");
+  ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                           /*success=*/true);
+
+  // Establish an active incoming connection concurrently before the 2nd send in
+  // the same foreground send flow.
+  NearbyConnectionImpl incoming_connection(fake_device_info_);
+  std::vector<uint8_t> incoming_endpoint_info = CreateTestEndpointInfo();
+  fake_nearby_connections_manager_->AcceptConnection(
+      incoming_endpoint_info, "INCOMING_EP", &incoming_connection);
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  service_->OnIncomingConnection("INCOMING_EP", incoming_endpoint_info,
+                                 &incoming_connection);
+  FlushTesting();
+
+  // Re-prepare outgoing connection on EP2 for the 2nd send in the same
+  // foreground send flow: transfer_position=2, concurrent_connections=2.
+  connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
+  fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
+  SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::SUCCESS);
+  fake_nearby_connections_manager_->SetRawAuthenticationToken("EP2",
+                                                              GetToken());
+  SetUpOutgoingConnectionUntilAccept(transfer_callback, second_target_id);
+  PayloadInfo payload_2 =
+      AcceptAndSendPayload(transfer_callback, second_target_id);
+  FinishOutgoingTransfer(transfer_callback, second_target_id, /*complete=*/true,
+                         payload_2);
+  sharing_service_task_runner_->PostTask([this]() {
+    fake_nearby_connections_manager_->Disconnect("EP2");
+    connection_.reset();
+  });
+  FlushTesting();
+
+  ASSERT_EQ(send_start_positions.size(), 2u);
+  EXPECT_EQ(send_start_positions[1], 2);
+  EXPECT_EQ(send_start_concurrent[1], 2);
+  ASSERT_EQ(establish_conn_positions.size(), 2u);
+  EXPECT_EQ(establish_conn_positions[1], 2);
+  EXPECT_EQ(establish_conn_concurrent[1], 2);
+  ASSERT_EQ(send_intro_positions.size(), 2u);
+  EXPECT_EQ(send_intro_positions[1], 2);
+  EXPECT_EQ(send_intro_concurrent[1], 2);
+  ASSERT_EQ(send_attachments_start_positions.size(), 2u);
+  EXPECT_EQ(send_attachments_start_positions[1], 2);
+  EXPECT_EQ(send_attachments_start_concurrent[1], 2);
+  ASSERT_EQ(send_attachments_end_positions.size(), 2u);
+  EXPECT_EQ(send_attachments_end_positions[1], 2);
+  EXPECT_EQ(send_attachments_end_concurrent[1], 2);
+
+  // Starting a new foreground send flow must reset transfer_position to 1.
+  FastForward(absl::Seconds(20));
+  EXPECT_EQ(UnregisterSendSurface(&transfer_callback),
+            NearbySharingService::StatusCodes::kOk);
+  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
+                                SendSurfaceState::kForeground),
+            NearbySharingService::StatusCodes::kOk);
+  int64_t third_target_id = target_id;
+  EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(testing::_))
+      .WillOnce([&](ShareTarget share_target) {
+        third_target_id = share_target.id;
+      });
+  FindEndpoint("EP3");
+  ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/4,
+                                           /*success=*/true);
+
+  connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
+  fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
+  SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::SUCCESS);
+  fake_nearby_connections_manager_->SetRawAuthenticationToken("EP3",
+                                                              GetToken());
+  SetUpOutgoingConnectionUntilAccept(transfer_callback, third_target_id);
+  ASSERT_EQ(send_start_positions.size(), 3u);
+  EXPECT_EQ(send_start_positions[2], 1);
 }
 
 }  // namespace NearbySharingServiceUnitTests

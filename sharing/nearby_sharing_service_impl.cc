@@ -564,6 +564,9 @@ void NearbySharingServiceImpl::RegisterSendSurface(
         if (state == SendSurfaceState::kForeground) {
           share_foreground_send_surface_start_timestamp_ =
               context_->GetClock()->Now();
+          if (foreground_send_surface_map_.size() == 1) {
+            transfer_position_ = 0;
+          }
         }
 
         VLOG(1) << "A SendSurface has been registered for state: "
@@ -780,6 +783,18 @@ void NearbySharingServiceImpl::SendAttachments(
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
           return;
         }
+        ++transfer_position_;
+        int concurrent_connections =
+            outgoing_targets_manager_.GetActiveSessionCount() +
+            (session->IsActive() ? 0 : 1);
+        for (const auto& [target_id, incoming_session] :
+             incoming_share_session_map_) {
+          if (incoming_session.IsConnected()) {
+            ++concurrent_connections;
+          }
+        }
+        session->SetTransferAnalyticsCounts(transfer_position_,
+                                            concurrent_connections);
         StatusCodes status_code = StatusCodes::kOk;
         if (session->InitiateSendAttachments(std::move(attachment_container))) {
           status_code = ConnectOutgoingSessionOnServiceThread(*session);
@@ -1124,6 +1139,7 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
     }
   }
   if (foreground_send_surface_map_.empty()) {
+    transfer_position_ = 0;
     if (background_send_surface_map_.empty()) {
       LOG(INFO) << __func__ << ": Last send surface has been unregistered";
       // Clear outgoing_share_targets, outgoing_share_sessions and

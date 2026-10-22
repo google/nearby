@@ -535,6 +535,10 @@ class NearbySharingServiceImpl
   // Used to identify current scanning session.
   int64_t scanning_session_id_ = 0;
 
+  // Tracks the 1-based ordinal position of each outgoing transfer initiated
+  // within the current foreground send flow.
+  int transfer_position_ = 0;
+
   // Used to identify current advertising session.
   int64_t advertising_session_id_ = 0;
 

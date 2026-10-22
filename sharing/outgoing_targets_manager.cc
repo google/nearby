@@ -357,4 +357,14 @@ std::vector<std::string> OutgoingTargetsManager::GetBindingIds(
   return {};
 }
 
+int OutgoingTargetsManager::GetActiveSessionCount() const {
+  int count = 0;
+  for (const auto& [target_id, session] : outgoing_share_session_map_) {
+    if (session.IsActive()) {
+      ++count;
+    }
+  }
+  return count;
+}
+
 }  // namespace nearby::sharing
