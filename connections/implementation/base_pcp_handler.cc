@@ -2609,6 +2609,13 @@ void BasePcpHandler::LogConnectionAttemptFailure(
             endpoint_channel->GetFrequency(), endpoint_channel->GetTryCount());
     connections_attempt_metadata_params->operation_result_code =
         operation_result_code;
+  } else if (NearbyFlags::GetInstance().GetBoolFlag(
+                 config_package_nearby::nearby_connections_feature::
+                     kPreserveNullChannelAttemptResultCode)) {
+    connections_attempt_metadata_params =
+        std::make_unique<ConnectionAttemptMetadataParams>();
+    connections_attempt_metadata_params->operation_result_code =
+        operation_result_code;
   }
   if (is_incoming) {
     client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(

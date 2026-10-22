@@ -33,6 +33,7 @@
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
@@ -46,7 +47,7 @@
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/proto/offline_wire_formats.proto.h"
 #include "connections/implementation/webrtc_state.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -71,7 +72,6 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "proto/connections_enums.pb.h"
 #include "proto/connections_enums.proto.h"
 
 namespace nearby::connections {
@@ -445,7 +445,7 @@ class BasePcpHandlerTest
   }
 
   void TearDown() override {
-    NearbyFlags::GetInstance().ResetOverridedValues();
+    NearbyFlags::GetInstance().ResetOverridedValues();  // NOTYPO
     env_.Stop();
   }
 
@@ -3476,6 +3476,174 @@ TEST_F(BasePcpHandlerTest,
 
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
+}
+
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionLogsOperationResultCodeWhenChannelIsNull) {
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  StartDiscovery(client_.get(), &pcp_handler,
+                 BooleanMediumSelector{.bluetooth = true});
+
+  ConnectionRequestInfo info{
+      .endpoint_info = ByteArray{"ABCD"},
+      .listener = connection_listener_,
+  };
+  ConnectionOptions connection_options{
+      .remote_bluetooth_mac_address = remote_mac_address_,
+  };
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  EXPECT_CALL(pcp_handler, CanSendOutgoingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(pcp_handler, GetStrategy)
+      .WillRepeatedly(Return(Strategy::kP2pCluster));
+
+  pcp_handler.OnEndpointFound(
+      client_.get(),
+      std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+          {
+              std::string(kTestEndpointId),
+              info.endpoint_info,
+              "service",
+              Medium::BLUETOOTH,
+              WebRtcState::kUndefined,
+          },
+          MockContext{},
+      }));
+
+  const auto expected_result_code = location::nearby::proto::connections::
+      OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE;
+  EXPECT_CALL(pcp_handler, ConnectImpl)
+      .WillOnce(Return(MockPcpHandler::ConnectImplResult{
+          .medium = Medium::BLUETOOTH,
+          .status = {Status::kError},
+          .operation_result_code = expected_result_code,
+          .endpoint_channel = nullptr,
+      }));
+
+  CountDownLatch attempt_logged(1);
+  bool captured_non_null_params = false;
+  auto captured_result_code =
+      location::nearby::proto::connections::OperationResultCode::DETAIL_UNKNOWN;
+  EXPECT_CALL(
+      *mock_analytics_recorder_ptr_,
+      OnOutgoingConnectionAttempt(
+          std::string(kTestEndpointId),
+          location::nearby::proto::connections::INITIAL, Medium::UNKNOWN_MEDIUM,
+          _, _, _, _))
+      .WillOnce([&](const std::string&,
+                    location::nearby::proto::connections::ConnectionAttemptType,
+                    Medium,
+                    location::nearby::proto::connections::
+                        ConnectionAttemptResult,
+                    absl::Duration, const std::string&,
+                    ConnectionAttemptMetadataParams* params) {
+        if (params != nullptr) {
+          captured_non_null_params = true;
+          captured_result_code = params->operation_result_code;
+        }
+        attempt_logged.CountDown();
+      });
+
+  EXPECT_EQ(pcp_handler.RequestConnection(client_.get(),
+                                          std::string(kTestEndpointId), info,
+                                          connection_options),
+            Status{Status::kError});
+  EXPECT_TRUE(attempt_logged.Await(absl::Seconds(5)).result());
+  EXPECT_TRUE(captured_non_null_params);
+  EXPECT_EQ(captured_result_code, expected_result_code);
+
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+}
+
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionOmitsNullChannelMetadataWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreserveNullChannelAttemptResultCode,
+      false);
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  StartDiscovery(client_.get(), &pcp_handler,
+                 BooleanMediumSelector{.bluetooth = true});
+
+  ConnectionRequestInfo info{
+      .endpoint_info = ByteArray{"ABCD"},
+      .listener = connection_listener_,
+  };
+  ConnectionOptions connection_options{
+      .remote_bluetooth_mac_address = remote_mac_address_,
+  };
+  EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+  EXPECT_CALL(pcp_handler, CanSendOutgoingConnection)
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(pcp_handler, GetStrategy)
+      .WillRepeatedly(Return(Strategy::kP2pCluster));
+
+  pcp_handler.OnEndpointFound(
+      client_.get(),
+      std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+          {
+              std::string(kTestEndpointId),
+              info.endpoint_info,
+              "service",
+              Medium::BLUETOOTH,
+              WebRtcState::kUndefined,
+          },
+          MockContext{},
+      }));
+
+  EXPECT_CALL(pcp_handler, ConnectImpl)
+      .WillOnce(Return(MockPcpHandler::ConnectImplResult{
+          .medium = Medium::BLUETOOTH,
+          .status = {Status::kError},
+          .operation_result_code =
+              location::nearby::proto::connections::OperationResultCode::
+                  CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE,
+          .endpoint_channel = nullptr,
+      }));
+
+  CountDownLatch attempt_logged(1);
+  bool captured_non_null_params = false;
+  EXPECT_CALL(
+      *mock_analytics_recorder_ptr_,
+      OnOutgoingConnectionAttempt(
+          std::string(kTestEndpointId),
+          location::nearby::proto::connections::INITIAL, Medium::UNKNOWN_MEDIUM,
+          _, _, _, _))
+      .WillOnce([&](const std::string&,
+                    location::nearby::proto::connections::ConnectionAttemptType,
+                    Medium,
+                    location::nearby::proto::connections::
+                        ConnectionAttemptResult,
+                    absl::Duration, const std::string&,
+                    ConnectionAttemptMetadataParams* params) {
+        captured_non_null_params = (params != nullptr);
+        attempt_logged.CountDown();
+      });
+
+  EXPECT_EQ(pcp_handler.RequestConnection(client_.get(),
+                                          std::string(kTestEndpointId), info,
+                                          connection_options),
+            Status{Status::kError});
+  EXPECT_TRUE(attempt_logged.Await(absl::Seconds(5)).result());
+  EXPECT_FALSE(captured_non_null_params);
+
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreserveNullChannelAttemptResultCode,
+      true);
 }
 
 }  // namespace
