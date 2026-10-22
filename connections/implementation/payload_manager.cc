@@ -28,6 +28,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -302,7 +303,7 @@ Payload::Id PayloadManager::CreateOutgoingPayload(
       std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
   VLOG(1) << "CreateOutgoingPayload: payload_id=" << payload_id;
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   pending_payloads_.StartTrackingPayload(
       payload_id,
       std::make_unique<PendingPayload>(
@@ -321,7 +322,7 @@ PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
 void PayloadManager::CancelAllPayloads() {
   VLOG(1) << "PayloadManager: canceling payloads; self=" << this;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     int pending_outgoing_payloads = 0;
     pending_payloads_.ForEachPayload([&](PendingPayload* pending) {
       if (!pending->IsIncoming()) pending_outgoing_payloads++;
@@ -363,7 +364,7 @@ PayloadManager::~PayloadManager() {
       "~payload-manager",
       [this, &stop_latch]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         VLOG(1) << "PayloadManager: stop tracking payloads; self=" << this;
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         pending_payloads_.StopTrackingAllPayloads();
         stop_latch.CountDown();
       });
@@ -377,7 +378,7 @@ PayloadManager::~PayloadManager() {
 }
 
 bool PayloadManager::NotifyShutdown() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!shutdown_.Get()) return false;
   if (!shutdown_barrier_) return false;
   VLOG(1) << "PayloadManager [shutdown mode]";
@@ -581,7 +582,7 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
        reason]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() mutable {
         // Iterate through all our payloads and look for payloads associated
         // with this endpoint.
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         std::vector<Payload::Id> finished_incoming_payloads;
         pending_payloads_.ForEachPayload([&](PendingPayload* pending_payload) {
           auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
@@ -1072,7 +1073,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     int32_t payload_chunk_flags, int64_t payload_chunk_offset,
     int64_t payload_chunk_body_size) {
   {
-    MutexLock lock(&chunk_update_mutex_);
+    absl::MutexLock lock(chunk_update_mutex_);
     ++outgoing_chunk_update_count_;
   }
   RunOnStatusUpdateThread(
@@ -1087,7 +1088,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
         {
-          MutexLock lock(&chunk_update_mutex_);
+          absl::MutexLock lock(chunk_update_mutex_);
           --outgoing_chunk_update_count_;
           if (payload_header.has_type() &&
               payload_header.type() ==
@@ -1167,7 +1168,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     int32_t payload_chunk_flags, int64_t payload_chunk_offset,
     int64_t payload_chunk_body_size) {
   {
-    MutexLock lock(&chunk_update_mutex_);
+    absl::MutexLock lock(chunk_update_mutex_);
     ++incoming_chunk_update_count_;
   }
   RunOnStatusUpdateThread(
@@ -1181,7 +1182,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
         {
-          MutexLock lock(&chunk_update_mutex_);
+          absl::MutexLock lock(chunk_update_mutex_);
           --incoming_chunk_update_count_;
           if (payload_header.has_type() &&
               payload_header.type() ==
@@ -1600,7 +1601,7 @@ PayloadManager::PendingPayload::PendingPayload(
 
 void PayloadManager::PendingPayload::InitEndpoints(
     const std::vector<std::string>& endpoint_ids) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   // Initially we mark all endpoints as available.
   // Later on some may become canceled, some may experience data transfer
   // failures. Any of these situations will cause endpoint to be marked as
@@ -1646,7 +1647,7 @@ bool PayloadManager::PendingPayload::IsIncoming() const {
 
 std::vector<const PayloadManager::EndpointInfo*>
 PayloadManager::PendingPayload::GetEndpoints() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::vector<const EndpointInfo*> result;
   for (const auto& item : endpoints_) {
@@ -1657,7 +1658,7 @@ PayloadManager::PendingPayload::GetEndpoints() const {
 
 PayloadManager::EndpointInfo* PayloadManager::PendingPayload::GetEndpoint(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto it = endpoints_.find(endpoint_id);
   if (it == endpoints_.end()) {
@@ -1669,7 +1670,7 @@ PayloadManager::EndpointInfo* PayloadManager::PendingPayload::GetEndpoint(
 
 void PayloadManager::PendingPayload::RemoveEndpoints(
     const std::vector<std::string>& endpoint_ids) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   for (const auto& id : endpoint_ids) {
     endpoints_.erase(id);
@@ -1679,7 +1680,7 @@ void PayloadManager::PendingPayload::RemoveEndpoints(
 void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
     const std::string& endpoint_id,
     const PayloadTransferFrame::ControlMessage& control_message) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
@@ -1689,7 +1690,7 @@ void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
 
 void PayloadManager::PendingPayload::SetOffsetForEndpoint(
     const std::string& endpoint_id, int64_t offset) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
@@ -1713,7 +1714,7 @@ void PayloadManager::RunOnStatusUpdateThread(
 
 void PayloadManager::PendingPayloads::StartTrackingPayload(
     Payload::Id payload_id, std::unique_ptr<PendingPayload> pending_payload) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // If the |payload_id| is being re-used, always prefer the newer payload.
   Remove(pending_payloads_.find(payload_id));
@@ -1724,7 +1725,7 @@ void PayloadManager::PendingPayloads::StartTrackingPayload(
 
 void PayloadManager::PendingPayloads::StopTrackingPayload(
     Payload::Id payload_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << "StopTrackingPayload " << payload_id;
   Remove(pending_payloads_.find(payload_id));
 }
@@ -1751,7 +1752,7 @@ void PayloadManager::PendingPayloads::Remove(
 
 PayloadManager::PendingPayloadHandle
 PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto item = pending_payloads_.find(payload_id);
   if (item == pending_payloads_.end()) {
@@ -1765,7 +1766,7 @@ PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
 }
 
 void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
     Remove(it++);
@@ -1774,7 +1775,7 @@ void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
 
 void PayloadManager::PendingPayloads::ForEachPayload(
     absl::AnyInvocable<void(PendingPayload*)> callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   for (const auto& item : pending_payloads_) {
     callback(item.second.get());
@@ -1783,7 +1784,7 @@ void PayloadManager::PendingPayloads::ForEachPayload(
 
 void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
   // Called when `PendingPayloadHandle` is destroyed.
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << " " << payload->ToString();
   auto it = pending_payloads_.find(payload->GetId());
   if (it != pending_payloads_.end() && it->second.get() == payload) {

@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace connections {
@@ -33,21 +33,21 @@ const AdvertisementReadResult::Config AdvertisementReadResult::kDefaultConfig{
 
 void AdvertisementReadResult::AddAdvertisement(int slot,
                                                const ByteArray& advertisement) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Replace if existed.
   advertisements_.insert_or_assign(slot, advertisement);
 }
 
 bool AdvertisementReadResult::HasAdvertisement(int slot) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return advertisements_.contains(slot);
 }
 
 std::vector<const ByteArray*> AdvertisementReadResult::GetAdvertisements()
     const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::vector<const ByteArray*> all_advertisements;
   std::transform(advertisements_.begin(), advertisements_.end(),
@@ -61,7 +61,7 @@ std::vector<const ByteArray*> AdvertisementReadResult::GetAdvertisements()
 // GATT server.
 AdvertisementReadResult::RetryStatus
 AdvertisementReadResult::EvaluateRetryStatus() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Check if we have already succeeded reading this advertisement.
   if (result_.has_value() && *result_ == Result::kSuccess) {
@@ -77,7 +77,7 @@ AdvertisementReadResult::EvaluateRetryStatus() const {
 }
 
 void AdvertisementReadResult::RecordLastReadStatus(bool is_success) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Update the last read timestamp.
   last_read_timestamp_ = SystemClock::ElapsedRealtime();
@@ -111,7 +111,7 @@ void AdvertisementReadResult::RecordLastReadStatus(bool is_success) {
 }
 
 absl::Duration AdvertisementReadResult::GetDurationSinceRead() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetDurationSinceReadLocked();
 }
 

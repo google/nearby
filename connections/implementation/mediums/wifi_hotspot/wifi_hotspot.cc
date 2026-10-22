@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
@@ -33,7 +34,6 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
@@ -61,7 +61,7 @@ WifiHotspot::~WifiHotspot() {
 }
 
 bool WifiHotspot::IsAPAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsAPAvailableLocked();
 }
@@ -77,7 +77,7 @@ bool WifiHotspot::IsAPAvailableLocked() const {
 }
 
 bool WifiHotspot::IsClientAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsClientAvailableLocked();
 }
@@ -85,7 +85,7 @@ bool WifiHotspot::IsClientAvailable() const {
 bool WifiHotspot::IsClientAvailableLocked() const { return medium_.IsValid(); }
 
 bool WifiHotspot::IsHotspotStarted() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return is_hotspot_started_;
 }
@@ -93,7 +93,7 @@ bool WifiHotspot::IsHotspotStarted() {
 // Call the Medium to start a softAP and send beacon for Client to scan and
 // connect
 bool WifiHotspot::StartWifiHotspot() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (is_hotspot_started_) {
     LOG(INFO) << "No need to start Hotspot because it is already started.";
     return true;
@@ -107,7 +107,7 @@ bool WifiHotspot::StartWifiHotspot() {
 }
 
 bool WifiHotspot::StopWifiHotspot() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_hotspot_started_) {
     LOG(INFO) << "No need to stop Hotspot because it is not started.";
     return true;
@@ -118,14 +118,14 @@ bool WifiHotspot::StopWifiHotspot() {
 }
 
 bool WifiHotspot::IsConnectedToHotspot() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return is_connected_to_hotspot_;
 }
 
 bool WifiHotspot::ConnectWifiHotspot(
     const HotspotCredentials& hotspot_credentials) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (is_connected_to_hotspot_) {
     LOG(INFO)
         << "No need to connect to Hotspot because it is already connected.";
@@ -136,7 +136,7 @@ bool WifiHotspot::ConnectWifiHotspot(
 }
 
 bool WifiHotspot::DisconnectWifiHotspot() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connected_to_hotspot_) {
     LOG(INFO)
         << "No need to disconnect to Hotspot because it is not connected.";
@@ -148,7 +148,7 @@ bool WifiHotspot::DisconnectWifiHotspot() {
 }
 
 HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   HotspotCredentials* crendential = medium_.GetCredential();
   CHECK(crendential);
 
@@ -164,7 +164,7 @@ HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
 
 bool WifiHotspot::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not to start accepting WifiHotspot connections; "
@@ -227,7 +227,7 @@ bool WifiHotspot::StartAcceptingConnections(
 }
 
 bool WifiHotspot::StopAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Unable to stop accepting WifiHotspot connections because "
@@ -268,7 +268,7 @@ bool WifiHotspot::StopAcceptingConnections(const std::string& service_id) {
 }
 
 bool WifiHotspot::IsAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
@@ -280,7 +280,7 @@ ErrorOr<std::unique_ptr<EndpointChannel>> WifiHotspot::Connect(
     const std::string& service_id,
     const std::vector<ServiceAddress>& service_addresses,
     CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client WifiHotspot socket because "
                  "service_id is empty.";
@@ -349,7 +349,7 @@ ErrorOr<std::unique_ptr<EndpointChannel>> WifiHotspot::Connect(
 
 std::unique_ptr<BwuHandler> WifiHotspot::CreateBwuHandler(
     BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return std::make_unique<WifiHotspotBwuHandler>(
       this, std::move(incoming_connection_callback));
 }

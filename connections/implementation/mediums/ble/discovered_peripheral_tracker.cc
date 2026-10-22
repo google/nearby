@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -90,7 +91,7 @@ void DiscoveredPeripheralTracker::Shutdown() {
   }
   std::unique_ptr<MultiThreadExecutor> executor_to_shutdown;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     executor_to_shutdown = std::move(executor_);
   }
 
@@ -108,7 +109,7 @@ void DiscoveredPeripheralTracker::StartTracking(
     const std::string& service_id, bool include_dct_advertisement, Pcp pcp,
     DiscoveredPeripheralCallback discovered_peripheral_callback,
     const Uuid& fast_advertisement_service_uuid) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (start_fetch_executor_) {
     StartFetchExecutorIfNeeded();
@@ -148,7 +149,7 @@ void DiscoveredPeripheralTracker::StartTracking(
 }
 
 void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   dct_service_id_hash_to_service_id_map_.erase(
       advertisements::ble::DctAdvertisement::ComputeServiceIdHash(service_id));
@@ -158,7 +159,7 @@ void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
 void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     BlePeripheral peripheral, BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (shutting_down_.Get()) {
     return;
   }
@@ -269,7 +270,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
 }
 
 void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   int lost_count = 0;
 
   for (auto& it : service_id_infos_) {
@@ -922,7 +923,7 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
   std::vector<std::string> service_ids;
 
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!IsInterestingAdvertisementHeader(advertisement_header)) {
       LOG(INFO) << ": Ignore to read raw advertisement from server due to it "
                    "is not interesting header now.";
@@ -942,7 +943,7 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
   advertisement_fetcher(peripheral, advertisement_header.GetNumSlots(),
                         advertisement_header.GetPsm(), service_ids, *result);
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     // The fetching process might take a few seconds, and tracking settings
     // could change during that time. We need to double-check if the result
     // is still valid afterward.

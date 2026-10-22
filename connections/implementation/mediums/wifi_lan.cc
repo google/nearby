@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/wifi_lan_bwu_handler.h"
@@ -29,7 +30,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/service_address.h"
 #include "internal/platform/wifi_lan.h"
@@ -59,7 +59,7 @@ WifiLan::~WifiLan() {
 }
 
 bool WifiLan::IsAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsAvailableLocked();
 }
@@ -69,7 +69,7 @@ bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
                                         NsdServiceInfo& nsd_service_info,
                                         AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't turn on WifiLan advertising. WifiLan is not available.";
@@ -130,7 +130,7 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
 }
 
 bool WifiLan::StopAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAdvertisingLocked(service_id)) {
     LOG(INFO) << "Can't turn off WifiLan advertising; it is already off";
@@ -147,7 +147,7 @@ bool WifiLan::StopAdvertising(const std::string& service_id) {
 }
 
 bool WifiLan::IsAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return IsAdvertisingLocked(service_id);
 }
@@ -158,7 +158,7 @@ bool WifiLan::IsAdvertisingLocked(const std::string& service_id) {
 
 ErrorOr<bool> WifiLan::StartDiscovery(const std::string& service_id,
                                       DiscoveredServiceCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to start WifiLan discovering with empty service_id.";
@@ -195,7 +195,7 @@ ErrorOr<bool> WifiLan::StartDiscovery(const std::string& service_id,
 }
 
 bool WifiLan::StopDiscovery(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsDiscoveringLocked(service_id)) {
     LOG(INFO) << "Can't turn off WifiLan discovering because we never started "
@@ -212,7 +212,7 @@ bool WifiLan::StopDiscovery(const std::string& service_id) {
 }
 
 bool WifiLan::IsDiscovering(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsDiscoveringLocked(service_id);
 }
 
@@ -274,7 +274,7 @@ ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
 
 ErrorOr<bool> WifiLan::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to start accepting WifiLan connections; "
@@ -306,7 +306,7 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
 }
 
 bool WifiLan::StopAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return StopAcceptingConnectionsLocked(service_id);
 }
@@ -354,7 +354,7 @@ bool WifiLan::StopAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 bool WifiLan::IsAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
@@ -365,7 +365,7 @@ bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
 ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
                                         const NsdServiceInfo& service_info,
                                         CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
 
@@ -418,7 +418,7 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
 ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
                                         const ServiceAddress& service_address,
                                         CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
 
@@ -484,7 +484,7 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
 
 api::UpgradeAddressInfo WifiLan::GetUpgradeAddressCandidates(
     const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
     return {};
@@ -507,7 +507,7 @@ int WifiLan::GeneratePort(const std::string& service_id,
 
 std::unique_ptr<BwuHandler> WifiLan::CreateBwuHandler(
     BwuHandler::IncomingConnectionCallback incoming_connection_callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return std::make_unique<WifiLanBwuHandler>(
       this, std::move(incoming_connection_callback));
 }

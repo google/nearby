@@ -21,11 +21,11 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
@@ -59,7 +59,7 @@ bool WifiAwareMedium::StartDiscovery(absl::string_view service_type,
             std::shared_ptr<DiscoveredServiceCallback> cb;
             std::string service_type = service_info.GetServiceType();
             {
-              MutexLock lock(&mutex_);
+              absl::MutexLock lock(mutex_);
               auto it = service_type_to_callback_info_map_.find(service_type);
               if (it == service_type_to_callback_info_map_.end()) {
                 LOG(ERROR) << "There is no callback found for service_type="
@@ -89,7 +89,7 @@ bool WifiAwareMedium::StartDiscovery(absl::string_view service_type,
             std::shared_ptr<DiscoveredServiceCallback> cb;
             std::string service_type = service_info.GetServiceType();
             {
-              MutexLock lock(&mutex_);
+              absl::MutexLock lock(mutex_);
               auto it = service_type_to_callback_info_map_.find(service_type);
               if (it == service_type_to_callback_info_map_.end()) {
                 LOG(ERROR) << "There is no callback found for service_type="
@@ -111,7 +111,7 @@ bool WifiAwareMedium::StartDiscovery(absl::string_view service_type,
   };
 
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto [it, inserted] = service_type_to_callback_info_map_.emplace(
         service_type, DiscoveryCallbackInfo{.medium_callback = callback_ptr});
     if (!inserted) {
@@ -125,7 +125,7 @@ bool WifiAwareMedium::StartDiscovery(absl::string_view service_type,
       impl_->StartDiscovery(std::string(service_type), std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     service_type_to_callback_info_map_.erase(service_type);
   }
   LOG(INFO) << "WifiAware Discovery started for service_type=" << service_type
@@ -138,7 +138,7 @@ bool WifiAwareMedium::StopDiscovery(absl::string_view service_type) {
     return false;
   }
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (service_type_to_callback_info_map_.erase(service_type) == 0) {
       return false;
     }

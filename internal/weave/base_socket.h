@@ -20,10 +20,10 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/weave/connection.h"
@@ -68,7 +68,7 @@ class BaseSocket {
 
   // Test only functions.
   void AddControlPacket(Packet packet) ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ControlPacketWriteRequest request(std::move(packet));
     control_request_queue_.push_back(std::move(request));
   }
@@ -92,7 +92,7 @@ class BaseSocket {
       ABSL_LOCKS_EXCLUDED(executor_);
   void WritePacket(absl::StatusOr<Packet> packet);
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   // Messages and controls are in two separate queues to separate their control
   // flow and to make it easier to follow the logic of sending packets.
   std::deque<ControlPacketWriteRequest> control_request_queue_

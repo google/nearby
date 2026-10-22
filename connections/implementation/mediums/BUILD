@@ -83,6 +83,7 @@ cc_library(
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
     ] + select({
@@ -115,8 +116,9 @@ cc_library(
         "//connections/implementation/mediums/ble:__pkg__",
     ],
     deps = [
-        "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 

@@ -28,6 +28,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/borrowable.h"
@@ -44,7 +45,6 @@
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
@@ -73,7 +73,7 @@ void MediumEnvironment::Start(EnvironmentConfig config) {
   if (!enabled_.exchange(true)) {
     LOG(INFO) << "MediumEnvironment::Start()";
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       config_ = std::move(config);
       if (config_.use_simulated_clock) {
         simulated_clock_ = std::make_shared<FakeClock>();
@@ -89,7 +89,7 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (config_.use_simulated_clock) {
       simulated_clock_.reset();
     }
@@ -108,7 +108,7 @@ void MediumEnvironment::Reset() {
     wifi_lan_mediums_.clear();
     awdl_mediums_.clear();
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       wifi_direct_mediums_.clear();
       wifi_hotspot_mediums_.clear();
     }
@@ -139,7 +139,7 @@ void MediumEnvironment::Sync(bool enable_notifications) {
 }
 
 EnvironmentConfig MediumEnvironment::GetEnvironmentConfig() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return config_;
 }
 
@@ -968,7 +968,7 @@ void MediumEnvironment::RegisterWifiDirectMedium(
     api::WifiDirectMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     wifi_direct_mediums_.insert({&medium, WifiDirectMediumContext{}});
     LOG(INFO) << "Registered: WifiDirect medium:" << &medium;
   });
@@ -976,7 +976,7 @@ void MediumEnvironment::RegisterWifiDirectMedium(
 
 api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
     absl::string_view device_name, absl::string_view ip_address) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   for (auto& medium_info : wifi_direct_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
@@ -1020,7 +1020,7 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
                     << "; medium=" << &medium << role_status;
         }
 
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         for (auto& medium_info : wifi_direct_mediums_) {
           auto& local_medium = medium_info.first;
           auto& info = medium_info.second;
@@ -1040,7 +1040,7 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
 }
 
 bool MediumEnvironment::IsWifiDirectMediumsEmpty() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return wifi_direct_mediums_.empty();
 }
 
@@ -1048,7 +1048,7 @@ void MediumEnvironment::UnregisterWifiDirectMedium(
     api::WifiDirectMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto item = wifi_direct_mediums_.extract(&medium);
     if (item.empty()) return;
     LOG(INFO) << "Unregistered WifiDirect medium:" << &medium;
@@ -1059,7 +1059,7 @@ void MediumEnvironment::RegisterWifiHotspotMedium(
     api::WifiHotspotMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     wifi_hotspot_mediums_.insert({&medium, WifiHotspotMediumContext{}});
     LOG(INFO) << "Registered: WifiHotspot medium:" << &medium;
   });
@@ -1067,7 +1067,7 @@ void MediumEnvironment::RegisterWifiHotspotMedium(
 
 api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     absl::string_view ssid, absl::string_view ip_address) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   for (auto& medium_info : wifi_hotspot_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
@@ -1111,7 +1111,7 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
                 << "; medium=" << &medium << role_status;
     }
 
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     for (auto& medium_info : wifi_hotspot_mediums_) {
       auto& local_medium = medium_info.first;
       auto& info = medium_info.second;
@@ -1136,7 +1136,7 @@ void MediumEnvironment::UnregisterWifiHotspotMedium(
     api::WifiHotspotMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto item = wifi_hotspot_mediums_.extract(&medium);
     if (item.empty()) return;
     LOG(INFO) << "Unregistered WifiHotspot medium:" << &medium;
@@ -1148,7 +1148,7 @@ void MediumEnvironment::SetFeatureFlags(const FeatureFlags::Flags& flags) {
 }
 
 absl::Time MediumEnvironment::Now() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (simulated_clock_) {
     return simulated_clock_->Now();
   }
@@ -1160,7 +1160,7 @@ absl::Time MediumEnvironment::Now() {
 void MediumEnvironment::FastForward(absl::Duration duration) {
   std::shared_ptr<FakeClock> sim_clock;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (simulated_clock_) {
       sim_clock = simulated_clock_;
     }
@@ -1173,14 +1173,14 @@ void MediumEnvironment::FastForward(absl::Duration duration) {
 
 void MediumEnvironment::AddSimulatedClockObserver(
     const std::string& name, std::function<void()> observer) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (simulated_clock_) {
     simulated_clock_->AddObserver(name, std::move(observer));
   }
 }
 
 void MediumEnvironment::RemoveSimulatedClockObserver(const std::string& name) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (simulated_clock_) {
     simulated_clock_->RemoveObserver(name);
   }

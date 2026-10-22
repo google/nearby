@@ -22,11 +22,10 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/weave/connection.h"
 #include "internal/weave/control_packet_write_request.h"
 #include "internal/weave/message_write_request.h"
@@ -90,7 +89,7 @@ void BaseSocket::ShutDown() {
 }
 
 void BaseSocket::TryWriteNextControl() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (current_control_ == nullptr) {
     if (!control_request_queue_.empty()) {
       current_control_ = &control_request_queue_.front();
@@ -112,7 +111,7 @@ void BaseSocket::TryWriteNextControl() {
 void BaseSocket::TryWriteNextMessage() {
   bool control_queue_empty = false;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     control_queue_empty = control_request_queue_.empty();
   }
   if (current_control_ != nullptr || !control_queue_empty) {
@@ -121,7 +120,7 @@ void BaseSocket::TryWriteNextMessage() {
     return;
   }
   bool connected = IsConnected();
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (current_message_ == nullptr) {
     if (!message_request_queue_.empty()) {
       current_message_ = &message_request_queue_.front();
@@ -150,7 +149,7 @@ void BaseSocket::OnWriteRequestWriteComplete(absl::Status status) {
       [this, status]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_)
           ABSL_LOCKS_EXCLUDED(mutex_) mutable {
             {
-              MutexLock lock(&mutex_);
+              absl::MutexLock lock(mutex_);
               if (current_control_ != nullptr) {
                 current_control_ = nullptr;
                 control_request_queue_.pop_front();
@@ -187,7 +186,7 @@ void BaseSocket::Disconnect() {
   RunOnSocketThread("Disconnect", [this]() {
     bool is_disconnecting_or_disconnected = false;
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_disconnecting_or_disconnected =
           state_ == SocketConnectionState::kDisconnecting ||
           state_ == SocketConnectionState::kDisconnected;
@@ -195,7 +194,7 @@ void BaseSocket::Disconnect() {
     if (!is_disconnecting_or_disconnected) {
       WriteControlPacket(Packet::CreateErrorPacket());
       {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         current_message_ = nullptr;
         message_request_queue_.clear();
         state_ = SocketConnectionState::kDisconnecting;
@@ -211,7 +210,7 @@ void BaseSocket::DisconnectQuietly() {
                         ABSL_LOCKS_EXCLUDED(mutex_) {
                           bool was_connected = false;
                           {
-                            MutexLock lock(&mutex_);
+                            absl::MutexLock lock(mutex_);
                             was_connected =
                                 state_ == SocketConnectionState::kDisconnecting;
                           }
@@ -224,7 +223,7 @@ void BaseSocket::DisconnectQuietly() {
                           remote_packet_counter_generator_.Reset();
                           // Dump message and control queue.
                           {
-                            MutexLock lock(&mutex_);
+                            absl::MutexLock lock(mutex_);
                             message_request_queue_.clear();
                             control_request_queue_.clear();
                             current_control_ = nullptr;
@@ -259,7 +258,7 @@ nearby::Future<absl::Status> BaseSocket::Write(ByteArray message) {
       [&, request = std::move(request)]()
           ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) mutable {
             {
-              MutexLock lock(&mutex_);
+              absl::MutexLock lock(mutex_);
               message_request_queue_.push_back(std::move(request));
             }
             TryWriteNextMessage();
@@ -275,7 +274,7 @@ void BaseSocket::WriteControlPacket(Packet packet) {
       [&, request = std::move(request)]()
           ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) mutable {
             {
-              MutexLock lock(&mutex_);
+              absl::MutexLock lock(mutex_);
               control_request_queue_.push_back(std::move(request));
             }
             TryWriteNextControl();
@@ -289,7 +288,7 @@ void BaseSocket::DisconnectInternal(absl::Status status) {
 }
 
 bool BaseSocket::IsConnected() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return state_ == SocketConnectionState::kConnected;
 }
 
@@ -301,7 +300,7 @@ void BaseSocket::OnConnected(int new_max_packet_size) {
                           bool was_connected = IsConnected();
                           if (!was_connected) {
                             {
-                              MutexLock lock(&mutex_);
+                              absl::MutexLock lock(mutex_);
                               state_ = SocketConnectionState::kConnected;
                             }
                             socket_callback_.on_connected_cb();

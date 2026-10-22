@@ -21,14 +21,13 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/callable.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/lockable.h"
 #include "internal/platform/monitored_runnable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/thread_check_callable.h"
 #include "internal/platform/thread_check_runnable.h"
@@ -47,23 +46,23 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
   SubmittableExecutor(SubmittableExecutor&& other) { *this = std::move(other); }
   SubmittableExecutor& operator=(SubmittableExecutor&& other)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     {
-      MutexLock other_lock(&other.mutex_);
+      absl::MutexLock other_lock(other.mutex_);
       impl_ = std::move(other.impl_);
     }
     return *this;
   }
   virtual void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_)
       impl_->Execute(MonitoredRunnable(
           name, ThreadCheckRunnable(this, std::move(runnable))));
   }
 
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_)
       impl_->Execute(
           MonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
@@ -77,7 +76,7 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
   template <typename T>
   bool Submit(Callable<T>&& callable, Future<T>* future)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     bool submitted =
         DoSubmit([callable = ThreadCheckCallable<T>(this, std::move(callable)),
                   future]() mutable {
@@ -109,7 +108,7 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
 
   std::unique_ptr<api::SubmittableExecutor> ReleaseExecutor()
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return std::move(impl_);
   }
 
@@ -120,7 +119,7 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) override {
     return impl_ ? impl_->DoSubmit(std::move(wrapped_callable)) : false;
   }
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   std::unique_ptr<api::SubmittableExecutor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 

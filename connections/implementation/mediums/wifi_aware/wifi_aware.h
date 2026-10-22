@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
@@ -31,7 +32,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/wifi_aware.h"
 #include "internal/platform/wifi_aware_service_info.h"
 
@@ -163,7 +163,7 @@ class WifiAware : public WifiAwareInterface {
   bool StopAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   WifiAwareMedium medium_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, WifiAwareServiceInfo> advertising_info_
       ABSL_GUARDED_BY(mutex_);

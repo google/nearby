@@ -21,7 +21,6 @@
 
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/windows/mutex.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace windows {

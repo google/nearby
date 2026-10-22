@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl/awdl_interface.h"
@@ -33,7 +34,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 
 namespace nearby {
@@ -231,7 +231,7 @@ class Awdl : public AwdlInterface {
       CancellationFlag* cancellation_flag)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   AwdlMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);

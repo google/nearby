@@ -27,6 +27,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -36,7 +37,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 
@@ -567,7 +567,7 @@ class BleMedium final {
       const std::string& ble_peripheral_native_id);
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::ble::BleMedium> impl_;
   BluetoothAdapter& adapter_;
   ServerGattConnectionCallback server_gatt_connection_callback_

@@ -25,6 +25,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -184,7 +185,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void InitEndpoints(const std::vector<std::string>& endpoint_ids)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
-    mutable Mutex mutex_;
+    mutable absl::Mutex mutex_;
     AtomicBoolean is_locally_canceled_{false};
     const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
     const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
@@ -255,7 +256,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void Remove(absl::flat_hash_map<
                 Payload::Id, std::unique_ptr<PendingPayload>>::iterator it)
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-    mutable Mutex mutex_;
+    mutable absl::Mutex mutex_;
     absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>
         pending_payloads_ ABSL_GUARDED_BY(mutex_);
     // When we stop tracking a payload but someone is still holding a handle to
@@ -448,7 +449,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
           PayloadType type);
 
   void OnPendingPayloadDestroy(const PendingPayload* payload);
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   std::string custom_save_path_;
   AtomicBoolean shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
@@ -465,7 +466,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // callback thread will be lag to the real transfer. In order to keep sync
   // between callback and sending/receiving threads, we will skip
   // non-important callbacks during file transfer.
-  mutable Mutex chunk_update_mutex_;
+  mutable absl::Mutex chunk_update_mutex_;
   int outgoing_chunk_update_count_ ABSL_GUARDED_BY(chunk_update_mutex_) = 0;
   absl::Time last_outgoing_chunk_update_time_
       ABSL_GUARDED_BY(chunk_update_mutex_) = absl::InfinitePast();

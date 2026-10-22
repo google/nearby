@@ -23,10 +23,10 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -61,7 +61,7 @@ BleMedium::StartAdvertising(
 bool BleMedium::StartScanning(const Uuid& service_uuid,
                               TxPowerLevel tx_power_level,
                               ScanCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (scanning_enabled_) {
     LOG(INFO) << "Ble Scanning already enabled";
     return false;
@@ -72,7 +72,7 @@ bool BleMedium::StartScanning(const Uuid& service_uuid,
           .advertisement_found_cb =
               [this](api::ble::BlePeripheral::UniqueId peripheral_id,
                      BleAdvertisementData advertisement_data) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 BlePeripheral proxy(*this, peripheral_id);
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
@@ -90,7 +90,7 @@ bool BleMedium::StartScanning(const Uuid& service_uuid,
 bool BleMedium::StartMultipleServicesScanning(
     const std::vector<Uuid>& service_uuids,
     api::ble::TxPowerLevel tx_power_level, ScanCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (scanning_enabled_) {
     LOG(INFO) << "Ble Scanning already enabled";
     return false;
@@ -101,7 +101,7 @@ bool BleMedium::StartMultipleServicesScanning(
           .advertisement_found_cb =
               [this](api::ble::BlePeripheral::UniqueId peripheral_id,
                      BleAdvertisementData advertisement_data) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 BlePeripheral proxy(*this, peripheral_id);
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
@@ -119,7 +119,7 @@ bool BleMedium::StartMultipleServicesScanning(
 BleMedium::~BleMedium() { StopScanning(); }
 
 bool BleMedium::StopScanning() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!scanning_enabled_) {
     return true;
   }
@@ -129,7 +129,7 @@ bool BleMedium::StopScanning() {
   return impl_->StopScanning();
 }
 bool BleMedium::PauseMediumScanning() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!scanning_enabled_) {
     return true;
   }
@@ -138,7 +138,7 @@ bool BleMedium::PauseMediumScanning() {
 }
 
 bool BleMedium::ResumeMediumScanning() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return impl_->ResumeMediumScanning();
 }
 
@@ -154,7 +154,7 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
                          std::move(callback.start_scanning_result)](
                   absl::Status status) mutable {
                 {
-                  MutexLock lock(&mutex_);
+                  absl::MutexLock lock(mutex_);
                   if (status.ok()) {
                     scanning_enabled_ = true;
                   }
@@ -169,7 +169,7 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
 std::unique_ptr<GattServer> BleMedium::StartGattServer(
     ServerGattConnectionCallback callback) {
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     server_gatt_connection_callback_ = std::move(callback);
   }
 
@@ -177,13 +177,13 @@ std::unique_ptr<GattServer> BleMedium::StartGattServer(
       impl_->StartGattServer({
           .characteristic_subscription_cb =
               [this](const GattCharacteristic& characteristic) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 server_gatt_connection_callback_.characteristic_subscription_cb(
                     characteristic);
               },
           .characteristic_unsubscription_cb =
               [this](const GattCharacteristic& characteristic) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 server_gatt_connection_callback_
                     .characteristic_unsubscription_cb(characteristic);
               },
@@ -191,7 +191,7 @@ std::unique_ptr<GattServer> BleMedium::StartGattServer(
               [this](const api::ble::BlePeripheral::UniqueId remote_device_id,
                      const GattCharacteristic& characteristic, int offset,
                      ReadValueCallback callback) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 if (server_gatt_connection_callback_
                         .on_characteristic_read_cb) {
                   server_gatt_connection_callback_.on_characteristic_read_cb(
@@ -206,7 +206,7 @@ std::unique_ptr<GattServer> BleMedium::StartGattServer(
               [this](const api::ble::BlePeripheral::UniqueId remote_device_id,
                      const GattCharacteristic& characteristic, int offset,
                      absl::string_view data, WriteValueCallback callback) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 if (server_gatt_connection_callback_
                         .on_characteristic_write_cb) {
                   server_gatt_connection_callback_.on_characteristic_write_cb(

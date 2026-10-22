@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -32,7 +33,6 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/wifi_aware.h"
 #include "internal/platform/wifi_aware_service_info.h"
 
@@ -57,7 +57,7 @@ WifiAware::~WifiAware() {
 }
 
 bool WifiAware::IsAvailable() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAvailableLocked();
 }
 
@@ -74,7 +74,7 @@ ErrorOr<bool> WifiAware::StartAdvertising(
     const std::string& service_id, absl::string_view channel_name,
     const WifiAwareServiceInfo& wifi_aware_service_info,
     AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAvailableLocked()) {
     LOG(INFO)
@@ -114,7 +114,7 @@ ErrorOr<bool> WifiAware::StartAdvertising(
 }
 
 bool WifiAware::StopAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto it = advertising_info_.find(service_id);
   if (it == advertising_info_.end()) {
@@ -130,7 +130,7 @@ bool WifiAware::StopAdvertising(const std::string& service_id) {
 }
 
 bool WifiAware::IsAdvertising(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAdvertisingLocked(service_id);
 }
 
@@ -140,7 +140,7 @@ bool WifiAware::IsAdvertisingLocked(absl::string_view service_id) {
 
 ErrorOr<bool> WifiAware::StartDiscovery(const std::string& service_id,
                                         DiscoveredServiceCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAvailableLocked()) {
     return {Error(location::nearby::proto::connections::OperationResultCode::
@@ -165,7 +165,7 @@ ErrorOr<bool> WifiAware::StartDiscovery(const std::string& service_id,
 }
 
 bool WifiAware::StopDiscovery(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (discovering_info_.erase(service_id) == 0) {
     return false;
@@ -177,7 +177,7 @@ bool WifiAware::StopDiscovery(const std::string& service_id) {
 }
 
 bool WifiAware::IsDiscovering(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsDiscoveringLocked(service_id);
 }
 
@@ -188,7 +188,7 @@ bool WifiAware::IsDiscoveringLocked(absl::string_view service_id) {
 ErrorOr<bool> WifiAware::StartAcceptingConnections(
     const std::string& service_id, absl::string_view channel_name,
     AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsAvailableLocked()) {
     return {Error(location::nearby::proto::connections::OperationResultCode::
@@ -205,12 +205,12 @@ ErrorOr<bool> WifiAware::StartAcceptingConnections(
 }
 
 bool WifiAware::StopAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return StopAcceptingConnectionsLocked(service_id);
 }
 
 bool WifiAware::IsAcceptingConnections(const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return IsAcceptingConnectionsLocked(service_id);
 }
 
@@ -285,37 +285,37 @@ bool WifiAware::StopAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 bool WifiAware::IsPublishing() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.IsPublishing();
 }
 
 bool WifiAware::StartPublishing(absl::string_view service_name) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.StartPublishing(std::string(service_name));
 }
 
 bool WifiAware::StopPublishing() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.StopPublishing();
 }
 
 bool WifiAware::IsSubscribing() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.IsSubscribing();
 }
 
 bool WifiAware::StartSubscribing(absl::string_view service_name) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.StartSubscribing(std::string(service_name));
 }
 
 bool WifiAware::StopSubscribing() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return medium_.StopSubscribing();
 }
 
 void WifiAware::SetExpectedPeerId(absl::string_view peer_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   medium_.SetExpectedPeerId(std::string(peer_id));
 }
 
@@ -323,7 +323,7 @@ ErrorOr<std::unique_ptr<EndpointChannel>> WifiAware::Connect(
     const std::string& service_id, absl::string_view channel_name,
     const WifiAwareServiceInfo& service_info,
     CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!IsAvailableLocked()) {
     return {Error(location::nearby::proto::connections::OperationResultCode::
                       MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
@@ -349,7 +349,7 @@ ErrorOr<std::unique_ptr<EndpointChannel>> WifiAware::Connect(
     const std::string& service_id, const std::string& service_name,
     const ByteArray& service_info, const std::string& passphrase, int port,
     CancellationFlag* cancellation_flag) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!IsAvailableLocked()) {
     return {Error(location::nearby::proto::connections::OperationResultCode::
                       MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
@@ -373,7 +373,7 @@ ErrorOr<std::unique_ptr<EndpointChannel>> WifiAware::Connect(
 
 api::UpgradeAddressInfo WifiAware::GetUpgradeAddressCandidates(
     const std::string& service_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
     return {};

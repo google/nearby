@@ -20,11 +20,11 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -58,7 +58,7 @@ class NearbyHttpClient : public HttpClient {
   static absl::StatusOr<HttpResponse> InternalGetResponse(
       const HttpRequest& request, absl::Duration timeout);
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   SingleThreadExecutor executor_;
 };
 

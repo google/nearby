@@ -14,14 +14,14 @@
 
 #include "internal/weave/packet_sequence_number_generator.h"
 
-#include "internal/platform/mutex_lock.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/weave/packet.h"
 
 namespace nearby {
 namespace weave {
 
 int PacketSequenceNumberGenerator::Next() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   int next_packet_counter = packet_counter_;
   if (next_packet_counter == Packet::kMaxPacketCounter) {
     packet_counter_ = 0;
@@ -32,7 +32,7 @@ int PacketSequenceNumberGenerator::Next() {
 }
 
 void PacketSequenceNumberGenerator::Reset() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   packet_counter_ = 0;
 }
 }  // namespace weave

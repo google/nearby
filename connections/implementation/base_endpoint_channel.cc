@@ -24,6 +24,7 @@
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -92,7 +93,7 @@ BaseEndpointChannel::BaseEndpointChannel(
 ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
   ByteArray result;
   {
-    MutexLock lock(&reader_mutex_);
+    absl::MutexLock lock(reader_mutex_);
 
     ExceptionOr<std::int32_t> read_int;
     if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -128,7 +129,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
   }
 
   {
-    MutexLock crypto_lock(&crypto_mutex_);
+    absl::MutexLock crypto_lock(crypto_mutex_);
     Exception message_exception{Exception::kInvalidProtocolBuffer};
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, decode the message.
@@ -177,7 +178,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
   }
 
   {
-    MutexLock lock(&last_read_mutex_);
+    absl::MutexLock lock(last_read_mutex_);
     last_read_timestamp_ = SystemClock::ElapsedRealtime();
   }
   return ExceptionOr<ByteArray>(result);
@@ -199,9 +200,9 @@ Exception BaseEndpointChannel::Write(absl::string_view data) {
     // threads from writing encrypted messages out of order which causes a
     // failure to decrypt on the reader side. However we need to release the
     // crypto lock after encrypting to ensure read decryption is not blocked.
-    MutexLock lock(&writer_mutex_);
+    absl::MutexLock lock(writer_mutex_);
     {
-      MutexLock crypto_lock(&crypto_mutex_);
+      absl::MutexLock crypto_lock(crypto_mutex_);
       if (IsEncryptionEnabledLocked()) {
         // If encryption is enabled, encode the message.
         encrypted = crypto_context_->EncodeMessageToPeer(data);
@@ -249,7 +250,7 @@ Exception BaseEndpointChannel::Write(absl::string_view data) {
   }
 
   {
-    MutexLock lock(&last_write_mutex_);
+    absl::MutexLock lock(last_write_mutex_);
     last_write_timestamp_ = SystemClock::ElapsedRealtime();
   }
   return {Exception::kSuccess};
@@ -295,7 +296,7 @@ void BaseEndpointChannel::CloseIo() {
 }
 
 uint32_t BaseEndpointChannel::GetNextKeepAliveSeqNo() const {
-  MutexLock lock(&keep_alive_mutex_);
+  absl::MutexLock lock(keep_alive_mutex_);
   return next_keep_alive_seq_no_++;
 }
 
@@ -329,7 +330,7 @@ bool BaseEndpointChannel::IsClosed() const {
 }
 
 std::string BaseEndpointChannel::GetType() const {
-  MutexLock crypto_lock(&crypto_mutex_);
+  absl::MutexLock crypto_lock(crypto_mutex_);
   std::string subtype = IsEncryptionEnabledLocked() ? "ENCRYPTED_" : "";
   std::string medium = location::nearby::proto::connections::Medium_Name(
       location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM);
@@ -354,22 +355,22 @@ int BaseEndpointChannel::GetMaxTransmitPacketSize() const {
 
 void BaseEndpointChannel::EnableEncryption(
     std::shared_ptr<EncryptionContext> context) {
-  MutexLock crypto_lock(&crypto_mutex_);
+  absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_ = context;
 }
 
 void BaseEndpointChannel::DisableEncryption() {
-  MutexLock crypto_lock(&crypto_mutex_);
+  absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_.reset();
 }
 
 bool BaseEndpointChannel::IsEncrypted() {
-  MutexLock crypto_lock(&crypto_mutex_);
+  absl::MutexLock crypto_lock(crypto_mutex_);
   return IsEncryptionEnabledLocked();
 }
 
 ExceptionOr<ByteArray> BaseEndpointChannel::TryDecrypt(const ByteArray& data) {
-  MutexLock crypto_lock(&crypto_mutex_);
+  absl::MutexLock crypto_lock(crypto_mutex_);
   if (!IsEncryptionEnabledLocked()) {
     return Exception::kFailed;
   }
@@ -398,12 +399,12 @@ void BaseEndpointChannel::Resume() {
 }
 
 absl::Time BaseEndpointChannel::GetLastReadTimestamp() const {
-  MutexLock lock(&last_read_mutex_);
+  absl::MutexLock lock(last_read_mutex_);
   return last_read_timestamp_;
 }
 
 absl::Time BaseEndpointChannel::GetLastWriteTimestamp() const {
-  MutexLock lock(&last_write_mutex_);
+  absl::MutexLock lock(last_write_mutex_);
   return last_write_timestamp_;
 }
 
@@ -476,7 +477,7 @@ void BaseEndpointChannel::UnblockPausedWriter() {
 
 std::unique_ptr<std::string> BaseEndpointChannel::EncodeMessageForTests(
     absl::string_view data) {
-  MutexLock lock(&crypto_mutex_);
+  absl::MutexLock lock(crypto_mutex_);
   DCHECK(IsEncryptionEnabledLocked());
   return crypto_context_->EncodeMessageToPeer(data);
 }
