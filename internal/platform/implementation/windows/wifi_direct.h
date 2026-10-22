@@ -182,7 +182,11 @@ class WifiDirectDeviceDiscovered {
 // Container of operations that can be performed over the WifiLan medium.
 class WifiDirectMedium : public api::WifiDirectMedium {
  public:
+  using ConnectDiscoveryHandler = absl::AnyInvocable<bool(
+      winrt::Windows::Devices::WiFiDirect::WiFiDirectConfigurationMethod)>;
+
   WifiDirectMedium();
+  explicit WifiDirectMedium(ConnectDiscoveryHandler discovery_handler);
   ~WifiDirectMedium() override;
   // WifiDirectMedium is neither copyable nor movable.
   WifiDirectMedium(const WifiDirectMedium&) = delete;
@@ -325,7 +329,10 @@ class WifiDirectMedium : public api::WifiDirectMedium {
           config_method);
 
   void CleanUpDeviceWatcherLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  winrt::Windows::Devices::WiFiDirect::WiFiDirectConfigurationMethod
+  GetConfigurationMethodLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  ConnectDiscoveryHandler discovery_handler_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<CountDownLatch> connection_latch_;
   mutable absl::Mutex mutex_;
 

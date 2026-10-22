@@ -44,6 +44,10 @@ constexpr auto kEnablePlatformThreadToNetwork =
 // Enable/Disable task scheduler for ScheduledExecutor and timer.
 constexpr auto kEnableTaskScheduler =
     flags::Flag<bool>(kConfigPackage, "45643835", true);
+// Allow empty PIN when SSID and password are present in Windows
+// WifiDirectMedium::ConnectWifiDirect.
+constexpr auto kEnableWifiDirectEmptyPin =
+    flags::Flag<bool>(kConfigPackage, "45868920", true);
 // Enable/Disable Wi-Fi hotspot native.
 constexpr auto kEnableWifiHotspotNative =
     flags::Flag<bool>(kConfigPackage, "45667396", true);

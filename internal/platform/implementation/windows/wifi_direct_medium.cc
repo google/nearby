@@ -150,6 +150,10 @@ WifiDirectDeviceDiscovered::WifiDirectDeviceDiscovered(
 WifiDirectMedium::WifiDirectMedium()
     : is_interface_valid_(IsWifiDirectSupported()) {}
 
+WifiDirectMedium::WifiDirectMedium(ConnectDiscoveryHandler discovery_handler)
+    : discovery_handler_(std::move(discovery_handler)),
+      is_interface_valid_(IsWifiDirectSupported()) {}
+
 WifiDirectMedium::~WifiDirectMedium() {
   StopWifiDirect();
   DisconnectWifiDirect();
@@ -741,11 +745,28 @@ bool WifiDirectMedium::ConnectWifiDirect(
       return false;
     }
 
-    if (credentials.GetDeviceName().empty() || credentials.GetPin().empty()) {
+    const bool allow_empty_pin = NearbyFlags::GetInstance().GetBoolFlag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableWifiDirectEmptyPin);
+    const bool has_valid_auth =
+        !credentials.GetPin().empty() ||
+        (allow_empty_pin && !credentials.GetSSID().empty() &&
+         !credentials.GetPassword().empty());
+    if (credentials.GetDeviceName().empty() || !has_valid_auth) {
       LOG(ERROR) << "GC: Device name or pin is empty, return false";
       return false;
     }
     credentials_gc_ = credentials;
+
+    if (discovery_handler_) {
+      WiFiDirectConfigurationMethod config_method =
+          GetConfigurationMethodLocked();
+      if (discovery_handler_(config_method)) {
+        medium_status_ |= kMediumStatusConnected;
+        return true;
+      }
+      return false;
+    }
 
     try {
       discovered_devices_by_id_.clear();
@@ -834,6 +855,17 @@ void WifiDirectMedium::CleanUpDeviceWatcherLocked() {
   medium_status_ &= (~kMediumStatusConnected);
 }
 
+WiFiDirectConfigurationMethod
+WifiDirectMedium::GetConfigurationMethodLocked() const {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableWifiDirectEmptyPin) &&
+      credentials_gc_.GetPin().empty()) {
+    return WiFiDirectConfigurationMethod::PushButton;
+  }
+  return WiFiDirectConfigurationMethod::ProvidePin;
+}
+
 bool WifiDirectMedium::DisconnectWifiDirect() {
   LOG(INFO) << "WifiDirectMedium::DisconnectWifiDirect";
   std::vector<std::unique_ptr<WifiDirectDeviceDiscovered>> devices;
@@ -894,6 +926,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
               << winrt::to_string(device_info.Id())
               << ";   device name: " << winrt::to_string(device_info.Name());
     winrt::hstring device_id = device_info.Id();
+    WiFiDirectConfigurationMethod config_method =
+        WiFiDirectConfigurationMethod::ProvidePin;
     {
       absl::MutexLock lock(mutex_);
       if (discovered_devices_by_id_.contains(device_id)) {
@@ -909,12 +943,11 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
       }
       discovered_devices_by_id_[device_id] =
           std::make_unique<WifiDirectDeviceDiscovered>(device_info);
+      config_method = GetConfigurationMethodLocked();
     }
     LOG(INFO) << "Connect to device name: "
               << winrt::to_string(device_info.Name());
     DeviceInformationPairing pairing = device_info.Pairing();
-    WiFiDirectConfigurationMethod config_method =
-        WiFiDirectConfigurationMethod::ProvidePin;
     bool is_paired;
     if (pairing.IsPaired()) {
       LOG(INFO) << "GC Paired, unpair it first to clean up stale state";

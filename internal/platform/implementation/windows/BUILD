@@ -454,6 +454,7 @@ cc_test(
         "thread_pool_test.cc",
         "timer_test.cc",
         "utils_test.cc",
+        "wifi_direct_medium_test.cc",
         "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",
