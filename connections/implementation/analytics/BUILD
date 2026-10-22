@@ -54,6 +54,8 @@ cc_library(
     deps = [
         ":analytics",
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
         "//internal/platform:types",
@@ -100,6 +102,8 @@ cc_test(
         ":analytics",
         ":analytics_recorder_impl",
         "//connections:core_types",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:error_code_recorder",
         "//internal/platform:test_util",
