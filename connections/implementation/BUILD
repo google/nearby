@@ -487,6 +487,7 @@ cc_test(
     deps = [
         ":client_proxy",
         "//connections:core_types",
+        "//connections/implementation/analytics",
         "//connections/implementation/analytics:mock_analytics_recorder",
         "//connections/implementation/flags:connections_flags",
         "//connections/v3:v3_types",

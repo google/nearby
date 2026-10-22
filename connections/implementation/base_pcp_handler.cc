@@ -80,6 +80,7 @@
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
@@ -289,10 +290,22 @@ Status BasePcpHandler::StartAdvertising(
         // Save the advertising options for local reference in later process
         // like upgrading bandwidth.
         advertising_listener_ = info.listener;
-        client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                                   absl::MakeSpan(result.mediums),
-                                   result.operation_result_with_mediums,
-                                   compatible_advertising_options);
+        std::optional<bool> is_extended_advertisement_supported =
+            mediums_->GetBle().IsAvailable()
+                ? std::optional<bool>(
+                      mediums_->GetBle().IsExtendedAdvertisementsAvailable())
+                : std::nullopt;
+        std::optional<int> connected_ap_frequency =
+            mediums_->GetWifi().IsAvailable()
+                ? std::optional<int>(
+                      mediums_->GetWifi().GetInformation().ap_frequency)
+                : std::nullopt;
+        client->StartedAdvertising(
+            service_id, GetStrategy(), info.listener,
+            absl::MakeSpan(result.mediums),
+            result.operation_result_with_mediums,
+            compatible_advertising_options, is_extended_advertisement_supported,
+            connected_ap_frequency, /*is_nfc_available=*/std::nullopt);
         client->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
         response.Set({Status::kSuccess});
       });
@@ -526,11 +539,25 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
               MutexLock lock(&discovered_endpoint_mutex_);
               discovered_endpoints_.clear();
             }
+            std::optional<bool> is_extended_advertisement_supported =
+                mediums_->GetBle().IsAvailable()
+                    ? std::optional<bool>(
+                          mediums_->GetBle()
+                              .IsExtendedAdvertisementsAvailable())
+                    : std::nullopt;
+            std::optional<int> connected_ap_frequency =
+                mediums_->GetWifi().IsAvailable()
+                    ? std::optional<int>(
+                          mediums_->GetWifi().GetInformation().ap_frequency)
+                    : std::nullopt;
             client->StartedDiscovery(service_id, GetStrategy(),
                                      std::move(listener),
                                      absl::MakeSpan(result.mediums),
                                      result.operation_result_with_mediums,
-                                     stripped_discovery_options);
+                                     stripped_discovery_options,
+                                     is_extended_advertisement_supported,
+                                     connected_ap_frequency,
+                                     /*is_nfc_available=*/std::nullopt);
             response.Set({Status::kSuccess});
           });
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),

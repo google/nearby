@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -102,13 +103,15 @@ class AnalyticsRecorder {
 
   static std::unique_ptr<AdvertisingMetadataParams>
   BuildAdvertisingMetadataParams(
-      bool is_extended_advertisement_supported = false,
-      int connected_ap_frequency = 0, bool is_nfc_available = false,
+      std::optional<bool> is_extended_advertisement_supported = std::nullopt,
+      std::optional<int> connected_ap_frequency = std::nullopt,
+      std::optional<bool> is_nfc_available = std::nullopt,
       const std::vector<OperationResultWithMedium>&
           operation_result_with_mediums = {});
   static std::unique_ptr<DiscoveryMetadataParams> BuildDiscoveryMetadataParams(
-      bool is_extended_advertisement_supported = false,
-      int connected_ap_frequency = 0, bool is_nfc_available = false,
+      std::optional<bool> is_extended_advertisement_supported = std::nullopt,
+      std::optional<int> connected_ap_frequency = std::nullopt,
+      std::optional<bool> is_nfc_available = std::nullopt,
       const std::vector<OperationResultWithMedium>&
           operation_result_with_mediums = {});
 
