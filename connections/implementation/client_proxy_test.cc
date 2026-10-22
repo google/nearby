@@ -1939,6 +1939,83 @@ TEST_F(ClientProxyTest, OnSessionComplete_SavesToLastLocalEndpointId) {
   EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
 }
 
+TEST_F(ClientProxyTest,
+       StoppedAdvertisingWhileDiscoveringDoesNotCompleteSession) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
+  StartDiscovery(client1(), GetDiscoveryListener());
+
+  EXPECT_TRUE(client1()->IsAdvertising());
+  EXPECT_TRUE(client1()->IsDiscovering());
+
+  // Stopping advertising while discovery is still active must not complete the
+  // analytics session.
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopAdvertising()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(0);
+  StopAdvertising(client1());
+  testing::Mock::VerifyAndClearExpectations(mock_analytics_recorder1_ptr_);
+
+  // Stopping discovery when no advertising or connections remain completes the
+  // session.
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopDiscovery()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(1);
+  StopDiscovery(client1());
+  testing::Mock::VerifyAndClearExpectations(mock_analytics_recorder1_ptr_);
+}
+
+TEST_F(ClientProxyTest,
+       OnDisconnectedWhileDiscoveringDoesNotCompleteSession) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
+  Endpoint discovery_endpoint =
+      StartDiscovery(client1(), GetDiscoveryListener());
+  Endpoint remote_endpoint = {
+      .info = ByteArray{"remote endpoint name"},
+      .id = "rem_ep_id",
+  };
+  OnDiscoveryEndpointFound(client1(), remote_endpoint);
+  OnDiscoveryConnectionInitiated(client1(), remote_endpoint);
+
+  EXPECT_FALSE(client1()->IsAdvertising());
+  EXPECT_TRUE(client1()->IsDiscovering());
+  EXPECT_TRUE(client1()->HasPendingConnectionToEndpoint(remote_endpoint.id));
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(0);
+  client1()->OnDisconnected(remote_endpoint.id, /*notify=*/false);
+  testing::Mock::VerifyAndClearExpectations(mock_analytics_recorder1_ptr_);
+  EXPECT_EQ(client1()->GetLocalEndpointId(), discovery_endpoint.id);
+  EXPECT_NE(client1()->GetLastLocalEndpointId(), discovery_endpoint.id);
+}
+
+TEST_F(ClientProxyTest,
+       StoppedAdvertisingWhileDiscoveringCompletesSessionWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreventPrematureSessionCompletion,
+      false);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
+  StartDiscovery(client1(), GetDiscoveryListener());
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopAdvertising()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(1);
+  StopAdvertising(client1());
+  testing::Mock::VerifyAndClearExpectations(mock_analytics_recorder1_ptr_);
+  EXPECT_EQ(client1()->GetLastLocalEndpointId(), advertising_endpoint.id);
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
