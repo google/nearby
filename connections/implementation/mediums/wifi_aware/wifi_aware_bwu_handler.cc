@@ -19,12 +19,12 @@
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/wifi_aware/wifi_aware.h"
 #include "connections/implementation/offline_frames.h"
-#include "connections/implementation/service_id_constants.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -35,6 +35,11 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+
+// The Wi-Fi Aware service name sent to the remote device in the upgrade path
+// info.
+constexpr absl::string_view kWifiAwareR4UpgradeServiceName =
+    "_8E70C42FBA2B._tcp";
 }  // namespace
 
 WifiAwareBwuHandler::WifiAwareBwuHandler(
@@ -58,12 +63,8 @@ WifiAwareBwuHandler::CreateUpgradedEndpointChannel(
   const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
       WifiAwareR4Credentials& credentials =
           upgrade_path_info.wifi_aware_r4_credentials();
-  // Both sides derive the Wi-Fi Aware service name from the upgrade service ID
-  // rather than reading it from the frame: an Android initiator puts its own,
-  // per-endpoint upgrade service ID in `credentials.service_id()`, not the
-  // Wi-Fi Aware service name.
-  const std::string service_name =
-      WifiAware::GenerateServiceName(WrapInitiatorUpgradeServiceId(service_id));
+
+  const std::string service_name(kWifiAwareR4UpgradeServiceName);
   // Must happen before StartSubscribing(): that is where a platform decides
   // whether it can reach this peer with the pairings it already has, or has to
   // ask the user to pair first. Empty when the remote device sends no
@@ -130,11 +131,8 @@ std::string WifiAwareBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   LOG(INFO) << "WifiAwareBwuHandler successfully initialized upgraded medium "
                "for endpoint "
             << endpoint_id;
-  // StartAcceptingConnections() published
-  // GenerateServiceName(upgrade_service_id) above; tell the remote device the
-  // same name.
   return parser::ForBwuWifiAwareR4PathAvailable(
-      WifiAware::GenerateServiceName(upgrade_service_id), /*service_info=*/"",
+      kWifiAwareR4UpgradeServiceName, /*service_info=*/"",
       /*pmk=*/"", /*port=*/0, /*advertised_name=*/"",
       /*supports_disabling_encryption=*/false);
 }
