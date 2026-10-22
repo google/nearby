@@ -114,6 +114,11 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// Populates send/receive buffer size, connected AP frequency, and MCC mode in
+// connection attempt analytics metadata and removes duplicate frequency
+// assignment.
+constexpr auto kPopulateFullConnectionAttemptMetadata =
+    flags::Flag<bool>(kConfigPackage, "45868930", true);
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);
