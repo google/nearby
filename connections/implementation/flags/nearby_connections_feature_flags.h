@@ -123,6 +123,10 @@ constexpr auto kRefactorBleL2cap =
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
+// Synchronize GNCNWFrameworkSocket write timeout completion state on the heap
+// and populate ETIMEDOUT on timeout.
+constexpr auto kSynchronizeNwFrameworkSocketWriteTimeout =
+    flags::Flag<bool>(kConfigPackage, "45868923", true);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

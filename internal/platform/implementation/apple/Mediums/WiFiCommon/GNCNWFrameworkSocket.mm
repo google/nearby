@@ -17,14 +17,75 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#include <sys/errno.h>
+
 #include <optional>
 #include <string>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 
 static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
+
+@interface GNCSendCompletionState : NSObject
+
+- (void)completeWithError:(nullable NSError *)error;
+- (BOOL)waitWithTimeout:(NSTimeInterval)timeout error:(NSError **_Nullable)error;
+
+@end
+
+@implementation GNCSendCompletionState {
+  NSCondition *_condition;
+  BOOL _completed;
+  NSError *_error;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _condition = [[NSCondition alloc] init];
+    _completed = NO;
+  }
+  return self;
+}
+
+- (void)completeWithError:(nullable NSError *)error {
+  [_condition lock];
+  if (!_completed) {
+    _error = error;
+    _completed = YES;
+    [_condition broadcast];
+  }
+  [_condition unlock];
+}
+
+- (BOOL)waitWithTimeout:(NSTimeInterval)timeout error:(NSError **_Nullable)error {
+  NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:timeout];
+  [_condition lock];
+  while (!_completed) {
+    if (![_condition waitUntilDate:deadline]) {
+      break;
+    }
+  }
+  BOOL completed = _completed;
+  NSError *completionError = _error;
+  [_condition unlock];
+
+  if (!completed) {
+    if (error != nil) {
+      *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ETIMEDOUT userInfo:nil];
+    }
+    return NO;
+  }
+  if (error != nil) {
+    *error = completionError;
+  }
+  return completionError == nil;
+}
+
+@end
 
 @interface GNCNWFrameworkSocket ()
 
@@ -139,38 +200,56 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     return NO;
   }
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  if (!GNCFeatureFlags.synchronizeNWFrameworkSocketWriteTimeoutEnabled) {
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
 
-  __block NSError *blockError = nil;
+    __block NSError *blockError = nil;
+
+    // TODO(bourdakos): Investigate if the context should be NW_CONNECTION_DEFAULT_STREAM_CONTEXT.
+    [connection sendData:data
+                  context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
+               isComplete:NO
+        completionHandler:^(nw_error_t _Nullable sendError) {
+          if (sendError) {
+            blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
+          }
+          dispatch_semaphore_signal(semaphore);
+        }];
+
+    // Wait until signaled or the 5-second timeout passes
+    intptr_t waitResult = dispatch_semaphore_wait(
+        semaphore, dispatch_time(DISPATCH_TIME_NOW,
+                                 static_cast<int64_t>(kConnectionWriteTimeout * NSEC_PER_SEC)));
+    if (waitResult != 0) {
+      if (error != nil) {
+        *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                     code:GNCNWFrameworkErrorTimedOut
+                                 userInfo:nil];
+      }
+      return NO;
+    }
+
+    if (error != nil) {
+      *error = blockError;
+    }
+    return blockError == nil;
+  }
+
+  GNCSendCompletionState *completionState = [[GNCSendCompletionState alloc] init];
 
   // TODO(bourdakos): Investigate if the context should be NW_CONNECTION_DEFAULT_STREAM_CONTEXT.
   [connection sendData:data
                 context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
              isComplete:NO
       completionHandler:^(nw_error_t _Nullable sendError) {
+        NSError *convertedError = nil;
         if (sendError) {
-          blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
+          convertedError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
         }
-        dispatch_semaphore_signal(semaphore);
+        [completionState completeWithError:convertedError];
       }];
 
-  // Wait until signaled or the 5-second timeout passes
-  intptr_t waitResult = dispatch_semaphore_wait(
-      semaphore, dispatch_time(DISPATCH_TIME_NOW,
-                               static_cast<int64_t>(kConnectionWriteTimeout * NSEC_PER_SEC)));
-  if (waitResult != 0) {
-    if (error != nil) {
-      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
-                                   code:GNCNWFrameworkErrorTimedOut
-                               userInfo:nil];
-    }
-    return NO;
-  }
-
-  if (error != nil) {
-    *error = blockError;
-  }
-  return blockError == nil;
+  return [completionState waitWithTimeout:kConnectionWriteTimeout error:error];
 }
 
 @end

@@ -41,4 +41,7 @@
 /** Checks whether Wi-Fi Aware is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL wifiAwareEnabled;
 
+/** Checks whether GNCNWFrameworkSocket write timeout completion state is synchronized. */
+@property(nonatomic, class, readonly) BOOL synchronizeNWFrameworkSocketWriteTimeoutEnabled;
+
 @end

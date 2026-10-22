@@ -44,6 +44,10 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware,
       false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      true);
 
   [super tearDown];
 }
@@ -129,6 +133,22 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware, NO);
   XCTAssertFalse([GNCFeatureFlags wifiAwareEnabled]);
+}
+
+- (void)testSynchronizeNWFrameworkSocketWriteTimeoutEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags synchronizeNWFrameworkSocketWriteTimeoutEnabled]);
+}
+
+- (void)testSynchronizeNWFrameworkSocketWriteTimeoutEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags synchronizeNWFrameworkSocketWriteTimeoutEnabled]);
 }
 
 @end
