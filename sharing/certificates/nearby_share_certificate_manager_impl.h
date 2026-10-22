@@ -25,10 +25,12 @@
 
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/status/statusor.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
@@ -70,7 +72,8 @@ class NearbyShareCertificateManagerImpl
         nearby::sharing::api::SharingPlatform& sharing_platform,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
         const FilePath& profile_path,
-        nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client);
+        nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client,
+        nearby::sharing::SyncManager* absl_nonnull sync_manager);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
@@ -98,9 +101,11 @@ class NearbyShareCertificateManagerImpl
   void SetJoinBindingTime(absl::Time join_binding_time,
                           absl::Duration life_time)
       ABSL_LOCKS_EXCLUDED(join_time_mutex_) override;
+  std::optional<absl::Time> GetJoinBindingTime()
+      ABSL_LOCKS_EXCLUDED(join_time_mutex_) override;
   std::string Dump() const override;
-  void AddBindingToPublicCertificate(
-      absl::string_view certificate_id, absl::string_view binding_id) override;
+  void AddBindingToPublicCertificate(absl::string_view certificate_id,
+                                     absl::string_view binding_id) override;
 
  private:
   // Class for maintaining a single instance of public certificate download
@@ -108,14 +113,20 @@ class NearbyShareCertificateManagerImpl
   // the results or error available.
   class CertificateDownloadContext {
    public:
+    // `download_callback` will be invoked when the download is complete or if
+    // there is an error. The callback will receive the status of the download,
+    // the downloaded certificates, and any binding ids associated with the
+    // certificates.  If `status` is not OK, the certificates and binding_ids
+    // should be ignored.
     CertificateDownloadContext(
         nearby::sharing::api::IdentityRpcClient* absl_nonnull
             nearby_identity_client,
-        std::string device_id,
-        std::optional<absl::Time> join_time,
-        absl::AnyInvocable<void(absl::StatusOr<std::vector<
-                                    nearby::sharing::proto::PublicCertificate>>
-                                    certificates_status) &&>
+        std::string device_id, std::optional<absl::Time> join_time,
+        absl::AnyInvocable<
+            void(absl::Status status,
+                 const std::vector<nearby::sharing::proto::PublicCertificate>&
+                     certificates,
+                 const absl::flat_hash_set<std::string>& binding_ids) &&>
             download_callback)
         : nearby_identity_client_(nearby_identity_client),
           device_id_(std::move(device_id)),
@@ -138,9 +149,12 @@ class NearbyShareCertificateManagerImpl
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
     std::vector<nearby::sharing::proto::PublicCertificate> certificates_;
+    absl::flat_hash_set<std::string> binding_ids_;
     absl::AnyInvocable<void(
-        absl::StatusOr<std::vector<nearby::sharing::proto::PublicCertificate>>
-            certificates_status) &&>
+        absl::Status status,
+        const std::vector<nearby::sharing::proto::PublicCertificate>&
+            certificates,
+        const absl::flat_hash_set<std::string>& binding_ids) &&>
         download_callback_;
   };
 
@@ -151,7 +165,8 @@ class NearbyShareCertificateManagerImpl
       std::unique_ptr<nearby::sharing::api::PublicCertificateDatabase>
           public_certificate_database,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
-      nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client);
+      nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client,
+      nearby::sharing::SyncManager* absl_nonnull sync_manager);
 
   // NearbyShareCertificateManager:
   void OnStartScheduledTasks() override;
@@ -213,6 +228,7 @@ class NearbyShareCertificateManagerImpl
   int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
   nearby::sharing::api::IdentityRpcClient* absl_nonnull const
       nearby_identity_client_;
+  nearby::sharing::SyncManager& sync_manager_;
 
   std::shared_ptr<NearbyShareCertificateStorage> certificate_storage_;
   absl_nonnull std::unique_ptr<NearbyShareScheduler>

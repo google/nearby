@@ -283,6 +283,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       supports_file_sync_(supports_file_sync),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       nearby_identity_client_(nearby_identity_client),
+      sync_manager_(nearby_identity_client_, &preference_manager_),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               preference_manager_, account_manager_, device_info_)),
@@ -305,8 +306,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetLost,
                            this),
           absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
-                           this)),
-      sync_manager_(nearby_identity_client_, &preference_manager_) {
+                           this)) {
   CHECK(nearby_connections_manager_);
   CHECK(analytics_recorder);
 
@@ -316,7 +316,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      profile_path, nearby_identity_client);
+      profile_path, nearby_identity_client, &sync_manager_);
 
   certificate_manager_->AddObserver(this);
   context_->GetConnectivityManager()->RegisterLanListener(

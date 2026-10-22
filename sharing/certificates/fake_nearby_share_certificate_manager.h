@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -109,6 +110,10 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
     join_binding_time_ = join_binding_time;
     join_binding_life_time_ = life_time;
   }
+  std::optional<absl::Time> GetJoinBindingTime() override {
+    return std::nullopt;
+  }
+
   std::string Dump() const override { return ""; }
 
   // Make protected methods from base class public in this fake class.

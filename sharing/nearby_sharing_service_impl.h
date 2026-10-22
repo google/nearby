@@ -441,6 +441,7 @@ class NearbySharingServiceImpl
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   nearby::sharing::api::IdentityRpcClient* absl_nonnull const
       nearby_identity_client_;
+  nearby::sharing::SyncManager sync_manager_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> local_device_data_manager_;
   std::unique_ptr<NearbyShareCertificateManager> certificate_manager_;
   std::unique_ptr<NearbyFastInitiation> nearby_fast_initiation_;
@@ -550,7 +551,6 @@ class NearbySharingServiceImpl
   // If true, a new endpoint id will be generated at the next advertisement.
   bool force_new_endpoint_id_ = false;
   OutgoingTargetsManager outgoing_targets_manager_;
-  nearby::sharing::SyncManager sync_manager_;
 
   // Visibility used for the last advertisement.
   proto::DeviceVisibility last_advertised_device_visibility_ =

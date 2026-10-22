@@ -136,8 +136,10 @@ class NearbyShareCertificateManager {
   // Dump certificates ID information for troubleshooting.
   virtual std::string Dump() const = 0;
 
-  virtual void AddBindingToPublicCertificate(
-      absl::string_view certificate_id, absl::string_view binding_id) = 0;
+  virtual void AddBindingToPublicCertificate(absl::string_view certificate_id,
+                                             absl::string_view binding_id) = 0;
+
+  virtual std::optional<absl::Time> GetJoinBindingTime() = 0;
 
  protected:
   virtual void OnStartScheduledTasks() = 0;
