@@ -164,8 +164,13 @@ void IncomingFramesReader::OnDataReadFromConnection(
       return;
     }
     const ReadFrameInfo& frame_info = read_frame_info_queue_.front();
+    bool is_cancel_during_key_verification =
+        frame_type == V1Frame::CANCEL && frame_info.frame_type.has_value() &&
+        (*frame_info.frame_type == V1Frame::PAIRED_KEY_ENCRYPTION ||
+         *frame_info.frame_type == V1Frame::PAIRED_KEY_RESULT);
     if (frame_info.frame_type.has_value() &&
-        *frame_info.frame_type != frame_type) {
+        *frame_info.frame_type != frame_type &&
+        !is_cancel_during_key_verification) {
       LOG(WARNING) << __func__ << ": Failed to read frame of type "
                    << *frame_info.frame_type << ", but got frame of type "
                    << frame_type << ". Cached for later.";
@@ -233,7 +238,10 @@ std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
   auto iter =
       std::find_if(cached_frames_.begin(), cached_frames_.end(),
                    [frame_type = *frame_type](std::unique_ptr<V1Frame>& frame) {
-                     return frame->type() == frame_type;
+                     return frame->type() == frame_type ||
+                            (frame->type() == V1Frame::CANCEL &&
+                             (frame_type == V1Frame::PAIRED_KEY_ENCRYPTION ||
+                              frame_type == V1Frame::PAIRED_KEY_RESULT));
                    });
 
   if (iter == cached_frames_.end()) return nullptr;

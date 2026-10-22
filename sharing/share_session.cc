@@ -213,6 +213,11 @@ bool ShareSession::ProcessKeyVerificationResult(
   os_type_ = share_target_os_type;
 
   switch (result) {
+    case PairedKeyVerificationRunner::PairedKeyVerificationResult::kCancelled:
+      LOG(INFO) << __func__ << ": Paired key handshake cancelled for target "
+                << share_target().id << ". Disconnecting.";
+      return false;
+
     case PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail:
       LOG(WARNING) << __func__ << ": Paired key handshake failed for target "
                    << share_target().id << ". Disconnecting.";
