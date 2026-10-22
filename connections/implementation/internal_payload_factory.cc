@@ -20,15 +20,16 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
 #include "internal/base/file_path_sanitize.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -323,9 +324,18 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
   std::int64_t GetTotalSize() const override { return total_size_; }
 
   Exception AttachNextChunk(absl::string_view chunk) override {
+    // Opportunistic optimization to fail early; Write() will also fail with
+    // Exception::kIo if the file is closed.
+    if (is_closed_.Get()) {
+      return {Exception::kIo};
+    }
     if (chunk.empty()) {
       // Received null last chunk for incoming payload.
-      Close();
+      if (is_closed_.Set(true)) {
+        return {Exception::kIo};
+      }
+      output_file_.SetLastModifiedTime(last_modified_time_);
+      output_file_.Close();
       return {Exception::kSuccess};
     }
     // Truncate 1 incoming chunk to the total size of the payload.
@@ -345,13 +355,22 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
       bytes_written_ += chunk.size();
     }
 
-    return output_file_.Write(chunk);
+    Exception write_result = output_file_.Write(chunk);
+    if (!write_result.Ok()) {
+      Close();
+    }
+    return write_result;
   }
 
   void Close() override {
     if (is_closed_.Set(true)) return;
-    output_file_.SetLastModifiedTime(last_modified_time_);
-    output_file_.Close();
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kDeleteIncompleteIncomingFile)) {
+      output_file_.Delete();
+    } else {
+      output_file_.Close();
+    }
   }
 
  private:

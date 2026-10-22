@@ -26,10 +26,14 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -44,7 +48,14 @@ namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
 constexpr char kText[] = "data chunk";
 
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
+class InternalPayloadFactoryTest : public ::testing::Test {
+ protected:
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+};
+
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
   ByteArray data(kText);
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{data});
@@ -59,7 +70,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromBytePayload) {
   EXPECT_TRUE(internal_payload->DetachNextChunk(512).Empty());
 }
 
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
   auto [input, output] = CreatePipe();
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload(std::move(input)));
@@ -77,7 +88,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
 }
 
 #if defined(NEARBY_CHROMIUM)
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
   InputFile inputFile(payload_id);
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
@@ -92,7 +103,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
 }
 #endif  // !defined(NEARBY_CHROMIUM)
 
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -123,7 +134,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
   EXPECT_EQ(payload.AsBytes(), ByteArray(kText));
 }
 
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -149,7 +160,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
   internal_payload->Close();
 }
 
-TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
+TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -170,8 +181,8 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   EXPECT_EQ(payload.GetType(), PayloadType::kFile);
 }
 
-TEST(InternalPayloadFactoryTest,
-     InternalPayloadFromFileMessageWithoutIdReturnsNullptr) {
+TEST_F(InternalPayloadFactoryTest,
+       InternalPayloadFromFileMessageWithoutIdReturnsNullptr) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -183,8 +194,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_TRUE(result.has_error());
 }
 
-TEST(InternalPayloadFactoryTest,
-     CanCreateInternalPayloadFromFileMessageWithFileNameNotSet) {
+TEST_F(InternalPayloadFactoryTest,
+       CanCreateInternalPayloadFromFileMessageWithFileNameNotSet) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -202,8 +213,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(payload.GetFileName(), "12345");
 }
 
-TEST(InternalPayloadFactoryTest,
-     CanCreateInternalPayloadFromFileMessageWithFileNameSet) {
+TEST_F(InternalPayloadFactoryTest,
+       CanCreateInternalPayloadFromFileMessageWithFileNameSet) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -222,8 +233,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(payload.GetFileName(), "test.file.name");
 }
 
-TEST(InternalPayloadFactoryTest,
-     VerifyFilePayloadFileNameParentFolderAndLastModifiedTime) {
+TEST_F(InternalPayloadFactoryTest,
+       VerifyFilePayloadFileNameParentFolderAndLastModifiedTime) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -251,8 +262,8 @@ TEST(InternalPayloadFactoryTest,
       1);
 }
 
-TEST(InternalPayloadFactoryTest,
-     VerifyFilePayloadFileNameParentFolderSanitized) {
+TEST_F(InternalPayloadFactoryTest,
+       VerifyFilePayloadFileNameParentFolderSanitized) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -273,8 +284,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(payload.GetParentFolder(), "bad/test_parent_folder");
 }
 
-TEST(InternalPayloadFactoryTest,
-     VerifyOutgoingFilePayloadFileNameParentFolderAndLastModifiedTime) {
+TEST_F(InternalPayloadFactoryTest,
+       VerifyOutgoingFilePayloadFileNameParentFolderAndLastModifiedTime) {
   std::string file_path =
       absl::StrCat(::testing::TempDir(), "/test_outgoing_file_name");
   {
@@ -298,8 +309,8 @@ TEST(InternalPayloadFactoryTest,
             expected_last_modified_time);
 }
 
-TEST(InternalPayloadFactoryTest,
-     CreateInternalPayloadFailsIfFileCannotBeCreated) {
+TEST_F(InternalPayloadFactoryTest,
+       CreateInternalPayloadFailsIfFileCannotBeCreated) {
   PayloadTransferFrame frame;
   // /dev/null is a special file, no sub directories can be created
   std::string path = "/dev/null";
@@ -323,8 +334,8 @@ void CreateFileWithContents(Payload::Id payload_id,
   EXPECT_TRUE(file.Close().Ok());
 }
 
-TEST(InternalPayloadFactoryTest,
-     SkipToOffset_FilePayloadValidOffset_SkipsOffset) {
+TEST_F(InternalPayloadFactoryTest,
+       SkipToOffset_FilePayloadValidOffset_SkipsOffset) {
   absl::string_view contents("0123456789");
   constexpr size_t kOffset = 4;
   size_t size_after_skip = contents.size() - kOffset;
@@ -349,8 +360,8 @@ TEST(InternalPayloadFactoryTest,
 }
 #endif  // defined(NEARBY_CHROMIUM)
 
-TEST(InternalPayloadFactoryTest,
-     SkipToOffsetForBytesPayloadFailsIfOffsetIsTooLarge) {
+TEST_F(InternalPayloadFactoryTest,
+       SkipToOffsetForBytesPayloadFailsIfOffsetIsTooLarge) {
   ByteArray data(kText);
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{data});
@@ -361,8 +372,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(internal_payload->SkipToOffset(1024).exception(), Exception::kIo);
 }
 
-TEST(InternalPayloadFactoryTest,
-     SkipToOffset_StreamPayloadValidOffset_SkipsOffset) {
+TEST_F(InternalPayloadFactoryTest,
+       SkipToOffset_StreamPayloadValidOffset_SkipsOffset) {
   absl::string_view contents("0123456789");
   constexpr size_t kOffset = 6;
   auto [input, output] = CreatePipe();
@@ -383,7 +394,7 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(contents_after_skip, ByteArray("6789"));
 }
 
-TEST(InternalPayloadFactoryTest, IncomingFilePayloadBehavesCorrectly) {
+TEST_F(InternalPayloadFactoryTest, IncomingFilePayloadBehavesCorrectly) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -430,7 +441,7 @@ TEST(InternalPayloadFactoryTest, IncomingFilePayloadBehavesCorrectly) {
   EXPECT_EQ(file_content.result(), expected_content);
 }
 
-TEST(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
+TEST_F(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -479,8 +490,8 @@ TEST(InternalPayloadFactoryTest, IncomingStreamPayloadBehavesCorrectly) {
   input_stream->Close();
 }
 
-TEST(InternalPayloadFactoryTest,
-     IncomingFilePayloadExceedingTotalSizeIsTruncated) {
+TEST_F(InternalPayloadFactoryTest,
+       IncomingFilePayloadExceedingTotalSizeIsTruncated) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -515,8 +526,8 @@ TEST(InternalPayloadFactoryTest,
   EXPECT_EQ(file_content.result(), expected_content);
 }
 
-TEST(InternalPayloadFactoryTest,
-     IncomingFilePayloadExceedingTotalSizeIsRejected) {
+TEST_F(InternalPayloadFactoryTest,
+       IncomingFilePayloadExceedingTotalSizeIsRejected) {
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);
@@ -538,7 +549,100 @@ TEST(InternalPayloadFactoryTest,
 
   std::string chunk2 = "1";  // Exceeds 10 bytes total_size: rejected
   EXPECT_TRUE(internal_payload->AttachNextChunk(chunk2).Raised(Exception::kIo));
+#if !defined(NEARBY_CHROMIUM)
+  FilePath file_path = FilePath(path).append(FilePath(header.file_name()));
+  EXPECT_FALSE(Files::FileExists(file_path));
+#endif  // !defined(NEARBY_CHROMIUM)
 }
+
+#if !defined(NEARBY_CHROMIUM)
+TEST_F(InternalPayloadFactoryTest,
+       IncomingFilePayloadDeletesFileWhenClosedBeforeCompletion) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kDeleteIncompleteIncomingFile,
+      true);
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(10);
+  header.set_file_name("incomplete_incoming_file.txt");
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  FilePath file_path = FilePath(path).append(FilePath(header.file_name()));
+  EXPECT_TRUE(Files::FileExists(file_path));
+  EXPECT_TRUE(internal_payload->AttachNextChunk("12345").Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  // Closing before the empty final chunk is received must delete the file.
+  internal_payload->Close();
+  EXPECT_FALSE(Files::FileExists(file_path));
+}
+
+TEST_F(InternalPayloadFactoryTest,
+       IncomingFilePayloadKeepsFileWhenClosedBeforeCompletionAndFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kDeleteIncompleteIncomingFile,
+      false);
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(10);
+  header.set_file_name("incomplete_incoming_file_kept.txt");
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  FilePath file_path = FilePath(path).append(FilePath(header.file_name()));
+  EXPECT_TRUE(Files::FileExists(file_path));
+  EXPECT_TRUE(internal_payload->AttachNextChunk("12345").Ok());
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  internal_payload->Close();
+  EXPECT_TRUE(Files::FileExists(file_path));
+  Files::RemoveFile(file_path);
+}
+
+TEST_F(InternalPayloadFactoryTest,
+       IncomingFilePayloadKeepsFileWhenClosedAfterCompletion) {
+  PayloadTransferFrame frame;
+  std::string path = ::testing::TempDir();
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(5);
+  header.set_file_name("complete_incoming_file.txt");
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
+  ASSERT_NE(internal_payload, nullptr);
+
+  FilePath file_path = FilePath(path).append(FilePath(header.file_name()));
+  EXPECT_TRUE(internal_payload->AttachNextChunk("12345").Ok());
+  EXPECT_TRUE(internal_payload->AttachNextChunk("").Ok());
+  internal_payload->Close();
+  EXPECT_TRUE(Files::FileExists(file_path));
+  Files::RemoveFile(file_path);
+}
+#endif  // !defined(NEARBY_CHROMIUM)
 
 class CountingInputStream : public InputStream {
  public:
@@ -557,7 +661,7 @@ class CountingInputStream : public InputStream {
   int* const close_count_;
 };
 
-TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingBytesPayload) {
+TEST_F(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingBytesPayload) {
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{ByteArray(kText)});
   ASSERT_FALSE(result.has_error());
@@ -568,7 +672,7 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingBytesPayload) {
 
 // Verifies underlying stream Close() is called once even when DetachNextChunk
 // hits EOF and Close() is called multiple times.
-TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingStreamPayload) {
+TEST_F(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingStreamPayload) {
   int close_count = 0;
   ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(
@@ -581,7 +685,7 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingStreamPayload) {
   EXPECT_EQ(close_count, 1);
 }
 
-TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingStreamPayload) {
+TEST_F(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingStreamPayload) {
   PayloadTransferFrame frame;
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
@@ -596,7 +700,7 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingStreamPayload) {
   payload->Close();
 }
 
-TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingFilePayload) {
+TEST_F(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingFilePayload) {
   PayloadTransferFrame frame;
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
@@ -613,7 +717,7 @@ TEST(InternalPayloadFactoryTest, CloseIsIdempotentForIncomingFilePayload) {
   payload->Close();
 }
 
-TEST(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingFilePayload) {
+TEST_F(InternalPayloadFactoryTest, CloseIsIdempotentForOutgoingFilePayload) {
   std::string file_path =
       absl::StrCat(::testing::TempDir(), "/test_close_idempotent_outgoing");
   {

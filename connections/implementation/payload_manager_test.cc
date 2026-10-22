@@ -15,6 +15,7 @@
 #include "connections/implementation/payload_manager.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -28,6 +29,8 @@
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -122,6 +125,32 @@ class PayloadSimulationUser : public SimulationUser {
 
     pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
                         Medium::WIFI_HOTSPOT);
+  }
+
+  void SetCustomSavePath(const std::string& path) {
+    pm_.SetCustomSavePath(&client_, path);
+  }
+
+  void ReceiveFileChunk(Payload::Id payload_id, absl::string_view file_name,
+                        int64_t total_size, int64_t offset,
+                        absl::string_view body, int32_t flags) {
+    PayloadTransferFrame::PayloadHeader header;
+    header.set_id(payload_id);
+    header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+    header.set_total_size(total_size);
+    header.set_file_name(std::string(file_name));
+    header.set_parent_folder("");
+    PayloadTransferFrame::PayloadChunk chunk;
+    chunk.set_body(std::string(body));
+    chunk.set_offset(offset);
+    chunk.set_flags(flags);
+
+    OfflineFrame offline_frame;
+    std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(bytes);
+
+    pm_.OnIncomingFrame(offline_frame, discovered_.endpoint_id, &client_,
+                        Medium::WIFI_LAN);
   }
 
   Status CancelPayload() {
@@ -508,6 +537,77 @@ TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
   user.Stop();
   env_.Stop();
 }
+
+#if !defined(NEARBY_CHROMIUM)
+TEST_P(PayloadManagerTest, CancelIncompleteIncomingFilePayloadDeletesFile) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98765;
+  constexpr absl::string_view kFileName = "incomplete_canceled_file.txt";
+  user_a.ReceiveFileChunk(kPayloadId, kFileName, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+
+  FilePath file_path = FilePath(temp_dir).append(FilePath(kFileName));
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
+  EXPECT_FALSE(Files::FileExists(file_path));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, DuplicateIncomingPayloadIdFailsPayload) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98766;
+  constexpr absl::string_view kFileName1 = "dup_id_file_1.txt";
+  constexpr absl::string_view kFileName2 = "dup_id_file_2.txt";
+  user_a.ReceiveFileChunk(kPayloadId, kFileName1, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+
+  FilePath file_path1 = FilePath(temp_dir).append(FilePath(kFileName1));
+  FilePath file_path2 = FilePath(temp_dir).append(FilePath(kFileName2));
+  EXPECT_TRUE(Files::FileExists(file_path1));
+
+  // Receiving another initial chunk with the same payload ID must be treated as
+  // a payload error, failing the payload and deleting the incomplete file
+  // without disconnecting the endpoint.
+  user_a.ReceiveFileChunk(kPayloadId, kFileName2, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kFailure;
+      },
+      kProgressTimeout));
+  EXPECT_TRUE(user_a.IsConnected());
+  EXPECT_FALSE(Files::FileExists(file_path1));
+  EXPECT_FALSE(Files::FileExists(file_path2));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+#endif  // !defined(NEARBY_CHROMIUM)
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
                          ::testing::ValuesIn(kTestCases));

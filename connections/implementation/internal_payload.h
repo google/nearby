@@ -32,10 +32,10 @@ namespace connections {
 // Defines the operations layered atop a Payload, for use inside the
 // OfflineServiceController.
 //
-// <p>There will be an extension of this abstract base class per type of
+// There will be an extension of this abstract base class per type of
 // Payload.
 //
-// <p>Implementations are thread-compatible (go/thread-compatible), except that
+// Implementations are thread-compatible (go/thread-compatible), except that
 // Close() may be called from another thread.
 class InternalPayload {
  public:
@@ -48,7 +48,7 @@ class InternalPayload {
 
   // Returns the PayloadType of the Payload to which this object is bound.
   //
-  // <p>Note that this is supposed to return the type from the OfflineFrame
+  // Note that this is supposed to return the type from the OfflineFrame
   // proto rather than what is already available via
   // Payload::getType().
   //
@@ -113,7 +113,7 @@ class OutgoingInternalPayload : public InternalPayload {
 
   // Breaks off the next chunk from the Payload to which this object is bound.
   //
-  // <p>Used when we have a complete Payload that we want to break into smaller
+  // Used when we have a complete Payload that we want to break into smaller
   // byte blobs for sending across a hard boundary (like the other side of
   // a Binder, or another device altogether).
   //

@@ -336,14 +336,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
-  void SendClientCallbacksForFinishedIncomingPayload(
-      ClientProxy* client, const std::string& endpoint_id,
-      const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
-          payload_header,
-      int64_t offset_bytes,
-      location::nearby::proto::connections::PayloadStatus status,
-      location::nearby::proto::connections::OperationResultCode
-          operation_result_code);
 
   void SendControlMessage(
       const std::vector<std::string>& endpoint_ids,
@@ -380,7 +372,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
           operation_result_code,
       location::nearby::proto::connections::PayloadStatus status = location::
           nearby::proto::connections::PayloadStatus::UNKNOWN_PAYLOAD_STATUS);
-  void HandleFinishedIncomingPayload(
+  void HandleIncomingPayloadError(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
@@ -388,6 +380,14 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
+  void HandleIncomingPayloadErrorOnStatusUpdateThread(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
+          payload_header,
+      int64_t offset_bytes,
+      location::nearby::proto::connections::PayloadStatus status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD();
 
   void HandleSuccessfulOutgoingChunk(
       ClientProxy* client, const std::string& endpoint_id,
