@@ -2417,6 +2417,8 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
             session.attachment_container().GetWifiCredentialsAttachments())
             .SetDestinationDirectory(
                 session.attachment_container().GetDestinationDirectory())
+            .SetRequiredPackage(
+                session.attachment_container().GetRequiredPackage())
             .Build(),
         TransferMetadataBuilder::Clone(metadata)
             .set_is_original(false)
@@ -2522,6 +2524,8 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
             session.attachment_container().GetTextAttachments(),
             session.attachment_container().GetFileAttachments(),
             session.attachment_container().GetWifiCredentialsAttachments())
+            .SetRequiredPackage(
+                session.attachment_container().GetRequiredPackage())
             .Build(),
         TransferMetadataBuilder::Clone(metadata)
             .set_is_original(false)

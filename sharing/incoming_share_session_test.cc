@@ -1599,5 +1599,17 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
             ConnectionResponseFrame::NOT_ENOUGH_SPACE);
 }
 
+TEST_F(IncomingShareSessionTest,
+       ProcessIntroductionPropagatesRequiredPackage) {
+  session_.OnConnected(&connection_);
+  introduction_frame_.set_required_package("com.example.companion");
+
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_, FilePath(),
+                                           sync_manager_, device_info_),
+              Eq(std::nullopt));
+  EXPECT_THAT(session_.attachment_container().GetRequiredPackage(),
+              Eq(std::optional<std::string>("com.example.companion")));
+}
+
 }  // namespace
 }  // namespace nearby::sharing

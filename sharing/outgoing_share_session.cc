@@ -321,6 +321,9 @@ bool OutgoingShareSession::FillIntroductionFrame(
         wifi_credentials.security_type());
     wifi_credentials_metadata->set_payload_id(wifi_credentials_payloads_[i].id);
   }
+  if (container.GetRequiredPackage().has_value()) {
+    introduction->set_required_package(*container.GetRequiredPackage());
+  }
   return true;
 }
 
