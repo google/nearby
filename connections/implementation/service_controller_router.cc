@@ -112,8 +112,8 @@ ServiceControllerRouter::ServiceControllerRouter() {
 }
 
 ServiceControllerRouter::ServiceControllerRouter(
-    absl::AnyInvocable<bool()> if_hp_realtek_device)
-    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {}
+    absl::AnyInvocable<AppType()> app_type_provider)
+    : app_type_provider_(std::move(app_type_provider)) {}
 
 ServiceControllerRouter::~ServiceControllerRouter() {
   LOG(INFO) << "ServiceControllerRouter going down.";
@@ -727,30 +727,46 @@ void ServiceControllerRouter::SetServiceControllerForTesting(
 
 ServiceController* ServiceControllerRouter::GetServiceController() {
   if (!service_controller_) {
-    bool is_hp_realtek_device = if_hp_realtek_device_();
-    LOG(INFO) << __func__
-              << " if_hp_realtek_device_ =  " << is_hp_realtek_device;
-    // Temporarily fix to get around wifi hotspot issues for HP Aero with
-    // Realtek.
-    // See b/380191431 for more details.
-    if (is_hp_realtek_device) {
-      LOG(INFO) << __func__
-                << ": it is HP Realtek device, set BwuManager::Config.";
-      BwuManager::Config bwu_config;
-      bwu_config.allow_upgrade_to = {/*bluetooth=*/false,
-                                     /*ble=*/false,
-                                     /*web_rtc_no_cellular=*/false,
-                                     /*web_rtc=*/true,
-                                     /*wifi_lan=*/true,
-                                     /*wifi_aware=*/true,
-                                     /*wifi_hotspot=*/false,
-                                     /*wifi_direct=*/true,
-                                     /*awdl=*/false};
-      service_controller_ =
-          std::make_unique<OfflineServiceController>(bwu_config);
-    } else {
-      service_controller_ =
-          std::make_unique<OfflineServiceController>(BwuManager::Config());
+    AppType app_type = app_type_provider_();
+    LOG(INFO) << __func__ << " app_type_ = " << static_cast<int>(app_type);
+    switch (app_type) {
+      case AppType::kHPRealtekDevice: {
+        // Temporarily fix to get around wifi hotspot issues for HP Aero with
+        // Realtek.
+        // See b/380191431 for more details.
+        LOG(INFO) << __func__
+                  << ": it is HP Realtek device, set BwuManager::Config.";
+        BwuManager::Config bwu_config;
+        bwu_config.allow_upgrade_to = {/*bluetooth=*/false,
+                                       /*ble=*/false,
+                                       /*web_rtc_no_cellular=*/false,
+                                       /*web_rtc=*/true,
+                                       /*wifi_lan=*/true,
+                                       /*wifi_aware=*/true,
+                                       /*wifi_hotspot=*/false,
+                                       /*wifi_direct=*/true,
+                                       /*awdl=*/false,
+                                       /*wifi_aware_r4=*/false};
+        service_controller_ =
+            std::make_unique<OfflineServiceController>(bwu_config);
+        break;
+      }
+      case AppType::kAppDisableWifiLanUpgrade: {
+        LOG(INFO) << __func__ << ": App'd like to disable WIFI_LAN upgrade.";
+        // Leave `allow_upgrade_to` empty so that BwuManager still selects the
+        // other upgrade mediums based on their feature flags (e.g.
+        // kEnableAwdl, kEnableWifiDirect, kEnableWifiHotspotClient). Only
+        // WIFI_LAN is forced off.
+        BwuManager::Config bwu_config;
+        bwu_config.disable_wifi_lan_upgrade = true;
+        service_controller_ =
+            std::make_unique<OfflineServiceController>(bwu_config);
+        break;
+      }
+      case AppType::kNone:
+        service_controller_ =
+            std::make_unique<OfflineServiceController>(BwuManager::Config());
+        break;
     }
   }
   return service_controller_.get();

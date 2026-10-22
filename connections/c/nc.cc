@@ -44,6 +44,7 @@
 #if !defined(NC_OSS_BUILD)
 #include "connections/implementation/analytics/analytics_recorder_impl.h"
 #endif  // !defined(NC_OSS_BUILD)
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -72,6 +73,16 @@ class OfflineServiceController;
 namespace {
 
 using ::nearby::connections::ClientEvent;
+using ::nearby::connections::ServiceControllerRouter;
+
+ServiceControllerRouter::AppType GetAppType() {
+  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+          nearby::connections::config_package_nearby::
+              nearby_connections_feature::kDisableWifiLanUpgrade)) {
+    return ServiceControllerRouter::AppType::kAppDisableWifiLanUpgrade;
+  }
+  return ServiceControllerRouter::AppType::kNone;
+}
 
 class FlagReaderWrapper : public nearby::flags::FlagReader {
  public:
@@ -272,7 +283,8 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
   ::nearby::apple::EnableOsLog("com.google.nearby.connections");
 #endif  // TARGET_OS_IOS
 
-  nc_context.router = new ::nearby::connections::ServiceControllerRouter();
+  nc_context.router =
+      new ::nearby::connections::ServiceControllerRouter(&GetAppType);
   nc_context.event_logger =
       event_logger == nullptr ? nullptr : new NcEventLogger(event_logger);
   nc_context.core = new ::nearby::connections::Core(
@@ -286,7 +298,8 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
 #else   // !defined(NC_OSS_BUILD)
 NC_INSTANCE NcCreateService() {
   NcContext nc_context;
-  nc_context.router = new ::nearby::connections::ServiceControllerRouter();
+  nc_context.router =
+      new ::nearby::connections::ServiceControllerRouter(&GetAppType);
   nc_context.core = new ::nearby::connections::Core(nc_context.router);
 
   kNcContextMap->insert({nc_context.core, nc_context});
