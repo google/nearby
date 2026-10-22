@@ -192,6 +192,110 @@ final class WiFiAwareMediumTests: XCTestCase {
     XCTAssertEqual(attemptCounter.withLock { $0 }, 1)
   }
 
+  func testBrowse_retriesOnHandshakeTimeoutAndSucceeds() async {
+    let manager = AwareManager()
+    manager.retryDelayNanoseconds = 1_000_000
+    let attemptCounter = OSAllocatedUnfairLock(initialState: 0)
+
+    manager.browseHookForTesting = { _, _, _ in
+      let attempt = attemptCounter.withLock { count -> Int in
+        count += 1
+        return count
+      }
+      if attempt == 1 {
+        // What InternalConnectionWrapper.awaitReady(timeoutSeconds:) throws on timeout.
+        throw NSError(
+          domain: "InternalConnectionWrapper",
+          code: -2,
+          userInfo: [
+            NSLocalizedDescriptionKey:
+              "Handshake timed out waiting for ready state (\(kConnectionReadyTimeoutSeconds)s)"
+          ]
+        )
+      }
+      return WiFiAwareConnectionWrapper(asListener: false)
+    }
+
+    let browseError = await runBrowse(manager: manager, port: 46319, peerId: "")
+    XCTAssertNil(browseError)
+    XCTAssertEqual(attemptCounter.withLock { $0 }, 2)
+    XCTAssertNotNil(manager.getLatestConnectionWrapper())
+  }
+
+  func testBrowse_retriesWhenConnectionEntersWaitingAndSucceeds() async {
+    let manager = AwareManager()
+    manager.retryDelayNanoseconds = 1_000_000
+    let attemptCounter = OSAllocatedUnfairLock(initialState: 0)
+
+    manager.browseHookForTesting = { _, _, _ in
+      let attempt = attemptCounter.withLock { count -> Int in
+        count += 1
+        return count
+      }
+      if attempt == 1 {
+        // What awaitReady() throws after ConnectionManager closes a connection stuck in .waiting.
+        throw NSError(
+          domain: "InternalConnectionWrapper",
+          code: -1,
+          userInfo: [
+            NSLocalizedDescriptionKey:
+              "\(kWaitingConnectionFailureReason) Error: POSIXErrorCode(rawValue: 60)"
+          ]
+        )
+      }
+      return WiFiAwareConnectionWrapper(asListener: false)
+    }
+
+    let browseError = await runBrowse(manager: manager, port: 46319, peerId: "")
+    XCTAssertNil(browseError)
+    XCTAssertEqual(attemptCounter.withLock { $0 }, 2)
+    XCTAssertNotNil(manager.getLatestConnectionWrapper())
+  }
+
+  func testBrowse_stopsAfterMaxAttemptsOnRepeatedHandshakeTimeouts() async {
+    let manager = AwareManager()
+    manager.retryDelayNanoseconds = 1_000_000
+    let attemptCounter = OSAllocatedUnfairLock(initialState: 0)
+
+    manager.browseHookForTesting = { _, _, _ in
+      attemptCounter.withLock { $0 += 1 }
+      throw NSError(domain: "InternalConnectionWrapper", code: -2)
+    }
+
+    let browseError = await runBrowse(manager: manager, port: 46319, peerId: "")
+    XCTAssertEqual(browseError?.code, -2)
+    XCTAssertEqual(attemptCounter.withLock { $0 }, kMaxDataPathBrowseAttempts)
+    XCTAssertNil(manager.getLatestConnectionWrapper())
+  }
+
+  func testIsRetriableWiFiAwareBrowseError() {
+    XCTAssertTrue(
+      isRetriableWiFiAwareBrowseError(NSError(domain: "InternalConnectionWrapper", code: -2)))
+    XCTAssertTrue(
+      isRetriableWiFiAwareBrowseError(
+        NSError(
+          domain: "InternalConnectionWrapper", code: -1,
+          userInfo: [NSLocalizedDescriptionKey: kWaitingConnectionFailureReason])))
+    XCTAssertTrue(
+      isRetriableWiFiAwareBrowseError(
+        NSError(
+          domain: "InternalConnectionWrapper", code: -1,
+          userInfo: [NSLocalizedDescriptionKey: kTerminalDataPathFailureReason])))
+    XCTAssertTrue(
+      isRetriableWiFiAwareBrowseError(
+        NSError(domain: NSPOSIXErrorDomain, code: kWiFiAwareDataPathError)))
+
+    // Discovery failures and other closes are not retried with a fresh browser.
+    XCTAssertFalse(
+      isRetriableWiFiAwareBrowseError(NSError(domain: NSPOSIXErrorDomain, code: -11992)))
+    XCTAssertFalse(
+      isRetriableWiFiAwareBrowseError(
+        NSError(
+          domain: "InternalConnectionWrapper", code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "Connection closed during handshake"])))
+    XCTAssertFalse(isRetriableWiFiAwareBrowseError(NSError(domain: "AwareManager", code: -2)))
+  }
+
   // MARK: - WiFiAwareConnectionWrapper Listener Tests
 
   func testListenerWrapper_buffersAndAcceptsIncomingConnection() async {
