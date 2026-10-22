@@ -20,6 +20,7 @@
 #include <optional>
 #include <string>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
@@ -29,6 +30,7 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
 @interface GNCNWFrameworkSocket ()
 
 @property(nonatomic, readonly) id<GNCNWConnection> connection;
+@property(nonatomic, readonly) NSCondition *condition;
 
 @end
 
@@ -39,6 +41,7 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
   self = [super init];
   if (self) {
     _connection = connection;
+    _condition = [[NSCondition alloc] init];
   }
   return self;
 }
@@ -101,10 +104,12 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     return nil;
   }
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block dispatch_data_t resultData = nil;
   __block NSError *blockError = nil;
+  __block BOOL isDone = NO;
 
+  NSCondition *condition = _condition;
+  [condition lock];
   // Min and max length are set to the same value to indicate that we expect to receive a single
   // message of the given length. Completion is only called once and only when the received message
   // is at least min length. The returned data will be at most max length.
@@ -113,15 +118,25 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
                         completionHandler:^(dispatch_data_t _Nullable content,
                                             nw_content_context_t _Nullable context, bool isComplete,
                                             nw_error_t _Nullable receiveError) {
+                          [condition lock];
                           if (receiveError) {
                             blockError =
                                 (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
                           }
                           resultData = content;
-                          dispatch_semaphore_signal(semaphore);
+                          isDone = YES;
+                          [condition signal];
+                          [condition unlock];
                         }];
 
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (GNCFeatureFlags.guardNWFrameworkSocketReadConditionEnabled) {
+    while (!isDone) {
+      [condition wait];
+    }
+  } else {
+    [condition wait];
+  }
+  [condition unlock];
   if (error) {
     *error = blockError;
   }

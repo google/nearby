@@ -44,6 +44,10 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware,
       false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      true);
 
   [super tearDown];
 }
@@ -129,6 +133,22 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware, NO);
   XCTAssertFalse([GNCFeatureFlags wifiAwareEnabled]);
+}
+
+- (void)testGuardNWFrameworkSocketReadConditionEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags guardNWFrameworkSocketReadConditionEnabled]);
+}
+
+- (void)testGuardNWFrameworkSocketReadConditionEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags guardNWFrameworkSocketReadConditionEnabled]);
 }
 
 @end

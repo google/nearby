@@ -108,6 +108,10 @@ constexpr auto kFilterUnconfirmedEndpointFrames =
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);
+// Guard GNCNWFrameworkSocket read condition wait with a boolean predicate and
+// treat zero-byte complete reads as clean EOF.
+constexpr auto kGuardNwFrameworkSocketReadCondition =
+    flags::Flag<bool>(kConfigPackage, "45868922", true);
 // Default max transmit packet size for medium.
 constexpr auto kMediumDefaultMaxTransmitPacketSize =
     flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);
