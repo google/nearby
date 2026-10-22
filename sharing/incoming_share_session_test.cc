@@ -1599,5 +1599,61 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
             ConnectionResponseFrame::NOT_ENOUGH_SPACE);
 }
 
+TEST_F(IncomingShareSessionTest,
+       ProcessIntroductionZeroByteFileAndTransferComplete) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
+  session_.OnConnected(&connection_);
+  IntroductionFrame introduction_frame;
+  FileMetadata* file = introduction_frame.add_file_metadata();
+  file->set_id(1234);
+  file->set_size(0);
+  file->set_name("empty.txt");
+  file->set_mime_type("text/plain");
+  file->set_type(FileMetadata::DOCUMENT);
+  file->set_payload_id(9876);
+
+  ASSERT_THAT(session_.ProcessIntroduction(introduction_frame, FilePath(),
+                                           sync_manager_, device_info_),
+              Eq(std::nullopt));
+  ASSERT_EQ(session_.attachment_container().GetFileAttachments().size(), 1u);
+  EXPECT_EQ(session_.attachment_container().GetFileAttachments()[0].size(), 0);
+
+  FilePath file_path{"/usr/tmp/empty.txt"};
+  connections_manager_.SetIncomingPayload(
+      9876, CreateFilePayload(9876, file_path));
+
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::RECEIVING_EVENT),
+           HasEventType(EventType::RESPOND_TO_INTRODUCTION),
+           Property(&SharingLog::respond_introduction,
+                    HasAction(ResponseToIntroduction::ACCEPT_INTRODUCTION)),
+           Property(&SharingLog::respond_introduction, HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::RECEIVING_EVENT),
+                         HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
+                         Property(&SharingLog::receive_attachments_start,
+                                  HasSessionId(1234)))))));
+  session_.ReadyForTransfer(
+      []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
+  session_.AcceptTransfer([]() {});
+
+  session_.PushPayloadTransferUpdateForTest(
+      std::make_unique<PayloadTransferUpdate>(
+          9876, PayloadStatus::kSuccess, /*total_bytes=*/0,
+          /*bytes_transferred=*/0));
+
+  std::optional<TransferMetadata> metadata =
+      session_.ProcessPayloadTransferUpdates(false);
+  ASSERT_THAT(metadata.has_value(), IsTrue());
+  EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(file_path));
+}
+
 }  // namespace
 }  // namespace nearby::sharing
