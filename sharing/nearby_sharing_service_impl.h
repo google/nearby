@@ -545,7 +545,8 @@ class NearbySharingServiceImpl
   bool update_file_paths_in_progress_ = false;
 
   // Used to track the time when share sheet activity starts
-  absl::Time share_foreground_send_surface_start_timestamp_;
+  absl::Time share_foreground_send_surface_start_timestamp_ =
+      absl::InfinitePast();
   std::unique_ptr<nearby::api::AppInfo> app_info_;
   std::optional<uint16_t> alternate_service_uuid_;
   // If true, a new endpoint id will be generated at the next advertisement.
