@@ -2640,7 +2640,8 @@ void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
   session->frames_reader()->ReadFrame(
       absl::bind_front(&NearbySharingServiceImpl::OnIncomingSessionFrameRead,
                        this, share_target_id),
-      absl::ZeroDuration());
+      session->attachment_container().HasAttachments() ? absl::ZeroDuration()
+                                                       : kReadFramesTimeout);
 }
 
 void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(

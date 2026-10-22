@@ -5444,5 +5444,37 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
 }
 
+TEST_F(NearbySharingServiceImplTest,
+       IncomingConnectionUnknownFrameBeforeIntroductionPreservesTimeout) {
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
+                                                              GetToken());
+  SetLanConnected(true);
+  SetUpKeyVerification(/*is_incoming=*/true, PairedKeyResultFrame::SUCCESS);
+  // Queue an unexpected RESPONSE frame before any INTRODUCTION frame arrives.
+  SendConnectionResponse(ConnectionResponseFrame::ACCEPT);
+
+  NiceMock<MockTransferUpdateCallback> callback;
+  SetUpForegroundReceiveSurface(callback);
+  ScopedReceiveSurface r(service_.get(), &callback);
+
+  absl::Notification notification;
+  EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+      .WillOnce([&](const ShareTarget& incoming_share_target,
+                    const AttachmentContainer& container,
+                    const TransferMetadata& metadata) {
+        EXPECT_TRUE(metadata.is_final_status());
+        EXPECT_EQ(metadata.status(), TransferMetadata::Status::kTimedOut);
+        notification.Notify();
+      });
+
+  EXPECT_CALL(*mock_app_info_, SetActiveFlag());
+  StartIncomingConnection();
+  ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                           /*success=*/true);
+  FastForward(kReadFramesTimeout);
+  EXPECT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(100)));
+}
+
 }  // namespace NearbySharingServiceUnitTests
 }  // namespace nearby::sharing
