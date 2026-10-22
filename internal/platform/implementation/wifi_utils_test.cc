@@ -14,10 +14,12 @@
 
 #include "internal/platform/implementation/wifi_utils.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <climits>
+
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 
 namespace nearby {
 namespace {
@@ -93,9 +95,32 @@ TEST(WifiUtilsTest, Ipv4Validation) {
 }
 
 TEST(WifiUtilsTest, GetHumanReadableIpAddress) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+          kFixIpAddressUnsignedByteFormatting,
+      true);
   EXPECT_EQ(
       WifiUtils::GetHumanReadableIpAddress(absl::HexStringToBytes("000AFEFF")),
       "0.10.254.255");
+  EXPECT_EQ(
+      WifiUtils::GetHumanReadableIpAddress(absl::HexStringToBytes("C0A88901")),
+      "192.168.137.1");
+}
+
+TEST(WifiUtilsTest, GetHumanReadableIpAddressFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+          kFixIpAddressUnsignedByteFormatting,
+      false);
+#if CHAR_MIN < 0
+  EXPECT_EQ(
+      WifiUtils::GetHumanReadableIpAddress(absl::HexStringToBytes("C0A88901")),
+      "4294967232.4294967208.4294967177.1");
+#else
+  EXPECT_EQ(
+      WifiUtils::GetHumanReadableIpAddress(absl::HexStringToBytes("C0A88901")),
+      "192.168.137.1");
+#endif
 }
 
 }  // namespace

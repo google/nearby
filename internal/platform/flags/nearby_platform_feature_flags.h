@@ -47,6 +47,10 @@ constexpr auto kEnableTaskScheduler =
 // Enable/Disable Wi-Fi hotspot native.
 constexpr auto kEnableWifiHotspotNative =
     flags::Flag<bool>(kConfigPackage, "45667396", true);
+// When true, casts IPv4 octets to uint8_t in
+// WifiUtils::GetHumanReadableIpAddress (b/574971208).
+constexpr auto kFixIpAddressUnsignedByteFormatting =
+    flags::Flag<bool>(kConfigPackage, "45868915", true);
 // The send buffer size of blocking socket.
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);

@@ -81,6 +81,8 @@ cc_library(
         "//:__subpackages__",
     ],
     deps = [
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
@@ -205,6 +207,8 @@ cc_test(
     shard_count = 8,
     deps = [
         ":wifi_utils",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
