@@ -597,7 +597,11 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocketWithDeadlo
                                 }
                                 dispatch_semaphore_signal(semaphore);
                               }];
-  [socketPeripheralManager_ start];
+  // `addPeripheralServiceManager:` runs asynchronously on the main queue, so dispatch `start` to
+  // the main queue as well to ensure it runs after the service manager is added.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [socketPeripheralManager_ start];
+  });
   dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, kApiTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
     GNCLoggerError(@"OpenServerSocket operation timed out.");
