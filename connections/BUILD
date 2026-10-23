@@ -35,6 +35,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         ":partners",
+        "//ambient/nearby/testing/connection/mdc/ios/snippet:__pkg__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
@@ -42,11 +43,14 @@ cc_library(
     ],
     deps = [
         ":core_types",
+        "//connections/implementation:client_proxy",
         "//connections/implementation:internal",
+        "//connections/implementation:service_id_constants",
+        "//connections/implementation/analytics",
         "//connections/v3:v3_types",
-        "//internal/analytics:event_logger",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
@@ -82,6 +86,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         ":partners",
+        "//ambient/nearby/testing/connection/mdc/ios/snippet:__pkg__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
@@ -91,12 +96,15 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
-        "//internal/platform:types",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/random",
-        "@com_google_absl//absl/types:variant",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -117,6 +125,8 @@ cc_test(
         "//connections/implementation:internal_test",
         "//connections/v3:v3_types",
         "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

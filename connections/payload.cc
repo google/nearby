@@ -28,9 +28,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/logging.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
 
@@ -64,19 +64,11 @@ Payload::Payload(ByteArray&& bytes)
 Payload::Payload(const ByteArray& bytes)
     : type_(PayloadType::kBytes), content_(bytes) {}
 
-Payload::Payload(InputFile input_file)
-    : id_(std::hash<std::string>()(input_file.GetFilePath())),
-      file_name_(FormatFileName(input_file.GetFilePath())),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
-
 Payload::Payload(std::string parent_folder, std::string file_name,
-                 InputFile input_file)
-    : id_(std::hash<std::string>()(input_file.GetFilePath())),
-      parent_folder_(parent_folder),
-      file_name_(file_name),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
+                 InputFile input_file) {
+  Id id = std::hash<std::string>()(input_file.GetFilePath());
+  InitFilePayload(id, parent_folder, file_name, std::move(input_file));
+}
 
 Payload::Payload(std::unique_ptr<InputStream> stream)
     : type_(PayloadType::kStream), content_(std::move(stream)) {}
@@ -88,22 +80,28 @@ Payload::Payload(Id id, ByteArray&& bytes)
 Payload::Payload(Id id, const ByteArray& bytes)
     : id_(id), type_(PayloadType::kBytes), content_(bytes) {}
 
-Payload::Payload(Id id, InputFile input_file)
-    : id_(id),
-      file_name_(FormatFileName(input_file.GetFilePath())),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
+Payload::Payload(Id id, InputFile input_file) {
+  std::string file_path = input_file.GetFilePath();
+  InitFilePayload(id, /*parent_folder=*/"", file_path, std::move(input_file));
+}
 
 Payload::Payload(Id id, std::string parent_folder, std::string file_name,
-                 InputFile input_file)
-    : id_(id),
-      parent_folder_(parent_folder),
-      file_name_(file_name),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
+                 InputFile input_file) {
+  InitFilePayload(id, parent_folder, file_name, std::move(input_file));
+}
 
 Payload::Payload(Id id, std::unique_ptr<InputStream> stream)
     : id_(id), type_(PayloadType::kStream), content_(std::move(stream)) {}
+
+void Payload::InitFilePayload(Id id, std::string parent_folder,
+                              std::string file_name, InputFile input_file) {
+  id_ = id;
+  parent_folder_ = parent_folder;
+  file_name_ = FormatFileName(file_name);
+  last_modified_time_ = input_file.GetLastModifiedTime();
+  type_ = PayloadType::kFile;
+  content_ = std::move(input_file);
+}
 
 // Returns ByteArray payload, if it has been defined, or empty ByteArray.
 const ByteArray& Payload::AsBytes() const& {
@@ -153,5 +151,4 @@ const std::string& Payload::GetParentFolder() const { return parent_folder_; }
 
 const std::string& Payload::GetFileName() const { return file_name_; }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

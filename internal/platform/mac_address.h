@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 
 namespace nearby {
 
@@ -37,11 +38,20 @@ class MacAddress {
   // Returns false if the integer is not a valid MAC address.
   static bool FromUint64(uint64_t address, MacAddress& mac_address);
 
+  // Creates a MAC address from a span of bytes.
+  // Returns false if the span is less than 6 bytes long.
+  static bool FromBytes(absl::Span<const uint8_t> bytes,
+                        MacAddress& mac_address);
+
   // Packs the MAC address into the lower 48 bits of a 64-bit integer.
   uint64_t address() const { return address_; }
 
   // Returns the MAC address in the format of "00:B0:D0:63:C2:26".
   std::string ToString() const;
+
+  // Packs the MAC address into the given bytes.
+  // Returns false if the span is less than 6 bytes long.
+  bool ToBytes(absl::Span<uint8_t> bytes) const;
 
   // Returns true if the MAC address is set.
   bool IsSet() const { return address_ != 0; }

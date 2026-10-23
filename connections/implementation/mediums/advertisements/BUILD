@@ -29,7 +29,6 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:util",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -45,7 +44,6 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform:util",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -54,9 +52,7 @@ cc_library(
     srcs = ["advertisement_util.cc"],
     hdrs = ["advertisement_util.h"],
     deps = [
-        ":dct_advertisement",
         "//internal/platform:base",
-        "//internal/platform:logging",
         "//internal/platform:util",
         "@com_google_absl//absl/strings:string_view",
     ],
@@ -79,8 +75,6 @@ cc_test(
     srcs = ["dct_advertisement_test.cc"],
     deps = [
         ":dct_advertisement",
-        "//internal/platform:base",
-        "//internal/platform:util",
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
@@ -93,7 +87,6 @@ cc_test(
     deps = [
         ":util",
         "//internal/platform:base",
-        "//internal/platform:util",
         "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

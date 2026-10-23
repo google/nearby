@@ -19,11 +19,13 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/mac_address.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace connections {
@@ -31,6 +33,9 @@ namespace parser {
 
 using UpgradePathInfo = ::location::nearby::connections::
     BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
+using MediumMetadata = ::location::nearby::connections::MediumMetadata;
+using WifiDirectAuthType =
+    ::location::nearby::proto::connections::WifiDirectAuthType;
 
 // Serialize/Deserialize Nearby Connections Protocol messages.
 
@@ -38,7 +43,7 @@ using UpgradePathInfo = ::location::nearby::connections::
 // Returns OfflineFrame if parser was able to understand it, or
 // Exception::kInvalidProtocolBuffer, if parser failed.
 ExceptionOr<location::nearby::connections::OfflineFrame> FromBytes(
-    const ByteArray& offline_frame_bytes);
+    absl::string_view offline_frame_bytes);
 
 // Returns FrameType of a parsed message, or
 // V1Frame::UNKNOWN_FRAME_TYPE, if frame contents is not recognized.
@@ -46,74 +51,77 @@ location::nearby::connections::V1Frame::FrameType GetFrameType(
     const location::nearby::connections::OfflineFrame& offline_frame);
 
 // Builds Connection Request / Response messages.
-ByteArray ForConnectionRequestConnections(
+std::string ForConnectionRequestConnections(
     const location::nearby::connections::ConnectionsDevice&
         proto_connections_device,
-    const ConnectionInfo& conection_info);
-ByteArray ForConnectionRequestPresence(
+    const ConnectionInfo& connection_info);
+std::string ForConnectionRequestPresence(
     const location::nearby::connections::PresenceDevice& proto_presence_device,
     const ConnectionInfo& connection_info);
-ByteArray ForConnectionResponse(
+std::string ForConnectionResponse(
     std::int32_t status, const location::nearby::connections::OsInfo& os_info,
-    std::int32_t multiplex_socket_bitmask);
+    const std::string& device_name);
 
 // Builds Payload transfer messages.
-ByteArray ForDataPayloadTransfer(
+std::string ForDataPayloadTransfer(
     const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
         header,
     const location::nearby::connections::PayloadTransferFrame::PayloadChunk&
         chunk);
-ByteArray ForControlPayloadTransfer(
+std::string ForControlPayloadTransfer(
     const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
         header,
     const location::nearby::connections::PayloadTransferFrame::ControlMessage&
         control);
-ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id);
+std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
-ByteArray ForBwuIntroduction(const std::string& endpoint_id,
-                             bool supports_disabling_encryption);
-ByteArray ForBwuIntroductionAck();
-ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
+std::string ForBwuIntroduction(const std::string& endpoint_id,
+                               const std::string& last_endpoint_id,
+                               bool supports_disabling_encryption);
+std::string ForBwuIntroductionAck();
+std::string ForBwuWifiHotspotPathAvailable(
+    location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+        UpgradePathInfo::WifiHotspotCredentials credentials,
+    bool supports_disabling_encryption);
+std::string ForBwuWifiLanPathAvailable(
+    const std::vector<ServiceAddress>& addresses);
+std::string ForBwuAwdlPathAvailable(const std::string& service_name,
+                                    const std::string& service_type,
+                                    const std::string& password,
+                                    bool supports_disabling_encryption);
+std::string ForBwuWifiAwarePathAvailable(const std::string& service_id,
+                                         const std::string& service_info,
                                          const std::string& password,
-                                         std::int32_t port,
-                                         std::int32_t frequency,
-                                         const std::string& gateway,
                                          bool supports_disabling_encryption);
-ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
-                                     std::int32_t port);
-ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
-                                  const std::string& service_type,
-                                  const std::string& password,
-                                  bool supports_disabling_encryption);
-ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
-                                       const std::string& service_info,
-                                       const std::string& password,
-                                       bool supports_disabling_encryption);
-ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
-                                        const std::string& password,
-                                        std::int32_t port,
-                                        std::int32_t frequency,
-                                        bool supports_disabling_encryption,
-                                        const std::string& gateway);
-ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
-                                       const std::string& mac_address);
-ByteArray ForBwuWebrtcPathAvailable(
+std::string ForBwuWifiAwareR4PathAvailable(absl::string_view service_id,
+                                           absl::string_view service_info,
+                                           absl::string_view pmk,
+                                           std::int32_t port,
+                                           absl::string_view advertised_name,
+                                           bool supports_disabling_encryption);
+std::string ForBwuWifiDirectPathAvailable(
+    const std::string& ssid, const std::string& password, std::int32_t port,
+    std::int32_t frequency, bool supports_disabling_encryption,
+    const std::string& gateway, const std::string& device_name,
+    const std::string& pin);
+std::string ForBwuBluetoothPathAvailable(const std::string& service_id,
+                                         MacAddress mac_address);
+std::string ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);
-ByteArray ForBwuFailure(const UpgradePathInfo& info);
-ByteArray ForBwuPathRequest(
-    const std::vector<Medium>& mediums,
-    const location::nearby::connections::MediumRole& medium_role);
-ByteArray ForBwuLastWrite();
-ByteArray ForBwuSafeToClose();
+std::string ForBwuFailure(const UpgradePathInfo& info);
+std::string ForBwuPathRequest(
+    Medium medium, const std::vector<Medium>& mediums,
+    const location::nearby::connections::MediumRole& medium_role,
+    bool supports_5_ghz);
+std::string ForBwuLastWrite();
+std::string ForBwuSafeToClose();
 
-ByteArray ForKeepAlive();
-ByteArray ForKeepAlive(bool ack, uint32_t seq_num);
-ByteArray ForDisconnection(bool request_safe_to_disconnect,
-                           bool ack_safe_to_disconnect);
-ByteArray ForAutoReconnectIntroduction(const std::string& endpoint_id);
-ByteArray ForAutoReconnectIntroductionAck();
+std::string ForKeepAlive();
+std::string ForKeepAlive(bool ack, uint32_t seq_num);
+std::string ForDisconnection(bool request_safe_to_disconnect,
+                             bool ack_safe_to_disconnect);
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
 
@@ -124,7 +132,12 @@ Medium ConnectionRequestMediumToMedium(
 std::vector<Medium> ConnectionRequestMediumsToMediums(
     const location::nearby::connections::ConnectionRequestFrame&
         connection_request_frame);
-
+MediumMetadata::WifiDirectAuthType WFDAuthTypeToMediumMetadataWFDAuthType(
+    WifiDirectAuthType wifi_direct_auth_type);
+WifiDirectAuthType MediumMetadataWFDAuthTypeToWFDAuthType(
+    MediumMetadata::WifiDirectAuthType wifi_direct_auth_type);
+std::vector<WifiDirectAuthType> MediumMetadataWFDAuthTypesToWFDAuthTypes(
+    const MediumMetadata& medium_metadata);
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby

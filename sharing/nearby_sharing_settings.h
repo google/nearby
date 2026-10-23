@@ -22,18 +22,20 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_binding_prefs.pb.h"
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
+#include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/settings_observer_data.pb.h"
@@ -138,7 +140,8 @@ class NearbyShareSettings
   };
 
   NearbyShareSettings(
-      Context* context, nearby::Clock* clock, nearby::DeviceInfo& device_info,
+      TaskRunner* absl_nonnull task_runner, nearby::Clock* absl_nonnull clock,
+      nearby::api::DeviceInfo& device_info,
       nearby::sharing::api::PreferenceManager& preference_manager,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
       analytics::AnalyticsRecorder* analytics_recorder = nullptr);
@@ -160,6 +163,10 @@ class NearbyShareSettings
 
   std::string GetCustomSavePath() const;
 
+  nearby::sharing::sync::SyncBindingPrefs GetSyncBindingPrefs() const;
+  void SetSyncBindingPrefs(
+      const nearby::sharing::sync::SyncBindingPrefs& prefs);
+
   // Returns true if the feature is disabled by policy.
   bool IsDisabledByPolicy() const;
 
@@ -168,9 +175,6 @@ class NearbyShareSettings
   void RemoveSettingsObserver(Observer* observer);
   void SetFastInitiationNotificationState(
       proto::FastInitiationNotificationState state);
-  void ValidateDeviceName(
-      absl::string_view device_name,
-      std::function<void(DeviceNameValidationResult)> callback);
   void SetDeviceName(absl::string_view device_name,
                      std::function<void(DeviceNameValidationResult)> callback);
   void SetDataUsage(proto::DataUsage data_usage);
@@ -221,9 +225,9 @@ class NearbyShareSettings
 
   // Make sure thread safe to access Nearby settings
   mutable absl::Mutex mutex_;
-  Context* context_;
-  nearby::Clock* const clock_;
-  nearby::DeviceInfo& device_info_;
+  TaskRunner& task_runner_;
+  nearby::Clock& clock_;
+  nearby::api::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   // Used to create analytics events.

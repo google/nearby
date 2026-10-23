@@ -218,6 +218,11 @@ public class ConnectionManager {
   public func enableBLEV2() {
     GNCFlags.enableBLEV2 = true
   }
+
+  /// Enable Wi-Fi Aware.
+  public func enableWifiAware() {
+    GNCFlags.wifiAwareEnabled = true
+  }
 }
 
 extension ConnectionManager: InternalPayloadDelegate {

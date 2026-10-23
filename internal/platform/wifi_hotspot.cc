@@ -14,19 +14,19 @@
 
 #include "internal/platform/wifi_hotspot.h"
 
-#include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
 WifiHotspotSocket WifiHotspotMedium::ConnectToService(
-    absl::string_view ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
-  LOG(INFO) << "WifiHotspotMedium::ConnectToService: ip address=" << ip_address
-            << ", port=" << port;
+  LOG(INFO) << "WifiHotspotMedium::ConnectToService: port="
+            << service_address.port;
   return WifiHotspotSocket(
-      impl_->ConnectToService(ip_address, port, cancellation_flag));
+      impl_->ConnectToService(service_address, cancellation_flag));
 }
 
 }  // namespace nearby

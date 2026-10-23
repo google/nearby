@@ -17,7 +17,9 @@
 
 #include <memory>
 
-#include "internal/analytics/event_logger.h"
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
+#include "location/nearby/sharing/lib/rpc/grpc_async_client_factory.h"
+#include "location/nearby/sharing/lib/rpc/sharing_rpc_client.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context.h"
@@ -33,13 +35,18 @@ class NearbySharingServiceFactory {
   NearbySharingService* CreateSharingService(
       nearby::sharing::api::SharingPlatform& sharing_platform,
       analytics::AnalyticsRecorder* analytics_recorder,
-      nearby::analytics::EventLogger* event_logger);
+      nearby::analytics::EventLogger* event_logger,
+      bool supports_file_sync);
 
  private:
   NearbySharingServiceFactory() = default;
 
   std::unique_ptr<Context> context_;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
+  std::unique_ptr<nearby::sharing::platform::common::GrpcAsyncClientFactory>
+      nearby_share_client_factory_;
+  std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
+      nearby_identity_client_;
 };
 
 }  // namespace nearby::sharing

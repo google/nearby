@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
       "state" : {
-        "branch" : "cxx17-test",
-        "revision" : "f2c56293ba0c7dc4fed62c38dfea5c5c2d632166"
+        "branch" : "jan-lts",
+        "revision" : "ecabd65f38702137240fd2599f710b0f5cd89cf1"
       }
     },
     {

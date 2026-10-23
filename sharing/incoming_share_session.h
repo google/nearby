@@ -21,15 +21,16 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -54,23 +55,17 @@ class IncomingShareSession : public ShareSession {
 
   bool IsIncoming() const override { return true; }
 
+  // `destination_directory` is the root destination directory for all files
+  // received in this session.
   // Returns nullopt on success.
   // On failure, returns the status that should be used to terminate the
   // connection.
   std::optional<TransferMetadata::Status> ProcessIntroduction(
       const nearby::sharing::service::proto::IntroductionFrame&
-          introduction_frame);
-
-  // Processes the PairedKeyVerificationResult.
-  // Returns true if verification was successful and the session is now waiting
-  // for the introduction frame.  Calls |introduction_callback| when it is
-  // received.
-  bool ProcessKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type,
-      std::function<void(
-          std::optional<nearby::sharing::service::proto::IntroductionFrame>)>
-          introduction_callback);
+          introduction_frame,
+      FilePath destination_directory,
+      const SyncManager& sync_manager,
+      const nearby::api::DeviceInfo& device_info);
 
   // Returns true if the transfer can begin and AcceptTransfer should be called
   // immediately.
@@ -78,7 +73,8 @@ class IncomingShareSession : public ShareSession {
   bool ReadyForTransfer(
       std::function<void()> accept_timeout_callback,
       std::function<
-          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          void(bool is_timeout,
+               std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback);
 
   // Accept the transfer and begin listening for payload transfer updates.
@@ -118,6 +114,12 @@ class IncomingShareSession : public ShareSession {
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
 
  private:
+  enum class SessionPhase {
+    kUninitialized,
+    kTransfer,
+    kSync,
+  };
+
   // Update file attachment paths with payload paths.
   bool UpdateFilePayloadPaths();
 
@@ -137,6 +139,8 @@ class IncomingShareSession : public ShareSession {
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
+
+  SessionPhase session_phase_ = SessionPhase::kUninitialized;
 };
 
 }  // namespace nearby::sharing

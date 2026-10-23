@@ -20,6 +20,8 @@
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby {
@@ -33,6 +35,10 @@ class TransferMetadataBuilder {
   TransferMetadataBuilder(TransferMetadataBuilder&&);
   TransferMetadataBuilder& operator=(TransferMetadataBuilder&&);
   ~TransferMetadataBuilder();
+
+  TransferMetadataBuilder& set_usage(ShareSessionUsage usage);
+
+  TransferMetadataBuilder& set_binding_id(absl::string_view binding_id);
 
   TransferMetadataBuilder& set_is_original(bool is_original);
 
@@ -69,6 +75,7 @@ class TransferMetadataBuilder {
   TransferMetadata build() const;
 
  private:
+  ShareSessionUsage usage_ = ShareSessionUsage::kUnknown;
   bool is_original_ = false;
   double progress_ = 0;
   TransferMetadata::Status status_ = TransferMetadata::Status::kInProgress;
@@ -83,6 +90,7 @@ class TransferMetadataBuilder {
   std::optional<uint64_t> in_progress_attachment_transferred_bytes_ =
       std::nullopt;
   std::optional<uint64_t> in_progress_attachment_total_bytes_ = std::nullopt;
+  std::string binding_id_;
 };
 
 }  // namespace sharing

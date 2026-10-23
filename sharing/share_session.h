@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -37,6 +38,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
 
@@ -71,6 +73,9 @@ class ShareSession {
   void clear_certificate() { certificate_ = std::nullopt; }
 
   NearbyConnection* connection() const { return connection_; }
+  // Returns true if the session has a valid connection.
+  // When `IsConnected()` is true, `connection()` is non-null, as is
+  // `frames_reader()`.
   bool IsConnected() const { return connection_ != nullptr; }
 
   void UpdateTransferMetadata(const TransferMetadata& transfer_metadata);
@@ -91,6 +96,11 @@ class ShareSession {
   bool self_share() const { return self_share_; }
 
   const ShareTarget& share_target() const { return share_target_; }
+
+  ShareSessionUsage session_usage() const { return session_usage_; }
+  void set_session_usage(ShareSessionUsage session_usage) {
+    session_usage_ = session_usage;
+  }
 
   // Sets the status to send in the TransferMetadataUpdate on connection
   // disconnect. If |status| is kUnknown, then no TransferMetadataUpdate will be
@@ -113,6 +123,11 @@ class ShareSession {
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                location::nearby::proto::sharing::OSType)>
           callback);
+  // Processes the PairedKeyVerificationResult.
+  // Returns true if verification was successful.
+  bool ProcessKeyVerificationResult(
+      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
+      location::nearby::proto::sharing::OSType share_target_os_type);
 
   void OnDisconnect();
   const AttachmentContainer& attachment_container() const {
@@ -165,11 +180,6 @@ class ShareSession {
     return attachment_container_;
   }
   void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
-  // Processes the PairedKeyVerificationResult.
-  // Returns true if verification was successful.
-  bool HandleKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type);
 
   NearbyConnectionsManager& connections_manager() {
     return connections_manager_;
@@ -188,6 +198,11 @@ class ShareSession {
 
   void InitializePayloadTracker(
       absl::AnyInvocable<void()> payload_transfer_updates_callback);
+
+  static location::nearby::proto::sharing::SharingUseCase
+  IntroductionUseCaseToLoggingUseCase(
+      nearby::sharing::service::proto::IntroductionFrame::SharingUseCase
+          use_case);
 
  private:
   Clock& clock_;
@@ -217,6 +232,7 @@ class ShareSession {
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
   PayloadTracker::PayloadUpdateQueue* payload_updates_queue_ = nullptr;
   bool is_cancelled_ = false;
+  ShareSessionUsage session_usage_ = ShareSessionUsage::kUnknown;
 };
 
 }  // namespace nearby::sharing

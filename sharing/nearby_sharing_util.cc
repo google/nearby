@@ -14,52 +14,23 @@
 
 #include "sharing/nearby_sharing_util.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <ctime>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/hash/hash.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/file_path.h"
-#include "internal/platform/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_sharing_service.h"
 
 namespace nearby::sharing {
-
-std::string ReceiveSurfaceStateToString(
-    NearbySharingService::ReceiveSurfaceState state) {
-  switch (state) {
-    case NearbySharingService::ReceiveSurfaceState::kForeground:
-      return "FOREGROUND";
-    case NearbySharingService::ReceiveSurfaceState::kBackground:
-      return "BACKGROUND";
-    case NearbySharingService::ReceiveSurfaceState::kUnknown:
-      return "UNKNOWN";
-  }
-}
-
-std::string SendSurfaceStateToString(
-    NearbySharingService::SendSurfaceState state) {
-  switch (state) {
-    case NearbySharingService::SendSurfaceState::kForeground:
-      return "FOREGROUND";
-    case NearbySharingService::SendSurfaceState::kBackground:
-      return "BACKGROUND";
-    case NearbySharingService::SendSurfaceState::kUnknown:
-      return "UNKNOWN";
-  }
-}
 
 std::string PowerLevelToString(PowerLevel level) {
   switch (level) {
@@ -131,22 +102,12 @@ std::string GetDeviceId(
   }
 
   if (!certificate->id().empty()) {
-    return std::string(certificate->id().begin(), certificate->id().end());
+    return absl::BytesToHexString(absl::string_view(
+        reinterpret_cast<const char*>(certificate->id().data()),
+        certificate->id().size()));
   }
 
   return std::string(endpoint_id);
-}
-
-bool IsOutOfStorage(DeviceInfo& device_info, FilePath file_path,
-                    int64_t storage_required) {
-  std::optional<size_t> available_storage =
-      device_info.GetAvailableDiskSpaceInBytes(file_path);
-
-  if (!available_storage.has_value()) {
-    return false;
-  }
-
-  return *available_storage <= storage_required;
 }
 
 }  // namespace nearby::sharing

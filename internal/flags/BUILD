@@ -40,13 +40,9 @@ cc_library(
     hdrs = [
         "nearby_flags.h",
     ],
-    copts = [
-        "-Ithird_party",
-    ],
+    # Flags should not be visible to external users. Only for internal use.
     visibility = [
         "//:__subpackages__",
-        "//connections:partners",
-        "//googlemac/iPhone/Shared/Identity/SmartSetup:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
         "//location/nearby/testing:__subpackages__",

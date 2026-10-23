@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 licenses(["notice"])
 
 cc_library(
@@ -27,10 +29,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//sharing/internal/api:platform",
+        "//sharing/internal/public:pref_names",
         "//sharing/proto:enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/time",
     ],
 )
 

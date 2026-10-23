@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -23,15 +24,15 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
-#include "internal/flags/nearby_flags.h"
+#include "absl/synchronization/mutex.h"
+#include "connections/implementation/bwu_handler.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -55,7 +56,8 @@ class WifiLan {
   // then enables WifiLan advertising.
   // Returns true, if NsdServiceInfo is successfully set, and false otherwise.
   ErrorOr<bool> StartAdvertising(const std::string& service_id,
-                                 NsdServiceInfo& nsd_service_info)
+                                 NsdServiceInfo& nsd_service_info,
+                                 AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising.
@@ -104,16 +106,18 @@ class WifiLan {
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
   ErrorOr<WifiLanSocket> Connect(const std::string& service_id,
-                                 const std::string& ip_address, int port,
+                                 const ServiceAddress& service_address,
                                  CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Gets ip address + port for remote services on the network to identify and
-  // connect to this service.
-  //
-  // Credential is for the currently-hosted Wifi ServerSocket (if any).
-  std::pair<std::string, int> GetCredentials(const std::string& service_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade + port number the service is listening
+  // on.
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
+      const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback);
 
  private:
   struct AdvertisingInfo {
@@ -183,14 +187,20 @@ class WifiLan {
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Generates mDNS type.
-  std::string GenerateServiceType(const std::string& service_id);
+  // Returns the port number of the server socket if successful, otherwise
+  // returns an error.
+  ErrorOr<int> StartAcceptingConnectionsLocked(
+      const std::string& service_id, int port,
+      AcceptedConnectionCallback callback)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopAcceptingConnectionsLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Generates port number based on port_range_.
   int GeneratePort(const std::string& service_id,
                    std::pair<std::int32_t, std::int32_t> port_range);
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   WifiLanMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
@@ -206,16 +216,8 @@ class WifiLan {
   absl::flat_hash_map<std::string, WifiLanServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
 
-  // Whether the multiplex feature is enabled.
-  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex) &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplexWifiLan);
-
-  // A map of IpAddress -> MultiplexSocket.
-  absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
-      multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
+  std::string last_mdns_service_name_ ABSL_GUARDED_BY(mutex_);
+  int last_server_port_ ABSL_GUARDED_BY(mutex_) = 0;
 };
 
 }  // namespace connections

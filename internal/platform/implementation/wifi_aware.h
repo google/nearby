@@ -1,0 +1,142 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef PLATFORM_API_WIFI_AWARE_H_
+#define PLATFORM_API_WIFI_AWARE_H_
+
+#include <memory>
+#include <string>
+
+#include "absl/functional/any_invocable.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_aware_service_info.h"
+
+namespace nearby {
+namespace api {
+
+class WifiAwareSocket {
+ public:
+  virtual ~WifiAwareSocket() = default;
+
+  // Returns the InputStream of the WifiAwareSocket.
+  virtual InputStream& GetInputStream() = 0;
+
+  // Returns the OutputStream of the WifiAwareSocket.
+  virtual OutputStream& GetOutputStream() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
+};
+
+class WifiAwareServerSocket {
+ public:
+  virtual ~WifiAwareServerSocket() = default;
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  virtual std::unique_ptr<WifiAwareSocket> Accept() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
+};
+
+// Container of operations that can be performed over the WifiAware medium.
+class WifiAwareMedium {
+ public:
+  virtual ~WifiAwareMedium() = default;
+
+  // Starts WifiAware advertising.
+  virtual bool StartAdvertising(
+      const WifiAwareServiceInfo& wifi_aware_service_info) = 0;
+
+  // Stops WifiAware advertising.
+  virtual bool StopAdvertising(
+      const WifiAwareServiceInfo& wifi_aware_service_info) = 0;
+
+  // Callback that is invoked when a discovered service is found or lost.
+  struct DiscoveredServiceCallback {
+    absl::AnyInvocable<void(
+        const WifiAwareServiceInfo& wifi_aware_service_info)>
+        service_discovered_cb;
+    absl::AnyInvocable<void(
+        const WifiAwareServiceInfo& wifi_aware_service_info)>
+        service_lost_cb;
+  };
+
+  // Starts the discovery of nearby WifiAware services.
+  virtual bool StartDiscovery(const std::string& service_type,
+                              DiscoveredServiceCallback callback) = 0;
+
+  // Stops the discovery of nearby WifiAware services.
+  virtual bool StopDiscovery(const std::string& service_type) = 0;
+
+  virtual bool IsPublishing() = 0;
+  // Starts publishing the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp"). Incoming connections for it are then accepted via
+  // ListenForService().
+  virtual bool StartPublishing(const std::string& service_name) = 0;
+  virtual bool StopPublishing() = 0;
+
+  virtual bool IsSubscribing() = 0;
+  // Starts subscribing to the Wi-Fi Aware service `service_name` (e.g.
+  // "_664E3DA99F18._tcp").
+  virtual bool StartSubscribing(const std::string& service_name) = 0;
+  virtual bool StopSubscribing() = 0;
+
+  // Names the peer that the next ConnectToService() call is meant for, using a
+  // stable identifier the remote device put in its upgrade frame
+  // (WifiAwareR4Credentials.advertised_name).
+  //
+  // Everything else in that frame is per-session — endpoint IDs rotate, service
+  // IDs are generated per transfer — so this is the only way a platform can
+  // tell whether an incoming upgrade comes from a device it has already paired
+  // with. Apple's Wi-Fi Aware stack needs that distinction because it can only
+  // browse for devices already in its paired store; a peer it has never paired
+  // with is silently dropped, and it must present the system pairing UI
+  // instead.
+  //
+  // Optional. `peer_id` is empty when the remote device did not supply one, and
+  // platforms that cannot make use of it ignore this entirely.
+  virtual void SetExpectedPeerId(const std::string& peer_id) {}
+
+  // Connects to a WifiAware service.
+  virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
+      const WifiAwareServiceInfo& remote_service_info,
+      CancellationFlag* cancellation_flag) = 0;
+
+  // Connects to a WifiAware service identified by `service_name` and
+  // `service_info`, using `passphrase` to secure the data path and `port` as
+  // the remote port.
+  //
+  // Returns nullptr by default; platforms that support this should override.
+  virtual std::unique_ptr<WifiAwareSocket> ConnectToService(
+      const std::string& service_name, const ByteArray& service_info,
+      const std::string& passphrase, int port,
+      CancellationFlag* cancellation_flag) {
+    return nullptr;
+  }
+
+  // Listens for incoming connection.
+  virtual std::unique_ptr<WifiAwareServerSocket> ListenForService(int port) = 0;
+};
+
+}  // namespace api
+}  // namespace nearby
+
+#endif  // PLATFORM_API_WIFI_AWARE_H_

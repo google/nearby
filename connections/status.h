@@ -47,6 +47,7 @@ struct Status {
     kReset,
     kTimeout,
     kUnknown,
+    kWifiAwareError,
     kNextValue,
   };
   Value value{kError};

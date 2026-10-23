@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 74
+// Next id: 85
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -316,6 +316,35 @@ enum EventType {
   // Previews received.
   RECEIVE_PREVIEWS = 73;
 
+  // QR code cloud sharing events begin.
+  CLOUD_CREATE_SHARING_REQUEST = 74
+      /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
+  CLOUD_REGISTER_RECEIVER = 75
+      /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
+  // Cloud upload events (routing updated in nearby_event_codes.proto).
+  CLOUD_UPLOAD_START = 76
+      /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
+  CLOUD_UPLOAD_END = 77 /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
+  CLOUD_DOWNLOAD_START = 78
+      /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
+  CLOUD_DOWNLOAD_END = 79 /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
+  // QR code cloud sharing events end.
+
+  // Cloud sharing RPC performance result
+  CLOUD_SHARING_RPC_RESULT = 80;
+
+  // External provider connection events.
+  PROVIDER_CONNECTED = 81;
+
+  // End-to-end outcome of device pairing handshake.
+  PAIR_DEVICES = 82;
+
+  // The initiative of syncing files.
+  FILE_SYNC = 83;
+
+  // Unpair a paired device.
+  UNPAIR_DEVICE = 84;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
@@ -345,6 +374,7 @@ enum Visibility {
   SELECTED_CONTACTS_ONLY = 3 [deprecated = true];
   HIDDEN = 4;
   SELF_SHARE = 5;
+  FAMILY = 6;
 }
 
 enum DataUsage {
@@ -377,9 +407,8 @@ enum EstablishConnectionStatus {
       /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
   CONNECTION_STATUS_LOST_CONNECTIVITY = 9
       /*[ status_bucket = STATUS_INTERRUPTION ]*/;
-  // TODO: b/341782941 - : Annote this status when it's confirmed by Nearby
-  // Connections team.
-  CONNECTION_STATUS_INVALID_ADVERTISEMENT = 10;
+  CONNECTION_STATUS_INVALID_ADVERTISEMENT = 10
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
 }
 
 // The status of sending and receiving attachments. Used by SEND_ATTACHMENTS.
@@ -611,6 +640,9 @@ enum ServerActionName {
 
   // used for analytics logger to record action name.
   DOWNLOAD_CERTIFICATES_INFO = 12;
+  REGISTER_PROVISIONED_CONTACT = 13;
+  LIST_PROVISIONED_CONTACTS = 14;
+  DELETE_PROVISIONED_CONTACT = 15;
 }
 
 // The Fast Share server response state.
@@ -673,6 +705,12 @@ enum SyncPurpose {
   SYNC_PURPOSE_REGENERATE_CERTIFICATES = 16;
   // When Device Contacts consent changes
   SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE = 17;
+  // When Nearby Presence identity model exhaust the salt to use on the contact
+  // group visibility credential
+  SYNC_EXHAUST_SALT = 18;
+  // When Nearby Presence request broadcast and discovery credential from
+  // quick share identity provider
+  SYNC_QUICKSHARE_IDENTITY_PROVIDER_QUERY = 19;
 }
 
 // The device role to trigger the server request.
@@ -686,7 +724,7 @@ enum ClientRole {
 enum ScanType {
   UNKNOWN_SCAN_TYPE = 0;
   FOREGROUND_SCAN = 1;
-  FOREGROUND_RETRY_SCAN = 2;
+  FOREGROUND_RETRY_SCAN = 2 [deprecated = true];
   DIRECT_SHARE_SCAN = 3;
   BACKGROUND_SCAN = 4;
 }
@@ -823,6 +861,17 @@ enum SharingUseCase {
   USE_CASE_NEARBY_SHARE_WITH_QR_CODE = 7 [deprecated = true];
   // The user was redirected from Bluetooth sharing UI to Nearby Share
   USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE = 8;
+  USE_CASE_TAP_TO_SHARE = 9;
+  // Automatic file sync use case.
+  USE_CASE_FILE_SYNC = 10;
+}
+
+enum SharingSurface {
+  SURFACE_UNKNOWN = 0;
+
+  SURFACE_QUICK_SHARE = 1;
+  SURFACE_APP = 2;
+  SURFACE_SYSTEM_SHARE_SHEET = 3;
 }
 
 // Used only for Windows App now.
@@ -921,6 +970,9 @@ enum DesktopTransferEventType {
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT = 8;
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR = 9;
 }
+// LINT.ThenChange(
+//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+// )
 
 enum DecryptCertificateFailureStatus {
   DECRYPT_CERT_UNKNOWN_FAILURE = 0;
@@ -957,6 +1009,229 @@ enum ButtonStatus {
   BUTTON_STATUS_CLICK_REJECT = 2;
   BUTTON_STATUS_IGNORE = 3;
 }
+
+// LINT.IfChange
+// The result of creating a cloud sharing request. Used by
+// CLOUD_CREATE_SHARING_REQUEST.
+enum CloudCreateSharingResult {
+  CLOUD_CREATE_SHARING_RESULT_UNKNOWN = 0;
+  // The request was successful.
+  CLOUD_CREATE_SHARING_RESULT_SUCCESS = 1;
+  // The user needs to sign in to perform the request. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE = 2;
+  // The sharing id or file id already exists. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST = 3;
+  // There is an existing active QR code cloud sharing session.
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED = 4;
+  // A network error occurred during the request. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR = 5;
+  // The request contains invalid arguments. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT = 6;
+  // A remote error occurred during the request. Unresolvable error.
+  CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR = 7;
+  // The request contains more than 1000 files.
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT = 8;
+  // The request contains more than 10GB of files.
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE = 9;
+  // The request was successful but this device cannot be notified for receiver
+  // updates.
+  CLOUD_CREATE_SHARING_RESULT_SUCCESS_NO_NOTIFICATION = 10;
+}
 // LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+//     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
 // )
+
+// LINT.IfChange
+// The result of registering a receiver for a cloud sharing. Used by
+// CLOUD_REGISTER_RECEIVER.
+enum CloudRegisterReceiverResult {
+  CLOUD_REGISTER_RECEIVER_RESULT_UNKNOWN = 0;
+  // The request was successful.
+  CLOUD_REGISTER_RECEIVER_RESULT_SUCCESS = 1;
+  // The request contains invalid arguments.
+  CLOUD_REGISTER_RECEIVER_RESULT_INVALID_ARGUMENT = 2;
+  // Deadline expired before the request could complete.
+  CLOUD_REGISTER_RECEIVER_RESULT_DEADLINE_EXCEEDED = 3;
+  // An internal error occurred during the request.
+  CLOUD_REGISTER_RECEIVER_RESULT_INTERNAL = 4;
+  // The request was rejected due to too many receivers.
+  CLOUD_REGISTER_RECEIVER_RESULT_RESOURCE_EXHAUSTED = 5;
+  // The service is currently unavailable.
+  CLOUD_REGISTER_RECEIVER_RESULT_UNAVAILABLE = 6;
+  // The caller does not have permission to register a receiver.
+  CLOUD_REGISTER_RECEIVER_RESULT_PERMISSION_DENIED = 7;
+  CLOUD_REGISTER_RECEIVER_RESULT_NOT_FOUND = 8;
+  CLOUD_REGISTER_RECEIVER_RESULT_ALREADY_EXISTS = 9;
+  CLOUD_REGISTER_RECEIVER_RESULT_UNAUTHENTICATED = 10;
+  CLOUD_REGISTER_RECEIVER_RESULT_CANCELLED = 11;
+  CLOUD_REGISTER_RECEIVER_RESULT_FAILED_PRECONDITION = 12;
+  CLOUD_REGISTER_RECEIVER_RESULT_ABORTED = 13;
+  CLOUD_REGISTER_RECEIVER_RESULT_OUT_OF_RANGE = 14;
+  CLOUD_REGISTER_RECEIVER_RESULT_UNIMPLEMENTED = 15;
+  CLOUD_REGISTER_RECEIVER_RESULT_DATA_LOSS = 16;
+}
+// LINT.ThenChange(
+//     //depot/google3/javascript/net/grpc/web/statuscode.ts
+// )
+
+// The action type of uploading/downloading files to/from the cloud. Used by
+// CLOUD_UPLOAD_START , CLOUD_UPLOAD_END, CLOUD_DOWNLOAD_START and
+// CLOUD_DOWNLOAD_END.
+enum CloudActionType {
+  CLOUD_ACTION_TYPE_UNKNOWN = 0;
+  // The action is a normal upload/download.
+  CLOUD_ACTION_TYPE_NORMAL = 1;
+  // The action is a retry of a previous failed upload/download.
+  CLOUD_ACTION_TYPE_RETRY = 2;
+}
+
+// Defines how the device is powered.
+enum PowerStatus {
+  POWER_STATUS_UNKNOWN = 0;
+  POWER_STATUS_BATTERY = 1;
+  POWER_STATUS_AC = 2;
+  POWER_STATUS_BATTERY_AND_AC = 3;
+}
+
+// The result of the pairing process.
+enum PairingResultStatus {
+  PAIRING_STATUS_UNKNOWN = 0;
+
+  // Android: Pairing succeeded; binding ID and remote device name saved to
+  // SQLite Room DB.
+  //
+  // Windows: Pairing succeeded; binding ID and certificate bindings saved
+  // to local settings.
+  PAIRING_SUCCESS = 1;
+
+  // Android & Windows: Failed to verify peer identity (e.g. certificate
+  // verification failure, untrusted peer, or missing certificates).
+  PAIRING_PEER_VERIFICATION_FAILED = 2;
+
+  // Windows: InitiateBinding RPC failed (unable to obtain binding_id for
+  // pairing).
+  PAIRING_SERVER_INITIATE_ERROR = 3;
+
+  // Android: No Google (Gaia) account logged in on the device.
+  PAIRING_NO_ACCOUNT = 4;
+
+  // Android: User declined pairing consent.
+  //
+  // Windows: Received rejection from peer.
+  PAIRING_CONSENT_DECLINED = 5;
+
+  // Android: User dismissed or canceled the pairing prompt (e.g. swiped
+  // away, tapped outside, or canceled).
+  //
+  // Windows: User or peer canceled the pairing attempt.
+  PAIRING_CANCELED = 6;
+
+  // Android: Inaction timeout on pairing consent prompt.
+  //
+  // Windows: Peer response timed out.
+  PAIRING_CONSENT_TIMEOUT = 7;
+
+  // Android: JoinBinding RPC failed.
+  PAIRING_SERVER_JOIN_ERROR = 8;
+
+  // Android: SQLite Room DB write failure (failed to save binding ID and
+  // remote device name).
+  //
+  // Windows: Local settings persistence error (failed to save binding ID
+  // and certificate bindings).
+  PAIRING_LOCAL_STORAGE_ERROR = 9;
+
+  // Android & Windows: Nearby connection disconnected during pairing.
+  PAIRING_CONNECTION_LOST = 10;
+}
+
+// The trigger type that initiated the file sync flow.
+enum FileSyncTriggerType {
+  FILE_SYNC_TRIGGER_TYPE_UNKNOWN = 0;
+  // Background task triggered by the scheduler.
+  FILE_SYNC_TRIGGER_TYPE_SCHEDULED = 1;
+  // User initiated the sync on demand.
+  FILE_SYNC_TRIGGER_TYPE_ON_DEMAND = 2;
+  // Standalone indexing scan.
+  FILE_SYNC_TRIGGER_TYPE_INDEXING = 3;
+}
+
+// The result status of a file sync flow.
+enum FileSyncStatus {
+  FILE_SYNC_STATUS_UNKNOWN = 0;
+
+  // File sync flow completed successfully.
+  FILE_SYNC_STATUS_SUCCESS = 1;
+
+  // No folders are selected/configured.
+  FILE_SYNC_STATUS_NO_FOLDERS_CONFIGURED = 2;
+
+  // No paired device found.
+  FILE_SYNC_STATUS_NO_PAIRED_DEVICE = 3;
+
+  // Storage/media permissions not granted.
+  FILE_SYNC_STATUS_PERMISSION_DENIED = 4;
+
+  // Database error during indexing.
+  FILE_SYNC_STATUS_INDEXING_ERROR = 5;
+
+  // No target device found.
+  FILE_SYNC_STATUS_TARGET_NOT_FOUND = 6;
+
+  // Certificate/identity verification failed.
+  FILE_SYNC_STATUS_PEER_VERIFICATION_FAILED = 7;
+
+  // File sync cancelled by user.
+  FILE_SYNC_STATUS_USER_CANCELED = 8;
+
+  // Disconnected during connection setup or mid-transfer.
+  FILE_SYNC_STATUS_CONNECTION_LOST = 9;
+
+  // Receiver device has insufficient disk space to accept the files
+  FILE_SYNC_STATUS_REMOTE_OUT_OF_SPACE = 10;
+
+  // Payload transfer or remote response timed out
+  FILE_SYNC_STATUS_TRANSFER_TIMEOUT = 11;
+
+  // Other unclassified payload transfer errors.
+  FILE_SYNC_STATUS_OTHER_TRANSFER_ERROR = 12;
+
+  // Local DB write failure (failed to update sequence/file records).
+  FILE_SYNC_STATUS_LOCAL_DB_WRITE_ERROR = 13;
+
+  // Sync is not required.
+  FILE_SYNC_STATUS_NO_SYNC_REQUIRED = 14;
+
+  // Local DB read failure.
+  FILE_SYNC_STATUS_LOCAL_DB_READ_ERROR = 15;
+
+  // File sync is skipped due to policy, e.g. before
+  // min_duration_between_scheduled_sync expires.
+  FILE_SYNC_STATUS_SKIPPED = 16;
+}
+
+// The trigger source for unpairing (deleting a paired device binding).
+// Next id: 3
+enum UnpairTriggerType {
+  UNPAIR_TRIGGER_TYPE_UNKNOWN = 0;
+  // Triggered by user action on the local device.
+  UNPAIR_TRIGGER_TYPE_LOCAL = 1;
+  // Triggered when the remote paired device deletes the binding.
+  UNPAIR_TRIGGER_TYPE_REMOTE = 2;
+}
+
+// The file sync state of the device.
+// Next id: 6
+enum FileSyncState {
+  FILE_SYNC_STATE_UNKNOWN = 0;
+  // Device has never paired for file sync.
+  FILE_SYNC_STATE_NEVER_PAIRED = 1;
+  // Device is paired for file sync and the file sync toggle is turned on.
+  FILE_SYNC_STATE_PAIRED_TOGGLE_ON = 2;
+  // Device is paired for file sync and the file sync toggle is turned off.
+  FILE_SYNC_STATE_PAIRED_TOGGLE_OFF = 3;
+  // Device was previously paired for file sync, but is currently unpaired.
+  FILE_SYNC_STATE_UNPAIRED = 4;
+  // Failed to read the file sync state from local storage.
+  FILE_SYNC_STATE_READ_ERROR = 5;
+}

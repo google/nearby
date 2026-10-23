@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -50,7 +51,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   void StartAdvertising(std::vector<uint8_t> endpoint_info,
                         IncomingConnectionListener* listener,
                         PowerLevel power_level, proto::DataUsage data_usage,
-                        bool use_stable_endpoint_id,
+                        bool use_stable_endpoint_id, bool force_new_endpoint_id,
                         ConnectionsCallback callback) override;
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,
@@ -74,7 +75,9 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   std::optional<std::vector<uint8_t>> GetRawAuthenticationToken(
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
-  void SetCustomSavePath(absl::string_view custom_save_path) override;
+  void SetCustomSavePath(absl::string_view custom_save_path) override {}
+  void OverrideSavePath(absl::string_view endpoint_id,
+                        const FilePath& custom_save_path) override;
   absl::flat_hash_set<FilePath> GetAndClearUnknownFilePathsToDelete() override;
 
   // Testing methods
@@ -122,15 +125,23 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
 
   std::optional<std::vector<uint8_t>> connection_endpoint_info(
       absl::string_view endpoint_id) {
-    absl::MutexLock lock(&endpoints_mutex_);
+    absl::MutexLock lock(endpoints_mutex_);
     auto it = connection_endpoint_infos_.find(std::string(endpoint_id));
     if (it == connection_endpoint_infos_.end()) return std::nullopt;
 
     return it->second;
   }
 
+  std::optional<FilePath> custom_save_path(absl::string_view endpoint_id) {
+    absl::MutexLock lock(endpoints_mutex_);
+    auto it = custom_save_paths_.find(endpoint_id);
+    if (it == custom_save_paths_.end()) return std::nullopt;
+
+    return it->second;
+  }
+
   bool has_incoming_payloads() {
-    absl::MutexLock lock(&incoming_payloads_mutex_);
+    absl::MutexLock lock(incoming_payloads_mutex_);
     return !incoming_payloads_.empty();
   }
 
@@ -170,11 +181,13 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   ConnectionsCallback pending_stop_advertising_callback_;
   bool capture_next_start_advertising_callback_ = false;
   ConnectionsCallback pending_start_advertising_callback_;
-  std::string custom_save_path_;
 
   absl::Mutex endpoints_mutex_;
   // Maps endpoint_id to endpoint_info.
   std::map<std::string, std::vector<uint8_t>> connection_endpoint_infos_
+      ABSL_GUARDED_BY(endpoints_mutex_);
+  // Maps endpoint_id to custom_save_path.
+  absl::flat_hash_map<std::string, FilePath> custom_save_paths_
       ABSL_GUARDED_BY(endpoints_mutex_);
 
   std::map<int64_t, std::weak_ptr<PayloadStatusListener>>

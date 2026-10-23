@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "absl/time/time.h"
@@ -68,6 +69,8 @@ class NearbyShareDecryptedPublicCertificate {
 
   bool for_self_share() const { return for_self_share_; }
 
+  const std::string& binding_id() const { return binding_id_; }
+
   // Verifies the |signature| of the signed |payload| using |public_key_|.
   // Returns true if verification was successful.
   bool VerifySignature(absl::Span<const uint8_t> payload,
@@ -85,7 +88,7 @@ class NearbyShareDecryptedPublicCertificate {
       std::unique_ptr<crypto::SymmetricKey> secret_key,
       std::vector<uint8_t> public_key, std::vector<uint8_t> id,
       nearby::sharing::proto::EncryptedMetadata unencrypted_metadata,
-      bool for_self_share);
+      bool for_self_share, std::string binding_id);
 
   // The start and end times of the certificate's validity period. To avoid
   // issues with clock skew, these times may be offset compared to the
@@ -111,6 +114,10 @@ class NearbyShareDecryptedPublicCertificate {
   // Indicates if this public certificate is from another device owned by the
   // same user.
   bool for_self_share_ = false;
+
+  // The binding id of device pair binding. If multiple bindings exist
+  // between two devices, it will return the newest binding_id.
+  std::string binding_id_;
 };
 
 }  // namespace sharing

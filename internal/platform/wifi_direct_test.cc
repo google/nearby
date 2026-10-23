@@ -14,12 +14,24 @@
 
 #include "internal/platform/wifi_direct.h"
 
-#include <memory>
+#include <cstddef>
+#include <optional>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace {
@@ -35,22 +47,41 @@ constexpr FeatureFlags kTestCases[] = {
     },
 };
 
-constexpr absl::string_view kSsid = "Direct-357a2d8c";
-constexpr absl::string_view kPassword = "b592f7d3";
+constexpr absl::string_view kDeviceName = "NC-WifiDirectTest";
+constexpr absl::string_view kPin = "b592f7d3";
 constexpr absl::string_view kIp = "123.234.23.1";
 constexpr const size_t kPort = 20;
 constexpr absl::string_view kData = "ABCD";
 constexpr const size_t kChunkSize = 10;
-constexpr absl::Duration kWaitDuration = absl::Milliseconds(100);
+
+TEST(WifiDirectCredentialsTest, SetGetDeviceName) {
+  std::string device_name(kDeviceName);
+  WifiDirectCredentials wifi_direct_credentials;
+  wifi_direct_credentials.SetDeviceName(device_name);
+
+  EXPECT_EQ(wifi_direct_credentials.GetDeviceName(), kDeviceName);
+}
+
+TEST(WifiDirectCredentialsTest, SetGetPin) {
+  std::string pin(kPin);
+  WifiDirectCredentials wifi_direct_credentials;
+  wifi_direct_credentials.SetPin(pin);
+
+  EXPECT_EQ(wifi_direct_credentials.GetPin(), kPin);
+}
+
 
 class WifiDirectMediumTest : public testing::TestWithParam<FeatureFlags> {
  protected:
-  WifiDirectMediumTest() { env_.Start(); }
-  ~WifiDirectMediumTest() override {
-    absl::SleepFor(kWaitDuration);
-    EXPECT_TRUE(env_.IsWifiDirectMediumsEmpty());
+  WifiDirectMediumTest() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kEnableWifiDirect,
+        true);
     env_.Stop();
+    env_.Start();
   }
+  ~WifiDirectMediumTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
@@ -70,7 +101,7 @@ TEST_F(WifiDirectMediumTest, ConstructorDestructorWorks) {
   EXPECT_NE(&wifi_direct_a.GetImpl(), &wifi_direct_b.GetImpl());
 }
 
-TEST_F(WifiDirectMediumTest, CanStartStopDirect) {
+TEST_F(WifiDirectMediumTest, CanStartStopWifiDirect) {
   WifiDirectMedium wifi_direct_a;
 
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
@@ -82,11 +113,14 @@ TEST_F(WifiDirectMediumTest, CanStartStopDirect) {
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
 }
 
-TEST_F(WifiDirectMediumTest, CanConnectDisconnectDirect) {
+TEST_F(WifiDirectMediumTest, CanConnectDisconnectWifiDirect) {
   WifiDirectMedium wifi_direct_a;
+  WifiDirectCredentials credentials;
+  credentials.SetDeviceName(std::string(kDeviceName));
+  credentials.SetPin(std::string(kPin));
 
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
-  EXPECT_FALSE(wifi_direct_a.ConnectWifiDirect(kSsid, kPassword));
+  EXPECT_FALSE(wifi_direct_a.ConnectWifiDirect(credentials));
   EXPECT_TRUE(wifi_direct_a.DisconnectWifiDirect());
 }
 
@@ -102,17 +136,17 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   WifiDirectCredentials* wifi_direct_credentials =
       wifi_direct_a.GetCredential();
   auto* medium_a =
-      env_.GetWifiDirectMedium(wifi_direct_credentials->GetSSID(), {});
+      env_.GetWifiDirectMedium(wifi_direct_credentials->GetDeviceName(), {});
   EXPECT_NE(medium_a, nullptr);
-  EXPECT_TRUE(
-      wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                      wifi_direct_credentials->GetPassword()));
+  EXPECT_TRUE(wifi_direct_b.ConnectWifiDirect(*wifi_direct_credentials));
 
   WifiDirectServerSocket server_socket = wifi_direct_a.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
-  auto ip_addr = server_socket.GetIPAddress();
-  EXPECT_FALSE(absl::EndsWith(ip_addr, "."));
-  wifi_direct_credentials->SetIPAddress(ip_addr);
+  server_socket.PopulateWifiDirectCredentials(*wifi_direct_credentials);
+  std::string wifi_direct_a_ip_addr = wifi_direct_credentials->GetGateway();
+  EXPECT_FALSE(absl::EndsWith(wifi_direct_a_ip_addr, "."));
+  int wifi_direct_a_port = wifi_direct_credentials->GetPort();
+  EXPECT_NE(wifi_direct_a_port, 0);
 
   WifiDirectSocket socket_a;
   WifiDirectSocket socket_b;
@@ -124,14 +158,16 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
     client_executor.Execute(
-        [&wifi_direct_b, &socket_b, &server_socket, &flag]() {
+        [&wifi_direct_b, &socket_b, &server_socket, wifi_direct_a_ip_addr,
+         wifi_direct_a_port, &flag]() {
           socket_b = wifi_direct_b.ConnectToService(kIp, kPort, &flag);
           EXPECT_FALSE(socket_b.IsValid());
           socket_b = wifi_direct_b.ConnectToService(
-              server_socket.GetIPAddress(), kPort, &flag);
+              wifi_direct_a_ip_addr, kPort, &flag);
           EXPECT_FALSE(socket_b.IsValid());
+
           socket_b = wifi_direct_b.ConnectToService(
-              server_socket.GetIPAddress(), server_socket.GetPort(), &flag);
+              wifi_direct_a_ip_addr, wifi_direct_a_port, &flag);
           if (!socket_b.IsValid()) {
             server_socket.Close();
           }
@@ -147,15 +183,14 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
   OutputStream& out_stream = socket_b.GetOutputStream();
-  std::string data(kData);
-  EXPECT_TRUE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(out_stream.Write(kData).Ok());
   ExceptionOr<ByteArray> read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(std::string(read_data.result()), data);
+  EXPECT_EQ(read_data.result().AsStringView(), kData);
 
   socket_a.Close();
   socket_b.Close();
-  EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_FALSE(out_stream.Write(kData).Ok());
   read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.GetResult().Empty());
 
@@ -163,7 +198,7 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
   auto* medium_b =
-      env_.GetWifiDirectMedium(wifi_direct_credentials->GetSSID(), {});
+      env_.GetWifiDirectMedium(wifi_direct_credentials->GetDeviceName(), {});
   EXPECT_EQ(medium_b, nullptr);
 }
 
@@ -178,13 +213,13 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
   WifiDirectCredentials* wifi_direct_credentials =
       wifi_direct_a.GetCredential();
-  EXPECT_TRUE(
-      wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                      wifi_direct_credentials->GetPassword()));
+  EXPECT_TRUE(wifi_direct_b.ConnectWifiDirect(*wifi_direct_credentials));
 
   WifiDirectServerSocket server_socket = wifi_direct_a.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
-  wifi_direct_credentials->SetIPAddress(server_socket.GetIPAddress());
+  server_socket.PopulateWifiDirectCredentials(*wifi_direct_credentials);
+  std::string wifi_direct_a_ip_addr = wifi_direct_credentials->GetGateway();
+  int wifi_direct_a_port = wifi_direct_credentials->GetPort();
 
   WifiDirectSocket socket_a;
   WifiDirectSocket socket_b;
@@ -197,11 +232,12 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
     client_executor.Execute(
-        [&wifi_direct_b, &socket_b, &server_socket, &flag]() {
+        [&wifi_direct_b, &socket_b, &server_socket, wifi_direct_a_ip_addr,
+         wifi_direct_a_port, &flag]() {
           socket_b = wifi_direct_b.ConnectToService(kIp, kPort, &flag);
           EXPECT_FALSE(socket_b.IsValid());
           socket_b = wifi_direct_b.ConnectToService(
-              server_socket.GetIPAddress(), server_socket.GetPort(), &flag);
+              wifi_direct_a_ip_addr, wifi_direct_a_port, &flag);
           if (!socket_b.IsValid()) {
             server_socket.Close();
           }
@@ -225,8 +261,8 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanCancelConnect) {
   server_socket.Close();
   {
     CancellationFlag flag(true);
-    socket_c = wifi_direct_b.ConnectToService(server_socket.GetIPAddress(),
-                                              server_socket.GetPort(), &flag);
+    socket_c = wifi_direct_b.ConnectToService(wifi_direct_a_ip_addr,
+                                              wifi_direct_a_port, &flag);
     EXPECT_FALSE(socket_c.IsValid());
   }
 
@@ -241,11 +277,24 @@ TEST_F(WifiDirectMediumTest, CanStartDirectGOThatOtherFailConnect) {
   ASSERT_TRUE(wifi_direct_a.IsInterfaceValid());
   ASSERT_TRUE(wifi_direct_b.IsInterfaceValid());
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());
+  WifiDirectCredentials wifi_direct_credentials;
+  wifi_direct_credentials.SetDeviceName(std::string(kDeviceName));
+  wifi_direct_credentials.SetPin(std::string(kPin));
 
-  EXPECT_FALSE(wifi_direct_b.ConnectWifiDirect(kSsid, kPassword));
+  EXPECT_FALSE(wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials));
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
 
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
+}
+
+TEST_F(WifiDirectMediumTest, GetSupportedWifiDirectAuthTypes) {
+  WifiDirectMedium wifi_direct_a;
+  // g3 only supports WifiDirect with auth type of Device Name.
+  auto supported_types = wifi_direct_a.GetSupportedWifiDirectAuthTypes();
+  EXPECT_EQ(supported_types.size(), 1);
+  EXPECT_EQ(supported_types[0],
+            location::nearby::proto::connections::WifiDirectAuthType::
+                WIFI_DIRECT_WITH_DEVICE_NAME);
 }
 
 }  // namespace

@@ -27,7 +27,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
@@ -49,7 +49,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   explicit NearbyConnectionsManagerImpl(
       nearby::TaskRunner* connections_callback_task_runner, Context* context,
       nearby::ConnectivityManager& connectivity_manager,
-      nearby::DeviceInfo& device_info,
+      nearby::api::DeviceInfo& device_info,
       std::unique_ptr<NearbyConnectionsService> nearby_connections_service);
   ~NearbyConnectionsManagerImpl() override;
   NearbyConnectionsManagerImpl(const NearbyConnectionsManagerImpl&) = delete;
@@ -61,7 +61,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void StartAdvertising(std::vector<uint8_t> endpoint_info,
                         IncomingConnectionListener* listener,
                         PowerLevel power_level, proto::DataUsage data_usage,
-                        bool use_stable_endpoint_id,
+                        bool use_stable_endpoint_id, bool force_new_endpoint_id,
                         ConnectionsCallback callback) override;
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,
@@ -87,6 +87,8 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       absl::string_view endpoint_id) override;
   void UpgradeBandwidth(absl::string_view endpoint_id) override;
   void SetCustomSavePath(absl::string_view custom_save_path) override;
+  void OverrideSavePath(absl::string_view endpoint_id,
+                        const FilePath& custom_save_path) override;
   absl::flat_hash_set<FilePath> GetAndClearUnknownFilePathsToDelete() override;
   std::string Dump() const override;
 
@@ -96,9 +98,6 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
 
   absl::flat_hash_set<FilePath> GetUnknownFilePathsToDeleteForTesting();
   void AddUnknownFilePathsToDeleteForTesting(FilePath file_path);
-  void ProcessUnknownFilePathsToDeleteForTesting(PayloadStatus status,
-                                                 PayloadContent::Type type,
-                                                 const FilePath& path);
   void OnPayloadTransferUpdateForTesting(absl::string_view endpoint_id,
                                          const PayloadTransferUpdate& update);
   void OnPayloadReceivedForTesting(absl::string_view endpoint_id,
@@ -125,20 +124,17 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void OnConnectionTimedOut(absl::string_view endpoint_id);
   void OnConnectionRequested(absl::string_view endpoint_id,
                              ConnectionsStatus status);
-  void ProcessUnknownFilePathsToDelete(PayloadStatus status,
-                                       PayloadContent::Type type,
-                                       const FilePath& path);
   void DeleteUnknownFilePayloadAndCancel(Payload& payload);
   absl::flat_hash_set<FilePath> GetUnknownFilePathsToDelete();
 
   std::optional<std::weak_ptr<PayloadStatusListener>> GetStatusListenerForId(
-      int64_t payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
+      int64_t payload_id) const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   NearbyConnectionImpl* GetConnectionForId(absl::string_view endpoint_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void RemoveStatusListenerForPayloadId(int64_t payload_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void Reset();
 
@@ -147,10 +143,13 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void SendWithoutDelay(absl::string_view endpoint_id,
                         std::unique_ptr<Payload> payload);
 
+  void RemoveTransferManagerOnCallbackThread(
+      std::unique_ptr<TransferManager> transfer_manager) const;
+
   nearby::TaskRunner* const connections_callback_task_runner_;
   Context* const context_;
   nearby::ConnectivityManager& connectivity_manager_;
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
 
   // Nearby Connections Manager is called from different threads and may have
   // multiple calls to the class from one thread. To avoid deadlock and access

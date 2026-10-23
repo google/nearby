@@ -22,6 +22,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/connection_info.h"
+#include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -31,10 +32,10 @@ class BluetoothConnectionInfo : public ConnectionInfo {
   static absl::StatusOr<BluetoothConnectionInfo> FromDataElementBytes(
       absl::string_view bytes);
 
-  BluetoothConnectionInfo(absl::string_view mac_address,
+  BluetoothConnectionInfo(MacAddress mac_address,
                           absl::string_view bluetooth_uuid,
                           std::vector<uint8_t> actions)
-      : mac_address_(std::string(mac_address)),
+      : mac_address_(mac_address),
         bluetooth_uuid_(std::string(bluetooth_uuid)),
         actions_(actions) {}
 
@@ -43,12 +44,12 @@ class BluetoothConnectionInfo : public ConnectionInfo {
     return ::location::nearby::proto::connections::Medium::BLUETOOTH;
   }
   std::string ToDataElementBytes() const override;
-  std::string GetMacAddress() const { return mac_address_; }
+  MacAddress GetMacAddress() const { return mac_address_; }
   std::string GetBluetoothUuid() const { return bluetooth_uuid_; }
   std::vector<uint8_t> GetActions() const override { return actions_; }
 
  private:
-  std::string mac_address_;
+  MacAddress mac_address_;
   std::string bluetooth_uuid_;
   std::vector<uint8_t> actions_;
 };

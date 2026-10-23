@@ -27,9 +27,9 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Networking.Sockets.h"  // IWYU pragma: keep
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using ::winrt::Windows::Networking::Sockets::SocketProtectionLevel;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
@@ -51,8 +51,8 @@ BluetoothServerSocket::~BluetoothServerSocket() { Close(); }
 // Returns nullptr on error.
 // Once error is reported, it is permanent, and ServerSocket has to be closed.
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Accept is called.";
+  absl::MutexLock lock(mutex_);
+  VLOG(1) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -74,8 +74,8 @@ void BluetoothServerSocket::SetCloseNotifier(
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception BluetoothServerSocket::Close() {
   try {
-    absl::MutexLock lock(&mutex_);
-    LOG(INFO) << __func__ << ": Close is called.";
+    absl::MutexLock lock(mutex_);
+    VLOG(1) << __func__ << ": Close is called.";
 
     if (closed_) {
       return {Exception::kSuccess};
@@ -132,7 +132,8 @@ bool BluetoothServerSocket::listen() {
 
     // Setup socket event of ConnectionReceived.
     listener_event_token_ = stream_socket_listener_.ConnectionReceived(
-        {this, &BluetoothServerSocket::Listener_ConnectionReceived});
+        {shared_from_this(),
+         &BluetoothServerSocket::Listener_ConnectionReceived});
 
     stream_socket_listener_
         .BindServiceNameAsync(winrt::to_hstring(service_name_),
@@ -155,7 +156,7 @@ bool BluetoothServerSocket::listen() {
 ::winrt::fire_and_forget BluetoothServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const& args) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {
@@ -167,5 +168,4 @@ bool BluetoothServerSocket::listen() {
   return ::winrt::fire_and_forget{};
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

@@ -15,25 +15,30 @@
 #include "sharing/outgoing_share_session.h"
 
 #include <cstdint>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/mock_event_logger.h"
+#include "location/nearby/analytics/cpp/logging/sharing_log_matchers.h"
+#include "location/nearby/analytics/cpp/proto/nearby_sharing_log.pb.h"
+#include "location/nearby/analytics/cpp/proto/nearby_sharing_log.proto.static_reflection.h"
+#include "location/nearby/sharing/lib/analytics/analytics_recorder_impl.h"
+#include "net/proto2/contrib/parse_proto/parse_text_proto.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/analytics/mock_event_logger.h"
-#include "internal/analytics/sharing_log_matchers.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -43,9 +48,8 @@
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/nearby_file_handler.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
@@ -58,13 +62,12 @@ namespace {
 using ::location::nearby::proto::sharing::EstablishConnectionStatus;
 using ::location::nearby::proto::sharing::EventCategory;
 using ::location::nearby::proto::sharing::EventType;
-using ::location::nearby::proto::sharing::OSType;
+using ::location::nearby::proto::sharing::SharingUseCase;
 using ::nearby::analytics::HasCategory;
-using ::nearby::analytics::HasDurationMillis;
 using ::nearby::analytics::HasEventType;
-using ::nearby::analytics::HasSessionId;
-using ::nearby::analytics::SharingLogHasStatus;
 using ::nearby::sharing::analytics::proto::SharingLog;
+using ::nearby::sharing::service::proto::BindingRequest;
+using ::nearby::sharing::service::proto::BindingResponse;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
@@ -72,19 +75,31 @@ using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 using ::testing::_;
 using ::testing::AllOf;
+using ::testing::ElementsAre;
 using ::testing::Eq;
-using ::testing::Invoke;
+using ::protobuf_matchers::EqualsProto;
+using ::testing::InSequence;
 using ::testing::IsEmpty;
 using ::testing::IsFalse;
 using ::testing::IsTrue;
 using ::testing::Matcher;
 using ::testing::MockFunction;
 using ::testing::Not;
-using ::testing::Property;
 using ::testing::SizeIs;
 using ::testing::StrictMock;
+using ::testing::proto::ProtoField;
 
 constexpr absl::string_view kEndpointId = "ABCD";
+constexpr absl::string_view kFile1Name = "someFileName.jpg";
+constexpr int kFile1Size = 1234;
+
+void CreateTempFile(absl::string_view file_name, int file_size) {
+  FilePath file_path =
+      Files::GetTemporaryDirectory().append(FilePath(file_name));
+  std::ofstream file_stream(file_path.GetPath());
+  file_stream << std::string(file_size, 'a');
+  file_stream.close();
+}
 
 class OutgoingShareSessionTest : public ::testing::Test {
  public:
@@ -96,30 +111,36 @@ class OutgoingShareSessionTest : public ::testing::Test {
                "A bit of text body", "Some text title", "text/html"),
         text2_(nearby::sharing::service::proto::TextMetadata::ADDRESS,
                "A bit of text body 2", "Some text title 2", "text/plain"),
-        file1_(FilePath("/usr/local/tmp/someFileName.jpg"), /*mime_type=*/"",
+        file1_(Files::GetTemporaryDirectory().append(FilePath(kFile1Name)),
+               /*mime_type=*/"",
                /*parent_folder=*/"/usr/local/parent"),
-        file2_(FilePath("/usr/local/tmp/someFileName2.jpg"), /*mime_type=*/"",
-               /*parent_folder=*/"/usr/local/parent2"),
         wifi1_(
             "GoogleGuest",
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
-            "somepassword", /*is_hidden=*/true) {}
-
-  std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
-    return std::make_unique<AttachmentContainer>(
-        std::vector<TextAttachment>{text1_, text2_},
-        std::vector<FileAttachment>{file1_},
-        std::vector<WifiCredentialsAttachment>{wifi1_});
+            "somepassword", /*is_hidden=*/true) {
+    CreateTempFile(kFile1Name, kFile1Size);
   }
 
-  void InitSendAttachments(
+  std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
+    return AttachmentContainer::Builder(
+               std::vector<TextAttachment>{text1_, text2_},
+               std::vector<FileAttachment>{file1_},
+               std::vector<WifiCredentialsAttachment>{wifi1_})
+        .Build();
+  }
+
+  bool InitSendAttachments(
       std::unique_ptr<AttachmentContainer> attachment_container) {
-    EXPECT_CALL(
-        mock_event_logger_,
-        Log(Matcher<const SharingLog&>(AllOf((
-            HasCategory(EventCategory::SENDING_EVENT),
-            HasEventType(EventType::SEND_START))))));
-    session_.InitiateSendAttachments(std::move(attachment_container));
+    InSequence seq;
+    EXPECT_CALL(mock_event_logger_,
+                Log(Matcher<const SharingLog&>(
+                    AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                           HasEventType(EventType::SEND_START))))));
+    EXPECT_CALL(mock_event_logger_,
+                Log(Matcher<const SharingLog&>(
+                    AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                           HasEventType(EventType::DESCRIBE_ATTACHMENTS))))));
+    return session_.InitiateSendAttachments(std::move(attachment_container));
   }
 
   void ConnectionSuccess(NearbyConnection* connection) {
@@ -128,7 +149,10 @@ class OutgoingShareSessionTest : public ::testing::Test {
                     AllOf((HasCategory(EventCategory::SENDING_EVENT),
                            HasEventType(EventType::ESTABLISH_CONNECTION))))));
     connections_manager_.set_nearby_connection(connection);
-    session_.Connect({}, {}, proto::DataUsage::ONLINE_DATA_USAGE,
+    EXPECT_CALL(transfer_metadata_callback_,
+                Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                              Not(IsFinalStatus()))));
+    session_.Connect(/*endpoint_info=*/{}, proto::DataUsage::ONLINE_DATA_USAGE,
                      /*disable_wifi_hotspot=*/false,
                      [](absl::string_view endpoint_id,
                         NearbyConnection* connection, Status status) {});
@@ -140,8 +164,8 @@ class OutgoingShareSessionTest : public ::testing::Test {
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
   nearby::analytics::MockEventLogger mock_event_logger_;
-  analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
-                                                   &mock_event_logger_};
+  analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
+                                                       &mock_event_logger_};
   ShareTarget share_target_;
   MockFunction<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
@@ -151,156 +175,107 @@ class OutgoingShareSessionTest : public ::testing::Test {
   TextAttachment text1_;
   TextAttachment text2_;
   FileAttachment file1_;
-  FileAttachment file2_;
   WifiCredentialsAttachment wifi1_;
 };
 
-TEST_F(OutgoingShareSessionTest, GetFilePaths) {
-  OutgoingShareSession session(
-      &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
-  auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{},
-      std::vector<FileAttachment>{file1_, file2_},
-      std::vector<WifiCredentialsAttachment>{});
-  session.InitiateSendAttachments(std::move(container));
+TEST_F(OutgoingShareSessionTest, InitiateSendAttachmentsWithNoAttachments) {
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, AllOf(HasStatus(TransferMetadata::Status::kMediaUnavailable),
+                    IsFinalStatus())));
 
-  auto file_paths = session.GetFilePaths();
+  EXPECT_THAT(
+      InitSendAttachments(AttachmentContainer::Builder({}, {}, {}).Build()),
+      IsFalse());
 
-  ASSERT_THAT(file_paths, SizeIs(2));
-  EXPECT_THAT(file_paths[0], Eq(file1_.file_path()));
-  EXPECT_THAT(file_paths[1], Eq(file2_.file_path()));
+  EXPECT_THAT(session_.text_payloads(), IsEmpty());
+  EXPECT_THAT(session_.wifi_credentials_payloads(), IsEmpty());
+  EXPECT_THAT(session_.file_payloads(), IsEmpty());
 }
 
-TEST_F(OutgoingShareSessionTest, CreateTextPayloadsWithNoTextAttachments) {
-  OutgoingShareSession session(
-      &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
-  session.CreateTextPayloads();
-  const std::vector<Payload>& payloads = session.text_payloads();
+TEST_F(OutgoingShareSessionTest, InitiateSendAttachmentsSuccess) {
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
 
-  EXPECT_THAT(payloads, IsEmpty());
-}
-
-TEST_F(OutgoingShareSessionTest, CreateTextPayloads) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  session_.CreateTextPayloads();
-  const std::vector<Payload>& payloads = session_.text_payloads();
-  auto& attachment_payload_map = session_.attachment_payload_map();
-
-  ASSERT_THAT(payloads, SizeIs(2));
-  EXPECT_THAT(payloads[0].content.type, Eq(PayloadContent::Type::kBytes));
-  EXPECT_THAT(payloads[1].content.type, Eq(PayloadContent::Type::kBytes));
-  EXPECT_THAT(payloads[0].content.bytes_payload.bytes,
+  const std::vector<Payload>& text_payloads = session_.text_payloads();
+  ASSERT_THAT(text_payloads, SizeIs(2));
+  EXPECT_THAT(text_payloads[0].content.type, Eq(PayloadContent::Type::kBytes));
+  EXPECT_THAT(text_payloads[1].content.type, Eq(PayloadContent::Type::kBytes));
+  EXPECT_THAT(text_payloads[0].content.bytes_payload.bytes,
               Eq(std::vector<uint8_t>(text1_.text_body().begin(),
                                       text1_.text_body().end())));
-  EXPECT_THAT(payloads[1].content.bytes_payload.bytes,
+  EXPECT_THAT(text_payloads[1].content.bytes_payload.bytes,
               Eq(std::vector<uint8_t>(text2_.text_body().begin(),
                                       text2_.text_body().end())));
 
-  ASSERT_THAT(attachment_payload_map, SizeIs(2));
-  ASSERT_THAT(attachment_payload_map.contains(text1_.id()), IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(text1_.id()), Eq(payloads[0].id));
-  ASSERT_THAT(attachment_payload_map.contains(text2_.id()), IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(text2_.id()), Eq(payloads[1].id));
-}
+  const std::vector<Payload>& wifi_payloads =
+      session_.wifi_credentials_payloads();
 
-TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithNoFileAttachments) {
-  OutgoingShareSession session(
-      &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
-
-  EXPECT_THAT(
-      session.CreateFilePayloads(std::vector<NearbyFileHandler::FileInfo>()),
-      IsTrue());
-  const std::vector<Payload>& payloads = session.file_payloads();
-
-  EXPECT_THAT(payloads, IsEmpty());
-}
-
-TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithWrongFileInfo) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  EXPECT_THAT(
-      session_.CreateFilePayloads(std::vector<NearbyFileHandler::FileInfo>()),
-      IsFalse());
-  const std::vector<Payload>& payloads = session_.file_payloads();
-
-  EXPECT_THAT(payloads, IsEmpty());
-}
-
-TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
-  const std::vector<Payload>& payloads = session_.file_payloads();
-  auto& attachment_payload_map = session_.attachment_payload_map();
-
-  ASSERT_THAT(payloads, SizeIs(1));
-  EXPECT_THAT(payloads[0].content.type, Eq(PayloadContent::Type::kFile));
-  EXPECT_THAT(payloads[0].content.file_payload.size, Eq(12355L));
-  EXPECT_THAT(payloads[0].content.file_payload.parent_folder,
-              Eq(file1_.parent_folder()));
-  EXPECT_THAT(payloads[0].content.file_payload.file.path,
-              Eq(file1_.file_path()));
-
-  EXPECT_THAT(attachment_payload_map, SizeIs(1));
-  ASSERT_THAT(attachment_payload_map.contains(file1_.id()), IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(file1_.id()), Eq(payloads[0].id));
-
-  EXPECT_THAT(session_.attachment_container().GetFileAttachments()[0].size(),
-              Eq(12355L));
-}
-
-TEST_F(OutgoingShareSessionTest, CreateWifiPayloadsWithNoWifiAttachments) {
-  OutgoingShareSession session(
-      &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
-  session.CreateWifiCredentialsPayloads();
-  const std::vector<Payload>& payloads = session.file_payloads();
-
-  EXPECT_THAT(payloads, IsEmpty());
-}
-
-TEST_F(OutgoingShareSessionTest, CreateWifiCredentialsPayloads) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  session_.CreateWifiCredentialsPayloads();
-  const std::vector<Payload>& payloads = session_.wifi_credentials_payloads();
-  auto& attachment_payload_map = session_.attachment_payload_map();
-
-  ASSERT_THAT(payloads, SizeIs(1));
-  EXPECT_THAT(payloads[0].content.type, Eq(PayloadContent::Type::kBytes));
+  ASSERT_THAT(wifi_payloads, SizeIs(1));
+  EXPECT_THAT(wifi_payloads[0].content.type, Eq(PayloadContent::Type::kBytes));
   WifiCredentials wifi_credentials;
   EXPECT_THAT(wifi_credentials.ParseFromArray(
-                  payloads[0].content.bytes_payload.bytes.data(),
-                  payloads[0].content.bytes_payload.bytes.size()),
+                  wifi_payloads[0].content.bytes_payload.bytes.data(),
+                  wifi_payloads[0].content.bytes_payload.bytes.size()),
               IsTrue());
   EXPECT_THAT(wifi_credentials.password(), Eq(wifi1_.password()));
   EXPECT_THAT(wifi_credentials.has_hidden_ssid(), Eq(wifi1_.is_hidden()));
 
-  ASSERT_THAT(attachment_payload_map, SizeIs(1));
+  const std::vector<Payload>& file_payloads = session_.file_payloads();
+  ASSERT_THAT(file_payloads, SizeIs(1));
+  EXPECT_THAT(file_payloads[0].content.type, Eq(PayloadContent::Type::kFile));
+  EXPECT_THAT(file_payloads[0].content.file_payload.parent_folder,
+              Eq(file1_.parent_folder()));
+  EXPECT_THAT(file_payloads[0].content.file_payload.file_path,
+              Eq(file1_.file_path()));
+
+  EXPECT_THAT(session_.attachment_container().GetFileAttachments()[0].size(),
+              Eq(kFile1Size));
+
+  auto& attachment_payload_map = session_.attachment_payload_map();
+
+  ASSERT_THAT(attachment_payload_map, SizeIs(4));
+  ASSERT_THAT(attachment_payload_map.contains(text1_.id()), IsTrue());
+  EXPECT_THAT(attachment_payload_map.at(text1_.id()), Eq(text_payloads[0].id));
+  ASSERT_THAT(attachment_payload_map.contains(text2_.id()), IsTrue());
+  EXPECT_THAT(attachment_payload_map.at(text2_.id()), Eq(text_payloads[1].id));
   ASSERT_THAT(attachment_payload_map.contains(wifi1_.id()), IsTrue());
-  EXPECT_THAT(attachment_payload_map.at(wifi1_.id()), Eq(payloads[0].id));
+  EXPECT_THAT(attachment_payload_map.at(wifi1_.id()), Eq(wifi_payloads[0].id));
+  ASSERT_THAT(attachment_payload_map.contains(file1_.id()), IsTrue());
+  EXPECT_THAT(attachment_payload_map.at(file1_.id()), Eq(file_payloads[0].id));
+}
+
+TEST_F(OutgoingShareSessionTest,
+       InitiateSendAttachmentsWithNonexistentFileAttachment) {
+  // Remove attachment file1.
+  Files::RemoveFile(
+      Files::GetTemporaryDirectory().append(FilePath(kFile1Name)));
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, AllOf(HasStatus(TransferMetadata::Status::kMediaUnavailable),
+                    IsFinalStatus())));
+
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsFalse());
+  const std::vector<Payload>& payloads = session_.file_payloads();
+
+  EXPECT_THAT(payloads, IsEmpty());
 }
 
 TEST_F(OutgoingShareSessionTest, ConnectNoDisableWifiHotspot) {
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
-  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-  file1_.set_size(1000000);  // 1MB
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  // Set file size to 1MB.
+  CreateTempFile(kFile1Name, 1000000);
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   NearbyConnectionImpl nearby_connection(device_info_);
   connections_manager_.set_nearby_connection(&nearby_connection);
 
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
   session_.Connect(
-      endpoint_info, bluetooth_mac_address,
-      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      endpoint_info, nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
       /*disable_wifi_hotspot=*/false,
       [&nearby_connection](absl::string_view endpoint_id,
                            NearbyConnection* connection, Status status) {
@@ -320,15 +295,18 @@ TEST_F(OutgoingShareSessionTest, ConnectNoDisableWifiHotspot) {
 
 TEST_F(OutgoingShareSessionTest, ConnectDisableWifiHotspot) {
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
-  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-  file1_.set_size(1000000);  // 1MB
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  // Set file size to 1MB.
+  CreateTempFile(kFile1Name, 1000000);
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   NearbyConnectionImpl nearby_connection(device_info_);
   connections_manager_.set_nearby_connection(&nearby_connection);
 
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
   session_.Connect(
-      endpoint_info, bluetooth_mac_address,
-      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      endpoint_info, nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
       /*disable_wifi_hotspot=*/true,
       [&nearby_connection](absl::string_view endpoint_id,
                            NearbyConnection* connection, Status status) {
@@ -347,15 +325,17 @@ TEST_F(OutgoingShareSessionTest, ConnectDisableWifiHotspot) {
 }
 
 TEST_F(OutgoingShareSessionTest, OnConnectResultSuccessLogsSessionDuration) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
-  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
   NearbyConnectionImpl nearby_connection(device_info_);
   connections_manager_.set_nearby_connection(&nearby_connection);
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
   session_.Connect(
-      endpoint_info, bluetooth_mac_address,
-      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      endpoint_info, nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
       /*disable_wifi_hotspot=*/false,
       [&nearby_connection](absl::string_view endpoint_id,
                            NearbyConnection* connection, Status status) {
@@ -365,26 +345,27 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultSuccessLogsSessionDuration) {
   fake_clock_.FastForward(absl::Seconds(10));
   EXPECT_CALL(
       mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf((
-          HasCategory(EventCategory::SENDING_EVENT),
-          HasEventType(EventType::ESTABLISH_CONNECTION),
-          Property(&SharingLog::establish_connection, HasSessionId(1234)),
-          Property(&SharingLog::establish_connection, HasDurationMillis(10000)),
-          Property(
-              &SharingLog::establish_connection,
-              SharingLogHasStatus(
-                  EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS)))))));
+      Log(Matcher<const SharingLog&>(
+          AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                 HasEventType(EventType::ESTABLISH_CONNECTION),
+                 ProtoField<"establish_connection", "session_id">(1234),
+                 ProtoField<"establish_connection", "duration_millis">(10000),
+                 ProtoField<"establish_connection", "status">(
+                     EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS))))));
 
   EXPECT_THAT(session_.OnConnectResult(&nearby_connection, Status::kSuccess),
               IsTrue());
 }
 
 TEST_F(OutgoingShareSessionTest, OnConnectResultFailureLogsSessionDuration) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
-  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-  session_.Connect(endpoint_info, bluetooth_mac_address,
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
+  session_.Connect(endpoint_info,
                    nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
                    /*disable_wifi_hotspot=*/false,
                    [](absl::string_view endpoint_id,
@@ -392,15 +373,13 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultFailureLogsSessionDuration) {
   fake_clock_.FastForward(absl::Seconds(10));
   EXPECT_CALL(
       mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf((
-          HasCategory(EventCategory::SENDING_EVENT),
-          HasEventType(EventType::ESTABLISH_CONNECTION),
-          Property(&SharingLog::establish_connection, HasSessionId(1234)),
-          Property(&SharingLog::establish_connection, HasDurationMillis(10000)),
-          Property(
-              &SharingLog::establish_connection,
-              SharingLogHasStatus(
-                  EstablishConnectionStatus::CONNECTION_STATUS_FAILURE)))))));
+      Log(Matcher<const SharingLog&>(
+          AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                 HasEventType(EventType::ESTABLISH_CONNECTION),
+                 ProtoField<"establish_connection", "session_id">(1234),
+                 ProtoField<"establish_connection", "duration_millis">(10000),
+                 ProtoField<"establish_connection", "status">(
+                     EstablishConnectionStatus::CONNECTION_STATUS_FAILURE))))));
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, AllOf(HasStatus(TransferMetadata::Status::kTimedOut),
                             IsFinalStatus())));
@@ -410,37 +389,26 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultFailureLogsSessionDuration) {
       IsFalse());
 }
 
-TEST_F(OutgoingShareSessionTest, SendIntroductionWithoutPayloads) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  EXPECT_THAT(session_.SendIntroduction([]() {}), IsFalse());
-}
-
 TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
-  session_.CreateTextPayloads();
-  session_.CreateWifiCredentialsPayloads();
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf(
-          (HasCategory(EventCategory::SENDING_EVENT),
-           HasEventType(EventType::SEND_INTRODUCTION),
-           Property(&SharingLog::send_introduction, HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::SEND_INTRODUCTION),
+                         ProtoField<"send_introduction", "session_id">(1234),
+                         ProtoField<"event_metadata", "use_case">(
+                             SharingUseCase::USE_CASE_NEARBY_SHARE))))));
   std::vector<uint8_t> frame_data;
   connections_manager_.set_send_payload_callback(
       [&](std::unique_ptr<Payload> payload,
-         std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
-             listener) {
-              frame_data = std::move(payload->content.bytes_payload.bytes);
-              });
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
 
   EXPECT_THAT(session_.SendIntroduction([]() {}), IsTrue());
 
@@ -473,7 +441,7 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
   ASSERT_THAT(intro_frame.file_metadata_size(), Eq(1));
   EXPECT_THAT(intro_frame.file_metadata(0).id(), Eq(file1_.id()));
   // File attachment size has been updated by CreateFilePayloads().
-  EXPECT_THAT(intro_frame.file_metadata(0).size(), Eq(file_infos[0].size));
+  EXPECT_THAT(intro_frame.file_metadata(0).size(), Eq(kFile1Size));
   EXPECT_THAT(intro_frame.file_metadata(0).name(), Eq(file1_.file_name()));
   EXPECT_THAT(intro_frame.file_metadata(0).payload_id(),
               Eq(file_payloads[0].id));
@@ -493,20 +461,22 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
 }
 
 TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
-  auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
-  InitSendAttachments(std::move(container));
+  auto container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build();
+  EXPECT_THAT(InitSendAttachments(std::move(container)), IsTrue());
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
-  session_.CreateTextPayloads();
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf(
-          (HasCategory(EventCategory::SENDING_EVENT),
-           HasEventType(EventType::SEND_INTRODUCTION),
-           Property(&SharingLog::send_introduction, HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::SEND_INTRODUCTION),
+                         ProtoField<"send_introduction", "session_id">(1234),
+                         ProtoField<"event_metadata", "use_case">(
+                             SharingUseCase::USE_CASE_NEARBY_SHARE))))));
 
   bool accept_timeout_called = false;
   EXPECT_THAT(session_.SendIntroduction(
@@ -520,20 +490,22 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
 }
 
 TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
-  auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
-  InitSendAttachments(std::move(container));
+  auto container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build();
+  EXPECT_THAT(InitSendAttachments(std::move(container)), IsTrue());
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
-  session_.CreateTextPayloads();
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf(
-          (HasCategory(EventCategory::SENDING_EVENT),
-           HasEventType(EventType::SEND_INTRODUCTION),
-           Property(&SharingLog::send_introduction, HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::SEND_INTRODUCTION),
+                         ProtoField<"send_introduction", "session_id">(1234),
+                         ProtoField<"event_metadata", "use_case">(
+                             SharingUseCase::USE_CASE_NEARBY_SHARE))))));
 
   bool accept_timeout_called = false;
   EXPECT_THAT(session_.SendIntroduction(
@@ -545,7 +517,7 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
   EXPECT_THAT(status.has_value(), IsFalse());
 
   fake_clock_.FastForward(absl::Seconds(60));
@@ -555,9 +527,9 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotConnected) {
-  EXPECT_THAT(
-      session_.AcceptTransfer([](std::optional<ConnectionResponseFrame>) {}),
-      IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [](bool, std::optional<ConnectionResponseFrame>) {}),
+              IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
@@ -565,38 +537,41 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
 
-  EXPECT_THAT(
-      session_.AcceptTransfer([](std::optional<ConnectionResponseFrame>) {}),
-      IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [](bool, std::optional<ConnectionResponseFrame>) {}),
+              IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
-  auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
-  InitSendAttachments(std::move(container));
+  auto container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build();
+  EXPECT_THAT(InitSendAttachments(std::move(container)), IsTrue());
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
-  session_.CreateTextPayloads();
-  EXPECT_CALL(
-      mock_event_logger_,
-      Log(Matcher<const SharingLog&>(AllOf(
-          (HasCategory(EventCategory::SENDING_EVENT),
-           HasEventType(EventType::SEND_INTRODUCTION),
-           Property(&SharingLog::send_introduction, HasSessionId(1234)))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::SEND_INTRODUCTION),
+                         ProtoField<"send_introduction", "session_id">(1234),
+                         ProtoField<"event_metadata", "use_case">(
+                             SharingUseCase::USE_CASE_NEARBY_SHARE))))));
+
   EXPECT_THAT(session_.SendIntroduction([]() {}), IsTrue());
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance)));
 
   bool connection_response_received = false;
-  EXPECT_THAT(
-      session_.AcceptTransfer([&connection_response_received](
-                                  std::optional<ConnectionResponseFrame>) {
-        connection_response_received = true;
-      }),
-      IsTrue());
+  EXPECT_THAT(session_.AcceptTransfer(
+                  [&connection_response_received](
+                      bool, std::optional<ConnectionResponseFrame>) {
+                    connection_response_received = true;
+                  }),
+              IsTrue());
 
   // Send response frame
   nearby::sharing::service::proto::Frame frame =
@@ -613,19 +588,28 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   EXPECT_THAT(connection_response_received, IsTrue());
 }
 
-TEST_F(OutgoingShareSessionTest, HandleConnectionResponseEmptyResponse) {
+TEST_F(OutgoingShareSessionTest, HandleConnectionResponseEmptyResponseFailed) {
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(std::nullopt);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, std::nullopt);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kFailed));
+}
+
+TEST_F(OutgoingShareSessionTest,
+       HandleConnectionResponseEmptyResponseTimedOut) {
+  std::optional<TransferMetadata::Status> status =
+      session_.HandleConnectionResponse(/*is_timeout=*/true, std::nullopt);
+
+  ASSERT_THAT(status.has_value(), IsTrue());
+  EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kTimedOut));
 }
 
 TEST_F(OutgoingShareSessionTest, HandleConnectionResponseRejectResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::REJECT);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kRejected));
@@ -636,7 +620,7 @@ TEST_F(OutgoingShareSessionTest,
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::NOT_ENOUGH_SPACE);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kNotEnoughSpace));
@@ -647,7 +631,7 @@ TEST_F(OutgoingShareSessionTest,
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(),
@@ -658,7 +642,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseTimeoutResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::TIMED_OUT);
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/true, response);
 
   ASSERT_THAT(status.has_value(), IsTrue());
   EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kTimedOut));
@@ -674,22 +658,15 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
   std::optional<TransferMetadata::Status> status =
-      session_.HandleConnectionResponse(response);
+      session_.HandleConnectionResponse(/*is_timeout=*/false, response);
 
   ASSERT_THAT(status.has_value(), IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, SendPayloads) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
-  session_.CreateTextPayloads();
-  session_.CreateWifiCredentialsPayloads();
   MockFunction<void()> payload_transder_update_callback;
   StrictMock<MockFunction<void(
       std::unique_ptr<Payload>,
@@ -698,39 +675,70 @@ TEST_F(OutgoingShareSessionTest, SendPayloads) {
   connections_manager_.set_send_payload_callback(
       send_payload_callback.AsStdFunction());
   EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
+      .WillOnce(
           [this](
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(file1_.id());
-          }));
+          });
   EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const SharingLog&>(
-                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
-                         HasEventType(EventType::SEND_ATTACHMENTS_START),
-                         Property(&SharingLog::send_attachments_start,
-                                  HasSessionId(1234)))))));
+              Log(Matcher<const SharingLog&>(AllOf((
+                  HasCategory(EventCategory::SENDING_EVENT),
+                  HasEventType(EventType::SEND_ATTACHMENTS_START),
+                  ProtoField<"send_attachments_start", "session_id">(1234))))));
+
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads([](std::optional<V1Frame> frame) {},
-      payload_transder_update_callback.AsStdFunction());
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
+                        payload_transder_update_callback.AsStdFunction());
+
+  auto payload_listener = session_.payload_tracker().lock();
+  EXPECT_THAT(payload_listener, IsTrue());
+}
+
+TEST_F(OutgoingShareSessionTest, SendPayloadsSetsAdvancedProtectionFlags) {
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
+  session_.set_session_id(1234);
+  MockFunction<void()> payload_transder_update_callback;
+  StrictMock<MockFunction<void(
+      std::unique_ptr<Payload>,
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
+      send_payload_callback;
+  connections_manager_.set_send_payload_callback(
+      send_payload_callback.AsStdFunction());
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(
+          [this](
+              std::unique_ptr<Payload> payload,
+              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = session_.attachment_payload_map().at(file1_.id());
+          });
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::SENDING_EVENT),
+           HasEventType(EventType::SEND_ATTACHMENTS_START),
+           ProtoField<"send_attachments_start", "session_id">(1234),
+           ProtoField<"send_attachments_start", "advanced_protection_enabled">(
+               true))))));
+
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+
+  session_.SetAdvancedProtectionStatus(/*advanced_protection_enabled=*/true);
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
+                        payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
   EXPECT_THAT(payload_listener, IsTrue());
 }
 
 TEST_F(OutgoingShareSessionTest, SendNextPayload) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
+  EXPECT_THAT(InitSendAttachments(CreateDefaultAttachmentContainer()),
+              IsTrue());
   session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
-  session_.CreateTextPayloads();
-  session_.CreateWifiCredentialsPayloads();
   MockFunction<void()> payload_transder_update_callback;
   StrictMock<MockFunction<void(
       std::unique_ptr<Payload>,
@@ -740,82 +748,52 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
       send_payload_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
+      .WillOnce(
           [this](
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(file1_.id());
-          }));
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const SharingLog&>(
-                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
-                         HasEventType(EventType::SEND_ATTACHMENTS_START),
-                         Property(&SharingLog::send_attachments_start,
-                                  HasSessionId(1234)))))));
+          });
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::SENDING_EVENT),
+           HasEventType(EventType::SEND_ATTACHMENTS_START),
+           ProtoField<"send_attachments_start", "session_id">(1234),
+           ProtoField<"send_attachments_start", "advanced_protection_enabled">(
+               false))))));
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads([](std::optional<V1Frame> frame) {},
-      payload_transder_update_callback.AsStdFunction());
+  session_.SendPayloads([](bool is_timeout, std::optional<V1Frame> frame) {},
+                        payload_transder_update_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
+      .WillOnce(
           [this](
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text1_.id());
-          }));
+          });
   session_.SendNextPayload();
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
+      .WillOnce(
           [this](
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
-          }));
+          });
   session_.SendNextPayload();
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
+      .WillOnce(
           [this](
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(wifi1_.id());
-          }));
+          });
   session_.SendNextPayload();
-}
-
-TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
-  NearbyConnectionImpl connection(device_info_);
-  session_.set_session_id(1234);
-  ConnectionSuccess(&connection);
-  session_.SetTokenForTests("1234");
-
-  EXPECT_THAT(
-      session_.ProcessKeyVerificationResult(
-          PairedKeyVerificationRunner::PairedKeyVerificationResult::kFail,
-          OSType::WINDOWS),
-      IsFalse());
-
-  EXPECT_THAT(session_.token(), Eq("1234"));
-  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
-}
-
-TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
-  NearbyConnectionImpl connection(device_info_);
-  session_.set_session_id(1234);
-  ConnectionSuccess(&connection);
-  session_.SetTokenForTests("1234");
-
-  EXPECT_THAT(
-      session_.ProcessKeyVerificationResult(
-          PairedKeyVerificationRunner::PairedKeyVerificationResult::kSuccess,
-          OSType::WINDOWS),
-      IsTrue());
-
-  EXPECT_THAT(session_.token(), IsEmpty());
-  EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
 }
 
 TEST_F(OutgoingShareSessionTest, DelayCompleteReceiverDisconnect) {
@@ -849,8 +827,10 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteDisconnectTimeout) {
   NearbyConnectionImpl connection(device_info_);
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
-  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-  session_.Connect(endpoint_info, bluetooth_mac_address,
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
+  session_.Connect(endpoint_info,
                    nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
                    /*disable_wifi_hotspot=*/false,
                    [&](absl::string_view endpoint_id,
@@ -941,5 +921,188 @@ TEST_F(OutgoingShareSessionTest,
   EXPECT_TRUE(session_.certificate().has_value());
   EXPECT_THAT(session_.endpoint_id(), Eq(endpoint_id_org));
 }
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
+  session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request {
+                  binding_id: "test_binding_id"
+                  type: FILESYNC
+                  cert_ids: "cert_id_1"
+                  cert_ids: "cert_id_2"
+                }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
+
+  BindingResponse binding_response;
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {"cert_id_1", "cert_id_2"},
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
+      });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Send response frame
+  nearby::sharing::service::proto::Frame response_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_response {
+                  status: SUCCESS
+                  cert_ids: "cert_id_3"
+                  cert_ids: "cert_id_4"
+                }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> data;
+  data.resize(response_frame.ByteSizeLong());
+  EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
+              IsTrue());
+  connection.WriteMessage(std::move(data));
+
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::SUCCESS));
+  EXPECT_THAT(binding_response.cert_ids(),
+              ElementsAre("cert_id_3", "cert_id_4"));
+}
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingTimeout) {
+  session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request { binding_id: "test_binding_id" type: FILESYNC }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
+
+  BindingResponse binding_response;
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {},
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
+      });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Fast forward to the binding timeout.
+  fake_clock_.FastForward(absl::Minutes(3));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));
+}
+
+TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
+  session_.set_session_id(1234);
+  session_.set_session_usage(ShareSessionUsage::kPairing);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  Frame expected_binding_request_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings {
+                binding_request { binding_id: "test_binding_id" type: FILESYNC }
+              }
+            }
+          )pb");
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kPairing))));
+
+  BindingResponse binding_response;
+  session_.StartPeerBinding(
+      "test_binding_id", BindingRequest::FILESYNC, {},
+      [&binding_response](const BindingResponse& response) {
+        binding_response = response;
+      });
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  EXPECT_THAT(frame, EqualsProto(expected_binding_request_frame));
+
+  // Send response frame
+  nearby::sharing::service::proto::Frame response_frame =
+      proto2::contrib::parse_proto::ParseTextProtoOrDie(
+          R"pb(
+            version: V1
+            v1 {
+              type: BINDINGS
+              bindings { binding_response { status: FAILURE } }
+            }
+          )pb");
+  std::vector<uint8_t> data;
+  data.resize(response_frame.ByteSizeLong());
+  EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
+              IsTrue());
+  connection.WriteMessage(std::move(data));
+
+  EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));
+  EXPECT_THAT(binding_response.cert_ids(), IsEmpty());
+}
+
 }  // namespace
 }  // namespace nearby::sharing

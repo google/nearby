@@ -15,21 +15,19 @@
 #include "internal/base/bluetooth_address.h"
 
 #include <algorithm>
-#include <array>
-#include <string>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
+#include "absl/types/span.h"
 
 namespace nearby {
 namespace device {
 namespace {
 
 template <int BASE, typename CHAR>
-// Note that some of the methods return absl::optional instead
-// of std::optional, because iOS platform is still in C++14.
-absl::optional<uint8_t> CharToDigit(CHAR c) {
+std::optional<uint8_t> CharToDigit(CHAR c) {
   static_assert(1 <= BASE && BASE <= 36, "BASE needs to be in [1, 36]");
   if (c >= '0' && c < '0' + std::min(BASE, 10)) return c - '0';
 
@@ -37,7 +35,7 @@ absl::optional<uint8_t> CharToDigit(CHAR c) {
 
   if (c >= 'A' && c < 'A' + BASE - 10) return c - 'A' + 10;
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 template <typename OutIter>
@@ -46,9 +44,9 @@ static bool HexStringToByteContainer(absl::string_view input, OutIter output) {
   if (count == 0 || (count % 2) != 0) return false;
   for (uintptr_t i = 0; i < count / 2; ++i) {
     // most significant 4 bits
-    absl::optional<uint8_t> msb = CharToDigit<16>(input[i * 2]);
+    std::optional<uint8_t> msb = CharToDigit<16>(input[i * 2]);
     // least significant 4 bits
-    absl::optional<uint8_t> lsb = CharToDigit<16>(input[i * 2 + 1]);
+    std::optional<uint8_t> lsb = CharToDigit<16>(input[i * 2 + 1]);
     if (!msb.has_value() || !lsb.has_value()) {
       return false;
     }
@@ -90,34 +88,6 @@ bool ParseBluetoothAddress(absl::string_view input,
   }
 
   return false;
-}
-
-std::string ConvertBluetoothAddressUIntToString(uint64_t address) {
-  std::string mac_address = absl::StrFormat(
-      "%02llX:%02llX:%02llX:%02llX:%02llX:%02llX", address >> 40,
-      (address >> 32) & 0xff, (address >> 24) & 0xff, (address >> 16) & 0xff,
-      (address >> 8) & 0xff, address & 0xff);
-  return CanonicalizeBluetoothAddress(mac_address);
-}
-
-std::string CanonicalizeBluetoothAddress(absl::string_view address) {
-  std::array<uint8_t, 6> bytes;
-
-  if (!ParseBluetoothAddress(address, absl::MakeSpan(bytes.data(), 6)))
-    return std::string();
-
-  return CanonicalizeBluetoothAddress(bytes);
-}
-
-std::string CanonicalizeBluetoothAddress(
-    const std::array<uint8_t, 6>& address_bytes) {
-  return absl::StrFormat("%02X:%02X:%02X:%02X:%02X:%02X", address_bytes[0],
-                         address_bytes[1], address_bytes[2], address_bytes[3],
-                         address_bytes[4], address_bytes[5]);
-}
-
-std::string CanonicalizeBluetoothAddress(uint64_t address) {
-  return ConvertBluetoothAddressUIntToString(address);
 }
 
 }  // namespace device

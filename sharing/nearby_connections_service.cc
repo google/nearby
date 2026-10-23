@@ -21,6 +21,13 @@
 #include <utility>
 #include <vector>
 
+#include "connections/listeners.h"
+#include "connections/payload.h"
+#include "connections/payload_type.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
+#include "internal/base/file_path.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
@@ -28,24 +35,31 @@
 namespace nearby {
 namespace sharing {
 
+using ::nearby::connections::PayloadType;
+using ::nearby::connections::ResultCallback;
+
+using NcPayload = ::nearby::connections::Payload;
+using NcStatus = ::nearby::connections::Status;
+using NcStrategy = ::nearby::connections::Strategy;
+
 Status ConvertToStatus(NcStatus status) {
   return static_cast<Status>(status.value);
 }
 
 Payload ConvertToPayload(NcPayload payload) {
   switch (payload.GetType()) {
-    case NcPayloadType::kBytes: {
-      const NcByteArray& bytes = payload.AsBytes();
+    case PayloadType::kBytes: {
+      const ByteArray& bytes = payload.AsBytes();
       std::string data = std::string(bytes);
       return Payload(payload.GetId(),
                      std::vector<uint8_t>(data.begin(), data.end()));
     }
-    case NcPayloadType::kFile: {
+    case PayloadType::kFile: {
       std::string file_path = payload.AsFile()->GetFilePath();
       std::string parent_folder = payload.GetParentFolder();
       VLOG(1) << __func__ << ": Payload file_path=" << file_path
               << ", parent_folder = " << parent_folder;
-      return Payload(payload.GetId(), InputFile(file_path), parent_folder);
+      return Payload(payload.GetId(), FilePath(file_path), parent_folder);
     }
     default:
       return Payload();
@@ -55,15 +69,14 @@ Payload ConvertToPayload(NcPayload payload) {
 NcPayload ConvertToServicePayload(Payload payload) {
   switch (payload.content.type) {
     case PayloadContent::Type::kFile: {
-      int64_t file_size = payload.content.file_payload.size;
-      std::string file_path = payload.content.file_payload.file.path.ToString();
+      std::string file_path = payload.content.file_payload.file_path.ToString();
       std::string file_name =
-          payload.content.file_payload.file.path.GetFileName().ToString();
+          payload.content.file_payload.file_path.GetFileName().ToString();
       std::string parent_folder = payload.content.file_payload.parent_folder;
       std::replace(parent_folder.begin(), parent_folder.end(), '\\', '/');
       VLOG(1) << __func__ << ": NC Payload file_path=" << file_path
               << ", parent_folder = " << parent_folder;
-      nearby::InputFile input_file(file_path, file_size);
+      nearby::InputFile input_file(file_path);
       NcPayload nc_payload(payload.id, parent_folder, file_name,
                            std::move(input_file));
       return nc_payload;
@@ -71,16 +84,16 @@ NcPayload ConvertToServicePayload(Payload payload) {
     case PayloadContent::Type::kBytes: {
       std::vector<uint8_t> bytes = payload.content.bytes_payload.bytes;
       return NcPayload(payload.id,
-                       NcByteArray(std::string(bytes.begin(), bytes.end())));
+                       ByteArray(std::string(bytes.begin(), bytes.end())));
     }
     default:
       return NcPayload();
   }
 }
 
-NcResultCallback BuildResultCallback(
+ResultCallback BuildResultCallback(
     std::function<void(Status status)> callback) {
-  return NcResultCallback{[&, callback = std::move(callback)](NcStatus status) {
+  return ResultCallback{[&, callback = std::move(callback)](NcStatus status) {
     callback(ConvertToStatus(status));
   }};
 }

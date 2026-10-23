@@ -23,7 +23,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "sharing/nearby_connection.h"
 
 namespace nearby::sharing {
@@ -32,7 +32,7 @@ class NearbyConnectionsManager;
 
 class NearbyConnectionImpl : public NearbyConnection {
  public:
-  explicit NearbyConnectionImpl(nearby::DeviceInfo& device_info);
+  explicit NearbyConnectionImpl(nearby::api::DeviceInfo& device_info);
   ~NearbyConnectionImpl() override;
 
   // NearbyConnection:
@@ -46,7 +46,7 @@ class NearbyConnectionImpl : public NearbyConnection {
   void WriteMessage(std::vector<uint8_t> bytes) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  nearby::DeviceInfo& device_info_;
+  nearby::api::DeviceInfo& device_info_;
 
   absl::Mutex mutex_;
   std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback_

@@ -14,14 +14,15 @@
 
 #include "connections/implementation/client_proxy.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "base/casts.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -33,17 +34,18 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
-#include "internal/analytics/mock_event_logger.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
@@ -52,19 +54,16 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OsInfo;
-using ::location::nearby::proto::connections::CLIENT_SESSION;
-using ::location::nearby::proto::connections::START_CLIENT_SESSION;
-using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
+using ::testing::_;
+using ::testing::IsEmpty;
 using ::testing::MockFunction;
 using ::testing::StrictMock;
 
@@ -75,46 +74,6 @@ constexpr FeatureFlags::Flags kTestCases[] = {
     FeatureFlags::Flags{
         .enable_cancellation_flag = false,
     },
-};
-
-class FakeEventLogger : public ::nearby::analytics::MockEventLogger {
- public:
-  explicit FakeEventLogger() = default;
-
-  void Log(const ConnectionsLog& message) override {
-    MutexLock lock(&mutex_);
-    logs_.push_back(message);
-  }
-
-  int GetCompleteClientSessionCount() {
-    MutexLock lock(&mutex_);
-    bool has_start_client_session = false;
-    bool has_client_session = false;
-    int session_count = 0;
-    // We expect series of START_CLIENT_SESSION, CLIENT_SESSION and
-    // STOP_CLIENT_SESSION events, possibly interleaved with other events.
-    for (const auto& log : logs_) {
-      if (log.event_type() == START_CLIENT_SESSION) {
-        EXPECT_FALSE(has_start_client_session);
-        EXPECT_FALSE(has_client_session);
-        has_start_client_session = true;
-      } else if (log.event_type() == CLIENT_SESSION) {
-        EXPECT_TRUE(has_start_client_session);
-        EXPECT_FALSE(has_client_session);
-        has_client_session = true;
-      } else if (log.event_type() == STOP_CLIENT_SESSION) {
-        EXPECT_TRUE(has_start_client_session);
-        EXPECT_TRUE(has_client_session);
-        has_start_client_session = false;
-        has_client_session = false;
-        ++session_count;
-      }
-    }
-    return session_count;
-  }
-
-  Mutex mutex_;
-  std::vector<ConnectionsLog> logs_;
 };
 
 class MockDeviceProvider : public nearby::NearbyDeviceProvider {
@@ -162,10 +121,17 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
 
   void SetUp() override {
     EnvironmentConfig config{/*webrtc_enabled=*/false,
-                             /*use_simulated_clock=*/true};
+                             /*use_simulated_clock=*/true,
+                             /*use_temporary_directory_for_app_path=*/true};
     env_.Start(config);
-    client1_ = std::make_unique<ClientProxy>(&event_logger1_);
-    client2_ = std::make_unique<ClientProxy>(&event_logger2_);
+    auto analytics_recorder1 =
+        std::make_unique<analytics::MockAnalyticsRecorder>();
+    mock_analytics_recorder1_ptr_ = analytics_recorder1.get();
+    client1_ = std::make_unique<ClientProxy>(std::move(analytics_recorder1));
+    auto analytics_recorder2 =
+        std::make_unique<analytics::MockAnalyticsRecorder>();
+    mock_analytics_recorder2_ptr_ = analytics_recorder2.get();
+    client2_ = std::make_unique<ClientProxy>(std::move(analytics_recorder2));
   }
 
   void TearDown() override {
@@ -173,12 +139,6 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client2_.reset();
     env_.Stop();
     NearbyFlags::GetInstance().ResetOverridedValues();
-  }
-
-  bool ShouldEnterHighVisibilityMode(
-      const AdvertisingOptions& advertising_options) {
-    return !advertising_options.low_power &&
-           advertising_options.allowed.bluetooth;
   }
 
   bool ShouldEnterStableEndpointIdMode(
@@ -195,16 +155,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   Endpoint StartAdvertising(
       ClientProxy* client, ConnectionListener listener,
       AdvertisingOptions advertising_options = AdvertisingOptions{}) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            connections::config_package_nearby::nearby_connections_feature::
-                kUseStableEndpointId)) {
-      if (ShouldEnterStableEndpointIdMode(advertising_options)) {
-        client->EnterStableEndpointIdMode();
-      }
-    } else {
-      if (ShouldEnterHighVisibilityMode(advertising_options)) {
-        client->EnterHighVisibilityMode();
-      }
+    if (ShouldEnterStableEndpointIdMode(advertising_options)) {
+      client->EnterStableEndpointIdMode();
     }
     Endpoint endpoint{
         .info = ByteArray{"advertising endpoint name"},
@@ -368,22 +320,12 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client->OnPayloadProgress(endpoint.id, {});
   }
 
-  void EnableUseStableEndpointIdFeature() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        connections::config_package_nearby::nearby_connections_feature::
-            kUseStableEndpointId,
-        true);
-  }
-
   ClientProxy* client1() { return client1_.get(); }
 
   ClientProxy* client2() { return client2_.get(); }
 
   void FastForward(absl::Duration duration) {
-    (*env_.GetSimulatedClock())
-        ->FastForward(
-            ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
-            absl::Milliseconds(100));
+    env_.FastForward(duration);
     // make sure the timer based callback is executed.
     absl::SleepFor(absl::Milliseconds(100));
   }
@@ -403,8 +345,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   Strategy strategy_{Strategy::kP2pPointToPoint};
   const std::string service_id_{"service"};
-  FakeEventLogger event_logger1_;
-  FakeEventLogger event_logger2_;
+  analytics::MockAnalyticsRecorder* mock_analytics_recorder1_ptr_;
+  analytics::MockAnalyticsRecorder* mock_analytics_recorder2_ptr_;
   std::unique_ptr<ClientProxy> client1_;
   std::unique_ptr<ClientProxy> client2_;
   std::string auth_token_ = "auth_token";
@@ -457,7 +399,7 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -493,7 +435,7 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
-  CancellationFlag* cancellation_flag =
+  std::shared_ptr<CancellationFlag> cancellation_flag =
       client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
@@ -560,6 +502,26 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
   }
 }
 
+TEST_P(ClientProxyTest, GetCancellationFlagRace) {
+  std::string endpoint_id = "test_endpoint";
+  client1()->AddCancellationFlag(endpoint_id);
+
+  std::atomic<bool> run{true};
+  SingleThreadExecutor executor;
+  executor.Execute([&]() {
+    while (run) {
+      client1()->GetCancellationFlag(endpoint_id);
+    }
+  });
+
+  for (int i = 0; i < 10000; ++i) {
+    client1()->Reset();
+    client1()->AddCancellationFlag(endpoint_id);
+  }
+
+  run = false;
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedClientProxyTest, ClientProxyTest,
                          ::testing::ValuesIn(kTestCases));
 
@@ -574,7 +536,6 @@ TEST_F(ClientProxyTest, DumpString) {
       "Nearby Connections State\n"
       "  Client ID: %d\n"
       "  Local Endpoint ID: %s\n"
-      "  High Visibility Mode: false\n"
       "  Is Advertising: false\n"
       "  Is Discovering: false\n"
       "  Advertising Service ID: \n"
@@ -606,6 +567,58 @@ TEST_F(ClientProxyTest, ResetClearsState) {
   EXPECT_FALSE(client1()->IsDiscovering());
   EXPECT_TRUE(client1()->GetAdvertisingServiceId().empty());
   EXPECT_TRUE(client1()->GetDiscoveryServiceId().empty());
+}
+
+TEST_F(ClientProxyTest, OnEventWithoutHandlerReturnsTrue) {
+  EXPECT_TRUE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
+}
+
+TEST_F(ClientProxyTest, OnEventReturnsHandlerResult) {
+  std::vector<ClientEvent> events;
+  bool decision = false;
+  client1()->RegisterEventHandler([&](const ClientEvent& event) {
+    events.push_back(event);
+    return decision;
+  });
+  ClientEvent event = {.endpoint_id = "ABCD",
+                       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}};
+
+  EXPECT_FALSE(client1()->OnEvent(event));
+  decision = true;
+  EXPECT_TRUE(client1()->OnEvent(event));
+
+  ASSERT_EQ(events.size(), 2);
+  EXPECT_EQ(events[0].endpoint_id, "ABCD");
+  const auto* prompt =
+      std::get_if<ClientEvent::JoinHotspotPrompt>(&events[0].data);
+  ASSERT_NE(prompt, nullptr);
+  EXPECT_EQ(prompt->ssid, "SSID");
+}
+
+TEST_F(ClientProxyTest, OnEventAfterUnregisterReturnsTrue) {
+  auto resource = std::make_shared<int>(42);
+  std::weak_ptr<int> weak_resource = resource;
+  auto move_only =
+      std::make_unique<std::shared_ptr<int>>(std::move(resource));
+  client1()->RegisterEventHandler(
+      [captured = std::move(move_only)](const ClientEvent&) { return false; });
+  EXPECT_FALSE(weak_resource.expired());
+
+  client1()->UnregisterEventHandler();
+  EXPECT_TRUE(weak_resource.expired());
+  EXPECT_TRUE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
+}
+
+TEST_F(ClientProxyTest, EventHandlerSurvivesReset) {
+  client1()->RegisterEventHandler([](const ClientEvent&) { return false; });
+  client1()->Reset();
+  EXPECT_FALSE(client1()->OnEvent(
+      {.endpoint_id = "ABCD",
+       .data = ClientEvent::JoinHotspotPrompt{.ssid = "SSID"}}));
 }
 
 TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {
@@ -825,7 +838,6 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        RotateWhenLowVizAdvertisementAfterHighVizAndStableAdvertisement) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -866,7 +878,6 @@ TEST_F(ClientProxyTest,
 TEST_F(
     ClientProxyTest,
     NoRotateWhenLowVizStableAdvertisementAfterHighVizAndStableAdvertisement) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -910,7 +921,6 @@ TEST_F(
 TEST_F(
     ClientProxyTest,
     NoRotateWhenAdvertisementHasConnectionAfterStableAdvertisementForAWhile) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -957,7 +967,6 @@ TEST_F(
 }
 
 TEST_F(ClientProxyTest, RotateWhenLowVizAdvertisementAfterDisconnection) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1000,7 +1009,6 @@ TEST_F(ClientProxyTest, RotateWhenLowVizAdvertisementAfterDisconnection) {
 
 TEST_F(ClientProxyTest,
        NoRotateWhenLowVizAndStableAdvertisementAfterDisconnection) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1045,7 +1053,6 @@ TEST_F(ClientProxyTest,
 }
 
 TEST_F(ClientProxyTest, RotateWhenAdvertisementAfterDisconnectionForAWhile) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1146,36 +1153,6 @@ TEST_F(ClientProxyTest,
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
 
-// Tests the low visibility mode with bluetooth disabled advertisment.
-TEST_F(ClientProxyTest,
-       EndpointIdRotateWhenLowVizAdvertisementWithBluetoothDisabled) {
-  BooleanMediumSelector booleanMediumSelector;
-  booleanMediumSelector.bluetooth = false;
-
-  AdvertisingOptions advertising_options{
-      {
-          strategy_,
-          booleanMediumSelector,
-      },
-      false,  // auto_upgrade_bandwidth
-      false,  // enforce_topology_constraints
-      false,  // low_power
-      true,   // enable_bluetooth_listening
-      false,  // enable_webrtc_listening
-      true,   // use_stable_endpoint_id
-  };
-
-  Endpoint advertising_endpoint_1 = StartAdvertising(
-      client1(), advertising_connection_listener_, advertising_options);
-
-  StopAdvertising(client1());
-
-  Endpoint advertising_endpoint_2 = StartAdvertising(
-      client1(), advertising_connection_listener_, advertising_options);
-
-  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
-}
-
 // Tests the low visibility mode with low power advertisment.
 TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
   BooleanMediumSelector booleanMediumSelector;
@@ -1218,11 +1195,13 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
 
   // After
   StopAdvertising(client1());  // No Advertising
-  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(1);
 }
 
 TEST_F(ClientProxyTest,
        LogSessionForStoppedAdvertisingWhenNoConnectionsAndNoDiscovering) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
 
@@ -1231,36 +1210,47 @@ TEST_F(ClientProxyTest,
       advertising_endpoint.id));             // No Connections
   EXPECT_FALSE(client1()->IsDiscovering());  // No Discovery
   EXPECT_TRUE(client1()->IsAdvertising());   // Advertising
-  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 
   // After
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopAdvertising());
   StopAdvertising(client1());
-  EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
 
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
   StartDiscovery(client2(), GetDiscoveryListener());
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnEndpointFound(Medium::BLUETOOTH));
   OnDiscoveryEndpointFound(client2(), advertising_endpoint);
 
   // Before
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnConnectionRequestReceived(advertising_endpoint.id));
   OnDiscoveryConnectionInitiated(
       client2(), advertising_endpoint);      // Connections are available
   EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
   EXPECT_TRUE(client2()->IsDiscovering());   // Discovering
 
   // After
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
   StopDiscovery(client2());
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionForStoppedDiscoveryWithoutConnectionsAndAdvertising) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
 
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
   StartDiscovery(client2(), GetDiscoveryListener());
 
   // Before
@@ -1270,30 +1260,40 @@ TEST_F(ClientProxyTest,
       advertising_endpoint.id));  // No Connections
 
   // After
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
   StopDiscovery(client2());
-  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
   StartDiscovery(client2(), GetDiscoveryListener());
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnEndpointFound(Medium::BLUETOOTH));
   OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnConnectionRequestReceived(advertising_endpoint.id));
   OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // Before
   EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
-  StopDiscovery(client2());                  // No Discovery
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
+  StopDiscovery(client2());  // No Discovery
   EXPECT_TRUE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // One Connection
 
   // After
   OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
-  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionOnDisconnectedWithoutConnectionsDiscoveringAdvertising) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
 
@@ -1305,13 +1305,16 @@ TEST_F(ClientProxyTest,
 
   // After
   client2()->OnDisconnected(advertising_endpoint.id, /*notify=*/false);
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
   ClientProxy client3;
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint_1 =
       StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint_2 =
       StartAdvertising(client2(), advertising_connection_listener_);
   StartDiscovery(&client3, GetDiscoveryListener());
@@ -1332,15 +1335,22 @@ TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
 
   // After
   client2()->OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionOnDisconnectedForDiscoveringWithOnlyOneConnection) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
   StartDiscovery(client2(), GetDiscoveryListener());
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnEndpointFound(Medium::BLUETOOTH));
   OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnConnectionRequestReceived(advertising_endpoint.id));
   OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // Before
@@ -1351,26 +1361,27 @@ TEST_F(ClientProxyTest,
 
   // After
   OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
-  // Since we are no longer checking IsDiscovering(), we complete sessions now
-  // solely based on advertising.
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 1);
 }
 
 TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _));
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _));
   StartDiscovery(client2(), GetDiscoveryListener());
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnEndpointFound(Medium::BLUETOOTH));
   OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_,
+              OnConnectionRequestReceived(advertising_endpoint.id));
   OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
-  EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopAdvertising());
   client1()->Reset();
-  // TODO(b/290936886): Why are there more than one complete sessions?
-  EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
-
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, OnStopDiscovery());
   client2()->Reset();
-  EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, GetLocalInfoCorrect) {
@@ -1387,6 +1398,7 @@ TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
   EXPECT_FALSE(client1()
                    ->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
                    .has_value());
+  EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id), "");
 }
 
 TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
@@ -1407,6 +1419,10 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
   EXPECT_EQ(
       client1()->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
       nearby_connections_version);
+  std::string device_name = "device_name";
+  client1()->SetRemoteDeviceName(advertising_endpoint.id, device_name);
+  EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id),
+            device_name);
 }
 
 // Test ClientProxy::AddCancellationFlag, where if a flag is already in the map,
@@ -1457,9 +1473,7 @@ TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
   MockDeviceProvider provider;
   client1()->RegisterDeviceProvider(&provider);
   ASSERT_NE(client1()->GetLocalDeviceProvider(), nullptr);
-  EXPECT_CALL(
-      *(down_cast<MockDeviceProvider*>(client1()->GetLocalDeviceProvider())),
-      GetLocalDevice);
+  EXPECT_CALL(provider, GetLocalDevice);
   client1()->GetLocalDevice();
 }
 
@@ -1542,83 +1556,387 @@ TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
   EXPECT_TRUE(client1()->AutoUpgradeBandwidth());
 }
 
-TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplex)) {
-    EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
-  }
+TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      config_package_nearby::nearby_connections_feature::
+          kEnableNearbyConnectionsPreferences,
       true);
-  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
+  client1_ = std::make_unique<ClientProxy>();
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  std::string endpoint_id = advertising_endpoint.id;
+  client1_->SaveClientInfoToPreferences();
+
+  // Destroy the client and create a new one.
+  client1_.reset();
+  client1_ = std::make_unique<ClientProxy>();
+
+  // The new client should load the same endpoint ID.
+  EXPECT_EQ(client1()->GetLocalEndpointId(), endpoint_id);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexBluetooth,
-      true);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
-      true);
-  EXPECT_EQ(
-      client1()->GetLocalMultiplexSocketBitmask(),
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexBluetooth,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
+          kEnableNearbyConnectionsPreferences,
       false);
 }
 
-TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
-      true);
+TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexBluetooth,
+          kEnableNearbyConnectionsPreferences,
       true);
+  client1_ = std::make_unique<ClientProxy>();
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  std::string endpoint_id = advertising_endpoint.id;
+  client1_->SaveClientInfoToPreferences();
+
+  // Destroy the client and create a new one.
+  client1_.reset();
+  FastForward(absl::Hours(25));
+
+  client1_ = std::make_unique<ClientProxy>();
+
+  // The new client should load the same endpoint ID.
+  EXPECT_NE(client1()->GetLocalEndpointId(), endpoint_id);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
-      true);
+          kEnableNearbyConnectionsPreferences,
+      false);
+}
+
+TEST_F(ClientProxyTest, OverrideSavePath) {
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
   OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
-  client1()->SetRemoteMultiplexSocketBitmask(
+
+  client1()->OverrideSavePath(advertising_endpoint.id, "/tmp/test_path");
+  EXPECT_EQ(client1()->GetSavePath(advertising_endpoint.id), "/tmp/test_path");
+}
+
+TEST_F(ClientProxyTest, GetSavePathDefaultsToEmpty) {
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+
+  EXPECT_THAT(client1()->GetSavePath(advertising_endpoint.id), IsEmpty());
+}
+
+// Verifies that GetLocalMediumRole disables all medium roles (including Wi-Fi
+// Aware) when kEnableDynamicRoleSwitch is disabled.
+TEST_F(ClientProxyTest, GetLocalMediumRoleFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_direct_go_available = true;
+  availability.is_wifi_direct_gc_available = true;
+  availability.is_wifi_hotspot_ap_available = true;
+  availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_FALSE(role.support_awdl_publisher());
+  EXPECT_FALSE(role.support_awdl_subscriber());
+  EXPECT_FALSE(role.support_wifi_direct_group_owner());
+  EXPECT_FALSE(role.support_wifi_direct_group_client());
+  EXPECT_FALSE(role.support_wifi_hotspot_host());
+  EXPECT_FALSE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+}
+
+// Verifies that on Apple OS, GetLocalMediumRole enables Wi-Fi Aware subscriber
+// (and disables publisher) when Wi-Fi Aware is available.
+TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOs) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::APPLE);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_aware_available = true;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_TRUE(role.support_awdl_publisher());
+  EXPECT_TRUE(role.support_awdl_subscriber());
+  EXPECT_TRUE(role.support_wifi_hotspot_client());
+  // Apple can subscribe to a Wi-Fi Aware R4 service when Wi-Fi Aware is
+  // available, but never publishes one.
+  EXPECT_TRUE(role.support_wifi_aware_subscriber());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_direct_group_owner());
+  EXPECT_FALSE(role.support_wifi_direct_group_client());
+  EXPECT_FALSE(role.support_wifi_hotspot_host());
+}
+
+// Verifies that on Apple OS, GetLocalMediumRole disables Wi-Fi Aware subscriber
+// support when Wi-Fi Aware is unavailable.
+TEST_F(ClientProxyTest, GetLocalMediumRoleAppleOsWifiAwareUnavailable) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::APPLE);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_aware_available = false;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+}
+
+// Verifies that on non-Apple OS without an active P2P connection,
+// GetLocalMediumRole enables Wi-Fi Aware publisher and subscriber support when
+// Wi-Fi Aware is available.
+TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsNoP2pConnection) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_direct_go_available = true;
+  availability.is_wifi_direct_gc_available = true;
+  availability.is_wifi_hotspot_ap_available = true;
+  availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_TRUE(role.support_wifi_direct_group_owner());
+  EXPECT_TRUE(role.support_wifi_direct_group_client());
+  EXPECT_TRUE(role.support_wifi_hotspot_host());
+  EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_TRUE(role.support_wifi_aware_publisher());
+  EXPECT_TRUE(role.support_wifi_aware_subscriber());
+}
+
+// Verifies that on non-Apple OS without an active P2P connection,
+// GetLocalMediumRole disables Wi-Fi Aware publisher and subscriber support when
+// Wi-Fi Aware is unavailable.
+TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWifiAwareUnavailable) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_direct_go_available = true;
+  availability.is_wifi_direct_gc_available = true;
+  availability.is_wifi_hotspot_ap_available = true;
+  availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = false;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_TRUE(role.support_wifi_direct_group_owner());
+  EXPECT_TRUE(role.support_wifi_direct_group_client());
+  EXPECT_TRUE(role.support_wifi_hotspot_host());
+  EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+}
+
+// Verifies that on non-Apple OS with an active P2P connection,
+// GetLocalMediumRole disables Wi-Fi Aware publisher and subscriber support even
+// when Wi-Fi Aware is available.
+TEST_F(ClientProxyTest, GetLocalMediumRoleNonAppleOsWithP2pConnection) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  client1()->SetLocalOsType(location::nearby::connections::OsInfo::ANDROID);
+
+  // Setup an active P2P connection to make IsUsingP2pMedium() true
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+  client1()->OnBandwidthChanged(advertising_endpoint.id, Medium::WIFI_DIRECT);
+  EXPECT_TRUE(client1()->IsUsingP2pMedium());
+
+  ClientProxy::MediumsAvailability availability;
+  availability.is_wifi_direct_go_available = true;
+  availability.is_wifi_direct_gc_available = true;
+  availability.is_wifi_hotspot_ap_available = true;
+  availability.is_wifi_hotspot_client_available = true;
+  availability.is_wifi_aware_available = true;
+
+  location::nearby::connections::MediumRole role =
+      client1()->GetLocalMediumRole(availability);
+  EXPECT_FALSE(role.support_wifi_direct_group_owner());
+  EXPECT_TRUE(role.support_wifi_direct_group_client());
+  EXPECT_FALSE(role.support_wifi_hotspot_host());
+  EXPECT_TRUE(role.support_wifi_hotspot_client());
+  EXPECT_FALSE(role.support_wifi_aware_publisher());
+  EXPECT_FALSE(role.support_wifi_aware_subscriber());
+}
+
+TEST_F(ClientProxyTest, GetNumIncomingAndOutgoingConnections) {
+  // Initially no connections
+  EXPECT_EQ(client1()->GetNumIncomingConnections(), 0);
+  EXPECT_EQ(client1()->GetNumOutgoingConnections(), 0);
+
+  // Set expectation for acceptance callback on step 1
+  // (which is outgoing based on discovery_connection_info_)
+  EXPECT_CALL(mock_advertising_connection_.accepted_cb, Call).Times(1);
+
+  // Define a complete listener for advertising
+  ConnectionListener advertising_listener = {
+      .initiated_cb = mock_advertising_connection_.initiated_cb.AsStdFunction(),
+      .accepted_cb = mock_advertising_connection_.accepted_cb.AsStdFunction(),
+  };
+
+  // 1. Establish connection 1
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_listener);
+  EXPECT_CALL(mock_advertising_connection_.initiated_cb, Call).Times(1);
+  client1()->OnConnectionInitiated(
+      advertising_endpoint.id, discovery_connection_info_, connection_options_,
+      advertising_listener, "connection_token1");
+
+  // Accept local, accept remote, and then OnConnectionAccepted
+  client1()->LocalEndpointAcceptedConnection(
       advertising_endpoint.id,
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
-  ASSERT_TRUE(client1()
-                  ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
-                  .has_value());
-  EXPECT_EQ(
-      client1()
-          ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
-          .value(),
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
-  EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                    Medium::BLUETOOTH));
-  EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                    Medium::WIFI_LAN));
-  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                     Medium::WIFI_AWARE));
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexBluetooth,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
-      false);
+      {
+          .payload_cb = mock_discovery_payload_.payload_cb.AsStdFunction(),
+          .payload_progress_cb =
+              mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
+      });
+  client1()->RemoteEndpointAcceptedConnection(advertising_endpoint.id);
+  client1()->OnConnectionAccepted(advertising_endpoint.id);
+
+  // Verify client1 has 0 incoming connections and 1 outgoing connection
+  EXPECT_EQ(client1()->GetNumIncomingConnections(), 0);
+  EXPECT_EQ(client1()->GetNumOutgoingConnections(), 1);
+
+  // Set expectation for acceptance callback on step 2
+  // (which is incoming based on advertising_connection_info_)
+  EXPECT_CALL(mock_discovery_connection_.accepted_cb, Call).Times(1);
+
+  // 2. Establish connection 2
+  StartDiscovery(client1(), GetDiscoveryListener());
+  Endpoint remote_endpoint = {
+      .info = ByteArray{"remote endpoint name"},
+      .id = "rem_ep_id",
+  };
+  OnDiscoveryEndpointFound(client1(), remote_endpoint);
+
+  EXPECT_CALL(mock_discovery_connection_.initiated_cb, Call).Times(1);
+  client1()->OnConnectionInitiated(
+      remote_endpoint.id, advertising_connection_info_, connection_options_,
+      discovery_connection_listener_, "connection_token2");
+
+  // Accept local, accept remote, and then OnConnectionAccepted
+  client1()->LocalEndpointAcceptedConnection(
+      remote_endpoint.id,
+      {
+          .payload_cb = mock_discovery_payload_.payload_cb.AsStdFunction(),
+          .payload_progress_cb =
+              mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
+      });
+  client1()->RemoteEndpointAcceptedConnection(remote_endpoint.id);
+  client1()->OnConnectionAccepted(remote_endpoint.id);
+
+  // Verify client1 has 1 incoming connection and 1 outgoing connection
+  EXPECT_EQ(client1()->GetNumIncomingConnections(), 1);
+  EXPECT_EQ(client1()->GetNumOutgoingConnections(), 1);
+}
+
+TEST_F(ClientProxyTest, IsUsingP2pMediumTests) {
+  // With no connections, IsUsingP2pMedium should be false
+  EXPECT_FALSE(client1()->IsUsingP2pMedium());
+
+  // 1. Connection with Non-P2P medium (e.g. WIFI_LAN)
+  Endpoint endpoint_lan =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), endpoint_lan);
+  client1()->OnBandwidthChanged(endpoint_lan.id, Medium::WIFI_LAN);
+  EXPECT_FALSE(client1()->IsUsingP2pMedium());
+
+  // Clean-up connection
+  client1()->OnDisconnected(endpoint_lan.id, /*notify=*/false);
+  EXPECT_FALSE(client1()->IsUsingP2pMedium());
+
+  // 2. Connection with WIFI_DIRECT
+  Endpoint endpoint_direct =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), endpoint_direct);
+  client1()->OnBandwidthChanged(endpoint_direct.id, Medium::WIFI_DIRECT);
+  EXPECT_TRUE(client1()->IsUsingP2pMedium());
+  client1()->OnDisconnected(endpoint_direct.id, /*notify=*/false);
+
+  // 3. Connection with WIFI_HOTSPOT
+  Endpoint endpoint_hotspot =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), endpoint_hotspot);
+  client1()->OnBandwidthChanged(endpoint_hotspot.id, Medium::WIFI_HOTSPOT);
+  EXPECT_TRUE(client1()->IsUsingP2pMedium());
+  client1()->OnDisconnected(endpoint_hotspot.id, /*notify=*/false);
+
+  // 4. Connection with WIFI_AWARE
+  Endpoint endpoint_aware =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), endpoint_aware);
+  client1()->OnBandwidthChanged(endpoint_aware.id, Medium::WIFI_AWARE);
+  EXPECT_TRUE(client1()->IsUsingP2pMedium());
+  client1()->OnDisconnected(endpoint_aware.id, /*notify=*/false);
+  EXPECT_FALSE(client1()->IsUsingP2pMedium());
+}
+
+TEST_F(ClientProxyTest, GetAndSetLastLocalEndpointId) {
+  EXPECT_TRUE(client1()->GetLastLocalEndpointId().empty());
+  client1()->SetLastLocalEndpointId("TestEndpointID");
+  EXPECT_EQ(client1()->GetLastLocalEndpointId(), "TestEndpointID");
+}
+
+TEST_F(ClientProxyTest, ResetLocalEndpointId_OngoingConnectionReturnsEarly) {
+  std::string old_id = client1()->GetLocalEndpointId();
+  ASSERT_FALSE(old_id.empty());
+
+  // Set up an ongoing connection
+  OnAdvertisingConnectionInitiated(client1(),
+                                   {ByteArray("EndpointInfo"), "EndA"});
+  EXPECT_TRUE(client1()->HasOngoingConnection());
+
+  // ResetLocalEndpointId should NOT clear local_endpoint_id
+  client1()->ResetLocalEndpointId();
+  EXPECT_EQ(client1()->GetLocalEndpointId(), old_id);
+
+  // Terminate connection
+  client1()->OnDisconnected("EndA", /*notify=*/false);
+  EXPECT_FALSE(client1()->HasOngoingConnection());
+
+  // ResetLocalEndpointId should now successfully clear local_endpoint_id
+  client1()->ResetLocalEndpointId();
+  EXPECT_NE(client1()->GetLocalEndpointId(), old_id);
+}
+
+TEST_F(ClientProxyTest, ResetLocalEndpointId_SavesToLastLocalEndpointId) {
+  std::string old_id = client1()->GetLocalEndpointId();
+  ASSERT_FALSE(old_id.empty());
+
+  client1()->ResetLocalEndpointId();
+  EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
+}
+
+TEST_F(ClientProxyTest, OnSessionComplete_SavesToLastLocalEndpointId) {
+  std::string old_id = client1()->GetLocalEndpointId();
+  ASSERT_FALSE(old_id.empty());
+
+  // Put client into advertising mode first
+  client1()->StartedAdvertising(service_id_, strategy_, {}, {}, {});
+  EXPECT_TRUE(client1()->IsAdvertising());
+
+  // Stopping advertising triggers OnSessionComplete.
+  // Since connections_ is empty, it completes the session and should save last
+  // endpoint ID.
+  client1()->StoppedAdvertising();
+  EXPECT_FALSE(client1()->IsAdvertising());
+  EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
 }
 
 }  // namespace

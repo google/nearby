@@ -60,7 +60,7 @@ class FakeConnection : public Connection {
 
   int GetMaxPacketSize() const override { return max_packet_size_; }
   void Transmit(std::string packet) override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     packets_written_.push_back(packet);
     if (instant_transmit_) {
       callback_.on_transmit_cb(absl::OkStatus());
@@ -71,7 +71,7 @@ class FakeConnection : public Connection {
   bool IsOpen() { return open_; }
   std::string PollWrittenPacket() {
     if (!NoMorePackets()) {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       auto front = packets_written_.front();
       packets_written_.erase(packets_written_.begin());
       return front;
@@ -80,7 +80,7 @@ class FakeConnection : public Connection {
     return "";
   }
   bool NoMorePackets() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return packets_written_.empty();
   }
   void SetInstantTransmit(bool instant_transmit) {
@@ -143,16 +143,15 @@ class ClientSocketTest : public ::testing::Test {
     EXPECT_EQ(packet->GetControlCommandNumber(),
               Packet::ControlPacketType::kControlConnectionRequest);
     EXPECT_EQ(packet->GetPacketCounter(), 0);
-    int16_t min_protocol_version = ((packet->GetPayload().data()[0] << 8) |
-                                    packet->GetPayload().data()[1]) &
-                                   (int16_t)0xFFFF;
-    int16_t max_protocol_version = ((packet->GetPayload().data()[2] << 8) |
-                                    packet->GetPayload().data()[3]) &
-                                   (int16_t)0xFFFF;
+    int16_t min_protocol_version =
+        ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
+        (int16_t)0xFFFF;
+    int16_t max_protocol_version =
+        ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
+        (int16_t)0xFFFF;
     EXPECT_EQ(min_protocol_version, kProtocolVersion);
     EXPECT_EQ(max_protocol_version, kProtocolVersion);
-    int pkt_size = ((packet->GetPayload().data()[4] << 8) |
-                    packet->GetPayload().data()[5]) &
+    int pkt_size = ((packet->GetPayload()[4] << 8) | packet->GetPayload()[5]) &
                    (int16_t)0xFFFF;
     EXPECT_EQ(pkt_size, client_size);
     EXPECT_EQ(packet->GetPayload().size(), 6);
@@ -205,16 +204,15 @@ TEST_F(ClientSocketTest, TestClientServerPacketSizeHigher) {
             Packet::ControlPacketType::kControlConnectionRequest);
   EXPECT_EQ(packet->GetPacketCounter(), 0);
   int16_t min_protocol_version =
-      ((packet->GetPayload().data()[0] << 8) | packet->GetPayload().data()[1]) &
+      ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
       (int16_t)0xFFFF;
   int16_t max_protocol_version =
-      ((packet->GetPayload().data()[2] << 8) | packet->GetPayload().data()[3]) &
+      ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
       (int16_t)0xFFFF;
   EXPECT_EQ(min_protocol_version, kProtocolVersion);
   EXPECT_EQ(max_protocol_version, kProtocolVersion);
-  int pkt_size =
-      ((packet->GetPayload().data()[4] << 8) | packet->GetPayload().data()[5]) &
-      (int16_t)0xFFFF;
+  int pkt_size = ((packet->GetPayload()[4] << 8) | packet->GetPayload()[5]) &
+                 (int16_t)0xFFFF;
   EXPECT_EQ(pkt_size, client_size);
   EXPECT_EQ(packet->GetPayload().size(), 6);
   socket_.OnReceiveControlPacketProxy(
@@ -227,7 +225,7 @@ TEST_F(ClientSocketTest, TestClientServerPacketSizeHigher) {
 TEST_F(ClientSocketTest, TestConnectInitialData) {
   std::string initial_data = "12";
   RunConnect(2, 2, initial_data);
-  EXPECT_EQ(messages_read_.size(), 1);
+  ASSERT_EQ(messages_read_.size(), 1);
   EXPECT_EQ(messages_read_.front(), initial_data);
 }
 

@@ -24,7 +24,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/timer.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/implementation/windows/task_scheduler.h"
 
 namespace nearby {
@@ -39,13 +38,10 @@ class Timer : public api::Timer {
               absl::AnyInvocable<void()> callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
-  bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   mutable absl::Mutex mutex_;
   absl::AnyInvocable<void()> callback_;
-  std::unique_ptr<SubmittableExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
-      nullptr;
   TaskScheduler task_scheduler_ ABSL_GUARDED_BY(mutex_);
   std::shared_ptr<api::Cancelable> cancelable_task_ ABSL_GUARDED_BY(mutex_) =
       nullptr;

@@ -31,7 +31,7 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
@@ -39,7 +39,6 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/implementation/webrtc_state.h"
@@ -55,7 +54,7 @@
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/atomic_boolean.h"
-#include "internal/platform/ble_v2.h"
+#include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
@@ -63,11 +62,12 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
-#include "internal/platform/mutex.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/wifi_aware_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -157,10 +157,10 @@ class BasePcpHandler : public PcpHandler,
                           const std::string& endpoint_id) override;
 
   // @EndpointManagerReaderThread
-  void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
-                       const std::string& endpoint_id, ClientProxy* client,
-                       location::nearby::proto::connections::Medium medium,
-                       analytics::PacketMetaData& packet_meta_data) override;
+  void OnIncomingFrame(
+      location::nearby::connections::OfflineFrame& frame,
+      const std::string& endpoint_id, ClientProxy* client,
+      location::nearby::proto::connections::Medium medium) override;
 
   // Called when an endpoint disconnects while we're waiting for both sides to
   // approve/reject the connection.
@@ -189,8 +189,7 @@ class BasePcpHandler : public PcpHandler,
     // If success, the mediums on which we are now advertising/discovering, for
     // analytics.
     std::vector<location::nearby::proto::connections::Medium> mediums;
-    std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                    OperationResultWithMedium>
+    std::vector<nearby::analytics::OperationResultWithMedium>
         operation_result_with_mediums;
   };
 
@@ -243,14 +242,6 @@ class BasePcpHandler : public PcpHandler,
     BlePeripheral ble_peripheral;
   };
 
-  struct BleV2Endpoint : public BasePcpHandler::DiscoveredEndpoint {
-    BleV2Endpoint(DiscoveredEndpoint endpoint, BleV2Peripheral peripheral)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          ble_peripheral(std::move(peripheral)) {}
-
-    BleV2Peripheral ble_peripheral;
-  };
-
   struct AwdlEndpoint : public DiscoveredEndpoint {
     AwdlEndpoint(DiscoveredEndpoint endpoint,
                  const NsdServiceInfo& service_info)
@@ -267,12 +258,17 @@ class BasePcpHandler : public PcpHandler,
     NsdServiceInfo service_info;
   };
 
-  struct WebRtcEndpoint : public DiscoveredEndpoint {
-    WebRtcEndpoint(DiscoveredEndpoint endpoint, mediums::WebrtcPeerId peer_id)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          peer_id(std::move(peer_id)) {}
+  struct WifiAwareEndpoint : public DiscoveredEndpoint {
+    WifiAwareEndpoint(DiscoveredEndpoint endpoint,
+                      const WifiAwareServiceInfo& service_info)
+        : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
 
-    mediums::WebrtcPeerId peer_id;
+    WifiAwareServiceInfo service_info;
+  };
+
+  struct WebRtcEndpoint : public DiscoveredEndpoint {
+    explicit WebRtcEndpoint(DiscoveredEndpoint endpoint)
+        : DiscoveredEndpoint(std::move(endpoint)) {}
   };
 
   struct ConnectImplResult {
@@ -286,10 +282,10 @@ class BasePcpHandler : public PcpHandler,
   };
 
   void Shutdown();
-  void RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
+  bool RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
 
   BluetoothDevice GetRemoteBluetoothDevice(
-      const std::string& remote_bluetooth_mac_address);
+      MacAddress remote_bluetooth_mac_address);
 
   void OnEndpointFound(ClientProxy* client,
                        std::shared_ptr<DiscoveredEndpoint> endpoint)
@@ -379,8 +375,8 @@ class BasePcpHandler : public PcpHandler,
   virtual location::nearby::proto::connections::Medium
   GetDefaultUpgradeMedium() = 0;
 
-  // Returns the first discovered endpoint for the given endpoint_id.
-  DiscoveredEndpoint* GetDiscoveredEndpoint(const std::string& endpoint_id)
+  // Returns true if an endpoint with endpoint_id has been discovered.
+  bool HasDiscoveredEndpoint(absl::string_view endpoint_id)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Returns a vector of discovered endpoints, sorted in order of decreasing
@@ -409,10 +405,6 @@ class BasePcpHandler : public PcpHandler,
   std::vector<ConnectionInfoVariant> GetConnectionInfoFromResult(
       absl::string_view service_id, StartOperationResult result);
 
-  mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
-      const std::string& service_id, const std::string& endpoint_id,
-      const ByteArray& endpoint_info);
-
   SingleThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {
     return &serial_executor_;
@@ -420,8 +412,7 @@ class BasePcpHandler : public PcpHandler,
 
   void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
 
-  std::unique_ptr<location::nearby::analytics::proto::ConnectionsLog::
-                      OperationResultWithMedium>
+  nearby::analytics::OperationResultWithMedium
   GetOperationResultWithMediumByResultCode(
       ClientProxy* client, location::nearby::proto::connections::Medium medium,
       int update_index,
@@ -483,11 +474,11 @@ class BasePcpHandler : public PcpHandler,
     // Only (possibly) vector for incoming connections.
     std::vector<location::nearby::proto::connections::Medium> supported_mediums;
 
-    // Keep track of a channel before we pass it to EndpointChannelManager. This
-    // is owned until the call to OnEncryptionSuccessRunnableV3 or
-    // OnEncryptionSuccessRunnable when ownership is transferred to the
-    // EndpointManager.
-    std::unique_ptr<EndpointChannel> channel;
+    // Keep track of a channel before it is registered with the
+    // EndpointManager. This reference is held during the handshake phase and
+    // passed to the EndpointManager upon successful encryption
+    // (OnEncryptionSuccessRunnableV3 or OnEncryptionSuccessRunnable).
+    std::shared_ptr<EndpointChannel> channel;
 
     // Crypto context; initially empty; established first thing after channel
     // creation by running UKey2 session. While it is in progress, we keep track
@@ -516,24 +507,27 @@ class BasePcpHandler : public PcpHandler,
   void OnEncryptionFailureImpl(const std::string& endpoint_id,
                                EndpointChannel* channel);
 
-  EncryptionRunner::ResultListener GetResultListener();
+  EncryptionRunner::ResultListener GetResultListener(
+      std::shared_ptr<EndpointChannel> endpoint_channel);
   EncryptionRunner::ResultListener GetResultListenerV3(
       const NearbyDeviceProvider& device_provider,
       const NearbyDevice& remote_device,
-      const EndpointChannel& endpoint_channel);
+      std::shared_ptr<EndpointChannel> endpoint_channel);
 
   void OnEncryptionSuccessRunnable(
       const std::string& endpoint_id,
       std::unique_ptr<securegcm::UKey2Handshake> ukey2,
-      const std::string& auth_token, const ByteArray& raw_auth_token);
+      const std::string& auth_token, const ByteArray& raw_auth_token,
+      std::shared_ptr<EndpointChannel> endpoint_channel);
   void OnEncryptionSuccessRunnableV3(
       const NearbyDevice& remote_device,
       std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
       absl::string_view auth_token, const ByteArray& raw_auth_token,
-      const EndpointChannel& endpoint_channel,
+      std::shared_ptr<EndpointChannel> endpoint_channel,
       const NearbyDeviceProvider& device_provider);
-  void OnEncryptionFailureRunnable(const std::string& endpoint_id,
-                                   EndpointChannel* endpoint_channel);
+  void OnEncryptionFailureRunnable(
+      const std::string& endpoint_id,
+      std::shared_ptr<EndpointChannel> endpoint_channel);
   void RegisterDeviceAfterEncryptionSuccess(
       std::string_view endpoint_id,
       std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
@@ -543,8 +537,12 @@ class BasePcpHandler : public PcpHandler,
   static Exception WriteConnectionRequestFrame(
       NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
       const ConnectionInfo& conection_info, EndpointChannel* endpoint_channel);
+
+  // This timeout should be at least as long as the Android GMSCore's timeout
+  // for initWifiInfo, which is currently 5 seconds.
+  // https://source.corp.google.com/piper///depot/google3/googledata/experiments/mobile/gmscore/nearby/features/connections_config.gcl;bpv=1;bpt=1;l=1187?gsn=connection_request_read_timeout_millis&gs=KYTHE%3A%2F%2Fkythe%3A%2F%2Fgoogle3%3Flang%3Dgcl%3Fpath%3Dgoogledata%2Fexperiments%2Fmobile%2Fgmscore%2Fnearby%2Ffeatures%2Fconnections_config.gcl%23IDENTIFIER%253AConnectionsConfig.connection_request_read_timeout_millis.
   static constexpr absl::Duration kConnectionRequestReadTimeout =
-      absl::Seconds(2);
+      absl::Seconds(5);
   static constexpr absl::Duration kRejectedConnectionCloseDelay =
       absl::Seconds(2);
   static constexpr int kConnectionTokenLength = 8;
@@ -568,8 +566,7 @@ class BasePcpHandler : public PcpHandler,
   // address is created and appended into discovered_endpoints_ with key
   // endpoint_id.
   bool AppendRemoteBluetoothMacAddressEndpoint(
-      const std::string& endpoint_id,
-      const std::string& remote_bluetooth_mac_address,
+      const std::string& endpoint_id, MacAddress remote_bluetooth_mac_address,
       const DiscoveryOptions& local_discovery_options)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
@@ -584,8 +581,8 @@ class BasePcpHandler : public PcpHandler,
 
   void ProcessPreConnectionInitiationFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
-      EndpointChannel* channel, bool is_incoming, absl::Time start_time,
-      Status status,
+      EndpointChannel* channel, bool is_incoming, bool log_failure,
+      absl::Time start_time, Status status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code,
       Future<Status>* result);

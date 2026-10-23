@@ -85,8 +85,8 @@ TEST_F(NearbyShareSchedulerUtilsTest, ConvertToReadableScheduleSucceeds) {
   std::string debug_str =
       ConvertToReadableSchedule(preference_manager(), test_pref);
 
-  EXPECT_THAT(debug_str, Eq("{attempt_time:1969-12-31 16:00:00, "
-                            "success_time:1969-12-31 16:00:00, "
+  EXPECT_THAT(debug_str, Eq("{attempt_time:1970-01-01T00:00:00+00:00, "
+                            "success_time:1970-01-01T00:00:00+00:00, "
                             "failed_count:123, has_pending_request:true, "
                             "is_waiting_for_result:false}"));
 }

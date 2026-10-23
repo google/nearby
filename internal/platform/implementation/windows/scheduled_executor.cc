@@ -45,17 +45,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     return nullptr;
   }
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kRunScheduledExecutorCallbackOnExecutorThread)) {
-    return task_scheduler_.Schedule(
-        [this, runnable = std::move(runnable)]() mutable {
-          Execute(std::move(runnable));
-        },
-        duration);
-  } else {
-    return task_scheduler_.Schedule(std::move(runnable), duration);
-  }
+  return task_scheduler_.Schedule(std::move(runnable), duration);
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {

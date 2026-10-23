@@ -91,14 +91,33 @@ enum Medium {
   USB = 11;
   WEB_RTC_NON_CELLULAR = 12;
   AWDL = 13;
+  WIFI_AWARE_R4 = 14;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
 //     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
 //     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto,
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto,
-//     //depot/google3/third_party/nearby/connections/c/nc_types.h
+//     //depot/google3/third_party/nearby/connections/c/nc_types.h,
+//     //depot/google3/logs/proto/wireless/android/backup/os_migration_log.proto:BandwidthChangedEvent.Medium,
+//     //depot/google3/java/com/google/android/gmscore/integ/modules/smartdevice/src/com/google/android/gms/smartdevice/logging/gil/SemanticLogger.kt,
+//     //depot/google3/javatests/com/google/android/gmscore/integ/modules/smartdevice/tests/robolectric/src/com/google/android/gms/smartdevice/logging/gil/SemanticLoggerTest.kt,
+//     //depot/google3/third_party/nearby/sharing/nearby_connections_types.h
 // )
+
+// LINT.IfChange
+// The authentication type of WifiDirect.
+enum WifiDirectAuthType {
+  WIFI_DIRECT_TYPE_UNKNOWN = 0;
+  // WifiDirect type that uses ssid/password for authentication. Android
+  // supports this type, but Windows does not.
+  WIFI_DIRECT_WITH_PASSWORD = 1;
+  // WifiDirect type that uses device_name for discovery and connect.
+  // Android and Windows both support this type.
+  WIFI_DIRECT_WITH_PIN = 2 [deprecated = true];
+  WIFI_DIRECT_WITH_DEVICE_NAME = 3;
+}
+// LINT.ThenChange(//depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto)
 
 // The medium technologies used during the sharing.
 enum ConnectionTechnology {
@@ -1058,6 +1077,14 @@ enum OperationResultCode {
   // Payloads IOError due to endpoint get IOException on AWDL medium
   // (IOException on Channel#write)
   CONNECTIVITY_CHANNEL_IO_ERROR_ON_AWDL = 3606;
+  // Failed to join Wifi Aware network dur to network unavailable
+  CONNECTIVITY_WIFI_AWARE_DO_UNAVAILABLE = 3607;
+  // The discovered Wifi Aware peer is null and screen off
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_SCREEN_OFF = 3608;
+  // The discovered Wifi Aware peer is null due to timeout
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_TIMEOUT = 3609;
+  // Failed to join Wifi Aware network
+  CONNECTIVITY_WIFI_AWARE_JOIN_NETWORK_FAILED = 3610;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1298,6 +1325,8 @@ enum OperationResultCode {
   // Outgoing AWDL channel creation failure (IOException on
   // socket#getInputStream and socket#getOutputStream)
   NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612;
+  // Failed to verify paired key during connection setup
+  NEARBY_PAIRED_KEY_VERIFICATION_FAILURE = 4613;
 
   // Section of CATEGORY_DCT_ERROR, from 5000
   // BLE is disabled
@@ -1350,6 +1379,84 @@ enum OperationResultCode {
   DCT_ERROR_UNVERIFIED_INTEGRITY = 5023;
   // HTTP server closed
   DCT_ERROR_HTTP_SERVER_CLOSED = 5024;
+  // Failed to perform checkin
+  DCT_ERROR_CHECKIN_FAILURE = 5025;
+  // Failed to verify remote device due to timeout
+  DCT_ERROR_REMOTE_ATTESTATION_TIMEOUT = 5026;
+  // Incoming attestation packet is null
+  DCT_ERROR_REMOTE_ATTESTATION_NULL_PACKET = 5027;
+  // Attestation status is not available
+  DCT_ERROR_REMOTE_ATTESTATION_STATUS_NOT_AVAILABLE = 5028;
+  // Attestation hash is too short
+  DCT_ERROR_REMOTE_ATTESTATION_HASH_TOO_SHORT = 5029;
+  // Remote device attestation Apple integrity unavailable
+  DCT_ERROR_REMOTE_ATTESTATION_APPLE_INTEGRITY_UNAVAILABLE = 5030;
+  // Local attestation Play Integrity API unavailable
+  DCT_ERROR_LOCAL_ATTESTATION_PLAY_INTEGRITY_UNAVAILABLE = 5031;
+  // Local attestation timeout
+  DCT_ERROR_LOCAL_ATTESTATION_TIMEOUT = 5032;
+  // Parallel attestation timeout
+  DCT_ERROR_PARALLEL_ATTESTATION_TIMEOUT = 5033;
+  // Failed to start MDNS discovery on the remote device
+  DCT_ERROR_REMOTE_MDNS_DISCOVERY_TIMEOUT = 5034;
+  // Failed to register MDNS service on the remote device
+  DCT_ERROR_REMOTE_MDNS_REGISTER_SERVICE = 5035;
+  // Failed to send request on the remote device
+  DCT_ERROR_REMOTE_REQUEST_FAILED = 5036;
+  // Failed to receive response on the remote device
+  DCT_ERROR_REMOTE_RESPONSE_FAILED = 5037;
+  // Failed to exchange control messages on the remote device
+  DCT_ERROR_REMOTE_CONTROL_MESSAGE_EXCHANGE = 5038;
+  // DCT device capability mismatch on the remote device
+  DCT_ERROR_REMOTE_CAPABILITY_MISMATCH = 5039;
+  // High speed medium is unavailable on the remote device
+  DCT_ERROR_REMOTE_HIGH_SPEED_MEDIUM_UNAVAILABLE = 5040;
+  // Wifi is disabled on the remote device
+  DCT_ERROR_REMOTE_WIFI_DISABLED = 5041;
+  // Wifi is disconnected on the remote device
+  DCT_ERROR_REMOTE_WIFI_DISCONNECTED = 5042;
+  // Failed to transfer wifi credential on the remote device
+  DCT_ERROR_REMOTE_WIFI_CREDENTIAL_TRANSFER = 5043;
+  // Failed to connect to wifi internet on the remote device
+  DCT_ERROR_REMOTE_WIFI_INTERNET_CONNECTION = 5044;
+  // Failed to upgrade to high speed medium on the remote device
+  DCT_ERROR_REMOTE_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 5045;
+  // User cancellation on the remote device
+  DCT_ERROR_REMOTE_USER_CANCELLED = 5046;
+  // Service cancellation on the remote device
+  DCT_ERROR_REMOTE_SERVICE_CANCELLED = 5047;
+  // Failed to verify integrity on the remote device
+  DCT_ERROR_REMOTE_UNVERIFIED_INTEGRITY = 5048;
+  // Failed to upgrade to high speed medium due to low speed
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_LOW_SPEED = 5049;
+  // Failed to upgrade to high speed medium due to connection error
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_CONNECTION = 5050;
+  // Failed to upgrade to high speed medium because USB is not plugged in
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_PLUGGED = 5051;
+  // Failed to upgrade to high speed medium because USB is not host
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_HOST = 5052;
+  // Failed to upgrade to high speed medium because MDNS discovery is not
+  // started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MDNS_DISCOVERY_NOT_STARTED = 5053;
+  // Failed to upgrade to high speed medium because MDNS discovery is not
+  // started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_MEDIUM = 5054;
+  // Failed to upgrade to high speed medium because USB network is not started
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NETWORK_NOT_STARTED = 5055;
+  // Failed to upgrade to high speed medium because medium negotiation fails
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MEDIUM_NEGOTIATION = 5056;
+  // Failed to upgrade to high speed medium because host fails to start
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NOT_STARTED = 5057;
+  // Failed to upgrade to high speed medium because host network is not
+  // available
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NETWORK_NOT_AVAILABLE = 5058;
+  // Failed to upgrade to high speed medium because no incoming HTTP connection
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_INCOMING_HTTP_CONNECTION = 5059;
+  // Failed to upgrade to high speed medium because there is no USB device
+  // connected
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NO_CONNECTED_DEVICE = 5060;
+  // Failed to upgrade to high speed medium because the upgrade is interrupted
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_INTERRUPTED = 5061;
 }
 
 enum StopAdvertisingReason {
@@ -1382,6 +1489,25 @@ enum OsType {
   WINDOWS = 3;
   APPLE = 4;
   LINUX = 100;  // g3 test environment
+}
+
+enum SupportedService {
+  SUPPORTED_SERVICE_UNSPECIFIED = 0;
+  SUPPORTED_SERVICE_SETTINGS_ESIM = 1;
+  SUPPORTED_SERVICE_DATA_MIGRATION = 2;
+  SUPPORTED_SERVICE_DATA_TRANSFER = 3;
+}
+
+enum DctPayloadType {
+  DCT_PAYLOAD_TYPE_UNSPECIFIED = 0;
+  // A Payload representing a request.
+  DCT_PAYLOAD_TYPE_REQUEST = 1;
+  // A Payload consisting of a list of byte arrays as a response.
+  DCT_PAYLOAD_TYPE_BYTES_RESPONSE = 2;
+  // A Payload representing a list of files and their metadata as a response.
+  DCT_PAYLOAD_TYPE_FILES_RESPONSE = 3;
+  // A one-way message payload.
+  DCT_PAYLOAD_TYPE_ONE_WAY_MESSAGE = 4;
 }
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto

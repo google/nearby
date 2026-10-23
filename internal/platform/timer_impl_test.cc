@@ -24,7 +24,10 @@ namespace {
 TEST(TimerImpl, TestCreateTimer) {
   TimerImpl timer;
 
-  EXPECT_FALSE(timer.Start(-100, 0, nullptr));
+  EXPECT_TRUE(timer.Start(-100, 0, []() {}));
+  timer.Stop();
+  EXPECT_TRUE(timer.Start(0, -100, []() {}));
+  timer.Stop();
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
   timer.Stop();
 }
@@ -44,16 +47,6 @@ TEST(TimerImpl, TestStartRunningTimer) {
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
   EXPECT_FALSE(timer.Start(100, 100, []() {}));
   timer.Stop();
-}
-
-TEST(TimerImpl, TestFireNow) {
-  TimerImpl timer;
-  int count = 0;
-
-  EXPECT_TRUE(timer.Start(100, 100, [&count]() { ++count; }));
-  EXPECT_TRUE(timer.FireNow());
-  timer.Stop();
-  EXPECT_EQ(count, 1);
 }
 
 TEST(TimerImpl, TestStopAfterFire) {

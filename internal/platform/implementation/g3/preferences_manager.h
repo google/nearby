@@ -28,8 +28,10 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/g3/preferences_repository.h"
 #include "internal/platform/implementation/preferences_manager.h"
+#include "google/protobuf/message.h"
 
 namespace nearby {
 namespace g3 {
@@ -40,7 +42,7 @@ namespace g3 {
 // change by the observer.
 class PreferencesManager : public api::PreferencesManager {
  public:
-  PreferencesManager();
+  explicit PreferencesManager(FilePath preferences_dir);
 
   // Sets values
 
@@ -70,6 +72,10 @@ class PreferencesManager : public api::PreferencesManager {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool SetTime(absl::string_view key, absl::Time value) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool SetProtoMessage(absl::string_view key,
+                       const google::protobuf::Message& value) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets values
@@ -105,8 +111,14 @@ class PreferencesManager : public api::PreferencesManager {
                      absl::Time default_value) const override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  bool GetProtoMessage(absl::string_view key,
+                       google::protobuf::Message* value) const override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Removes preferences
   void Remove(absl::string_view key) override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool RemoveKeyPrefix(absl::string_view prefix) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Writes data to storage.

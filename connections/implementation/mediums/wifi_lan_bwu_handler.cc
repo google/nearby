@@ -1,0 +1,209 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "connections/implementation/mediums/wifi_lan_bwu_handler.h"
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/base/nullability.h"
+#include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_lan.h"
+#include "connections/implementation/mediums/wifi_lan_endpoint_channel.h"
+#include "connections/implementation/offline_frames.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
+#include "internal/platform/wifi_lan.h"
+
+namespace nearby {
+namespace connections {
+
+namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
+WifiLanBwuHandler::WifiLanBwuHandler(
+    WifiLan* absl_nonnull wifi_lan_medium,
+    IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      wifi_lan_medium_(*wifi_lan_medium) {}
+
+// Called by BWU target. Retrieves a new medium info from incoming message,
+// and establishes connection over WifiLan using this info.
+ErrorOr<std::unique_ptr<EndpointChannel>>
+WifiLanBwuHandler::CreateUpgradedEndpointChannel(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
+  if (!upgrade_path_info.has_wifi_lan_socket()) {
+    return {
+        Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
+  }
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiLanSocket&
+      upgrade_path_info_socket = upgrade_path_info.wifi_lan_socket();
+  if ((!upgrade_path_info_socket.has_ip_address() ||
+       !upgrade_path_info_socket.has_wifi_port()) &&
+      upgrade_path_info_socket.address_candidates_size() == 0) {
+    LOG(ERROR) << "WifiLanBwuHandler failed to parse UpgradePathInfo.";
+    return {Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
+  }
+
+  std::vector<ServiceAddress> address_candidates;
+  for (const auto& address_candidate :
+       upgrade_path_info_socket.address_candidates()) {
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      LOG(WARNING) << "Failed to parse service address size: "
+                   << address_candidate.ip_address().size();
+      continue;
+    }
+    if (service_address.IsLoopbackAddress() ||
+        service_address.IsLinkLocalAddress()) {
+      LOG(WARNING) << "Loopback/link-local address candidate is rejected.";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
+    }
+    address_candidates.push_back(std::move(service_address));
+  }
+  // Only use ip_address and wifi_port if address_candidates is empty.
+  if (address_candidates.empty()) {
+    if (upgrade_path_info_socket.ip_address().size() != 4 ||
+        upgrade_path_info_socket.wifi_port() <= 0 ||
+        upgrade_path_info_socket.wifi_port() > 65535) {
+      LOG(ERROR) << "WifiLanBwuHandler: fallback ip_address size is not 4 "
+                 << "or port is invalid (IPv4 only).";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
+    }
+    ServiceAddress service_address;
+    service_address.address = {upgrade_path_info_socket.ip_address().begin(),
+                               upgrade_path_info_socket.ip_address().end()};
+    service_address.port =
+        static_cast<uint16_t>(upgrade_path_info_socket.wifi_port());
+    if (service_address.IsLoopbackAddress() ||
+        service_address.IsLinkLocalAddress()) {
+      LOG(WARNING) << "Loopback/link-local fallback address is rejected.";
+      return {
+          Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
+    }
+    address_candidates.push_back(std::move(service_address));
+  }
+  Error error;
+  for (const auto& address_candidate : address_candidates) {
+    VLOG(1) << "WifiLanBwuHandler is attempting to connect to available "
+               "WifiLan service ("
+            << address_candidate << ") for endpoint " << endpoint_id;
+    std::shared_ptr<CancellationFlag> cancellation_flag =
+        client->GetCancellationFlag(endpoint_id);
+    ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
+        service_id, address_candidate, cancellation_flag.get());
+    if (socket_result.has_error()) {
+      LOG(ERROR)
+          << "WifiLanBwuHandler failed to connect to the WifiLan service ("
+          << address_candidate << ") for endpoint " << endpoint_id;
+      error = Error(socket_result.error().operation_result_code().value_or(
+          OperationResultCode::DETAIL_UNKNOWN));
+      continue;
+    }
+    VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("
+            << address_candidate << ") while upgrading endpoint "
+            << endpoint_id;
+
+    // Create a new WifiLanEndpointChannel.
+    auto channel = std::make_unique<WifiLanEndpointChannel>(
+        service_id, /*channel_name=*/service_id, socket_result.value());
+    return {std::move(channel)};
+  }
+
+  return {error};
+}
+
+// Called by BWU initiator. Set up WifiLan upgraded medium for this endpoint,
+// and returns a upgrade path info (ip address, port) for remote party to
+// perform discovery.
+std::string WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    const std::string& endpoint_id) {
+  bool started_accepting = false;
+  if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
+    if (!wifi_lan_medium_.StartAcceptingConnections(
+            upgrade_service_id,
+            absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
+                             this, client))) {
+      LOG(ERROR)
+          << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
+          << "service " << upgrade_service_id << " and endpoint " << endpoint_id
+          << " because it failed to start listening for incoming WifiLan "
+             "connections.";
+      return {};
+    }
+    LOG(INFO)
+        << "WifiLanBwuHandler successfully started listening for incoming "
+           "WifiLan connections while upgrading endpoint "
+        << endpoint_id;
+    started_accepting = true;
+  }
+
+  // Address candidates are not populated until StartAcceptingConnections() is
+  // called and the server socket is created. Be careful moving this codeblock
+  // around.
+  api::UpgradeAddressInfo upgrade_candidates =
+      wifi_lan_medium_.GetUpgradeAddressCandidates(upgrade_service_id);
+  if (upgrade_candidates.address_candidates.empty()) {
+    LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
+              << "service " << upgrade_service_id << " and endpoint "
+              << endpoint_id << " because there are no available ip addresses.";
+    if (started_accepting) {
+      wifi_lan_medium_.StopAcceptingConnections(upgrade_service_id);
+    }
+    return {};
+  }
+  client->GetAnalyticsRecorder().UpdateBwUpgradeNetworkInfo(
+      endpoint_id, upgrade_candidates.num_interfaces,
+      upgrade_candidates.num_ipv6_only_interfaces);
+  return parser::ForBwuWifiLanPathAvailable(
+      upgrade_candidates.address_candidates);
+}
+
+void WifiLanBwuHandler::HandleRevertInitiatorStateForService(
+    const std::string& upgrade_service_id) {
+  wifi_lan_medium_.StopAcceptingConnections(upgrade_service_id);
+  LOG(INFO) << "WifiLanBwuHandler successfully reverted all states for "
+            << "upgrade service ID " << upgrade_service_id;
+}
+
+// Accept Connection Callback.
+void WifiLanBwuHandler::OnIncomingWifiLanConnection(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    WifiLanSocket socket) {
+  auto channel = std::make_unique<WifiLanEndpointChannel>(
+      upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
+  auto connection = std::make_unique<IncomingSocketConnection>(
+      std::move(channel));
+  NotifyOnIncomingConnection(client, std::move(connection));
+}
+
+}  // namespace connections
+}  // namespace nearby

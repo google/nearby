@@ -1,0 +1,152 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_WIFI_DIRECT_H_
+#define CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_WIFI_DIRECT_H_
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_direct.h"
+
+namespace nearby {
+namespace connections {
+
+class WifiDirect : public WifiDirectInterface {
+ public:
+  // Callback that is invoked when a new connection is accepted.
+  using AcceptedConnectionCallback = absl::AnyInvocable<void(
+      const std::string& service_id, std::unique_ptr<EndpointChannel> channel)>;
+  using WifiDirectAuthType =
+      ::location::nearby::proto::connections::WifiDirectAuthType;
+
+  WifiDirect();
+  ~WifiDirect() override;
+  // Not copyable or movable
+  WifiDirect(const WifiDirect&) = delete;
+  WifiDirect& operator=(const WifiDirect&) = delete;
+  WifiDirect(WifiDirect&&) = delete;
+  WifiDirect& operator=(WifiDirect&&) = delete;
+
+  // Returns true, if WifiDirect Group Owner is supported by a platform.
+  bool IsGOAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Returns true, if WifiDirect Group Client is supported by a platform.
+  bool IsGCAvailable() const override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // If WifiDirect Group Owner started
+  bool IsGOStarted() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Start WifiDirect Group Owner. Returns true if WifiDirect GO is successfully
+  // started.
+  bool StartWifiDirect() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // Stop WifiDirect Group Owner
+  bool StopWifiDirect() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // If WifiDirect Group Client connects to Group Owner
+  bool IsConnectedToGO() override ABSL_LOCKS_EXCLUDED(mutex_);
+  // WifiDirect Group Client request to connect to the Group Owner
+  bool ConnectWifiDirect(const WifiDirectCredentials& wifi_direct_credentials)
+      override ABSL_LOCKS_EXCLUDED(mutex_);
+  // WifiDirect Group Client request to disconnect from the Group Owner
+  bool DisconnectWifiDirect() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Starts a worker thread, creates a WifiDirect socket, associates it with a
+  // service id.
+  bool StartAcceptingConnections(const std::string& service_id,
+                                 AcceptedConnectionCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Closes socket corresponding to a service id.
+  bool StopAcceptingConnections(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool IsAcceptingConnections(const std::string& service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Establishes connection to WifiDirect service by ip address and port for
+  // bandwidth upgradation.
+  // On success, a non-null EndpointChannel is returned.
+  ErrorOr<std::unique_ptr<EndpointChannel>> Connect(
+      const std::string& service_id, const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
+  // services on the network to identify and connect to this service.
+  // Credential is for the currently-hosted WiFi SoftAP ServerSocket (if any).
+  WifiDirectCredentials* GetCredentials(absl::string_view service_id) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Returns the supported WifiDirect auth types.
+  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
+      const override {
+    return supported_wifi_direct_auth_types_;
+  }
+
+  // Returns the preferred WifiDirect auth type.
+  WifiDirectAuthType GetPreferredWifiDirectAuthType() const override {
+    return preferred_wifi_direct_auth_type_;
+  }
+
+  // Sets the preferred WifiDirect auth type.
+  bool SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) override;
+
+  std::unique_ptr<BwuHandler> CreateBwuHandler(
+      BwuHandler::IncomingConnectionCallback incoming_connection_callback)
+      override;
+
+ private:
+  mutable absl::Mutex mutex_;
+  static constexpr int kMaxConcurrentAcceptLoops = 5;
+
+  // Same as IsAvailable(), but must be called with mutex_ held.
+  bool IsGOAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsGCAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Same as IsAcceptingConnections(), but must be called with mutex_ held.
+  bool IsAcceptingConnectionsLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  bool is_go_started_ ABSL_GUARDED_BY(mutex_);
+  bool is_connected_to_go_ ABSL_GUARDED_BY(mutex_);
+  WifiDirectMedium medium_ ABSL_GUARDED_BY(mutex_);
+
+  // A thread pool dedicated to running all the accept loops from
+  // StartAcceptingConnections().
+  MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
+
+  // A map of service_id -> ServerSocket. If map is non-empty, we are currently
+  // listening for incoming connections. WifiDirectServerSocket instances are
+  // used from accept_loops_runner_, and thus require pointer stability.
+  absl::flat_hash_map<std::string, WifiDirectServerSocket> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+  // The supported WifiDirect auth types.
+  std::vector<WifiDirectAuthType> supported_wifi_direct_auth_types_;
+  WifiDirectAuthType preferred_wifi_direct_auth_type_ =
+      WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN;
+};
+}  // namespace connections
+}  // namespace nearby
+
+#endif  // CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_WIFI_DIRECT_H_

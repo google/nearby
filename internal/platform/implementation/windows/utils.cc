@@ -14,189 +14,37 @@
 
 #include "internal/platform/implementation/windows/utils.h"
 
+// clang-format off
 #include <windows.h>
-#include <winsock2.h>
+#include <setupapi.h>
+#include <devguid.h>
+// clang-format on
+
+// Remove LogSeverity macro defined in setupapi.h
+#if defined(LogSeverity)
+#undef LogSeverity
+#endif
 
 // Standard C/C++ headers
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 // Nearby connections headers
-#include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Networking.Connectivity.h"
 #include "winrt/base.h"
 
-namespace nearby {
-namespace windows {
-namespace {
+namespace nearby::windows {
 
-using ::winrt::Windows::Networking::HostNameType;
-using ::winrt::Windows::Networking::Connectivity::NetworkAdapter;
-using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
-using ::winrt::Windows::Networking::Connectivity::NetworkTypes;
-
-}  // namespace
-
-std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
-  MacAddress mac_address;
-  if (!MacAddress::FromUint64(bluetoothAddress, mac_address)) {
-    return "";
-  }
-  return mac_address.ToString();
-}
-
-uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
-  MacAddress address;
-  if (!MacAddress::FromString(mac_address, address)) {
-    return 0;
-  }
-  return address.address();
-}
-
-std::string ipaddr_4bytes_to_dotdecimal_string(
-    absl::string_view ipaddr_4bytes) {
-  if (ipaddr_4bytes.size() != 4) {
-    return {};
-  }
-
-  in_addr address;
-  address.S_un.S_un_b.s_b1 = ipaddr_4bytes[0];
-  address.S_un.S_un_b.s_b2 = ipaddr_4bytes[1];
-  address.S_un.S_un_b.s_b3 = ipaddr_4bytes[2];
-  address.S_un.S_un_b.s_b4 = ipaddr_4bytes[3];
-  char* ipv4_address = inet_ntoa(address);
-  if (ipv4_address == nullptr) {
-    return {};
-  }
-
-  return std::string(ipv4_address);
-}
-
-std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
-  if (ipv4_s.empty()) {
-    return {};
-  }
-
-  in_addr address;
-  address.S_un.S_addr = inet_addr(ipv4_s.c_str());
-  char ipv4_b[5];
-  ipv4_b[0] = address.S_un.S_un_b.s_b1;
-  ipv4_b[1] = address.S_un.S_un_b.s_b2;
-  ipv4_b[2] = address.S_un.S_un_b.s_b3;
-  ipv4_b[3] = address.S_un.S_un_b.s_b4;
-  ipv4_b[4] = 0;
-
-  return std::string(ipv4_b, 4);
-}
-
-std::vector<std::string> GetIpv4Addresses() {
-  std::vector<std::string> result;
-  std::vector<std::string> wifi_addresses;
-  std::vector<std::string> ethernet_addresses;
-  std::vector<std::string> other_addresses;
-
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (const auto& host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
-        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
-          // If we're not connected to a network, we don't want to add this
-          // address.
-          continue;
-        }
-        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
-          wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
-        } else if (adapter.IanaInterfaceType() ==
-                   Constants::kInterfaceTypeEthernet) {
-          ethernet_addresses.push_back(winrt::to_string(host_name.ToString()));
-        } else {
-          other_addresses.push_back(winrt::to_string(host_name.ToString()));
-        }
-      }
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-
-  result.insert(result.end(), wifi_addresses.begin(), wifi_addresses.end());
-  result.insert(result.end(), ethernet_addresses.begin(),
-                ethernet_addresses.end());
-  result.insert(result.end(), other_addresses.begin(), other_addresses.end());
-
-  return result;
-}
-
-std::vector<std::string> Get4BytesIpv4Addresses() {
-  std::vector<std::string> result;
-  std::vector<std::string> ipv4_addresses = GetIpv4Addresses();
-  for (const auto& ipv4_address : ipv4_addresses) {
-    // Converts IP address from x.x.x.x to 4 bytes format.
-    in_addr address;
-    address.S_un.S_addr = inet_addr(ipv4_address.c_str());
-    std::string ipv4_4bytes_address;
-    ipv4_4bytes_address.resize(4);
-    ipv4_4bytes_address[0] = address.S_un.S_un_b.s_b1;
-    ipv4_4bytes_address[1] = address.S_un.S_un_b.s_b2;
-    ipv4_4bytes_address[2] = address.S_un.S_un_b.s_b3;
-    ipv4_4bytes_address[3] = address.S_un.S_un_b.s_b4;
-    result.push_back(ipv4_4bytes_address);
-  }
-
-  return result;
-}
-
-std::vector<std::string> GetWifiIpv4Addresses() {
-  std::vector<std::string> result;
-
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (const auto& host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
-        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
-          // If we're not connected to a network, we don't want to add this
-          // address.
-          continue;
-        }
-        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
-          result.push_back(winrt::to_string(host_name.ToString()));
-        }
-      }
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-
-  return result;
-}
+using winrt::Windows::Foundation::IInspectable;
 
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
   int64_t data1 = guid.Data1;
@@ -239,11 +87,6 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid) {
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
                                         const ::winrt::guid& guid) {
   return uuid == winrt_guid_to_nearby_uuid(guid);
-}
-
-ByteArray Sha256(absl::string_view input, size_t size) {
-  ByteArray hash = nearby::Crypto::Sha256(input);
-  return ByteArray{hash.data(), size};
 }
 
 bool InspectableReader::ReadBoolean(IInspectable inspectable) {
@@ -345,5 +188,139 @@ std::vector<std::string> InspectableReader::ReadStringArray(
   return result;
 }
 
-}  // namespace windows
-}  // namespace nearby
+GUID InspectableReader::ReadGuid(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return GUID{};
+  }
+  auto property_value =
+      inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
+  if (property_value == nullptr) {
+    throw std::invalid_argument("no property value interface.");
+  }
+  if (property_value.Type() !=
+      winrt::Windows::Foundation::PropertyType::Guid) {
+    throw std::invalid_argument("not guid data type.");
+  }
+
+  return property_value.GetGuid();
+}
+
+std::optional<std::wstring> GetDnsHostName() {
+  DWORD size = 0;
+
+  // Get length of the computer name.
+  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
+    if (GetLastError() != ERROR_MORE_DATA) {
+      LOG(ERROR) << ": Failed to get device dns name size, error:"
+                 << GetLastError();
+      return std::nullopt;
+    }
+  }
+  std::wstring device_name(size, L' ');
+  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
+      0) {
+    // On input size includes null termination.
+    // On output size excludes null termination.
+    device_name.resize(size);
+    return device_name;
+  }
+
+  LOG(ERROR) << ": Failed to get device dns name, error:" << GetLastError();
+  return std::nullopt;
+}
+
+bool IsIntelWifiAdapter() {
+  bool found_intel = false;
+  LOG(INFO) << "Starting scan for Intel Wi-Fi adapters...";
+
+  // 1. Get a handle to all network adapters present in the system
+  HDEVINFO h_dev_info =
+      SetupDiGetClassDevsW(&GUID_DEVCLASS_NET, nullptr, nullptr, DIGCF_PRESENT);
+  // SetupDiDestroyDeviceInfoList needs to be called in the end of this function
+  if (h_dev_info == INVALID_HANDLE_VALUE) {
+    LOG(ERROR) << "Failed to get Class Devs handle. Error: " << GetLastError();
+    return false;
+  }
+
+  SP_DEVINFO_DATA dev_info_data;
+  dev_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
+
+  // 2. Enumerate through the devices
+  for (DWORD i = 0; SetupDiEnumDeviceInfo(h_dev_info, i, &dev_info_data); i++) {
+    // 3. Get the Hardware ID property (contains VEN_XXXX and DEV_XXXX)
+    DWORD hardware_id_size = 0;
+    if (!SetupDiGetDeviceRegistryPropertyW(h_dev_info, &dev_info_data,
+                                           SPDRP_HARDWAREID, nullptr, nullptr,
+                                           0, &hardware_id_size) &&
+        GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+      LOG(ERROR) << "Failed to get Hardware ID size. Error: " << GetLastError();
+      continue;
+    }
+    std::wstring hardware_id;
+    hardware_id.resize((hardware_id_size + sizeof(wchar_t) - 1) /
+                       sizeof(wchar_t));
+    if (SetupDiGetDeviceRegistryPropertyW(
+            h_dev_info, &dev_info_data, SPDRP_HARDWAREID, nullptr,
+            reinterpret_cast<BYTE*>(hardware_id.data()),
+            hardware_id.size() * sizeof(wchar_t), nullptr)) {
+      // REG_MULTI_SZ contains multiple null-terminated strings.
+      // We search the whole buffer for the Intel Vendor ID (8086).
+      // 4. Check for Intel Vendor ID: 8086
+      // On you Windows computer, go to "Device Manager" --> "Network adapters"
+      // --> Right click Wifi device
+      // --> click "properties" --> click "Details" --> In "Property" dropdown
+      // list, choose "Hardware ID", then you will see:
+      // Hardware IDs look like: PCI\VEN_8086&DEV_2723...,
+      // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/identifiers-for-pci-devices
+      // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-models-section
+      if (hardware_id.find(L"VEN_8086") !=  // NOLINT - ClangTidy asks to replace
+                                      // find() with absl::StrContains(), but
+                                      // this is not applicable to wide string
+                                      // and will cause compile error.
+          std::wstring::npos) {
+        // 5. Ensure it's a Wi-Fi/Wireless device
+        // We check the description to make sure we aren't flagging an Intel
+        // Ethernet chip
+        std::wstring to_log_hw_id = hardware_id;
+        // Replace all null characters with spaces to avoid truncation.
+        std::replace(to_log_hw_id.begin(), to_log_hw_id.end(), L'\0', L' ');
+        LOG(INFO) << "  - Hardware ID: "
+                  << string_utils::WideStringToString(to_log_hw_id);
+
+        DWORD desc_buf_size = 0;
+        if (!SetupDiGetDeviceRegistryPropertyW(h_dev_info, &dev_info_data,
+                                               SPDRP_DEVICEDESC, nullptr,
+                                               nullptr, 0, &desc_buf_size) &&
+            GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+          continue;
+        }
+
+        std::wstring name;
+        name.resize((desc_buf_size + sizeof(wchar_t) - 1) / sizeof(wchar_t));
+        if (SetupDiGetDeviceRegistryPropertyW(
+                h_dev_info, &dev_info_data, SPDRP_DEVICEDESC, nullptr,
+                reinterpret_cast<BYTE*>(name.data()),
+                name.size() * sizeof(wchar_t), nullptr)) {
+          if (name.find(L"Wi-Fi") !=  // NOLINT - ClangTidy asks to replace
+                                      // find() with absl::StrContains(), but
+                                      // this is not applicable to wide string
+                                      // and will cause compile error.
+                  std::wstring::npos ||
+              name.find(L"Wireless") !=  // NOLINT
+                  std::wstring::npos ||
+              name.find(L"Killer") !=  // NOLINT
+                  std::wstring::npos) {
+            LOG(INFO) << "Found Intel Wi-Fi: " << name;
+            found_intel = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  SetupDiDestroyDeviceInfoList(h_dev_info);
+  return found_intel;
+}
+
+}  // namespace nearby::windows

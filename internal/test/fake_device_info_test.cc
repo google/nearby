@@ -51,13 +51,16 @@ TEST(FakeDeviceInfo, GetDownloadPath) {
             Files::GetTemporaryDirectory().append(FilePath("test")));
 }
 
-TEST(FakeDeviceInfo, GetAppDataPath) {
+TEST(FakeDeviceInfo, GetLocalAppDataPath) {
   FakeDeviceInfo device_info;
-  EXPECT_EQ(device_info.GetAppDataPath(), Files::GetTemporaryDirectory());
+  EXPECT_EQ(device_info.GetLocalAppDataPath(FilePath("abc")),
+            Files::GetTemporaryDirectory().append(FilePath("abc")));
   device_info.SetAppDataPath(
       Files::GetTemporaryDirectory().append(FilePath("test")));
-  EXPECT_EQ(device_info.GetAppDataPath(),
-            Files::GetTemporaryDirectory().append(FilePath("test")));
+  EXPECT_EQ(device_info.GetLocalAppDataPath(FilePath("def")),
+            Files::GetTemporaryDirectory()
+                .append(FilePath("test"))
+                .append(FilePath("def")));
 }
 
 TEST(FakeDeviceInfo, GetTemporaryPath) {
@@ -76,7 +79,8 @@ TEST(FakeDeviceInfo, GetAvailableDiskSpaceInBytes) {
   device_info.SetTemporaryPath(FilePath("temp"));
 
   device_info.SetAvailableDiskSpaceInBytes(device_info.GetDownloadPath(), 10);
-  device_info.SetAvailableDiskSpaceInBytes(device_info.GetAppDataPath(), 100);
+  device_info.SetAvailableDiskSpaceInBytes(
+      device_info.GetLocalAppDataPath(FilePath()), 100);
   device_info.SetAvailableDiskSpaceInBytes(device_info.GetTemporaryPath(),
                                            1000);
 
@@ -84,7 +88,8 @@ TEST(FakeDeviceInfo, GetAvailableDiskSpaceInBytes) {
       device_info.GetAvailableDiskSpaceInBytes(device_info.GetDownloadPath()),
       10);
   EXPECT_EQ(
-      device_info.GetAvailableDiskSpaceInBytes(device_info.GetAppDataPath()),
+      device_info.GetAvailableDiskSpaceInBytes(
+          device_info.GetLocalAppDataPath(FilePath())),
       100);
   EXPECT_EQ(
       device_info.GetAvailableDiskSpaceInBytes(device_info.GetTemporaryPath()),

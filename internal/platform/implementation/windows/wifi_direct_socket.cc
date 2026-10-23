@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,193 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdint>
-#include <cstring>
-#include <exception>
+#include <memory>
+#include <utility>
 
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
+#include "absl/base/nullability.h"
+#include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
-#include "internal/platform/input_stream.h"
-#include "internal/platform/logging.h"
-#include "internal/platform/output_stream.h"
+
 namespace nearby {
 namespace windows {
 
-WifiDirectSocket::WifiDirectSocket(StreamSocket socket) {
-  stream_soket_ = socket;
-  input_stream_ = SocketInputStream(socket.InputStream());
-  output_stream_ = SocketOutputStream(socket.OutputStream());
-}
+WifiDirectSocket::WifiDirectSocket()
+    : client_socket_(std::make_unique<NearbyClientSocket>()),
+      input_stream_(client_socket_.get()),
+      output_stream_(client_socket_.get()) {}
 
-WifiDirectSocket::~WifiDirectSocket() {
-  try {
-    if (stream_soket_ != nullptr) {
-      Close();
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-}
+WifiDirectSocket::WifiDirectSocket(
+    absl_nonnull std::unique_ptr<NearbyClientSocket> socket)
+    : client_socket_(std::move(socket)),
+      input_stream_(client_socket_.get()),
+      output_stream_(client_socket_.get()) {}
 
-InputStream& WifiDirectSocket::GetInputStream() { return input_stream_; }
-
-OutputStream& WifiDirectSocket::GetOutputStream() { return output_stream_; }
-
-Exception WifiDirectSocket::Close() {
-  try {
-    if (stream_soket_ != nullptr) {
-      stream_soket_.Close();
-    }
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-WifiDirectSocket::SocketInputStream::SocketInputStream(
-    IInputStream input_stream) {
-  input_stream_ = input_stream;
-}
-
-ExceptionOr<ByteArray> WifiDirectSocket::SocketInputStream::Read(
-    std::int64_t size) {
-  try {
-    Buffer buffer = Buffer(size);
-
-    auto ibuffer =
-        input_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
-
-    if (ibuffer.Length() != size) {
-      LOG(WARNING) << "Only got part of data of needed.";
-    }
-
-    ByteArray data((char*)ibuffer.data(), ibuffer.Length());
-
-    return ExceptionOr(data);
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-ExceptionOr<size_t> WifiDirectSocket::SocketInputStream::Skip(size_t offset) {
-  try {
-    Buffer buffer = Buffer(offset);
-
-    auto ibuffer =
-        input_stream_.ReadAsync(buffer, offset, InputStreamOptions::None).get();
-    return ExceptionOr((size_t)ibuffer.Length());
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-Exception WifiDirectSocket::SocketInputStream::Close() {
-  try {
-    input_stream_.Close();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-// SocketOutputStream
-WifiDirectSocket::SocketOutputStream::SocketOutputStream(
-    IOutputStream output_stream) {
-  output_stream_ = output_stream;
-}
-
-Exception WifiDirectSocket::SocketOutputStream::Write(const ByteArray& data) {
-  try {
-    Buffer buffer = Buffer(data.size());
-    std::memcpy(buffer.data(), data.data(), data.size());
-    buffer.Length(data.size());
-
-    output_stream_.WriteAsync(buffer).get();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-Exception WifiDirectSocket::SocketOutputStream::Flush() {
-  try {
-    output_stream_.FlushAsync().get();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
-
-Exception WifiDirectSocket::SocketOutputStream::Close() {
-  try {
-    output_stream_.Close();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
-  }
-}
+WifiDirectSocket::~WifiDirectSocket() { Close(); }
 
 }  // namespace windows
 }  // namespace nearby

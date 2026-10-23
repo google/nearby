@@ -118,17 +118,6 @@ TEST(FakeTimer, TestTimerDestructor) {
   EXPECT_EQ(clock.GetObserversCount(), 0);
 }
 
-TEST(FakeTimer, TestTimerFireNow) {
-  FakeClock clock;
-  int count = 0;
-  FakeTimer timer(&clock);
-  auto callback = [&count]() { ++count; };
-  timer.Start(200, 100, callback);
-  timer.FireNow();
-  timer.Stop();
-  EXPECT_EQ(count, 1);
-}
-
 TEST(FakeTimer, CloseTimerInTimerProc) {
   int count = 0;
   FakeClock clock;

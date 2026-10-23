@@ -14,11 +14,11 @@
 
 #include "internal/platform/future.h"
 
+#include <cstring>
+
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/direct_executor.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -112,158 +112,6 @@ TEST(FutureTest, GetBlocksWhenNotReady) {
   absl::Duration blocked_duration = absl::Now() - start;
   EXPECT_EQ(response.result(), 10);
   EXPECT_GE(blocked_duration, absl::Milliseconds(500));
-}
-
-TEST(FutureTest, CallsListenerOnSet) {
-  constexpr int kValue = 1000;
-  Future<int> future;
-  int call_count = 0;
-  {
-    SingleThreadExecutor executor;
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_TRUE(result.ok());
-          ASSERT_EQ(result.GetResult(), kValue);
-          ++call_count;
-        },
-        &executor);
-
-    future.Set(kValue);
-    // `executor` leaves scope, the destructor waits for tasks to complete
-  }
-
-  EXPECT_EQ(call_count, 1);
-}
-
-TEST(FutureTest, CallsAllListenersOnSet) {
-  constexpr int kValue = 1000;
-  Future<int> future;
-  int call_count_listener_1 = 0;
-  int call_count_listener_2 = 0;
-  {
-    SingleThreadExecutor executor;
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_TRUE(result.ok());
-          ASSERT_EQ(result.GetResult(), kValue);
-          ++call_count_listener_1;
-        },
-        &executor);
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_TRUE(result.ok());
-          ASSERT_EQ(result.GetResult(), kValue);
-          ++call_count_listener_2;
-        },
-        &executor);
-
-    future.Set(kValue);
-    // `executor` leaves scope, the destructor waits for tasks to complete
-  }
-
-  EXPECT_EQ(call_count_listener_1, 1);
-  EXPECT_EQ(call_count_listener_2, 1);
-}
-
-TEST(FutureTest, AddListenerWhenAlreadySetCallsCallback) {
-  constexpr int kValue = 1000;
-  Future<int> future;
-  int call_count = 0;
-  future.Set(kValue);
-  {
-    SingleThreadExecutor executor;
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_TRUE(result.ok());
-          ASSERT_EQ(result.GetResult(), kValue);
-          ++call_count;
-        },
-        &executor);
-    // `executor` leaves scope, the destructor waits for tasks to complete
-  }
-
-  EXPECT_EQ(call_count, 1);
-}
-
-TEST(FutureTest, CallsListenerOnSetException) {
-  constexpr Exception kException = {Exception::kFailed};
-  Future<int> future;
-  int call_count = 0;
-  {
-    SingleThreadExecutor executor;
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_FALSE(result.ok());
-          ASSERT_EQ(result.GetException(), kException);
-          ++call_count;
-        },
-        &executor);
-
-    future.SetException(kException);
-    // `executor` leaves scope, the destructor waits for tasks to complete
-  }
-
-  EXPECT_EQ(call_count, 1);
-}
-
-TEST(FutureTest, AddListenerWhenAlreadySetExceptionCallsCallback) {
-  constexpr Exception kException = {Exception::kFailed};
-  Future<int> future;
-  int call_count = 0;
-  future.SetException(kException);
-  {
-    SingleThreadExecutor executor;
-
-    future.AddListener(
-        [&](ExceptionOr<int> result) {
-          ASSERT_FALSE(result.ok());
-          ASSERT_EQ(result.GetException(), kException);
-          ++call_count;
-        },
-        &executor);
-
-    // `executor` leaves scope, the destructor waits for tasks to complete
-  }
-
-  EXPECT_EQ(call_count, 1);
-}
-
-TEST(FutureTest, TimeoutSetsException) {
-  Future<int> future(absl::Milliseconds(10));
-
-  EXPECT_EQ(future.Get().exception(), Exception::kTimeout);
-}
-
-TEST(FutureTest, TimeoutCallsListeners) {
-  Future<int> future(absl::Milliseconds(10));
-  CountDownLatch latch(1);
-  future.AddListener(
-      [&](ExceptionOr<int> result) {
-        ASSERT_FALSE(result.ok());
-        ASSERT_EQ(result.exception(), Exception::kTimeout);
-        latch.CountDown();
-      },
-      &DirectExecutor::GetInstance());
-
-  EXPECT_TRUE(latch.Await().Ok());
-
-  EXPECT_EQ(future.Get().exception(), Exception::kTimeout);
-}
-
-TEST(FutureTest, SetValueBeforeTimeout) {
-  Future<int> future(absl::Minutes(1));
-
-  future.Set(5);
-
-  EXPECT_EQ(future.Get().result(), 5);
-}
-
-TEST(FutureTest, SetExceptionBeforeTimeout) {
-  Future<int> future(absl::Minutes(1));
-
-  future.SetException({Exception::kExecution});
-
-  EXPECT_EQ(future.Get().exception(), Exception::kExecution);
 }
 
 }  // namespace nearby

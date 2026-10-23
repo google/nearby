@@ -14,30 +14,30 @@
 
 #include "connections/implementation/connections_authentication_transport.h"
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
 
 ConnectionsAuthenticationTransport::ConnectionsAuthenticationTransport(
-    const EndpointChannel& channel) {
-  channel_ = const_cast<EndpointChannel*>(&channel);
-}
+    std::shared_ptr<EndpointChannel> channel)
+    : channel_(std::move(channel)) {}
 
 void ConnectionsAuthenticationTransport::WriteMessage(
     absl::string_view message) const {
-  // channel_ should never be null.
+  // channel_ is guaranteed valid by shared_ptr ownership
   CHECK(channel_ != nullptr);
-  channel_->Write(ByteArray(message.data(), message.size()));
+  channel_->Write(message);
 }
 
 std::string ConnectionsAuthenticationTransport::ReadMessage() const {
-  // channel_ should never be null.
+  // channel_ is guaranteed valid by shared_ptr ownership
   CHECK(channel_ != nullptr);
   auto response = channel_->Read();
   if (response.ok()) {

@@ -24,11 +24,10 @@ cc_test(
     ],
     tags = ["componentid:148515"],
     deps = [
-        "//connections/implementation:internal",
-        "//internal/platform:base",
+        "//connections/implementation:offline_frames",
         "//internal/platform/implementation/g3",
-        "//testing/fuzzing:fuzztest",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -18,7 +18,6 @@
 #include <stddef.h>
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -55,10 +54,13 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   void MakeImmediateRequest() override;
   void HandleResult(bool success) override;
   void Reschedule() override;
-  std::optional<absl::Time> GetLastSuccessTime() const override;
-  std::optional<absl::Duration> GetTimeUntilNextRequest() const override;
+  absl::Time GetLastSuccessTime() const override;
   bool IsWaitingForResult() const override;
   size_t GetNumConsecutiveFailures() const override;
+
+  absl::Duration GetTimeUntilNextRequestForTest() const {
+    return GetTimeUntilNextRequest();
+  }
 
  protected:
   // |context|: Nearby context, holding nearby common components.
@@ -76,16 +78,22 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
       absl::string_view pref_name, OnRequestCallback callback);
 
   // The time to wait until the next regularly recurring request.
-  virtual std::optional<absl::Duration> TimeUntilRecurringRequest(
+  // Returns `InfiniteDuration` if there is no recurring request scheduled.
+  virtual absl::Duration TimeUntilRecurringRequest(
       absl::Time now) const = 0;
 
   void OnStart() override;
   void OnStop() override;
+  // Returns the time until the next scheduled request. Returns
+  // `InfiniteDuration` if there is no request scheduled.
+  absl::Duration GetTimeUntilNextRequest() const;
 
  private:
   void OnInternetConnectivityChanged(bool is_internet_connected);
 
-  std::optional<absl::Time> GetLastAttemptTime() const;
+  // Get the last attempt time from prefs.  Returns `InfinitePast` if the last
+  // attempt time is not set.
+  absl::Time GetLastAttemptTime() const;
   bool HasPendingImmediateRequest() const;
 
   // Set and persist scheduling data in prefs.
@@ -96,17 +104,16 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   void SetIsWaitingForResult(bool is_waiting_for_result);
 
   // The amount of time to wait until the next automatic failure retry. Returns
-  // std::nullopt if there is no failure to retry or if failure retry is not
-  // enabled for the scheduler.
-  std::optional<absl::Duration> TimeUntilRetry(absl::Time now) const;
+  // `InfiniteDuration` if there is no failure to retry or if failure retry is
+  // not enabled for the scheduler.
+  absl::Duration TimeUntilRetry(absl::Time now) const;
 
   // Notifies the owner that a request is ready. Early returns if not online and
   // the scheduler requires connectivity; the attempt is rescheduled when
   // connectivity is restored.
   void OnTimerFired();
 
-  void PrintSchedulerState(
-      std::optional<absl::Duration> time_until_next_request) const;
+  void PrintSchedulerState(absl::Duration time_until_next_request) const;
 
   nearby::ConnectivityManager* const connectivity_manager_;
   nearby::sharing::api::PreferenceManager& preference_manager_;

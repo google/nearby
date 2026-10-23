@@ -27,7 +27,7 @@
 #include "sharing/attachment_container.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 #include "sharing/worker_queue.h"
 
 namespace nearby {
@@ -46,7 +46,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
       std::unique_ptr<PayloadUpdateQueue> payload_queue);
   ~PayloadTracker() override;
 
-  std::optional<TransferMetadata> ProcessPayloadUpdate(
+  std::optional<TransferMetadataBuilder> ProcessPayloadUpdate(
       std::unique_ptr<PayloadTransferUpdate> update);
 
   // NearbyConnectionsManager::PayloadStatusListener:
@@ -64,7 +64,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
     PayloadStatus status = PayloadStatus::kInProgress;
   };
 
-  std::optional<TransferMetadata> OnTransferUpdate(const State& state);
+  std::optional<TransferMetadataBuilder> OnTransferUpdate(const State& state);
 
   bool IsComplete() const;
   bool IsCancelled(const State& state) const;

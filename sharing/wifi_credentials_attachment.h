@@ -24,9 +24,8 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
-
+namespace nearby::sharing {
+\
 // Represents a WiFi credentials attachment.
 class WifiCredentialsAttachment : public Attachment {
  public:
@@ -45,9 +44,7 @@ class WifiCredentialsAttachment : public Attachment {
           location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
   WifiCredentialsAttachment(const WifiCredentialsAttachment&) = default;
   WifiCredentialsAttachment(WifiCredentialsAttachment&&) = default;
-  WifiCredentialsAttachment& operator=(const WifiCredentialsAttachment&) =
-      default;
-  WifiCredentialsAttachment& operator=(WifiCredentialsAttachment&&) = default;
+  WifiCredentialsAttachment& operator=(WifiCredentialsAttachment&&) = delete;
   ~WifiCredentialsAttachment() override = default;
 
   absl::string_view ssid() const { return ssid_; }
@@ -63,13 +60,12 @@ class WifiCredentialsAttachment : public Attachment {
   void set_is_hidden(bool is_hidden);
 
  private:
-  std::string ssid_;
-  SecurityType security_type_;
+  const std::string ssid_;
+  const SecurityType security_type_;
   std::string password_;
   bool is_hidden_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_WIFI_CREDENTIALS_ATTACHMENT_H_

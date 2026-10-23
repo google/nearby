@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
 
 cc_library(
@@ -60,7 +63,7 @@ cc_test(
     deps = [
         ":nearby_fast_initiation",
         ":test_support",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//sharing/internal/api:platform",
         "//sharing/internal/test:nearby_test",
         "@com_github_protobuf_matchers//protobuf-matchers",

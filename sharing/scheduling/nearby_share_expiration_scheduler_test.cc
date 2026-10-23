@@ -15,14 +15,12 @@
 #include "sharing/scheduling/nearby_share_expiration_scheduler.h"
 
 #include <memory>
-#include <optional>
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
-#include "sharing/scheduling/nearby_share_scheduler.h"
 
 namespace nearby {
 namespace sharing {
@@ -56,13 +54,13 @@ class NearbyShareExpirationSchedulerTest : public ::testing::Test {
     fake_context_.fake_clock()->FastForward(delta);
   }
 
-  std::optional<absl::Time> expiration_time_;
-  NearbyShareScheduler* scheduler() { return scheduler_.get(); }
+  absl::Time expiration_time_ = absl::InfiniteFuture();
+  NearbyShareExpirationScheduler* scheduler() { return scheduler_.get(); }
 
  private:
   nearby::FakePreferenceManager preference_manager_;
   nearby::FakeContext fake_context_;
-  std::unique_ptr<NearbyShareScheduler> scheduler_ = nullptr;
+  std::unique_ptr<NearbyShareExpirationScheduler> scheduler_ = nullptr;
   NearbyShareExpirationScheduler::ExpirationTimeFunctor callback_ = [&]() {
     return expiration_time_;
   };
@@ -75,7 +73,8 @@ TEST_F(NearbyShareExpirationSchedulerTest, ExpirationRequest) {
   // the expiration time and the current time.
   FastForward(absl::Minutes(5));
 
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(), *expiration_time_ - Now());
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
+            expiration_time_ - Now());
 }
 
 TEST_F(NearbyShareExpirationSchedulerTest, Reschedule) {
@@ -83,21 +82,22 @@ TEST_F(NearbyShareExpirationSchedulerTest, Reschedule) {
   FastForward(absl::Minutes(5));
 
   absl::Duration initial_expected_time_until_next_request =
-      *expiration_time_ - Now();
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(),
+      expiration_time_ - Now();
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
             initial_expected_time_until_next_request);
 
   // The expiration time suddenly changes.
-  expiration_time_ = *expiration_time_ + absl::Hours(48);
+  expiration_time_ = expiration_time_ + absl::Hours(48);
   scheduler()->Reschedule();
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(),
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
             initial_expected_time_until_next_request + absl::Hours(48));
 }
 
 TEST_F(NearbyShareExpirationSchedulerTest, NullExpirationTime) {
-  expiration_time_.reset();
+  expiration_time_ = absl::InfiniteFuture();
   scheduler()->Start();
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(), std::nullopt);
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
+            absl::InfiniteDuration());
 }
 
 }  // namespace

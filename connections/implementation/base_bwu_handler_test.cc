@@ -24,13 +24,12 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/service_id_constants.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
 namespace {
-
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 
 //  Because BaseBwuHandler is still an abstract class, we need to implement the
@@ -55,17 +54,17 @@ class BwuHandlerImpl : public BaseBwuHandler {
   const std::vector<InputData>& handle_revert_calls() const {
     return handle_revert_calls_;
   }
-  void set_handle_initialize_output(ByteArray bytes) {
-    handle_initialize_output_ = bytes;
+  void set_handle_initialize_output(absl::string_view bytes) {
+    handle_initialize_output_ = std::string(bytes);
   }
 
  private:
   // BwuHandler implementation:
-  ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(
+  ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final {
+      const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+          upgrade_path_info) final {
     return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
   Medium GetUpgradeMedium() const final { return Medium::UNKNOWN_MEDIUM; }
@@ -73,7 +72,7 @@ class BwuHandlerImpl : public BaseBwuHandler {
                             const std::string& endpoint_id) final {}
 
   // BaseBwuHandler implementation:
-  ByteArray HandleInitializeUpgradedMediumForEndpoint(
+  std::string HandleInitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& upgrade_service_id,
       const std::string& endpoint_id) final {
     handle_initialize_calls_.push_back({.client = client,
@@ -86,7 +85,7 @@ class BwuHandlerImpl : public BaseBwuHandler {
     handle_revert_calls_.push_back({.service_id = upgrade_service_id});
   }
 
-  ByteArray handle_initialize_output_;
+  std::string handle_initialize_output_;
   std::vector<InputData> handle_initialize_calls_;
   std::vector<InputData> handle_revert_calls_;
 };
@@ -95,7 +94,7 @@ TEST(BaseBwuHandlerTest, InitializeAndRevert) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{"not empty"};
+  absl::string_view expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
 
   // Initialize two upgrade endpoints for service A and one for service B.
@@ -150,7 +149,7 @@ TEST(BaseBwuHandlerTest, InitializeAndRevertAll) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{"not empty"};
+  absl::string_view expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
 
   handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
@@ -169,7 +168,7 @@ TEST(BaseBwuHandlerTest, Initialize_Failure_EmptyUpgradePathAvailableFrame) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{};
+  absl::string_view expected_output{};
   handler.set_handle_initialize_output(expected_output);
 
   handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
@@ -191,7 +190,7 @@ TEST(BaseBwuHandlerTest, Initialize_StillWorkWithUpgradeServiceIdSuffix) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{"not empty"};
+  absl::string_view expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
 
   // The method should be robust and not add _another_ upgrade suffix
@@ -208,7 +207,7 @@ TEST(BaseBwuHandlerTest, Revert_Failure_CantFindService) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{"not empty"};
+  absl::string_view expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
   handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
                                               /*endpoint_id=*/"1");
@@ -222,7 +221,7 @@ TEST(BaseBwuHandlerTest, Revert_Failure_CantFindEndpoint) {
   ClientProxy client;
   BwuHandlerImpl handler;
 
-  ByteArray expected_output{"not empty"};
+  absl::string_view expected_output{"not empty"};
   handler.set_handle_initialize_output(expected_output);
   handler.InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"A",
                                               /*endpoint_id=*/"1");

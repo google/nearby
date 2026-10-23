@@ -47,41 +47,23 @@ constexpr auto kEnableMediumWifiLan =
 // Enable/disable retry/resume transfer for partial files.
 constexpr auto kEnableRetryResumeTransfer =
     flags::Flag<bool>(kConfigPackage, "45411589", false);
-// Enable/disable self share UI in Nearby Share
-constexpr auto kEnableSelfShareUi =
-    flags::Flag<bool>(kConfigPackage, "45418908", false);
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
-// Disable/enable the WebRTC medium in Nearby Sharing SDK.
-constexpr auto kEnableWebrtcMedium =
-    flags::Flag<bool>(kConfigPackage, "45411620", false);
 // Set the logging level in Nearby Sharing SDK. The default logging level is
 // WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
 // 2, FATAL: 3,  negative values are -(verbosity level).
 constexpr auto kLoggingLevel =
     flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
-// When true, the sender will not require confirming the ukey2 token.
-constexpr auto kSenderSkipsConfirmation =
-    flags::Flag<bool>(kConfigPackage, "45411353", true);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
-// When true, use gRpc client to access backend.
-constexpr auto kUseGrpcClient =
-    flags::Flag<bool>(kConfigPackage, "45630055", false);
-// When true, delete the file payload which received unexpectedly.
-constexpr auto kDeleteUnexpectedReceivedFileFix =
-    flags::Flag<bool>(kConfigPackage, "45657036", false);
 // The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
-    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
+    flags::Flag<int64_t>(kConfigPackage, "45658774", 15000);
 // When true, enable wifi hotspot medium for HP Realtek devices.
 constexpr auto kEnableWifiHotspotForHpRealtekDevices =
     flags::Flag<bool>(kConfigPackage, "45673628", false);
-// When true, honor 3P client_id & client_secret in the gRPC request
-constexpr auto kHonor3PClientIdAndSecret =
-    flags::Flag<bool>(kConfigPackage, "45665616", true);
 // The amount of time in milliseconds a share target stays in discovery cache in
 // receive disabled state after a transfer.
 constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
@@ -89,27 +71,33 @@ constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
 // When true, enable alternate BLE service UUID for discovery.
 constexpr auto kUseAlternateServiceUuidForDiscovery =
     flags::Flag<bool>(kConfigPackage, "45683539", false);
-// Enable/disable QR Code UI
-constexpr auto kEnableQrCodeUi =
-    flags::Flag<bool>(kConfigPackage, "45417647", false);
-// Show Admin mode warning message in the app
-constexpr auto kShowAdminModeWarning =
-    flags::Flag<bool>(kConfigPackage, "45410558", false);
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// Number of days to wait before reminding users of backup usage
+constexpr auto kBackupReminderIntervalDays =
+    flags::Flag<int64_t>(kConfigPackage, "45831999", 30);
 // Timeout between displays of the conflict banner.
 constexpr auto kConflictBannerTimeout =
     flags::Flag<int64_t>(kConfigPackage, "45668886", 604800);
+// When true, enables the backup feature.
+constexpr auto kEnableBackup =
+    flags::Flag<bool>(kConfigPackage, "45776229", false);
 // Enable a persistent BETA label.
 constexpr auto kEnableBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
-    flags::Flag<bool>(kConfigPackage, "45661130", false);
-// When true, enables UI experiments.
-constexpr auto kEnableUiExperiments =
-    flags::Flag<bool>(kConfigPackage, "45678202", false);
+    flags::Flag<bool>(kConfigPackage, "45661130", true);
+// When true, enables use of Flutter hooks.
+constexpr auto kEnableFlutterHooks =
+    flags::Flag<bool>(kConfigPackage, "45720206", false);
+// When true, enables the mini pulse animation.
+constexpr auto kEnableMiniPulse =
+    flags::Flag<bool>(kConfigPackage, "45724244", false);
+// When true, enables notifications implemented in native code.
+constexpr auto kEnableNativeNotifications =
+    flags::Flag<bool>(kConfigPackage, "45743135", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -118,21 +106,16 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45418905, kEnableMediumWebRtc},
       {45418906, kEnableMediumWifiLan},
       {45411589, kEnableRetryResumeTransfer},
-      {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
-      {45411620, kEnableWebrtcMedium},
-      {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},
-      {45630055, kUseGrpcClient},
-      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
-      {45665616, kHonor3PClientIdAndSecret},
       {45683539, kUseAlternateServiceUuidForDiscovery},
-      {45417647, kEnableQrCodeUi},
-      {45410558, kShowAdminModeWarning},
+      {45776229, kEnableBackup},
       {45662570, kEnableBetaLabel},
       {45661130, kEnableConflictBanner},
-      {45678202, kEnableUiExperiments},
+      {45720206, kEnableFlutterHooks},
+      {45724244, kEnableMiniPulse},
+      {45743135, kEnableNativeNotifications},
   };
 }
 
@@ -142,6 +125,7 @@ inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
       {45401358, kLoggingLevel},
       {45658774, kDiscoveryCacheLostExpiryMs},
       {45663103, kUnregisterTargetDiscoveryCacheLostExpiryMs},
+      {45831999, kBackupReminderIntervalDays},
       {45668886, kConflictBannerTimeout},
   };
 }

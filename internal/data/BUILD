@@ -31,6 +31,7 @@ cc_library(
     ],
     deps = [
         "//internal/base:file_path",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//third_party/leveldb:db",
         "//third_party/leveldb:table",

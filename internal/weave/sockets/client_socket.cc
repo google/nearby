@@ -99,7 +99,7 @@ void ClientSocket::OnReceiveControlPacket(Packet packet) {
     return;
   }
   int protocol_version =
-      ((packet.GetPayload().data()[0] << 8) | packet.GetPayload().data()[1]) &
+      ((packet.GetPayload()[0] << 8) | packet.GetPayload()[1]) &
       (int16_t)0xFFFF;
   if (protocol_version != kProtocolVersion) {
     DisconnectInternal(absl::InternalError(
@@ -107,7 +107,7 @@ void ClientSocket::OnReceiveControlPacket(Packet packet) {
     return;
   }
   int max_packet_size =
-      ((packet.GetPayload().data()[2] << 8) | packet.GetPayload().data()[3]) &
+      ((packet.GetPayload()[2] << 8) | packet.GetPayload()[3]) &
       (int16_t)0xFFFF;
   if (max_packet_size > GetConnection().GetMaxPacketSize()) {
     DisconnectInternal(absl::InternalError(

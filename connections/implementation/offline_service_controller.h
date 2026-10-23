@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "connections/discovery_options.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"

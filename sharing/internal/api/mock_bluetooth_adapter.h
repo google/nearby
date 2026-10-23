@@ -22,6 +22,7 @@
 #include <string>
 
 #include "gmock/gmock.h"
+#include "internal/platform/mac_address.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 
 namespace nearby::sharing::api {
@@ -46,7 +47,7 @@ class MockBluetoothAdapter : public nearby::sharing::api::BluetoothAdapter {
                std::function<void()> error_callback),
               (override));
   MOCK_METHOD(std::optional<std::string>, GetAdapterId, (), (const, override));
-  MOCK_METHOD((std::optional<std::array<uint8_t, 6>>), GetAddress, (),
+  MOCK_METHOD((MacAddress), GetAddress, (),
               (const, override));
   MOCK_METHOD(void, AddObserver, (Observer * observer), (override));
   MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));

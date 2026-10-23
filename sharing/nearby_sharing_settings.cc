@@ -22,18 +22,22 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
+#include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/thread_timer.h"
@@ -47,6 +51,7 @@ using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::FastInitiationNotificationState;
+using ::nearby::sharing::sync::SyncBindingPrefs;
 
 constexpr absl::string_view kPreferencesObserverName =
     "nearby-sharing-settings";
@@ -68,12 +73,12 @@ ShowNotificationStatus GetNotificationStatus(
 }  // namespace
 
 NearbyShareSettings::NearbyShareSettings(
-    Context* context, nearby::Clock* clock, nearby::DeviceInfo& device_info,
-    PreferenceManager& preference_manager,
+    TaskRunner* absl_nonnull task_runner, nearby::Clock* absl_nonnull clock,
+    nearby::api::DeviceInfo& device_info, PreferenceManager& preference_manager,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     analytics::AnalyticsRecorder* analytics_recorder)
-    : context_(context),
-      clock_(clock),
+    : task_runner_(*task_runner),
+      clock_(*clock),
       device_info_(device_info),
       preference_manager_(preference_manager),
       local_device_data_manager_(local_device_data_manager),
@@ -97,7 +102,7 @@ NearbyShareSettings::NearbyShareSettings(
 }
 
 NearbyShareSettings::~NearbyShareSettings() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   is_desctructing_ = nullptr;
   preference_manager_.RemoveObserver(kPreferencesObserverName);
   local_device_data_manager_->RemoveObserver(this);
@@ -107,7 +112,7 @@ FastInitiationNotificationState
 NearbyShareSettings::GetFastInitiationNotificationState() const {
   return static_cast<FastInitiationNotificationState>(
       preference_manager_.GetInteger(
-          prefs::kNearbySharingFastInitiationNotificationStateName,
+          PrefNames::kFastInitiationNotificationState,
           static_cast<int>(
               FastInitiationNotificationState::ENABLED_FAST_INIT)));
 }
@@ -115,7 +120,7 @@ NearbyShareSettings::GetFastInitiationNotificationState() const {
 void NearbyShareSettings::SetIsFastInitiationHardwareSupported(
     bool is_supported) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     // If the new value is the same as the old value, don't notify observers.
     if (is_fast_initiation_hardware_supported_ == is_supported) {
       return;
@@ -133,7 +138,7 @@ std::string NearbyShareSettings::GetDeviceName() const {
 
 DataUsage NearbyShareSettings::GetDataUsage() const {
   return static_cast<DataUsage>(
-      preference_manager_.GetInteger(prefs::kNearbySharingDataUsageName, 0));
+      preference_manager_.GetInteger(PrefNames::kDataUsage, 0));
 }
 
 void NearbyShareSettings::StartVisibilityTimer(
@@ -141,12 +146,12 @@ void NearbyShareSettings::StartVisibilityTimer(
   LOG(INFO) << __func__
             << ": start visibility timer. expiration=" << expiration;
   visibility_expiration_timer_ = std::make_unique<ThreadTimer>(
-      *context_->GetTaskRunner(), "nearby_share_settings_visibility_timer",
+      task_runner_, "nearby_share_settings_visibility_timer",
       expiration, [this]() {
         LOG(INFO) << __func__ << ": visibility timer expired.";
         proto::DeviceVisibility visibility;
         {
-          absl::MutexLock lock(&mutex_);
+          absl::MutexLock lock(mutex_);
           visibility = fallback_visibility_;
           visibility_expiration_timer_.reset();
         }
@@ -156,13 +161,13 @@ void NearbyShareSettings::StartVisibilityTimer(
 
 void NearbyShareSettings::RestoreFallbackVisibility() {
   int64_t expiration_seconds = preference_manager_.GetInteger(
-      prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
+      PrefNames::kVisibilityExpirationSeconds, 0);
   int64_t fallback_visibility = preference_manager_.GetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
+      PrefNames::kFallbackVisibility,
       static_cast<int>(prefs::kDefaultFallbackVisibility));
   fallback_visibility_ = static_cast<DeviceVisibility>(fallback_visibility);
 
-  int64_t now_seconds = absl::ToUnixSeconds(clock_->Now());
+  int64_t now_seconds = absl::ToUnixSeconds(clock_.Now());
   int64_t remaining_seconds = expiration_seconds - now_seconds;
   int64_t diff = kMaxVisibilityExpirationSeconds - remaining_seconds;
   LOG(INFO) << __func__ << ": diff=" << diff << ", now=" << now_seconds
@@ -181,9 +186,22 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
 }
 
 std::string NearbyShareSettings::GetCustomSavePath() const {
-  return preference_manager_.GetString(
-      prefs::kNearbySharingCustomSavePath,
-      device_info_.GetDownloadPath().ToString());
+  std::string custom_save_path = preference_manager_.GetString(
+      PrefNames::kCustomSavePath, device_info_.GetDownloadPath().ToString());
+  if (Files::IsAbsolutePath(FilePath(custom_save_path))) {
+    return custom_save_path;
+  }
+  return device_info_.GetDownloadPath().ToString();
+}
+
+SyncBindingPrefs NearbyShareSettings::GetSyncBindingPrefs() const {
+  return preference_manager_.GetSyncBindingValue().value_or(
+      SyncBindingPrefs());
+}
+
+void NearbyShareSettings::SetSyncBindingPrefs(
+    const SyncBindingPrefs& prefs) {
+  preference_manager_.SetSyncBindingValue(prefs);
 }
 
 bool NearbyShareSettings::IsDisabledByPolicy() const { return false; }
@@ -204,16 +222,8 @@ void NearbyShareSettings::SetFastInitiationNotificationState(
         GetNotificationStatus(state));
   }
 
-  preference_manager_.SetInteger(
-      prefs::kNearbySharingFastInitiationNotificationStateName,
-      static_cast<int>(state));
-}
-
-void NearbyShareSettings::ValidateDeviceName(
-    absl::string_view device_name,
-    std::function<void(DeviceNameValidationResult)> callback) {
-  std::move(callback)(
-      local_device_data_manager_->ValidateDeviceName(device_name));
+  preference_manager_.SetInteger(PrefNames::kFastInitiationNotificationState,
+                                 static_cast<int>(state));
 }
 
 void NearbyShareSettings::SetDeviceName(
@@ -229,15 +239,14 @@ void NearbyShareSettings::SetDataUsage(DataUsage data_usage) {
   if (analytics_recorder_ != nullptr) {
     analytics_recorder_->NewSetDataUsage(GetDataUsage(), data_usage);
   }
-  preference_manager_.SetInteger(prefs::kNearbySharingDataUsageName,
+  preference_manager_.SetInteger(PrefNames::kDataUsage,
                                  static_cast<int>(data_usage));
 }
 
 DeviceVisibility NearbyShareSettings::GetVisibility() const {
   DeviceVisibility visibility =
       static_cast<DeviceVisibility>(preference_manager_.GetInteger(
-          prefs::kNearbySharingBackgroundVisibilityName,
-          static_cast<int>(prefs::kDefaultVisibility)));
+          PrefNames::kVisibility, static_cast<int>(prefs::kDefaultVisibility)));
   if (visibility == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS) {
     // Set the visibility to self share if it's only visible to selected
     // contacts, as part of QuickShare rebrand work.
@@ -248,7 +257,7 @@ DeviceVisibility NearbyShareSettings::GetVisibility() const {
 
 void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
                                         absl::Duration expiration) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (visibility == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS) {
     // This should really be an error, but this function does not return errors,
     // so change it to self share as in GetVisibility().
@@ -274,32 +283,31 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
   visibility_expiration_timer_.reset();
 
   SetFallbackVisibility(last_visibility);
-  absl::Time now = clock_->Now();
+  absl::Time now = clock_.Now();
   if (expiration != absl::ZeroDuration()) {
     VLOG(1) << __func__ << ": temporary visibility timer starts.";
     absl::Time fallback_visibility_timestamp = now + expiration;
     preference_manager_.SetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
+        PrefNames::kVisibilityExpirationSeconds,
         absl::ToUnixSeconds(fallback_visibility_timestamp));
     StartVisibilityTimer(expiration);
   } else {
-    preference_manager_.SetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
+    preference_manager_.SetInteger(PrefNames::kVisibilityExpirationSeconds, 0);
   }
 
   last_visibility_timestamp_ = now;
   last_visibility_ = last_visibility;
-  preference_manager_.SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
+  preference_manager_.SetInteger(PrefNames::kVisibility,
                                  static_cast<int>(visibility));
 }
 
 absl::Time NearbyShareSettings::GetLastVisibilityTimestamp() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return last_visibility_timestamp_;
 }
 
 proto::DeviceVisibility NearbyShareSettings::GetLastVisibility() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return static_cast<proto::DeviceVisibility>(last_visibility_);
 }
 
@@ -308,13 +316,13 @@ NearbyShareSettings::GetRawFallbackVisibility() const {
   return {
     .visibility = fallback_visibility_,
     .fallback_time = absl::FromUnixSeconds(preference_manager_.GetInteger(
-        prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0))
+        PrefNames::kVisibilityExpirationSeconds, 0))
   };
 }
 
 NearbyShareSettings::FallbackVisibilityInfo
 NearbyShareSettings::GetFallbackVisibility() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   FallbackVisibilityInfo result{
       .visibility = DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED,
       .fallback_time = absl::UnixEpoch(),
@@ -339,29 +347,32 @@ void NearbyShareSettings::SetFallbackVisibility(DeviceVisibility visibility) {
   }
 
   fallback_visibility_ = visibility;
-  preference_manager_.SetInteger(
-      prefs::kNearbySharingBackgroundFallbackVisibilityName,
-      static_cast<int>(visibility));
+  preference_manager_.SetInteger(PrefNames::kFallbackVisibility,
+                                 static_cast<int>(visibility));
 }
 
 void NearbyShareSettings::SetCustomSavePathAsync(
     absl::string_view save_path, const std::function<void()>& callback) {
-  absl::MutexLock lock(&mutex_);
-  preference_manager_.SetString(prefs::kNearbySharingCustomSavePath, save_path);
+  if (!Files::IsAbsolutePath(FilePath(save_path))) {
+    callback();
+    return;
+  }
+  absl::MutexLock lock(mutex_);
+  preference_manager_.SetString(PrefNames::kCustomSavePath, save_path);
   callback();
 }
 
 void NearbyShareSettings::OnPreferenceChanged(absl::string_view key) {
-  if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
+  if (key == PrefNames::kFastInitiationNotificationState) {
     NotifyAllObservers(key, Observer::Data(static_cast<int64_t>(
                                 GetFastInitiationNotificationState())));
-  } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
+  } else if (key == PrefNames::kVisibility) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetVisibility())));
-  } else if (key == prefs::kNearbySharingDataUsageName) {
+  } else if (key == PrefNames::kDataUsage) {
     NotifyAllObservers(key,
                        Observer::Data(static_cast<int64_t>(GetDataUsage())));
-  } else if (key == prefs::kNearbySharingCustomSavePath) {
+  } else if (key == PrefNames::kCustomSavePath) {
     NotifyAllObservers(key, Observer::Data(GetCustomSavePath()));
   } else {
     // Not a monitored key.
@@ -375,8 +386,7 @@ void NearbyShareSettings::OnLocalDeviceDataChanged(bool did_device_name_change,
   if (!did_device_name_change) return;
 
   std::string device_name = GetDeviceName();
-  NotifyAllObservers(prefs::kNearbySharingDeviceNameName,
-                     Observer::Data(device_name));
+  NotifyAllObservers(PrefNames::kDeviceName, Observer::Data(device_name));
 }
 
 void NearbyShareSettings::NotifyAllObservers(absl::string_view key,
@@ -387,12 +397,11 @@ void NearbyShareSettings::NotifyAllObservers(absl::string_view key,
 }
 
 bool NearbyShareSettings::GetIsAnalyticsEnabled() const {
-  return preference_manager_.GetBoolean(
-      prefs::kNearbySharingIsAnalyticsEnabledName, true);
+  return preference_manager_.GetBoolean(PrefNames::kIsAnalyticsEnabled, true);
 }
 
 void NearbyShareSettings::SetIsAnalyticsEnabled(bool is_analytics_enabled) {
-  preference_manager_.SetBoolean(prefs::kNearbySharingIsAnalyticsEnabledName,
+  preference_manager_.SetBoolean(PrefNames::kIsAnalyticsEnabled,
                                  is_analytics_enabled);
 }
 
@@ -413,7 +422,7 @@ std::string NearbyShareSettings::Dump() const {
 }
 
 bool NearbyShareSettings::is_fast_initiation_hardware_supported() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return is_fast_initiation_hardware_supported_;
 }
 

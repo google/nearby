@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_CONNECTIONS_AUTHENTICATION_TRANSPORT_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_CONNECTIONS_AUTHENTICATION_TRANSPORT_H_
 
+#include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -30,12 +31,13 @@ namespace connections {
 class ConnectionsAuthenticationTransport
     : public nearby::AuthenticationTransport {
  public:
-  explicit ConnectionsAuthenticationTransport(const EndpointChannel& channel);
+  explicit ConnectionsAuthenticationTransport(
+      std::shared_ptr<EndpointChannel> channel);
   void WriteMessage(absl::string_view message) const override;
   std::string ReadMessage() const override;
 
  private:
-  EndpointChannel* channel_;
+  std::shared_ptr<EndpointChannel> channel_;
 };
 
 }  // namespace connections

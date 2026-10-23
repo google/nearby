@@ -15,11 +15,14 @@
 #ifndef PLATFORM_API_WIFI_HOTSPOT_H_
 #define PLATFORM_API_WIFI_HOTSPOT_H_
 
-#include <string>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <utility>
 
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
 
@@ -52,8 +55,6 @@ class WifiHotspotServerSocket {
  public:
   virtual ~WifiHotspotServerSocket() = default;
 
-  virtual std::string GetIPAddress() const = 0;
-
   virtual int GetPort() const = 0;
 
   // Blocks until either:
@@ -66,6 +67,11 @@ class WifiHotspotServerSocket {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
+
+  // Populates the hotspot credentials with the server socket's service
+  // addresses and ports.
+  virtual void PopulateHotspotCredentials(
+      HotspotCredentials& hotspot_credentials) = 0;
 };
 
 // Container of operations that can be performed over the WifiHotspot medium.
@@ -80,7 +86,7 @@ class WifiHotspotMedium {
   // On success, returns a new WifiHotspotSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiHotspotSocket> ConnectToService(
-      absl::string_view ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.
@@ -101,11 +107,12 @@ class WifiHotspotMedium {
   virtual bool StopWifiHotspot() = 0;
 
   // Client device connect to a softAP with specified credential.
-  virtual bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) = 0;
+  virtual bool ConnectWifiHotspot(
+      const HotspotCredentials& hotspot_credentials) = 0;
   virtual bool DisconnectWifiHotspot() = 0;
 
   // Returns the port range as a pair of min and max port.
-  virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
+  virtual std::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
 };
 

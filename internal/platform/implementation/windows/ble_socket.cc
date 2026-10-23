@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,36 +14,45 @@
 
 #include "internal/platform/implementation/windows/ble_socket.h"
 
-#include "absl/synchronization/mutex.h"
+#include <cstdint>
+
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/windows/ble_peripheral.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
 
-InputStream& BleSocket::GetInputStream() {
-  return fake_input_stream_;
+InputStream& BleSocket::GetInputStream() { return input_stream_; }
+
+OutputStream& BleSocket::GetOutputStream() { return output_stream_; }
+
+Exception BleSocket::Close() { return {Exception::kSuccess}; }
+
+bool BleSocket::Connect() {
+  return false;
 }
 
-OutputStream& BleSocket::GetOutputStream() {
-  return fake_output_stream_;
+ExceptionOr<ByteArray> BleSocket::BleInputStream::Read(std::int64_t size) {
+  return ExceptionOr<ByteArray>(Exception::kIo);
 }
 
-bool BleSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
-  return closed_;
-}
-
-Exception BleSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+Exception BleSocket::BleInputStream::Close() {
   return {Exception::kSuccess};
 }
 
-BlePeripheral* BleSocket::GetRemotePeripheral() {
-  absl::MutexLock lock(&mutex_);
-  return peripheral_;
+Exception BleSocket::BleOutputStream::Write(absl::string_view data) {
+  return {Exception::kIo};
+}
+
+Exception BleSocket::BleOutputStream::Flush() {
+  return {Exception::kSuccess};
+}
+
+Exception BleSocket::BleOutputStream::Close() {
+  return {Exception::kSuccess};
 }
 
 }  // namespace windows

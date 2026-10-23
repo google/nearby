@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 @protocol GNCPeripheral;
 
@@ -37,10 +37,10 @@ namespace apple {
 // Many times a CoreBluetooth peripheral is not available, namely, when the
 // remote device is a central. For these cases, an EmptyBlePeripheral should be
 // used instead.
-class BlePeripheral : public api::ble_v2::BlePeripheral {
+class BlePeripheral : public api::ble::BlePeripheral {
  public:
   // Returns a reference to a default BlePeripheral.
-  static api::ble_v2::BlePeripheral& DefaultBlePeripheral();
+  static api::ble::BlePeripheral& DefaultBlePeripheral();
 
   explicit BlePeripheral(id<GNCPeripheral> peripheral);
   ~BlePeripheral() override = default;

@@ -14,20 +14,22 @@
 
 #include "connections/payload.h"
 
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 TEST(PayloadTest, DefaultPayloadHasUnknownType) {
   Payload payload;
@@ -43,22 +45,20 @@ TEST(PayloadTest, SupportsByteArrayType) {
   EXPECT_EQ(payload.AsBytes(), bytes);
 }
 
+#if defined(NEARBY_CHROMIUM)
 TEST(PayloadTest, SupportsFileType) {
   constexpr size_t kOffset = 99;
   const auto payload_id = Payload::GenerateId();
 
-  char test_file_data[100];
-  memcpy(test_file_data,
+  absl::string_view test_file_data{
          "012345678901234567890123456789012345678901234567890123456789012345678"
-         "901234567890123456789012345678\0",
-         100);
+         "901234567890123456789012345678\0", 100};
 
   OutputFile outputFile(payload_id);
-  ByteArray test_data(test_file_data, 100);
-  outputFile.Write(test_data);
+  outputFile.Write(test_file_data);
   outputFile.Close();
 
-  InputFile file(payload_id, 100);
+  InputFile file(payload_id);
   InputStream& stream = file.GetInputStream();
 
   Payload payload(payload_id, std::move(file));
@@ -71,12 +71,13 @@ TEST(PayloadTest, SupportsFileType) {
   EXPECT_EQ(payload.AsBytes(), ByteArray{});
   EXPECT_EQ(payload.GetOffset(), kOffset);
 }
+#endif  // defined(NEARBY_CHROMIUM)
 
 TEST(PayloadTest, SupportsMultiDotNamedFileType) {
   constexpr char expected[] = "this.is.a.multidot.file";
-  InputFile file(expected, 0);
+  InputFile file(expected);
 
-  Payload payload(std::move(file));
+  Payload payload(/*parent_folder=*/"", expected, std::move(file));
 
   EXPECT_EQ(payload.GetFileName(), expected);
 }
@@ -87,9 +88,9 @@ TEST(PayloadTest,
       "test_folder.here\\this.is.a.multidot.backslash.folder.separated.file";
   constexpr char expected[] =
       "this.is.a.multidot.backslash.folder.separated.file";
-  InputFile file(file_name, 0);
+  InputFile file(file_name);
 
-  Payload payload(std::move(file));
+  Payload payload(/*parent_folder=*/"", file_name, std::move(file));
 
   EXPECT_EQ(payload.GetFileName(), expected);
 }
@@ -133,5 +134,20 @@ TEST(PayloadTest, PayloadIsNotCopyable) {
   EXPECT_FALSE(std::is_copy_assignable_v<Payload>);
 }
 
-}  // namespace connections
-}  // namespace nearby
+TEST(PayloadTypeTest, Stringify) {
+  EXPECT_EQ(absl::StrCat(PayloadType::kUnknown), "Unknown");
+  EXPECT_EQ(absl::StrCat(PayloadType::kBytes), "Bytes");
+  EXPECT_EQ(absl::StrCat(PayloadType::kFile), "File");
+  EXPECT_EQ(absl::StrCat(PayloadType::kStream), "Stream");
+}
+
+TEST(PayloadDirectionTest, Stringify) {
+  EXPECT_EQ(absl::StrCat(PayloadDirection::UNKNOWN_DIRECTION_PAYLOAD),
+            "UNKNOWN_DIRECTION_PAYLOAD");
+  EXPECT_EQ(absl::StrCat(PayloadDirection::INCOMING_PAYLOAD),
+            "INCOMING_PAYLOAD");
+  EXPECT_EQ(absl::StrCat(PayloadDirection::OUTGOING_PAYLOAD),
+            "OUTGOING_PAYLOAD");
+}
+
+}  // namespace nearby::connections

@@ -27,17 +27,16 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
-#include "connections/implementation/analytics/throughput_recorder.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/internal_payload_factory.h"
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
@@ -53,10 +52,8 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
 using ::location::nearby::connections::OfflineFrame;
@@ -65,23 +62,62 @@ using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::PayloadStatus;
-using PacketMetaData = ::nearby::analytics::PacketMetaData;
-using ::nearby::analytics::ThroughputRecorderContainer;
-using PayloadDirection = ::nearby::connections::PayloadDirection;
+using ::nearby::analytics::AnalyticsRecorder;
 
 constexpr absl::Duration kMinTransferUpdateInterval = absl::Milliseconds(50);
+
+std::string EndpointIdsToString(const std::vector<std::string>& endpoint_ids) {
+  return absl::StrCat(endpoint_ids.size(), ":",
+                      absl::StrJoin(endpoint_ids, ","));
+}
+
+PayloadStatus ControlMessageEventToPayloadStatus(
+    PayloadTransferFrame::ControlMessage::EventType event) {
+  switch (event) {
+    case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
+      return PayloadStatus::REMOTE_ERROR;
+    case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
+      return PayloadStatus::REMOTE_CANCELLATION;
+    default:
+      VLOG(1) << "PayloadManager: unknown event=" << event;
+      return PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
+  }
+}
+
+OperationResultCode ControlMessageEventToOperationResultCode(
+    PayloadTransferFrame::ControlMessage::EventType event) {
+  switch (event) {
+    case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
+      return OperationResultCode::NEARBY_GENERIC_REMOTE_REPORT_PAYLOADS_ERROR;
+    case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
+      return OperationResultCode::CLIENT_CANCELLATION_REMOTE_CANCEL_PAYLOAD;
+    default:
+      VLOG(1) << "PayloadManager: unknown event=" << event;
+      return OperationResultCode::DETAIL_UNKNOWN;
+  }
+}
+
+PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
+    PayloadStatus status) {
+  switch (status) {
+    case PayloadStatus::LOCAL_CANCELLATION:
+    case PayloadStatus::REMOTE_CANCELLATION:
+      return PayloadProgressInfo::Status::kCanceled;
+    case PayloadStatus::SUCCESS:
+      return PayloadProgressInfo::Status::kSuccess;
+    default:
+      return PayloadProgressInfo::Status::kFailure;
+  }
+}
+
 }  // namespace
 
-bool PayloadManager::SendPayloadLoop(
+int PayloadManager::SendPayloadLoop(
     ClientProxy* client, PendingPayload& pending_payload,
     PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t& next_chunk_offset, size_t resume_offset, int index) {
-  // in lieu of structured binding:
-  auto pair = GetAvailableAndUnavailableEndpoints(pending_payload);
-  const EndpointIds& available_endpoint_ids =
-      EndpointsToEndpointIds(pair.first);
-  const Endpoints& unavailable_endpoints = pair.second;
-  PacketMetaData packet_meta_data;
+    int64_t next_chunk_offset, size_t resume_offset, int index) {
+  auto [available_endpoint_ids, unavailable_endpoints] =
+      GetAvailableAndUnavailableEndpoints(pending_payload);
 
   // First, handle any non-available endpoints.
   for (const auto& endpoint : unavailable_endpoints) {
@@ -93,49 +129,49 @@ bool PayloadManager::SendPayloadLoop(
 
   // Update the still-active recipients of this payload.
   if (available_endpoint_ids.empty()) {
-    LOG(INFO) << "PayloadManager short-circuiting payload_id="
-              << pending_payload.GetInternalPayload()->GetId()
-              << " after sending " << next_chunk_offset
-              << " bytes because none of the endpoints are available anymore.";
-    return false;
+    VLOG(1) << "PayloadManager short-circuiting payload_id="
+            << pending_payload.GetId() << " after sending " << next_chunk_offset
+            << " bytes because none of the endpoints are available anymore.";
+    return -1;
   }
 
   // Check if the payload has been cancelled by the client and, if so,
   // notify the remaining recipients.
   if (pending_payload.IsLocallyCanceled()) {
-    LOG(INFO) << "Aborting send of payload_id="
-              << pending_payload.GetInternalPayload()->GetId() << " at offset "
-              << next_chunk_offset << " since it is marked canceled.";
+    VLOG(1) << "Aborting send of payload_id=" << pending_payload.GetId()
+            << " at offset " << next_chunk_offset
+            << " since it is marked canceled.";
     HandleFinishedOutgoingPayload(
         client, available_endpoint_ids, payload_header, next_chunk_offset,
         OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD,
         PayloadStatus::LOCAL_CANCELLATION);
-    return false;
+    return -1;
   }
 
-  // Update the current offsets for all endpoints still active for this
-  // payload. For the sake of accuracy, we update the pending payload here
-  // because it's after all payload terminating events are handled, but
-  // right before we actually start detaching the next chunk.
+  OutgoingInternalPayload* outgoing_payload =
+      pending_payload.GetOutgoingInternalPayload();
+
   if (next_chunk_offset == 0 && resume_offset > 0) {
     ExceptionOr<size_t> real_offset =
-        pending_payload.GetInternalPayload()->SkipToOffset(resume_offset);
+        outgoing_payload->SkipToOffset(resume_offset);
     if (!real_offset.ok()) {
       // Stop sending since it may cause remote file merging failed.
       LOG(WARNING) << "PayloadManager failed to skip offset " << resume_offset
-                   << " on payload_id "
-                   << pending_payload.GetInternalPayload()->GetId();
+                   << " on payload_id " << outgoing_payload->GetId();
       HandleFinishedOutgoingPayload(client, available_endpoint_ids,
                                     payload_header, next_chunk_offset,
                                     OperationResultCode::IO_FILE_READING_ERROR,
                                     PayloadStatus::LOCAL_ERROR);
-      return false;
+      return -1;
     }
     VLOG(1) << "PayloadManager successfully skipped " << real_offset.GetResult()
-            << " bytes on payload_id "
-            << pending_payload.GetInternalPayload()->GetId();
+            << " bytes on payload_id " << outgoing_payload->GetId();
     next_chunk_offset = real_offset.GetResult();
   }
+  // Update the current offsets for all endpoints still active for this
+  // payload. For the sake of accuracy, we update the pending payload here
+  // because it's after all payload terminating events are handled, but
+  // right before we actually start detaching the next chunk.
   for (const auto& endpoint_id : available_endpoint_ids) {
     pending_payload.SetOffsetForEndpoint(endpoint_id, next_chunk_offset);
   }
@@ -143,23 +179,32 @@ bool PayloadManager::SendPayloadLoop(
   // This will block if there is no data to transfer.
   // It will resume when new data arrives, or if Close() is called.
   int chunk_size = GetOptimalChunkSize(available_endpoint_ids);
-  packet_meta_data.StartFileIo();
-  ByteArray next_chunk =
-      pending_payload.GetInternalPayload()->DetachNextChunk(chunk_size);
-  packet_meta_data.StopFileIo();
-  if (shutdown_.Get()) return false;
+  ByteArray next_chunk = outgoing_payload->DetachNextChunk(chunk_size);
+  if (shutdown_.Get()) return -1;
+  // Check again in case CancelPayload() closed the payload while
+  // DetachNextChunk() was blocked; otherwise an empty chunk from the closed
+  // stream/file would be treated as normal EOF (SUCCESS) or a read error
+  // (LOCAL_ERROR) instead of LOCAL_CANCELLATION.
+  if (pending_payload.IsLocallyCanceled()) {
+    VLOG(1) << "Aborting send of payload_id=" << outgoing_payload->GetId()
+            << " at offset " << next_chunk_offset
+            << " since it is marked canceled.";
+    HandleFinishedOutgoingPayload(
+        client, available_endpoint_ids, payload_header, next_chunk_offset,
+        OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD,
+        PayloadStatus::LOCAL_CANCELLATION);
+    return -1;
+  }
   // Save chunk size. We'll need it after we move next_chunk.
-  auto next_chunk_size = next_chunk.size();
-  if (!next_chunk_size &&
-      pending_payload.GetInternalPayload()->GetTotalSize() > 0 &&
-      pending_payload.GetInternalPayload()->GetTotalSize() <
-          next_chunk_offset) {
-    LOG(INFO) << "Payload xfer failed: payload_id="
-              << pending_payload.GetInternalPayload()->GetId();
+  size_t next_chunk_size = next_chunk.size();
+  // If there are no more chunks, check if there should be more data to send.
+  if (next_chunk_size == 0 && outgoing_payload->GetTotalSize() > 0 &&
+      outgoing_payload->GetTotalSize() > next_chunk_offset) {
+    VLOG(1) << "Payload xfer failed: payload_id=" << outgoing_payload->GetId();
     HandleFinishedOutgoingPayload(
         client, available_endpoint_ids, payload_header, next_chunk_offset,
         OperationResultCode::IO_FILE_READING_ERROR, PayloadStatus::LOCAL_ERROR);
-    return false;
+    return -1;
   }
 
   // Only need to handle outgoing data chunk offset, because the offset will be
@@ -168,13 +213,14 @@ bool PayloadManager::SendPayloadLoop(
   // happened.
   PayloadTransferFrame::PayloadChunk payload_chunk(CreatePayloadChunk(
       next_chunk_offset - resume_offset, std::move(next_chunk), index));
-  const EndpointIds& failed_endpoint_ids = endpoint_manager_->SendPayloadChunk(
-      payload_header, payload_chunk, available_endpoint_ids, packet_meta_data);
+  const std::vector<std::string>& failed_endpoint_ids =
+      endpoint_manager_->SendPayloadChunk(payload_header, payload_chunk,
+                                          available_endpoint_ids);
   // Check whether at least one endpoint failed.
   if (!failed_endpoint_ids.empty()) {
-    LOG(INFO) << "Payload xfer: endpoints failed: payload_id="
-              << payload_header.id() << "; endpoint_ids={"
-              << ToString(failed_endpoint_ids) << "}",
+    VLOG(1) << "Payload xfer: endpoints failed: payload_id="
+            << payload_header.id() << "; endpoint_ids={"
+            << EndpointIdsToString(failed_endpoint_ids) << "}",
         HandleFinishedOutgoingPayload(
             client, failed_endpoint_ids, payload_header, next_chunk_offset,
             OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR,
@@ -199,94 +245,35 @@ bool PayloadManager::SendPayloadLoop(
             payload_chunk.offset(), payload_chunk.body().size());
       }
     }
-    VLOG(1) << "PayloadManager done sending chunk at offset "
-            << next_chunk_offset << " of payload_id="
-            << pending_payload.GetInternalPayload()->GetId();
-    next_chunk_offset += next_chunk_size;
 
-    if (!next_chunk_size) {
+    if (next_chunk_size == 0) {
       // That was the last chunk, we're outta here.
-      LOG(INFO) << "Payload xfer done: payload_id="
-                << pending_payload.GetInternalPayload()->GetId()
-                << "; size=" << next_chunk_offset;
-      ThroughputRecorderContainer::GetInstance()
-          .GetTPRecorder(pending_payload.GetInternalPayload()->GetId(),
-                         PayloadDirection::OUTGOING_PAYLOAD)
-          ->MarkAsSuccess();
-      return false;
+      VLOG(1) << "Payload xfer done: payload_id=" << outgoing_payload->GetId()
+              << "; size=" << next_chunk_offset;
+      return -1;
+    } else {
+      VLOG(1) << "PayloadManager done sending chunk at offset "
+              << next_chunk_offset
+              << " of payload_id=" << outgoing_payload->GetId();
     }
   }
 
-  return true;
+  return next_chunk_size;
 }
 
-std::pair<PayloadManager::Endpoints, PayloadManager::Endpoints>
+std::pair<std::vector<std::string>, PayloadManager::Endpoints>
 PayloadManager::GetAvailableAndUnavailableEndpoints(
     const PendingPayload& pending_payload) {
-  Endpoints available;
-  Endpoints unavailable;
+  auto results = std::make_pair(std::vector<std::string>(),
+                                std::vector<const EndpointInfo*>());
   for (auto* endpoint_info : pending_payload.GetEndpoints()) {
-    if (endpoint_info->status.Get() ==
-        PayloadManager::EndpointInfo::Status::kAvailable) {
-      available.push_back(endpoint_info);
+    if (endpoint_info->status.Get() == EndpointInfo::Status::kAvailable) {
+      results.first.push_back(endpoint_info->id);
     } else {
-      unavailable.push_back(endpoint_info);
+      results.second.push_back(endpoint_info);
     }
   }
-  return std::make_pair(std::move(available), std::move(unavailable));
-}
-
-PayloadManager::EndpointIds PayloadManager::EndpointsToEndpointIds(
-    const Endpoints& endpoints) {
-  EndpointIds endpoint_ids;
-  endpoint_ids.reserve(endpoints.size());
-  for (const auto& item : endpoints) {
-    if (item) {
-      endpoint_ids.emplace_back(item->id);
-    }
-  }
-  return endpoint_ids;
-}
-
-std::string PayloadManager::ToString(const Endpoints& endpoints) {
-  std::string endpoints_string = absl::StrCat(endpoints.size(), ": ");
-  bool first = true;
-  for (const auto& item : endpoints) {
-    if (first) {
-      absl::StrAppend(&endpoints_string, item->id);
-      first = false;
-    } else {
-      absl::StrAppend(&endpoints_string, ", ", item->id);
-    }
-  }
-  return endpoints_string;
-}
-
-std::string PayloadManager::ToString(const EndpointIds& endpoint_ids) {
-  std::string endpoints_string = absl::StrCat(endpoint_ids.size(), ": ");
-  bool first = true;
-  for (const auto& id : endpoint_ids) {
-    if (first) {
-      absl::StrAppend(&endpoints_string, id);
-      first = false;
-    } else {
-      absl::StrAppend(&endpoints_string, ", ", id);
-    }
-  }
-  return endpoints_string;
-}
-
-std::string PayloadManager::ToString(PayloadType type) {
-  switch (type) {
-    case PayloadType::kBytes:
-      return std::string("Bytes");
-    case PayloadType::kStream:
-      return std::string("Stream");
-    case PayloadType::kFile:
-      return std::string("File");
-    case PayloadType::kUnknown:
-      return std::string("Unknown");
-  }
+  return results;
 }
 
 std::string PayloadManager::ToString(EndpointInfo::Status status) {
@@ -304,23 +291,23 @@ std::string PayloadManager::ToString(EndpointInfo::Status status) {
 
 // Creates and starts tracking a PendingPayload for this Payload.
 Payload::Id PayloadManager::CreateOutgoingPayload(
-    Payload payload, const EndpointIds& endpoint_ids) {
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
+    Payload payload, const std::vector<std::string>& endpoint_ids) {
+  ErrorOr<std::unique_ptr<OutgoingInternalPayload>> result =
       CreateOutgoingInternalPayload(std::move(payload));
   if (result.has_error()) {
     LOG(ERROR) << "Failed to create outgoing internal payload: "
                << result.error().operation_result_code().value();
     return Payload::Id();
   }
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<OutgoingInternalPayload> internal_payload =
+      std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
-  LOG(INFO) << "CreateOutgoingPayload: payload_id=" << payload_id;
-  MutexLock lock(&mutex_);
+  VLOG(1) << "CreateOutgoingPayload: payload_id=" << payload_id;
+  absl::MutexLock lock(mutex_);
   pending_payloads_.StartTrackingPayload(
       payload_id,
       std::make_unique<PendingPayload>(
           std::move(internal_payload), endpoint_ids,
-          /*is_incoming=*/false,
           absl::bind_front(&PayloadManager::OnPendingPayloadDestroy, this)));
 
   return payload_id;
@@ -333,14 +320,13 @@ PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
 }
 
 void PayloadManager::CancelAllPayloads() {
-  LOG(INFO) << "PayloadManager: canceling payloads; self=" << this;
+  VLOG(1) << "PayloadManager: canceling payloads; self=" << this;
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     int pending_outgoing_payloads = 0;
     pending_payloads_.ForEachPayload([&](PendingPayload* pending) {
       if (!pending->IsIncoming()) pending_outgoing_payloads++;
-      pending->MarkLocallyCanceled();
-      pending->Close();  // To unblock the sender thread, if there is no data.
+      pending->MarkLocallyCanceledAndClose();
     });
 
     if (pending_outgoing_payloads) {
@@ -349,9 +335,9 @@ void PayloadManager::CancelAllPayloads() {
     }
   }
   if (shutdown_barrier_) {
-    LOG(INFO) << "PayloadManager: waiting for pending outgoing "
-                 "payloads; self="
-              << this;
+    VLOG(1) << "PayloadManager: waiting for pending outgoing "
+               "payloads; self="
+            << this;
     shutdown_barrier_->Await();
   }
 }
@@ -363,11 +349,10 @@ void PayloadManager::DisconnectFromEndpointManager() {
 }
 
 PayloadManager::~PayloadManager() {
-  LOG(INFO) << "PayloadManager: going down; self=" << this;
-  ThroughputRecorderContainer::GetInstance().Shutdown();
+  VLOG(1) << "PayloadManager: going down; self=" << this;
   DisconnectFromEndpointManager();
   CancelAllPayloads();
-  LOG(INFO) << "PayloadManager: turn down payload executors; self=" << this;
+  VLOG(1) << "PayloadManager: turn down payload executors; self=" << this;
   bytes_payload_executor_.Shutdown();
   stream_payload_executor_.Shutdown();
   file_payload_executor_.Shutdown();
@@ -378,37 +363,38 @@ PayloadManager::~PayloadManager() {
   RunOnStatusUpdateThread(
       "~payload-manager",
       [this, &stop_latch]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-        LOG(INFO) << "PayloadManager: stop tracking payloads; self=" << this;
-        MutexLock lock(&mutex_);
+        VLOG(1) << "PayloadManager: stop tracking payloads; self=" << this;
+        absl::MutexLock lock(mutex_);
         pending_payloads_.StopTrackingAllPayloads();
         stop_latch.CountDown();
       });
   stop_latch.Await();
 
-  LOG(INFO) << "PayloadManager: turn down notification executor; self=" << this;
+  VLOG(1) << "PayloadManager: turn down notification executor; self=" << this;
   // Stop all the ongoing Runnables (as gracefully as possible).
   payload_status_update_executor_.Shutdown();
 
-  LOG(INFO) << "PayloadManager: down; self=" << this;
+  VLOG(1) << "PayloadManager: down; self=" << this;
 }
 
 bool PayloadManager::NotifyShutdown() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!shutdown_.Get()) return false;
   if (!shutdown_barrier_) return false;
-  LOG(INFO) << "PayloadManager [shutdown mode]";
+  VLOG(1) << "PayloadManager [shutdown mode]";
   shutdown_barrier_->CountDown();
   return true;
 }
 
 void PayloadManager::SendPayload(ClientProxy* client,
-                                 const EndpointIds& endpoint_ids,
+                                 const std::vector<std::string>& endpoint_ids,
                                  Payload payload) {
   if (shutdown_.Get()) return;
-  LOG(INFO) << "SendPayload: endpoint_ids={" << ToString(endpoint_ids) << "}";
+  VLOG(1) << "SendPayload: endpoint_ids={" << EndpointIdsToString(endpoint_ids)
+          << "}";
   // Before transfer to internal payload, retrieves the Payload size for
   // analytics.
-  std::int64_t payload_total_size;
+  int64_t payload_total_size;
   switch (payload.GetType()) {
     case connections::PayloadType::kBytes:
       payload_total_size = payload.AsBytes().size();
@@ -431,10 +417,9 @@ void PayloadManager::SendPayload(ClientProxy* client,
         client, endpoint_ids, payload.GetId(), payload.GetType(),
         payload.GetOffset(), payload_total_size,
         OperationResultCode::NEARBY_GENERIC_OUTGOING_PAYLOAD_CREATION_FAILURE);
-    LOG(INFO) << "PayloadManager failed to determine the right executor for "
-                 "outgoing payload_id="
-              << payload.GetId()
-              << ", payload_type=" << ToString(payload.GetType());
+    VLOG(1) << "PayloadManager failed to determine the right executor for "
+               "outgoing payload_id="
+            << payload.GetId() << ", payload_type=" << payload.GetType();
     return;
   }
 
@@ -461,35 +446,37 @@ void PayloadManager::SendPayload(ClientProxy* client,
           payload_total_size,
           OperationResultCode::
               NEARBY_GENERIC_OUTGOING_PAYLOAD_CREATION_FAILURE);
-      LOG(INFO)
-          << "PayloadManager failed to create InternalPayload for outgoing "
-             "payload_id="
-          << payload_id << ", payload_type=" << ToString(payload_type)
-          << ", aborting sendPayload().";
+      VLOG(1) << "PayloadManager failed to create InternalPayload for outgoing "
+                 "payload_id="
+              << payload_id << ", payload_type=" << payload_type
+              << ", aborting sendPayload().";
       return;
     }
-    auto* internal_payload = pending_payload->GetInternalPayload();
-    if (!internal_payload) return;
+    OutgoingInternalPayload* outgoing_payload =
+        pending_payload->GetOutgoingInternalPayload();
+    if (!outgoing_payload) return;
 
     RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id,
                                   payload_type, resume_offset,
-                                  internal_payload->GetTotalSize());
+                                  outgoing_payload->GetTotalSize());
 
-    PayloadTransferFrame::PayloadHeader payload_header{CreatePayloadHeader(
-        *internal_payload, resume_offset, internal_payload->GetParentFolder(),
-        internal_payload->GetFileName())};
+    PayloadTransferFrame::PayloadHeader payload_header{
+        CreatePayloadHeader(*outgoing_payload, resume_offset)};
 
     bool should_continue = true;
-    std::int64_t next_chunk_offset = 0;
+    int64_t next_chunk_offset = 0;
     int index = 0;
 
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_id, PayloadDirection::OUTGOING_PAYLOAD)
-        ->Start(payload_type, PayloadDirection::OUTGOING_PAYLOAD);
     while (should_continue && !shutdown_.Get()) {
-      should_continue =
-          SendPayloadLoop(client, *pending_payload, payload_header,
-                          next_chunk_offset, resume_offset, index);
+      int bytes_sent = SendPayloadLoop(client, *pending_payload, payload_header,
+                                       next_chunk_offset, resume_offset, index);
+      should_continue = (bytes_sent >= 0);
+      if (should_continue) {
+        if (next_chunk_offset == 0 && resume_offset > 0) {
+          next_chunk_offset = resume_offset;
+        }
+        next_chunk_offset += bytes_sent;
+      }
       index++;
     }
 
@@ -499,9 +486,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                   DestroyPendingPayload(payload_id);
                                 });
   });
-  LOG(INFO) << "PayloadManager: xfer scheduled: self=" << this
-            << "; payload_id=" << payload_id
-            << ", payload_type=" << ToString(payload_type);
+  VLOG(1) << "PayloadManager: xfer scheduled: self=" << this
+          << "; payload_id=" << payload_id << ", payload_type=" << payload_type;
 }
 
 PayloadManager::PendingPayloadHandle PayloadManager::GetPayload(
@@ -513,16 +499,18 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
                                      Payload::Id payload_id) {
   PendingPayloadHandle canceled_payload = GetPayload(payload_id);
   if (!canceled_payload) {
-    LOG(INFO) << "Client requested cancel for unknown payload_id=" << payload_id
-              << ", ignoring.";
+    VLOG(1) << "Client requested cancel for unknown payload_id=" << payload_id
+            << ", ignoring.";
     return {Status::kPayloadUnknown};
   }
 
-  // Mark the payload as canceled.
-  canceled_payload->MarkLocallyCanceled();
-  LOG(INFO) << "Cancelling "
-            << (canceled_payload->IsIncoming() ? "incoming" : "outgoing")
-            << " payload_id=" << payload_id << " at request of client.";
+  // Mark the payload as canceled and close the underlying file/stream handle
+  // immediately to unblock any pending read and allow callers to delete
+  // partially written incoming files even if no further chunks arrive.
+  canceled_payload->MarkLocallyCanceledAndClose();
+  VLOG(1) << "Cancelling "
+          << (canceled_payload->IsIncoming() ? "incoming" : "outgoing")
+          << " payload_id=" << payload_id << " at request of client.";
 
   // Return SUCCESS immediately. Remaining cleanup and updates will be sent
   // in SendPayload() or OnIncomingFrame()
@@ -533,8 +521,7 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
 void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
                                      const std::string& from_endpoint_id,
                                      ClientProxy* to_client,
-                                     Medium current_medium,
-                                     PacketMetaData& packet_meta_data) {
+                                     Medium current_medium) {
   PayloadTransferFrame& frame =
       *offline_frame.mutable_v1()->mutable_payload_transfer();
 
@@ -553,26 +540,24 @@ void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
                                is_last);
       }
     }
-    LOG(INFO)
-        << "PayloadManager skipped process payloads before PCP connected, "
-        << frame.payload_header().id();
+    VLOG(1) << "PayloadManager skipped process payloads before PCP connected, "
+            << frame.payload_header().id();
     return;
   }
 
   switch (frame.packet_type()) {
     case PayloadTransferFrame::CONTROL:
-      LOG(INFO) << "PayloadManager::OnIncomingFrame [CONTROL]: self=" << this
-                << "; endpoint_id=" << from_endpoint_id;
+      VLOG(1) << "PayloadManager::OnIncomingFrame [CONTROL]: self=" << this
+              << "; endpoint_id=" << from_endpoint_id;
       ProcessControlPacket(to_client, from_endpoint_id, frame);
       break;
     case PayloadTransferFrame::DATA:
-      ProcessDataPacket(to_client, from_endpoint_id, frame, current_medium,
-                        packet_meta_data);
+      ProcessDataPacket(to_client, from_endpoint_id, frame, current_medium);
       break;
     case PayloadTransferFrame::PAYLOAD_ACK:
-      LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender "
-                   "received payload ack from "
-                << from_endpoint_id;
+      VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender "
+                 "received payload ack from "
+              << from_endpoint_id;
       ProcessPayloadAckPacket(from_endpoint_id, frame);
       break;
     default:
@@ -597,23 +582,27 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
        reason]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() mutable {
         // Iterate through all our payloads and look for payloads associated
         // with this endpoint.
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
+        std::vector<Payload::Id> finished_incoming_payloads;
         pending_payloads_.ForEachPayload([&](PendingPayload* pending_payload) {
           auto endpoint_info = pending_payload->GetEndpoint(endpoint_id);
           if (!endpoint_info) return;
-          std::int64_t endpoint_offset = endpoint_info->offset;
+          int64_t endpoint_offset = endpoint_info->offset;
           // Stop tracking the endpoint for this payload.
           pending_payload->RemoveEndpoints({endpoint_id});
           // |endpoint_info| is longer valid after calling
           // RemoveEndpoints.
           endpoint_info = nullptr;
 
-          std::int64_t payload_total_size =
+          int64_t payload_total_size =
               pending_payload->GetInternalPayload()->GetTotalSize();
 
           // If no endpoints are left for this payload, close it.
           if (pending_payload->GetEndpoints().empty()) {
             pending_payload->Close();
+            if (pending_payload->IsIncoming()) {
+              finished_incoming_payloads.push_back(pending_payload->GetId());
+            }
           }
           // Create the payload transfer update.
           PayloadProgressInfo update{pending_payload->GetId(),
@@ -640,9 +629,8 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
             default:
               payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
               operation_result_code =
-                  client->GetAnalyticsRecorder()
-                      .GetChannelIoErrorResultCodeFromMedium(
-                          client->GetConnectedMedium(endpoint_id));
+                  AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+                      client->GetConnectedMedium(endpoint_id));
               break;
           }
 
@@ -656,6 +644,9 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
                 operation_result_code);
           }
         });
+        for (Payload::Id payload_id : finished_incoming_payloads) {
+          pending_payloads_.StopTrackingPayload(payload_id);
+        }
 
         barrier.CountDown();
       });
@@ -671,7 +662,7 @@ PayloadStatus PayloadManager::EndpointInfoStatusToPayloadStatus(
     case EndpointInfo::Status::kAvailable:
       return PayloadStatus::SUCCESS;
     default:
-      LOG(INFO) << "PayloadManager: Unknown PayloadStatus";
+      VLOG(1) << "PayloadManager: Unknown PayloadStatus";
       return PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
   }
 }
@@ -686,47 +677,8 @@ OperationResultCode PayloadManager::EndpointInfoStatusToOperationResultCode(
     case EndpointInfo::Status::kAvailable:
       return OperationResultCode::DETAIL_SUCCESS;
     default:
-      LOG(INFO) << "PayloadManager: Unknown PayloadStatus";
+      VLOG(1) << "PayloadManager: Unknown PayloadStatus";
       return OperationResultCode::DETAIL_UNKNOWN;
-  }
-}
-
-PayloadStatus PayloadManager::ControlMessageEventToPayloadStatus(
-    PayloadTransferFrame::ControlMessage::EventType event) {
-  switch (event) {
-    case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
-      return PayloadStatus::REMOTE_ERROR;
-    case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
-      return PayloadStatus::REMOTE_CANCELLATION;
-    default:
-      LOG(INFO) << "PayloadManager: unknown event=" << event;
-      return PayloadStatus::UNKNOWN_PAYLOAD_STATUS;
-  }
-}
-
-OperationResultCode PayloadManager::ControlMessageEventToOperationResultCode(
-    PayloadTransferFrame::ControlMessage::EventType event) {
-  switch (event) {
-    case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
-      return OperationResultCode::NEARBY_GENERIC_REMOTE_REPORT_PAYLOADS_ERROR;
-    case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
-      return OperationResultCode::CLIENT_CANCELLATION_REMOTE_CANCEL_PAYLOAD;
-    default:
-      LOG(INFO) << "PayloadManager: unknown event=" << event;
-      return OperationResultCode::DETAIL_UNKNOWN;
-  }
-}
-
-PayloadProgressInfo::Status PayloadManager::PayloadStatusToTransferUpdateStatus(
-    PayloadStatus status) {
-  switch (status) {
-    case PayloadStatus::LOCAL_CANCELLATION:
-    case PayloadStatus::REMOTE_CANCELLATION:
-      return PayloadProgressInfo::Status::kCanceled;
-    case PayloadStatus::SUCCESS:
-      return PayloadProgressInfo::Status::kSuccess;
-    default:
-      return PayloadProgressInfo::Status::kFailure;
   }
 }
 
@@ -744,7 +696,8 @@ SingleThreadExecutor* PayloadManager::GetOutgoingPayloadExecutor(
   }
 }
 
-int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
+int PayloadManager::GetOptimalChunkSize(
+    const std::vector<std::string>& endpoint_ids) {
   int minChunkSize = std::numeric_limits<int>::max();
   for (const auto& endpoint_id : endpoint_ids) {
     minChunkSize = std::min(
@@ -754,30 +707,29 @@ int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
-    const InternalPayload& internal_payload, size_t offset,
-    const std::string& parent_folder, const std::string& file_name) {
+    const OutgoingInternalPayload& outgoing_payload, size_t offset) {
   PayloadTransferFrame::PayloadHeader payload_header;
-  size_t payload_size = internal_payload.GetTotalSize();
+  size_t payload_size = outgoing_payload.GetTotalSize();
 
-  payload_header.set_id(internal_payload.GetId());
-  payload_header.set_type(internal_payload.GetType());
-  if (internal_payload.GetType() ==
+  payload_header.set_id(outgoing_payload.GetId());
+  payload_header.set_type(outgoing_payload.GetType());
+  if (outgoing_payload.GetType() ==
       nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
           PayloadHeader::FILE) {
-    payload_header.set_file_name(file_name);
-    payload_header.set_parent_folder(parent_folder);
+    payload_header.set_file_name(outgoing_payload.GetFileName());
+    payload_header.set_parent_folder(outgoing_payload.GetParentFolder());
+    payload_header.set_last_modified_timestamp_millis(
+        absl::ToUnixMillis(outgoing_payload.GetLastModifiedTime()));
   }
   payload_header.set_total_size(payload_size ==
                                         InternalPayload::kIndeterminateSize
                                     ? InternalPayload::kIndeterminateSize
                                     : payload_size - offset);
-
   return payload_header;
 }
 
 PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
-    std::int64_t payload_chunk_offset, ByteArray payload_chunk_body,
-    int index) {
+    int64_t payload_chunk_offset, ByteArray payload_chunk_body, int index) {
   PayloadTransferFrame::PayloadChunk payload_chunk;
 
   payload_chunk.set_offset(payload_chunk_offset);
@@ -795,30 +747,29 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
 
 ErrorOr<PayloadManager::PendingPayloadHandle>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
-                                      const std::string& endpoint_id) {
-  ErrorOr<std::unique_ptr<InternalPayload>> result =
-      CreateIncomingInternalPayload(frame, custom_save_path_);
+                                      const std::string& endpoint_id,
+                                      const std::string& save_path) {
+  ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
+      CreateIncomingInternalPayload(
+          frame, save_path.empty() ? custom_save_path_ : save_path);
   if (result.has_error()) {
     return {result.error()};
   }
-  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  std::unique_ptr<IncomingInternalPayload> internal_payload =
+      std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
-  LOG(INFO) << "CreateIncomingPayload: payload_id=" << payload_id;
+  VLOG(1) << "CreateIncomingPayload: payload_id=" << payload_id;
   pending_payloads_.StartTrackingPayload(
       payload_id,
       std::make_unique<PendingPayload>(
-          std::move(internal_payload), EndpointIds{endpoint_id}, true,
+          std::move(internal_payload), std::vector<std::string>{endpoint_id},
           absl::bind_front(&PayloadManager::OnPendingPayloadDestroy, this)));
   return {pending_payloads_.GetPayload(payload_id)};
 }
 
 void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
-  LOG(INFO) << "PayloadManager: destroying " << payload->ToString()
-            << " self=" << this;
-  ThroughputRecorderContainer::GetInstance().StopTPRecorder(
-      payload->GetId(), payload->IsIncoming()
-                            ? PayloadDirection::INCOMING_PAYLOAD
-                            : PayloadDirection::OUTGOING_PAYLOAD);
+  VLOG(1) << "PayloadManager: destroying " << payload->ToString()
+          << " self=" << this;
   if (payload->IsIncoming()) return;
   RunOnStatusUpdateThread(
       "~PendingPayload",
@@ -826,9 +777,9 @@ void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
 }
 
 void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
-    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+    ClientProxy* client, const std::vector<std::string>& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred, PayloadStatus status,
+    int64_t num_bytes_successfully_transferred, PayloadStatus status,
     OperationResultCode operation_result_code) {
   RunOnStatusUpdateThread(
       "outgoing-payload-callbacks",
@@ -842,8 +793,7 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
         }
 
         PayloadProgressInfo update{
-            payload_header.id(),
-            PayloadManager::PayloadStatusToTransferUpdateStatus(status),
+            payload_header.id(), PayloadStatusToTransferUpdateStatus(status),
             payload_header.total_size(), num_bytes_successfully_transferred};
         for (const auto& endpoint_id : finished_endpoint_ids) {
           // Skip sending notifications if we have stopped tracking this
@@ -860,9 +810,8 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
               endpoint_id, payload_header.id(), status,
               (operation_result_code == OperationResultCode::DETAIL_UNKNOWN &&
                status == PayloadStatus::ENDPOINT_IO_ERROR)
-                  ? client->GetAnalyticsRecorder()
-                        .GetChannelIoErrorResultCodeFromMedium(
-                            client->GetConnectedMedium(endpoint_id))
+                  ? AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+                        client->GetConnectedMedium(endpoint_id))
                   : operation_result_code);
         }
 
@@ -876,41 +825,67 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
       });
 }
 
-void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
+void PayloadManager::HandleIncomingPayloadError(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, PayloadStatus status,
+    int64_t offset_bytes, PayloadStatus status,
     OperationResultCode operation_result_code) {
   RunOnStatusUpdateThread(
       "incoming-payload-callbacks",
       [this, client, endpoint_id, payload_header, offset_bytes, status,
        operation_result_code]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-        // Make sure we're still tracking this payload.
-        PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
-        if (!pending_payload) {
-          return;
-        }
-
-        // Unless we never started tracking this payload (meaning we
-        // failed to even create the InternalPayload), notify the client
-        // (and close it).
-        PayloadProgressInfo update{
-            payload_header.id(),
-            PayloadManager::PayloadStatusToTransferUpdateStatus(status),
-            payload_header.total_size(), offset_bytes};
-        NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
-        DestroyPendingPayload(payload_header.id());
-
-        // Analyze
-        client->GetAnalyticsRecorder().OnIncomingPayloadDone(
-            endpoint_id, payload_header.id(), status, operation_result_code);
+        HandleIncomingPayloadErrorOnStatusUpdateThread(
+            client, endpoint_id, payload_header, offset_bytes, status,
+            operation_result_code);
       });
+
+  switch (status) {
+    case PayloadStatus::LOCAL_ERROR:
+      SendControlMessage({endpoint_id}, payload_header, offset_bytes,
+                         PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
+      break;
+    case PayloadStatus::LOCAL_CANCELLATION:
+      SendControlMessage(
+          {endpoint_id}, payload_header, offset_bytes,
+          PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
+      break;
+    default:
+      VLOG(1) << "Unhandled finished incoming payload_id="
+              << payload_header.id() << " with payload_status=" << status;
+      break;
+  }
+}
+
+// @PayloadManagerStatusUpdateThread
+void PayloadManager::HandleIncomingPayloadErrorOnStatusUpdateThread(
+    ClientProxy* client, const std::string& endpoint_id,
+    const PayloadTransferFrame::PayloadHeader& payload_header,
+    int64_t offset_bytes, PayloadStatus status,
+    OperationResultCode operation_result_code) {
+  // Make sure we're still tracking this payload.
+  PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+  if (!pending_payload) {
+    return;
+  }
+
+  // Unless we never started tracking this payload (meaning we
+  // failed to even create the InternalPayload), notify the client
+  // (and close it).
+  PayloadProgressInfo update{payload_header.id(),
+                             PayloadStatusToTransferUpdateStatus(status),
+                             payload_header.total_size(), offset_bytes};
+  NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
+  DestroyPendingPayload(payload_header.id());
+
+  // Analyze
+  client->GetAnalyticsRecorder().OnIncomingPayloadDone(
+      endpoint_id, payload_header.id(), status, operation_result_code);
 }
 
 void PayloadManager::SendControlMessage(
-    const EndpointIds& endpoint_ids,
+    const std::vector<std::string>& endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred,
+    int64_t num_bytes_successfully_transferred,
     PayloadTransferFrame::ControlMessage::EventType event_type) {
   PayloadTransferFrame::ControlMessage control_message;
   control_message.set_event(event_type);
@@ -929,48 +904,48 @@ void PayloadManager::SendPayloadReceivedAck(ClientProxy* client,
     return;
   }
 
+  Payload::Id payload_id = pending_payload.GetId();
   send_payload_ack_executor_.Execute(
-      "send_payload_ack", [this, &pending_payload, endpoint_id]() {
-        endpoint_manager_->SendPayloadAck(pending_payload.GetId(),
-                                          {endpoint_id});
-        LOG(INFO) << "[safe-to-disconnect] Send "
-                     "PAYLOAD_RECEIVED_ACK frame to: "
-                  << endpoint_id << " done";
+      "send_payload_ack", [this, payload_id, endpoint_id]() {
+        endpoint_manager_->SendPayloadAck(payload_id, {endpoint_id});
+        VLOG(1) << "[safe-to-disconnect] Send "
+                   "PAYLOAD_RECEIVED_ACK frame to: "
+                << endpoint_id << " done";
       });
   // Send the PAYLOAD_RECEIVED_ACK to the remote endpoint for the sender asap.
-  LOG(INFO) << "[safe-to-disconnect] " << pending_payload.GetId()
-            << " isLastChunk, receiver send ack to " << endpoint_id;
+  VLOG(1) << "[safe-to-disconnect] " << payload_id
+          << " isLastChunk, receiver send ack to " << endpoint_id;
 }
 
 bool PayloadManager::WaitForReceivedAck(
     ClientProxy* client, const std::string& endpoint_id,
     PendingPayload& pending_payload,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t payload_chunk_offset, bool is_last_chunk) {
+    int64_t payload_chunk_offset, bool is_last_chunk) {
   if (!is_last_chunk ||
       !IsPayloadReceivedAckEnabled(client, endpoint_id, pending_payload)) {
     return true;
   }
 
-  LOG(INFO) << "[safe-to-disconnect] Last Chunk, sender wait for "
-               "PAYLOAD_RECEIVED_ACK frame from: "
-            << endpoint_id;
+  VLOG(1) << "[safe-to-disconnect] Last Chunk, sender wait for "
+             "PAYLOAD_RECEIVED_ACK frame from: "
+          << endpoint_id;
   while (true) {
     PendingPayloadHandle latest_pending_payload =
         GetPayload(payload_header.id());
     // Make sure we're still tracking this payload and its associated endpoint.
     if (!latest_pending_payload) {
-      LOG(INFO) << "[safe-to-disconnect] short-circuiting "
-                   "latest_pending_payload is null for "
-                << payload_header.id() << ", stop wait ack.";
+      VLOG(1) << "[safe-to-disconnect] short-circuiting "
+                 "latest_pending_payload is null for "
+              << payload_header.id() << ", stop wait ack.";
       return false;
     }
 
     auto* endpoint_info = latest_pending_payload->GetEndpoint(endpoint_id);
     if (endpoint_info == nullptr) {
-      LOG(INFO) << "[safe-to-disconnect] short-circuiting "
-                   "endpointInfo is null for "
-                << payload_header.id() << ", stop wait ack.";
+      VLOG(1) << "[safe-to-disconnect] short-circuiting "
+                 "endpointInfo is null for "
+              << payload_header.id() << ", stop wait ack.";
       return false;
     }
 
@@ -980,9 +955,9 @@ bool PayloadManager::WaitForReceivedAck(
           client, {endpoint_id}, payload_header, payload_chunk_offset,
           OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD,
           PayloadStatus::LOCAL_CANCELLATION);
-      LOG(INFO) << "[safe-to-disconnect] short-circuiting local "
-                   "payload cancellation for "
-                << payload_header.id() << ", stop wait ack.";
+      VLOG(1) << "[safe-to-disconnect] short-circuiting local "
+                 "payload cancellation for "
+              << payload_header.id() << ", stop wait ack.";
       return false;
     }
     // Remote payload cancellation, etc
@@ -992,17 +967,17 @@ bool PayloadManager::WaitForReceivedAck(
           client, {endpoint_id}, payload_header, payload_chunk_offset,
           OperationResultCode::CLIENT_CANCELLATION_REMOTE_CANCEL_PAYLOAD,
           EndpointInfoStatusToPayloadStatus(endpoint_info->status.Get()));
-      LOG(INFO) << "[safe-to-disconnect] short-circuiting remote "
-                   "payload cancellation for "
-                << payload_header.id() << ", stop wait ack.";
+      VLOG(1) << "[safe-to-disconnect] short-circuiting remote "
+                 "payload cancellation for "
+              << payload_header.id() << ", stop wait ack.";
       return false;
     }
     {
       MutexLock lock(&endpoint_info->payload_received_ack_mutex);
       if (endpoint_info->is_payload_received_ack) {
-        LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender already"
-                     " received payload ack from "
-                  << endpoint_id << ", stop wait PAYLOAD_RECEIVED_ACK.";
+        VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender already"
+                   " received payload ack from "
+                << endpoint_id << ", stop wait PAYLOAD_RECEIVED_ACK.";
         endpoint_info->is_payload_received_ack = false;
         return true;
       }
@@ -1012,23 +987,23 @@ bool PayloadManager::WaitForReceivedAck(
               .wait_payload_received_ack_millis);
       if (!wait_exception.Ok()) {
         endpoint_info->is_payload_received_ack = false;
-        LOG(INFO)
-            << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender wait for "
-               "received payload ack from "
-            << endpoint_id << " end with exception: " << wait_exception.value;
+        VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender wait for "
+                   "received payload ack from "
+                << endpoint_id
+                << " end with exception: " << wait_exception.value;
         return false;
       }
       if (endpoint_info->is_payload_received_ack) {
-        LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] Received "
-                     "notification that sender "
-                     "received payload ack from "
-                  << endpoint_id;
+        VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] Received "
+                   "notification that sender "
+                   "received payload ack from "
+                << endpoint_id;
         endpoint_info->is_payload_received_ack = false;
         return true;
       } else {
-        LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender doesn't"
-                     " received payload ack from "
-                  << endpoint_id << ", end with timeout.";
+        VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender doesn't"
+                   " received payload ack from "
+                << endpoint_id << ", end with timeout.";
         return false;
       }
     }
@@ -1049,9 +1024,9 @@ bool PayloadManager::IsPayloadReceivedAckEnabled(
 }
 
 void PayloadManager::HandleFinishedOutgoingPayload(
-    ClientProxy* client, const EndpointIds& finished_endpoint_ids,
+    ClientProxy* client, const std::vector<std::string>& finished_endpoint_ids,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t num_bytes_successfully_transferred,
+    int64_t num_bytes_successfully_transferred,
     OperationResultCode operation_result_code, PayloadStatus status) {
   // This call will destroy a pending payload.
   SendClientCallbacksForFinishedOutgoingPayload(
@@ -1065,8 +1040,8 @@ void PayloadManager::HandleFinishedOutgoingPayload(
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       break;
     case PayloadStatus::LOCAL_CANCELLATION:
-      LOG(INFO) << "Sending PAYLOAD_CANCEL to receiver side; payload_id="
-                << payload_header.id();
+      VLOG(1) << "Sending PAYLOAD_CANCEL to receiver side; payload_id="
+              << payload_header.id();
       SendControlMessage(
           finished_endpoint_ids, payload_header,
           num_bytes_successfully_transferred,
@@ -1085,35 +1060,9 @@ void PayloadManager::HandleFinishedOutgoingPayload(
       // No special handling needed for these.
       break;
     default:
-      LOG(INFO) << "PayloadManager: Unhandled finished outgoing payload with "
-                   "payload_status="
-                << status;
-      break;
-  }
-}
-
-void PayloadManager::HandleFinishedIncomingPayload(
-    ClientProxy* client, const std::string& endpoint_id,
-    const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int64_t offset_bytes, PayloadStatus status,
-    OperationResultCode operation_result_code) {
-  SendClientCallbacksForFinishedIncomingPayload(client, endpoint_id,
-                                                payload_header, offset_bytes,
-                                                status, operation_result_code);
-
-  switch (status) {
-    case PayloadStatus::LOCAL_ERROR:
-      SendControlMessage({endpoint_id}, payload_header, offset_bytes,
-                         PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
-      break;
-    case PayloadStatus::LOCAL_CANCELLATION:
-      SendControlMessage(
-          {endpoint_id}, payload_header, offset_bytes,
-          PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
-      break;
-    default:
-      LOG(INFO) << "Unhandled finished incoming payload_id="
-                << payload_header.id() << " with payload_status=" << status;
+      VLOG(1) << "PayloadManager: Unhandled finished outgoing payload with "
+                 "payload_status="
+              << status;
       break;
   }
 }
@@ -1121,12 +1070,10 @@ void PayloadManager::HandleFinishedIncomingPayload(
 void PayloadManager::HandleSuccessfulOutgoingChunk(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-    std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
-    MutexLock lock(&chunk_update_mutex_);
+    int32_t payload_chunk_flags, int64_t payload_chunk_offset,
+    int64_t payload_chunk_body_size) {
+  {
+    absl::MutexLock lock(chunk_update_mutex_);
     ++outgoing_chunk_update_count_;
   }
   RunOnStatusUpdateThread(
@@ -1140,10 +1087,8 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
-          MutexLock lock(&chunk_update_mutex_);
+        {
+          absl::MutexLock lock(chunk_update_mutex_);
           --outgoing_chunk_update_count_;
           if (payload_header.has_type() &&
               payload_header.type() ==
@@ -1176,9 +1121,9 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
 
         PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
         if (!pending_payload || !pending_payload->GetEndpoint(endpoint_id)) {
-          LOG(INFO) << "HandleSuccessfulOutgoingChunk: endpoint not found: "
-                       "endpoint_id="
-                    << endpoint_id;
+          VLOG(1) << "HandleSuccessfulOutgoingChunk: endpoint not found: "
+                     "endpoint_id="
+                  << endpoint_id;
           return;
         }
 
@@ -1220,12 +1165,10 @@ void PayloadManager::DestroyPendingPayload(Payload::Id payload_id) {
 void PayloadManager::HandleSuccessfulIncomingChunk(
     ClientProxy* client, const std::string& endpoint_id,
     const PayloadTransferFrame::PayloadHeader& payload_header,
-    std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
-    std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
-    MutexLock lock(&chunk_update_mutex_);
+    int32_t payload_chunk_flags, int64_t payload_chunk_offset,
+    int64_t payload_chunk_body_size) {
+  {
+    absl::MutexLock lock(chunk_update_mutex_);
     ++incoming_chunk_update_count_;
   }
   RunOnStatusUpdateThread(
@@ -1238,10 +1181,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
-          MutexLock lock(&chunk_update_mutex_);
+        {
+          absl::MutexLock lock(chunk_update_mutex_);
           --incoming_chunk_update_count_;
           if (payload_header.has_type() &&
               payload_header.type() ==
@@ -1273,7 +1214,24 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
         }
 
         PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
-        if (!pending_payload) {
+        if (!pending_payload || shutdown_.Get()) {
+          return;
+        }
+        // CancelPayload() may have been called after ProcessDataPacket()
+        // queued this callback on the status update thread. Handle the
+        // cancellation inline since we are already on the status update thread,
+        // rather than calling HandleIncomingPayloadError() which would
+        // re-post to the back of the status update executor queue.
+        if (pending_payload->IsLocallyCanceled()) {
+          HandleIncomingPayloadErrorOnStatusUpdateThread(
+              client, endpoint_id, payload_header, payload_chunk_offset,
+              PayloadStatus::LOCAL_CANCELLATION,
+              OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD);
+          if (!is_last_chunk) {
+            SendControlMessage(
+                {endpoint_id}, payload_header, payload_chunk_offset,
+                PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
+          }
           return;
         }
 
@@ -1304,8 +1262,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
 // @EndpointManagerDataPool
 void PayloadManager::ProcessDataPacket(
     ClientProxy* to_client, const std::string& from_endpoint_id,
-    PayloadTransferFrame& payload_transfer_frame, Medium medium,
-    PacketMetaData& packet_meta_data) {
+    PayloadTransferFrame& payload_transfer_frame, Medium medium) {
   PayloadTransferFrame::PayloadHeader& payload_header =
       *payload_transfer_frame.mutable_payload_header();
   PayloadTransferFrame::PayloadChunk& payload_chunk =
@@ -1326,11 +1283,16 @@ void PayloadManager::ProcessDataPacket(
   Payload::Id payload_id = payload_header.id();
   PendingPayloadHandle pending_payload;
   if (payload_chunk.offset() == 0) {
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_id, PayloadDirection::INCOMING_PAYLOAD)
-        ->Start((PayloadType)payload_header.type(),
-                PayloadDirection::INCOMING_PAYLOAD);
-    packet_meta_data.Reset();
+    if (GetPayload(payload_id)) {
+      LOG(WARNING) << "ProcessDataPacket: [duplicate] endpoint_id="
+                   << from_endpoint_id << "; payload_id=" << payload_id
+                   << ", aborting receipt.";
+      HandleIncomingPayloadError(
+          to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
+          PayloadStatus::LOCAL_ERROR,
+          OperationResultCode::IO_FILE_OPENING_ERROR);
+      return;
+    }
     RunOnStatusUpdateThread(
         "process-data-packet", [to_client, from_endpoint_id, payload_header,
                                 this]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
@@ -1343,7 +1305,8 @@ void PayloadManager::ProcessDataPacket(
         });
 
     ErrorOr<PendingPayloadHandle> result =
-        CreateIncomingPayload(payload_transfer_frame, from_endpoint_id);
+        CreateIncomingPayload(payload_transfer_frame, from_endpoint_id,
+                              to_client->GetSavePath(from_endpoint_id));
     if (result.has_error()) {
       LOG(WARNING) << "PayloadManager failed to create InternalPayload from "
                       "PayloadTransferFrame with payload_id="
@@ -1377,12 +1340,14 @@ void PayloadManager::ProcessDataPacket(
          pending_payload = GetPayload(payload_id)]()
             RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
               if (!pending_payload) return;
-              LOG(INFO) << "PayloadManager received new payload_id="
-                        << pending_payload->GetInternalPayload()->GetId()
-                        << " from endpoint_id=" << from_endpoint_id;
-              to_client->OnPayload(
-                  from_endpoint_id,
-                  pending_payload->GetInternalPayload()->ReleasePayload());
+              IncomingInternalPayload* incoming_payload =
+                  pending_payload->GetIncomingInternalPayload();
+              if (incoming_payload == nullptr) return;
+              VLOG(1) << "PayloadManager received new payload_id="
+                      << incoming_payload->GetId()
+                      << " from endpoint_id=" << from_endpoint_id;
+              to_client->OnPayload(from_endpoint_id,
+                                   incoming_payload->ReleasePayload());
             });
   } else {
     pending_payload = GetPayload(payload_header.id());
@@ -1396,9 +1361,9 @@ void PayloadManager::ProcessDataPacket(
   if (pending_payload->IsLocallyCanceled()) {
     // This incoming payload was canceled by the client. Drop this frame and
     // do all the cleanup. See go/nc-cancel-payload
-    LOG(INFO) << "ProcessDataPacket: [cancel] endpoint_id=" << from_endpoint_id
-              << "; payload_id=" << pending_payload->GetId();
-    HandleFinishedIncomingPayload(
+    VLOG(1) << "ProcessDataPacket: [cancel] endpoint_id=" << from_endpoint_id
+            << "; payload_id=" << pending_payload->GetId();
+    HandleIncomingPayloadError(
         to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
         PayloadStatus::LOCAL_CANCELLATION,
         OperationResultCode::CLIENT_CANCELLATION_LOCAL_CANCEL_PAYLOAD);
@@ -1414,21 +1379,20 @@ void PayloadManager::ProcessDataPacket(
                                         payload_chunk.offset());
 
   // Save size of packet before we move it.
-  std::int64_t payload_body_size = payload_chunk.body().size();
+  int64_t payload_body_size = payload_chunk.body().size();
 
-  packet_meta_data.StartFileIo();
-  if (pending_payload->GetInternalPayload()
-          ->AttachNextChunk(ByteArray(std::move(*payload_chunk.mutable_body())))
-          .Raised()) {
+  IncomingInternalPayload* incoming_payload =
+      pending_payload->GetIncomingInternalPayload();
+  if (incoming_payload == nullptr ||
+      incoming_payload->AttachNextChunk(payload_chunk.body()).Raised()) {
     LOG(ERROR) << "ProcessDataPacket: [data: error] endpoint_id="
                << from_endpoint_id
                << "; payload_id=" << pending_payload->GetId();
-    HandleFinishedIncomingPayload(
+    HandleIncomingPayloadError(
         to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
         PayloadStatus::LOCAL_ERROR, OperationResultCode::IO_FILE_WRITING_ERROR);
     return;
   }
-  packet_meta_data.StopFileIo();
   bool is_last_chunk = (payload_chunk.flags() &
                         PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
   SendPayloadReceivedAck(to_client, *pending_payload, from_endpoint_id,
@@ -1437,15 +1401,6 @@ void PayloadManager::ProcessDataPacket(
   HandleSuccessfulIncomingChunk(to_client, from_endpoint_id, payload_header,
                                 payload_chunk.flags(), payload_chunk.offset(),
                                 payload_body_size);
-
-  ThroughputRecorderContainer::GetInstance()
-      .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
-      ->OnFrameReceived(medium, packet_meta_data);
-  if (is_last_chunk) {
-    ThroughputRecorderContainer::GetInstance()
-        .GetTPRecorder(payload_header.id(), PayloadDirection::INCOMING_PAYLOAD)
-        ->MarkAsSuccess();
-  }
 }
 
 // @EndpointManagerDataPool
@@ -1458,41 +1413,39 @@ void PayloadManager::ProcessControlPacket(
       payload_transfer_frame.control_message();
   PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
   if (!pending_payload) {
-    LOG(INFO) << "Got ControlMessage for unknown payload_id="
-              << payload_header.id()
-              << ", ignoring: " << control_message.event();
+    VLOG(1) << "Got ControlMessage for unknown payload_id="
+            << payload_header.id() << ", ignoring: " << control_message.event();
     return;
   }
 
   switch (control_message.event()) {
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
       if (pending_payload->IsIncoming()) {
-        LOG(INFO) << "Incoming PAYLOAD_CANCELED: from endpoint_id="
-                  << from_endpoint_id << "; self=" << this;
+        VLOG(1) << "Incoming PAYLOAD_CANCELED: from endpoint_id="
+                << from_endpoint_id << "; self=" << this;
         // No need to mark the pending payload as cancelled, since this is a
         // remote cancellation for an incoming payload -- we handle everything
         // inline here.
-        HandleFinishedIncomingPayload(
+        HandleIncomingPayloadError(
             to_client, from_endpoint_id, payload_header,
             control_message.offset(),
             ControlMessageEventToPayloadStatus(control_message.event()),
             ControlMessageEventToOperationResultCode(control_message.event()));
       } else {
-        LOG(INFO) << "Outgoing PAYLOAD_CANCELED: from endpoint_id="
-                  << from_endpoint_id << "; self=" << this;
+        VLOG(1) << "Outgoing PAYLOAD_CANCELED: from endpoint_id="
+                << from_endpoint_id << "; self=" << this;
         // Mark the payload as canceled *for this endpoint*.
         pending_payload->SetEndpointStatusFromControlMessage(from_endpoint_id,
                                                              control_message);
       }
       VLOG(1) << "Marked "
               << (pending_payload->IsIncoming() ? "incoming" : "outgoing")
-              << " payload_id="
-              << pending_payload->GetInternalPayload()->GetId()
+              << " payload_id=" << pending_payload->GetId()
               << " as canceled at request of endpoint_id=" << from_endpoint_id;
       break;
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
       if (pending_payload->IsIncoming()) {
-        HandleFinishedIncomingPayload(
+        HandleIncomingPayloadError(
             to_client, from_endpoint_id, payload_header,
             control_message.offset(),
             ControlMessageEventToPayloadStatus(control_message.event()),
@@ -1503,9 +1456,8 @@ void PayloadManager::ProcessControlPacket(
       }
       break;
     default:
-      LOG(INFO) << "Unhandled control message " << control_message.event()
-                << " for payload_id="
-                << pending_payload->GetInternalPayload()->GetId();
+      VLOG(1) << "Unhandled control message " << control_message.event()
+              << " for payload_id=" << pending_payload->GetId();
       break;
   }
 }
@@ -1516,19 +1468,19 @@ void PayloadManager::ProcessPayloadAckPacket(
   auto payload_header = payload_transfer_frame.payload_header();
   PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
   if (!pending_payload) {
-    LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] "
-                 "short-circuiting got payload "
-                 "ack for unknown payload "
-              << payload_header.id() << ", ignoring";
+    VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] "
+               "short-circuiting got payload "
+               "ack for unknown payload "
+            << payload_header.id() << ", ignoring";
     return;
   }
   if (pending_payload->IsIncoming()) {
-    LOG(INFO) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] "
-                 "short-circuiting got Payload "
-                 "ack for incoming payload "
-              << payload_header.id() << ", ignoring";
+    VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] "
+               "short-circuiting got Payload "
+               "ack for incoming payload "
+            << payload_header.id() << ", ignoring";
   }
-  LOG(INFO)
+  VLOG(1)
       << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] sender received payload "
       << payload_header.id() << " ack from " << from_endpoint_id;
   pending_payload->MarkReceivedAckFromEndpoint(from_endpoint_id);
@@ -1542,18 +1494,18 @@ void PayloadManager::NotifyClientOfIncomingPayloadProgressInfo(
 }
 
 void PayloadManager::RecordPayloadStartedAnalytics(
-    ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
-    std::int64_t total_size) {
+    ClientProxy* client, const std::vector<std::string>& endpoint_ids,
+    int64_t payload_id, PayloadType payload_type, int64_t offset,
+    int64_t total_size) {
   client->GetAnalyticsRecorder().OnOutgoingPayloadStarted(
       endpoint_ids, payload_id, payload_type,
       total_size == -1 ? -1 : total_size - offset);
 }
 
 void PayloadManager::RecordInvalidPayloadAnalytics(
-    ClientProxy* client, const EndpointIds& endpoint_ids,
-    std::int64_t payload_id, PayloadType payload_type, std::int64_t offset,
-    std::int64_t total_size, OperationResultCode operation_result_code) {
+    ClientProxy* client, const std::vector<std::string>& endpoint_ids,
+    int64_t payload_id, PayloadType payload_type, int64_t offset,
+    int64_t total_size, OperationResultCode operation_result_code) {
   RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id, payload_type,
                                 offset, total_size);
 
@@ -1595,8 +1547,8 @@ PayloadManager::EndpointInfo::ControlMessageEventToEndpointInfoStatus(
     case PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED:
       return Status::kCanceled;
     default:
-      LOG(INFO) << "Unknown EndpointInfo.Status for ControlMessage.EventType "
-                << event;
+      VLOG(1) << "Unknown EndpointInfo.Status for ControlMessage.EventType "
+              << event;
       return Status::kUnknown;
   }
 }
@@ -1630,12 +1582,26 @@ bool PayloadManager::EndpointInfo::IsEndpointAvailable(
 //////////////////////////////// PendingPayload ////////////////////////////////
 
 PayloadManager::PendingPayload::PendingPayload(
-    std::unique_ptr<InternalPayload> internal_payload,
-    const EndpointIds& endpoint_ids, bool is_incoming,
-    DestroyCallback destroy_callback)
-    : is_incoming_(is_incoming),
-      internal_payload_(std::move(internal_payload)),
+    std::unique_ptr<IncomingInternalPayload> incoming_payload,
+    const std::vector<std::string>& endpoint_ids,
+    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback)
+    : incoming_payload_(std::move(incoming_payload)),
       destroy_callback_(std::move(destroy_callback)) {
+  InitEndpoints(endpoint_ids);
+}
+
+PayloadManager::PendingPayload::PendingPayload(
+    std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
+    const std::vector<std::string>& endpoint_ids,
+    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback)
+    : outgoing_payload_(std::move(outgoing_payload)),
+      destroy_callback_(std::move(destroy_callback)) {
+  InitEndpoints(endpoint_ids);
+}
+
+void PayloadManager::PendingPayload::InitEndpoints(
+    const std::vector<std::string>& endpoint_ids) {
+  absl::MutexLock lock(mutex_);
   // Initially we mark all endpoints as available.
   // Later on some may become canceled, some may experience data transfer
   // failures. Any of these situations will cause endpoint to be marked as
@@ -1650,19 +1616,22 @@ PayloadManager::PendingPayload::PendingPayload(
 }
 
 Payload::Id PayloadManager::PendingPayload::GetId() const {
-  return internal_payload_->GetId();
+  return GetInternalPayload()->GetId();
 }
 
-InternalPayload* PayloadManager::PendingPayload::GetInternalPayload() {
-  return internal_payload_.get();
+InternalPayload* PayloadManager::PendingPayload::GetInternalPayload() const {
+  return incoming_payload_ != nullptr
+             ? static_cast<InternalPayload*>(incoming_payload_.get())
+             : static_cast<InternalPayload*>(outgoing_payload_.get());
 }
 
 bool PayloadManager::PendingPayload::IsLocallyCanceled() const {
   return is_locally_canceled_.Get();
 }
 
-void PayloadManager::PendingPayload::MarkLocallyCanceled() {
+void PayloadManager::PendingPayload::MarkLocallyCanceledAndClose() {
   is_locally_canceled_.Set(true);
+  Close();
 }
 
 void PayloadManager::PendingPayload::MarkReceivedAckFromEndpoint(
@@ -1672,11 +1641,13 @@ void PayloadManager::PendingPayload::MarkReceivedAckFromEndpoint(
   info->MarkReceivedAckFromEndpoint();
 }
 
-bool PayloadManager::PendingPayload::IsIncoming() const { return is_incoming_; }
+bool PayloadManager::PendingPayload::IsIncoming() const {
+  return incoming_payload_ != nullptr;
+}
 
 std::vector<const PayloadManager::EndpointInfo*>
 PayloadManager::PendingPayload::GetEndpoints() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::vector<const EndpointInfo*> result;
   for (const auto& item : endpoints_) {
@@ -1687,7 +1658,7 @@ PayloadManager::PendingPayload::GetEndpoints() const {
 
 PayloadManager::EndpointInfo* PayloadManager::PendingPayload::GetEndpoint(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto it = endpoints_.find(endpoint_id);
   if (it == endpoints_.end()) {
@@ -1698,8 +1669,8 @@ PayloadManager::EndpointInfo* PayloadManager::PendingPayload::GetEndpoint(
 }
 
 void PayloadManager::PendingPayload::RemoveEndpoints(
-    const EndpointIds& endpoint_ids) {
-  MutexLock lock(&mutex_);
+    const std::vector<std::string>& endpoint_ids) {
+  absl::MutexLock lock(mutex_);
 
   for (const auto& id : endpoint_ids) {
     endpoints_.erase(id);
@@ -1709,7 +1680,7 @@ void PayloadManager::PendingPayload::RemoveEndpoints(
 void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
     const std::string& endpoint_id,
     const PayloadTransferFrame::ControlMessage& control_message) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
@@ -1718,8 +1689,8 @@ void PayloadManager::PendingPayload::SetEndpointStatusFromControlMessage(
 }
 
 void PayloadManager::PendingPayload::SetOffsetForEndpoint(
-    const std::string& endpoint_id, std::int64_t offset) {
-  MutexLock lock(&mutex_);
+    const std::string& endpoint_id, int64_t offset) {
+  absl::MutexLock lock(mutex_);
 
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
@@ -1728,9 +1699,10 @@ void PayloadManager::PendingPayload::SetOffsetForEndpoint(
 }
 
 void PayloadManager::PendingPayload::Close() {
-  bool was_closed = is_closed_.Set(true);
-  if (was_closed) return;
-  if (internal_payload_) internal_payload_->Close();
+  InternalPayload* internal_payload = GetInternalPayload();
+  if (internal_payload != nullptr) {
+    internal_payload->Close();
+  }
 }
 
 void PayloadManager::RunOnStatusUpdateThread(
@@ -1742,19 +1714,19 @@ void PayloadManager::RunOnStatusUpdateThread(
 
 void PayloadManager::PendingPayloads::StartTrackingPayload(
     Payload::Id payload_id, std::unique_ptr<PendingPayload> pending_payload) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // If the |payload_id| is being re-used, always prefer the newer payload.
   Remove(pending_payloads_.find(payload_id));
-  LOG(INFO) << "StartTrackingPayload: " << pending_payload->ToString();
+  VLOG(1) << "StartTrackingPayload: " << pending_payload->ToString();
   pending_payload->IncRefCount();
   pending_payloads_[payload_id] = std::move(pending_payload);
 }
 
 void PayloadManager::PendingPayloads::StopTrackingPayload(
     Payload::Id payload_id) {
-  MutexLock lock(&mutex_);
-  LOG(INFO) << "StopTrackingPayload " << payload_id;
+  absl::MutexLock lock(mutex_);
+  VLOG(1) << "StopTrackingPayload " << payload_id;
   Remove(pending_payloads_.find(payload_id));
 }
 
@@ -1762,6 +1734,7 @@ void PayloadManager::PendingPayloads::Remove(
     absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>::iterator
         it) {
   if (it != pending_payloads_.end()) {
+    it->second->Close();
     int refcount = it->second->DecRefCount();
     if (refcount == 0) {
       // Nobody is using the payload, we can remove it.
@@ -1779,7 +1752,7 @@ void PayloadManager::PendingPayloads::Remove(
 
 PayloadManager::PendingPayloadHandle
 PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   auto item = pending_payloads_.find(payload_id);
   if (item == pending_payloads_.end()) {
@@ -1793,7 +1766,7 @@ PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
 }
 
 void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
     Remove(it++);
@@ -1802,7 +1775,7 @@ void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
 
 void PayloadManager::PendingPayloads::ForEachPayload(
     absl::AnyInvocable<void(PendingPayload*)> callback) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   for (const auto& item : pending_payloads_) {
     callback(item.second.get());
@@ -1811,7 +1784,7 @@ void PayloadManager::PendingPayloads::ForEachPayload(
 
 void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
   // Called when `PendingPayloadHandle` is destroyed.
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << " " << payload->ToString();
   auto it = pending_payloads_.find(payload->GetId());
   if (it != pending_payloads_.end() && it->second.get() == payload) {
@@ -1832,7 +1805,8 @@ void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
 }
 
 PayloadManager::PendingPayloadHandle::PendingPayloadHandle(
-    PendingPayload* payload, DestroyCallback destroy_callback)
+    PendingPayload* payload,
+    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback)
     : payload_(payload), destroy_callback_(std::move(destroy_callback)) {}
 
 PayloadManager::PendingPayloadHandle::~PendingPayloadHandle() {
@@ -1842,9 +1816,8 @@ PayloadManager::PendingPayloadHandle::~PendingPayloadHandle() {
 }
 
 std::string PayloadManager::PendingPayload::ToString() const {
-  return absl::StrFormat("Payload(%s, %d)",
-                         IsIncoming() ? "incoming" : "outgoing", GetId());
+  return absl::StrCat("Payload(", IsIncoming() ? "incoming" : "outgoing",
+                      GetId(), ")");
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

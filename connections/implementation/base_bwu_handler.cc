@@ -14,9 +14,11 @@
 
 #include "connections/implementation/base_bwu_handler.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/logging.h"
 
@@ -27,16 +29,16 @@ BaseBwuHandler::BaseBwuHandler(
     IncomingConnectionCallback incoming_connection_callback)
     : incoming_connection_callback_(std::move(incoming_connection_callback)) {}
 
-ByteArray BaseBwuHandler::InitializeUpgradedMediumForEndpoint(
+std::string BaseBwuHandler::InitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id) {
   std::string upgrade_service_id = WrapInitiatorUpgradeServiceId(service_id);
 
   // Perform any medium-specific handling in the child class.
-  ByteArray upgrade_path_available_frame =
+  std::string upgrade_path_available_frame =
       HandleInitializeUpgradedMediumForEndpoint(client, upgrade_service_id,
                                                 endpoint_id);
-  if (!upgrade_path_available_frame.Empty()) {
+  if (!upgrade_path_available_frame.empty()) {
     upgrade_service_id_to_active_endpoint_ids_[upgrade_service_id].insert(
         endpoint_id);
   }

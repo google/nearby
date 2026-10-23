@@ -20,11 +20,17 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
+#include "internal/base/file_path_sanitize.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
@@ -32,7 +38,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/os_name.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
 
@@ -42,13 +47,21 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::nearby::api::ImplementationPlatform;
 
-class BytesInternalPayload : public InternalPayload {
+// if custom_save_path is empty, default download path is used
+std::string make_path(const std::string& custom_save_path,
+                      const std::string& parent_folder,
+                      const std::string& file_name) {
+  return ImplementationPlatform::GetCustomSavePath(custom_save_path,
+                                                   parent_folder, file_name);
+}
+
+class OutgoingBytesInternalPayload : public OutgoingInternalPayload {
  public:
-  explicit BytesInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
-        total_size_(payload_.AsBytes().size()),
-        detached_only_chunk_(false) {}
+  explicit OutgoingBytesInternalPayload(Payload payload)
+      : OutgoingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -70,14 +83,44 @@ class BytesInternalPayload : public InternalPayload {
     return std::move(payload_).AsBytes();
   }
 
-  // Does nothing.
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    return {Exception::kSuccess};
-  }
-
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
     LOG(WARNING) << "Bytes payload does not support offsets";
     return {Exception::kIo};
+  }
+
+ private:
+  const std::int64_t total_size_;
+  bool detached_only_chunk_ = false;
+};
+
+// Unlike STREAM and FILE payloads, which are transferred across multiple chunks
+// and written incrementally via AttachNextChunk() after ReleasePayload() hands
+// the read handle to the client, a BYTES payload is sent in its entirety in the
+// initial DATA frame (offset == 0), followed by an empty LAST_CHUNK frame.
+// Because Payload holds a ByteArray by value and is immediately moved to the
+// client via ReleasePayload() upon receipt of the initial frame, `payload` is
+// populated with the full data at construction time.
+class IncomingBytesInternalPayload : public IncomingInternalPayload {
+ public:
+  explicit IncomingBytesInternalPayload(Payload payload)
+      : IncomingInternalPayload(std::move(payload)),
+        total_size_(payload_.AsBytes().size()) {}
+
+  location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const override {
+    return location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+        BYTES;
+  }
+
+  std::int64_t GetTotalSize() const override { return total_size_; }
+
+  // No-op. PayloadManager::ProcessDataPacket() calls AttachNextChunk() for
+  // every incoming DATA frame (both the initial data frame and the trailing
+  // empty LAST_CHUNK frame), but the full byte array was already placed into
+  // `payload_` at construction time.
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    return {Exception::kSuccess};
   }
 
  private:
@@ -85,13 +128,12 @@ class BytesInternalPayload : public InternalPayload {
   // moved to another owner during the lifetime of an incoming
   // InternalPayload.
   const std::int64_t total_size_;
-  bool detached_only_chunk_;
 };
 
-class OutgoingStreamInternalPayload : public InternalPayload {
+class OutgoingStreamInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingStreamInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)) {}
+      : OutgoingInternalPayload(std::move(payload)) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
       PayloadType
@@ -100,7 +142,9 @@ class OutgoingStreamInternalPayload : public InternalPayload {
         STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
+  std::int64_t GetTotalSize() const override {
+    return InternalPayload::kIndeterminateSize;
+  }
 
   ByteArray DetachNextChunk(int chunk_size) override {
     InputStream* input_stream = payload_.AsStream();
@@ -108,7 +152,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
 
     ExceptionOr<ByteArray> bytes_read = input_stream->Read(chunk_size);
     if (!bytes_read.ok()) {
-      input_stream->Close();
+      Close();
       return {};
     }
 
@@ -118,15 +162,11 @@ class OutgoingStreamInternalPayload : public InternalPayload {
       LOG(INFO) << "No more data for outgoing payload " << this
                 << ", closing InputStream.";
 
-      input_stream->Close();
+      Close();
       return {};
     }
 
     return scoped_bytes_read;
-  }
-
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    return {Exception::kIo};
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -138,7 +178,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
       return real_offset;
     }
     // Close the outgoing stream on any error
-    stream->Close();
+    Close();
     if (!real_offset.ok()) {
       return real_offset;
     }
@@ -148,29 +188,34 @@ class OutgoingStreamInternalPayload : public InternalPayload {
   }
 
   void Close() override {
+    if (is_closed_.Set(true)) return;
     // Ignore the potential Exception returned by close(), as a counterpart
     // to Java's closeQuietly().
     InputStream* stream = payload_.AsStream();
     if (stream) stream->Close();
   }
+
+ private:
+  AtomicBoolean is_closed_{false};
 };
 
-class IncomingStreamInternalPayload : public InternalPayload {
+class IncomingStreamInternalPayload : public IncomingInternalPayload {
  public:
   IncomingStreamInternalPayload(Payload payload,
                                 std::unique_ptr<OutputStream> output)
-      : InternalPayload(std::move(payload)), output_(std::move(output)) {}
+      : IncomingInternalPayload(std::move(payload)),
+        output_(std::move(output)) {}
 
   PayloadTransferFrame::PayloadHeader::PayloadType GetType() const override {
     return PayloadTransferFrame::PayloadHeader::STREAM;
   }
 
-  std::int64_t GetTotalSize() const override { return -1; }
+  std::int64_t GetTotalSize() const override {
+    return InternalPayload::kIndeterminateSize;
+  }
 
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
-
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    if (chunk.Empty()) {
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    if (chunk.empty()) {
       LOG(INFO) << "Received null last chunk for incoming payload " << this
                 << ", closing OutputStream.";
       Close();
@@ -180,21 +225,20 @@ class IncomingStreamInternalPayload : public InternalPayload {
     return output_->Write(chunk);
   }
 
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming Payload " << this;
-    return {Exception::kIo};
+  void Close() override {
+    if (is_closed_.Set(true)) return;
+    output_->Close();
   }
 
-  void Close() override { output_->Close(); }
-
  private:
+  AtomicBoolean is_closed_{false};
   std::unique_ptr<OutputStream> output_;
 };
 
-class OutgoingFileInternalPayload : public InternalPayload {
+class OutgoingFileInternalPayload : public OutgoingInternalPayload {
  public:
   explicit OutgoingFileInternalPayload(Payload payload)
-      : InternalPayload(std::move(payload)),
+      : OutgoingInternalPayload(std::move(payload)),
         total_size_{payload_.AsFile()->GetTotalSize()} {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
@@ -220,15 +264,11 @@ class OutgoingFileInternalPayload : public InternalPayload {
     if (bytes.Empty()) {
       // No more data for outgoing payload.
 
-      file->Close();
+      Close();
       return {};
     }
 
     return bytes;
-  }
-
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    return {Exception::kIo};
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
@@ -243,7 +283,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
       return real_offset;
     }
     // Close the outgoing file on any error
-    file->Close();
+    Close();
     if (!real_offset.ok()) {
       return real_offset;
     }
@@ -254,20 +294,24 @@ class OutgoingFileInternalPayload : public InternalPayload {
   }
 
   void Close() override {
+    if (is_closed_.Set(true)) return;
     InputFile* file = payload_.AsFile();
     if (file) file->Close();
   }
 
  private:
+  AtomicBoolean is_closed_{false};
   std::int64_t total_size_;
 };
 
-class IncomingFileInternalPayload : public InternalPayload {
+class IncomingFileInternalPayload : public IncomingInternalPayload {
  public:
   IncomingFileInternalPayload(Payload payload, OutputFile output_file,
+                              absl::Time last_modified_time,
                               std::int64_t total_size)
-      : InternalPayload(std::move(payload)),
+      : IncomingInternalPayload(std::move(payload)),
         output_file_(std::move(output_file)),
+        last_modified_time_(last_modified_time),
         total_size_(total_size) {}
 
   location::nearby::connections::PayloadTransferFrame::PayloadHeader::
@@ -279,40 +323,73 @@ class IncomingFileInternalPayload : public InternalPayload {
 
   std::int64_t GetTotalSize() const override { return total_size_; }
 
-  ByteArray DetachNextChunk(int chunk_size) override { return {}; }
-
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    if (chunk.Empty()) {
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    // Opportunistic optimization to fail early; Write() will also fail with
+    // Exception::kIo if the file is closed.
+    if (is_closed_.Get()) {
+      return {Exception::kIo};
+    }
+    if (chunk.empty()) {
       // Received null last chunk for incoming payload.
+      if (is_closed_.Set(true)) {
+        return {Exception::kIo};
+      }
+      output_file_.SetLastModifiedTime(last_modified_time_);
       output_file_.Close();
       return {Exception::kSuccess};
     }
+    // Truncate 1 incoming chunk to the total size of the payload.
+    // If we receive more chunks after the total size is reached, we will return
+    // an error.
+    // For file payloads, total size must be valid.
+    if (bytes_written_ + chunk.size() > total_size_) {
+      if (total_size_ <= bytes_written_) {
+        Close();
+        return {Exception::kIo};
+      }
+      // TODO(b/511806938): Add metrics to track if this ever happens.  If not,
+      // remove this.
+      chunk = chunk.substr(0, total_size_ - bytes_written_);
+      bytes_written_ = total_size_;
+    } else {
+      bytes_written_ += chunk.size();
+    }
 
-    return output_file_.Write(chunk);
+    Exception write_result = output_file_.Write(chunk);
+    if (!write_result.Ok()) {
+      Close();
+    }
+    return write_result;
   }
 
-  ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    LOG(WARNING) << "Cannot skip offset for an incoming file Payload " << this;
-    return {Exception::kIo};
+  void Close() override {
+    if (is_closed_.Set(true)) return;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kDeleteIncompleteIncomingFile)) {
+      output_file_.Delete();
+    } else {
+      output_file_.Close();
+    }
   }
-
-  void Close() override { output_file_.Close(); }
 
  private:
+  AtomicBoolean is_closed_{false};
   OutputFile output_file_;
-  const std::int64_t total_size_;
+  const absl::Time last_modified_time_;
+  const int64_t total_size_;
+  // Bytes written to the output file.
+  int64_t bytes_written_ = 0;
 };
 
 }  // namespace
 
-using ::nearby::api::ImplementationPlatform;
-using ::nearby::api::OSName;
-
-ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
+ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
     case PayloadType::kBytes:
-      return {std::make_unique<BytesInternalPayload>(std::move(payload))};
+      return {
+          std::make_unique<OutgoingBytesInternalPayload>(std::move(payload))};
 
     case PayloadType::kFile: {
       return {
@@ -329,28 +406,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
   }
 }
 
-// if custom_save_path is empty, default download path is used
-std::string make_path(const std::string& custom_save_path,
-                      std::string& parent_folder, std::string& file_name) {
-  if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
-  }
-  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
-}
-
-// if custom_save_path is empty, default download path is used
-std::string make_path(const std::string& custom_save_path,
-                      std::string& parent_folder, int64_t id) {
-  std::string file_name(std::to_string(id));
-  if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
-    return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
-  }
-  return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
-}
-
-ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
+ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path) {
   if (frame.packet_type() !=
@@ -362,7 +418,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
   const Payload::Id payload_id = frame.payload_header().id();
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
-      return {std::make_unique<BytesInternalPayload>(
+      return {std::make_unique<IncomingBytesInternalPayload>(
           Payload(payload_id, ByteArray(frame.payload_chunk().body())))};
     }
 
@@ -381,11 +437,12 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
       int64_t total_size = 0;
 
       if (frame.payload_header().has_parent_folder()) {
-        parent_folder = frame.payload_header().parent_folder();
+        parent_folder =
+            SanitizeRelativeFilePath(frame.payload_header().parent_folder());
       }
 
       if (frame.payload_header().has_file_name()) {
-        file_name = frame.payload_header().file_name();
+        file_name = SanitizeFileName(frame.payload_header().file_name());
         // if custom_save_path is empty, default download path is used
         file_path = make_path(custom_save_path, parent_folder, file_name);
       } else {
@@ -405,30 +462,37 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
       if (frame.payload_header().has_total_size()) {
         total_size = frame.payload_header().total_size();
       }
+      absl::Time last_modified_time = absl::Now();
+      if (frame.payload_header().has_last_modified_timestamp_millis()) {
+        last_modified_time = absl::FromUnixMillis(
+            frame.payload_header().last_modified_timestamp_millis());
+        VLOG(1) << "Received last modified time: " << last_modified_time
+                << " for file: " << file_name;
+      }
 
       // These are ordered, the output file must be created first otherwise
       // there will be no input file to open.
+#if defined(NEARBY_CHROMIUM)
       // On Chrome the file path should be empty, so use the payload id.
-      if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
-        OutputFile output_file(payload_id);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(payload_id, total_size)),
-            std::move(output_file), total_size)};
-      } else {
-        OutputFile output_file(file_path);
-        if (!output_file.IsValid()) {
-          LOG(ERROR) << "Output file payload path is not valid: " << file_path;
-          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
-        }
-        return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path, total_size)),
-            std::move(output_file), total_size)};
+      OutputFile output_file(payload_id);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, InputFile(payload_id)),
+          std::move(output_file), last_modified_time, total_size)};
+#else  // defined(NEARBY_CHROMIUM)
+      OutputFile output_file(file_path);
+      if (!output_file.IsValid()) {
+        LOG(ERROR) << "Output file payload path is not valid: " << file_path;
+        return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+      }
+      return {std::make_unique<IncomingFileInternalPayload>(
+          Payload(payload_id, parent_folder, file_name,
+                  InputFile(file_path)),
+          std::move(output_file), last_modified_time, total_size)};
+#endif  // defined(NEARBY_CHROMIUM)
     }
     default:
       DCHECK(false);  // This should never happen.

@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/observer_list.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -69,8 +71,8 @@ class NearbyShareCertificateManager {
   void RemoveObserver(Observer* observer);
 
   // Starts/Stops certificate task scheduling.
-  void Start();
-  void Stop();
+  void StartScheduledTasks();
+  void StopScheduledTasks();
   bool is_running() { return is_running_; }
 
   // Encrypts the metadata encryption key of the currently valid private
@@ -79,6 +81,12 @@ class NearbyShareCertificateManager {
   // there are no remaining salts.
   std::optional<NearbyShareEncryptedMetadataKey>
   EncryptPrivateCertificateMetadataKey(proto::DeviceVisibility visibility);
+
+  // Returns the id of the currently valid private certificate with
+  // |visibility|, or absl::nullopt if there is no valid private certificate
+  // with |visibility|.
+  std::optional<std::string> GetPrivateCertificateId(
+      proto::DeviceVisibility visibility);
 
   // Signs the input |payload| using the currently valid private certificate
   // with |visibility|. Returns absl::nullopt if there is no valid private
@@ -94,16 +102,6 @@ class NearbyShareCertificateManager {
   HashAuthenticationTokenWithPrivateCertificate(
       proto::DeviceVisibility visibility,
       absl::Span<const uint8_t> authentication_token) const;
-
-  // Returns all local device private certificates of |visibility| converted to
-  // public certificates. The public certificates' for_selected_contacts fields
-  // will be set to reflect the |visibility|. NOTE: Only certificates with the
-  // requested visibility will be returned; if selected-contacts visibility is
-  // passed in, the all-contacts visibility certificates will *not* be returned
-  // as well.
-  virtual std::vector<nearby::sharing::proto::PublicCertificate>
-  GetPrivateCertificatesAsPublicCertificates(
-      proto::DeviceVisibility visibility) = 0;
 
   // Returns in |callback| the public certificate that is able to be decrypted
   // using |encrypted_metadata_key|, and returns absl::nullopt if no such public
@@ -129,12 +127,23 @@ class NearbyShareCertificateManager {
   // Sets the vendor ID to generate certificates for.
   virtual void SetVendorId(int32_t vendor_id) = 0;
 
+  // Sets the timestamp of the join binding rpc. This is used to ensure that the
+  // requested public certificates contain the ids of the binding.
+  // `life_time` determines how long this join_binding_time will be used.
+  virtual void SetJoinBindingTime(absl::Time join_binding_time,
+                                  absl::Duration life_time) = 0;
+
   // Dump certificates ID information for troubleshooting.
   virtual std::string Dump() const = 0;
 
+  virtual void AddBindingToPublicCertificate(absl::string_view certificate_id,
+                                             absl::string_view binding_id) = 0;
+
+  virtual std::optional<absl::Time> GetJoinBindingTime() = 0;
+
  protected:
-  virtual void OnStart() = 0;
-  virtual void OnStop() = 0;
+  virtual void OnStartScheduledTasks() = 0;
+  virtual void OnStopScheduledTasks() = 0;
 
   // Returns the currently valid private certificate with |visibility|, or
   // returns std::nullopt if one does not exist.

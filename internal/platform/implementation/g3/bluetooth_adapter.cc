@@ -14,11 +14,15 @@
 
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
-#include "internal/platform/bluetooth_utils.h"
-#include "internal/platform/implementation/g3/bluetooth_classic.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 
@@ -28,32 +32,22 @@ namespace {
 constexpr std::uint64_t kMacAddressMask = 0x0000FFFFFFFFFFFF;
 }
 
-BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
-
-std::string BlePeripheral::GetName() const { return adapter_.GetMacAddress(); }
-
-ByteArray BlePeripheral::GetAdvertisementBytes(
-    const std::string& service_id) const {
-  return advertisement_bytes_;
-}
-
-void BlePeripheral::SetAdvertisementBytes(
-    const std::string& service_id, const ByteArray& advertisement_bytes) {
-  advertisement_bytes_ = advertisement_bytes;
-}
-
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
     : adapter_(*adapter) {}
 
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
 
-std::string BluetoothDevice::GetMacAddress() const {
+MacAddress BluetoothDevice::GetMacAddress() const {
   return adapter_.GetMacAddress();
 }
 
 BluetoothAdapter::BluetoothAdapter() {
   std::uint64_t raw_mac_addr = Prng().NextInt64() & kMacAddressMask;
-  SetMacAddress(BluetoothUtils::FromNumber(raw_mac_addr));
+  MacAddress mac_address;
+  if (MacAddress::FromUint64(raw_mac_addr, mac_address) &&
+      mac_address.IsSet()) {
+    SetMacAddress(mac_address);
+  }
   unique_id_ = raw_mac_addr;
 }
 
@@ -64,12 +58,8 @@ void BluetoothAdapter::SetBluetoothClassicMedium(
   bluetooth_classic_medium_ = medium;
 }
 
-void BluetoothAdapter::SetBleMedium(api::BleMedium* medium) {
+void BluetoothAdapter::SetBleMedium(api::ble::BleMedium* medium) {
   ble_medium_ = medium;
-}
-
-void BluetoothAdapter::SetBleV2Medium(api::ble_v2::BleMedium* medium) {
-  ble_v2_medium_ = medium;
 }
 
 bool BluetoothAdapter::SetStatus(Status status) {
@@ -77,7 +67,7 @@ bool BluetoothAdapter::SetStatus(Status status) {
   bool enabled = status == Status::kEnabled;
   std::string name;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     enabled_ = enabled;
     name = name_;
     mode = mode_;
@@ -88,12 +78,12 @@ bool BluetoothAdapter::SetStatus(Status status) {
 }
 
 bool BluetoothAdapter::IsEnabled() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return enabled_;
 }
 
 BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return mode_;
 }
 
@@ -101,7 +91,7 @@ bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
   bool enabled;
   std::string name;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     mode_ = mode;
     name = name_;
     enabled = enabled_;
@@ -113,13 +103,8 @@ bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
 }
 
 std::string BluetoothAdapter::GetName() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return name_;
-}
-
-bool BluetoothAdapter::SetName(absl::string_view name) {
-  return SetName(name,
-                 /* persist= */ true);
 }
 
 bool BluetoothAdapter::SetName(absl::string_view name,
@@ -127,7 +112,7 @@ bool BluetoothAdapter::SetName(absl::string_view name,
   BluetoothAdapter::ScanMode mode;
   bool enabled;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     name_ = std::string(name);
     enabled = enabled_;
     mode = mode_;

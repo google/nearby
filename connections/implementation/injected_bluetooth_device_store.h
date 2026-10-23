@@ -16,11 +16,14 @@
 #define CORE_INTERNAL_INJECTED_BLUETOOTH_DEVICE_STORE_H_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "connections/implementation/pcp.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -52,6 +55,10 @@ class InjectedBluetoothDeviceStore {
       const ByteArray& remote_bluetooth_mac_address,
       const std::string& endpoint_id, const ByteArray& endpoint_info,
       const ByteArray& service_id_hash, Pcp pcp);
+
+  // Returns true if the provided MAC address(format as "A0:12:34:56:78:90") is
+  // associated with an injected BluetoothDevice.
+  bool IsInjectedDevice(MacAddress mac_address);
 
  private:
   // Devices created by this class. BluetoothDevice objects returned by

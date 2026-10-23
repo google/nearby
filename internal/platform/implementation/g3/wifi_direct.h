@@ -15,17 +15,26 @@
 #ifndef PLATFORM_IMPL_G3_WIFI_DIRECT_H_
 #define PLATFORM_IMPL_G3_WIFI_DIRECT_H_
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -65,22 +74,22 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   static std::string GetName(absl::string_view ip_address, int port);
 
   std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return ip_address_;
   }
 
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ip_address_ = ip_address;
   }
 
   int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return port_;
   }
 
   void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     port_ = port;
   }
 
@@ -111,6 +120,12 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   // Calls close_notifier if it was previously set, and marks socket as closed.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Populates the provided `wifi_direct_credentials` with the IP address
+  // and port of this server socket.
+  void PopulateWifiDirectCredentials(
+      WifiDirectCredentials& wifi_direct_credentials) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Retrieves IP addresses from local machine
@@ -143,6 +158,9 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   // If the WiFi Adaptor supports to start a WifiDirect interface.
   bool IsInterfaceValid() const override { return true; }
 
+  // If the WiFi Adaptor supports to start a Group Owner interface.
+  bool IsGOSupported() const override;
+
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiDirectSocket> ConnectToService(
       absl::string_view ip_address, int port,
@@ -158,13 +176,19 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   bool StopWifiDirect() override;
   // Discoverer connects to the WiFiDirect GO
   bool ConnectWifiDirect(
-      WifiDirectCredentials* wifi_direct_credentials) override;
+      const WifiDirectCredentials& wifi_direct_credentials) override;
   // Discoverer disconnects from the WiFiDirect GO
   bool DisconnectWifiDirect() override;
 
   std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
     return std::nullopt;
+  }
+
+  // Returns the supported WifiDirect auth types.
+  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
+      const override {
+    return {WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME};
   }
 
  private:

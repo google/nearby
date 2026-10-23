@@ -15,17 +15,15 @@
 #ifndef PLATFORM_API_WEBRTC_H_
 #define PLATFORM_API_WEBRTC_H_
 
-#ifndef NO_WEBRTC
-
 #include <memory>
 #include <optional>
-#include <string>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace api {
@@ -53,10 +51,6 @@ class WebRtcMedium {
 
   virtual ~WebRtcMedium() = default;
 
-  // Gets the default two-letter country code associated with current locale.
-  // For example, en_US locale resolves to "US".
-  virtual const std::string GetDefaultCountryCode() = 0;
-
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   virtual void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
@@ -77,7 +71,5 @@ class WebRtcMedium {
 
 }  // namespace api
 }  // namespace nearby
-
-#endif
 
 #endif  // PLATFORM_API_WEBRTC_H_

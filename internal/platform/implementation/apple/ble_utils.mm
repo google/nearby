@@ -19,20 +19,20 @@
 
 #include <string>
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/utils.h"
 
 namespace nearby {
 namespace apple {
 
-using GattCharacteristic = api::ble_v2::GattCharacteristic;
-using Permission = api::ble_v2::GattCharacteristic::Permission;
-using Property = api::ble_v2::GattCharacteristic::Property;
-using WriteType = api::ble_v2::GattClient::WriteType;
+using GattCharacteristic = api::ble::GattCharacteristic;
+using Permission = api::ble::GattCharacteristic::Permission;
+using Property = api::ble::GattCharacteristic::Property;
+using WriteType = api::ble::GattClient::WriteType;
 
 /**
  * Checks if enum `a` contains enum `b`
- * 
+ *
  * For example, `Contains(Permission::kRead | Permission::kWrite, Permission::kRead)` should return
  * `YES`.
  */

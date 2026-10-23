@@ -23,14 +23,13 @@
 // Standard C/C++ headers
 #include <cstddef>
 #include <cstdint>
-#include <deque>
-#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
 // Nearby connections headers
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -38,62 +37,29 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_lan_mdns.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/scheduled_executor.h"
+#include "internal/platform/service_address.h"
 
 // WinRT headers
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.ServiceDiscovery.Dnssd.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "winrt/Windows.Devices.Enumeration.h"
+#include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Networking.ServiceDiscovery.Dnssd.h"
+#include "winrt/base.h"
 
-namespace nearby {
-namespace windows {
-
-using winrt::fire_and_forget;
-using winrt::Windows::Devices::Enumeration::DeviceInformation;
-using winrt::Windows::Devices::Enumeration::DeviceInformationKind;
-using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
-using winrt::Windows::Devices::Enumeration::DeviceWatcher;
-using winrt::Windows::Devices::Enumeration::DeviceWatcherStatus;
-using winrt::Windows::Foundation::IInspectable;
-using winrt::Windows::Foundation::Collections::IMapView;
-using winrt::Windows::Networking::HostName;
-using winrt::Windows::Networking::HostNameType;
-using winrt::Windows::Networking::Connectivity::NetworkInformation;
-using winrt::Windows::Networking::ServiceDiscovery::Dnssd::
-    DnssdRegistrationResult;
-using winrt::Windows::Networking::ServiceDiscovery::Dnssd::
-    DnssdRegistrationStatus;
-using winrt::Windows::Networking::ServiceDiscovery::Dnssd::DnssdServiceInstance;
-using winrt::Windows::Networking::Sockets::StreamSocket;
-using winrt::Windows::Networking::Sockets::StreamSocketListener;
-using winrt::Windows::Networking::Sockets::
-    StreamSocketListenerConnectionReceivedEventArgs;
-using winrt::Windows::Networking::Sockets::StreamSocketListenerInformation;
-using winrt::Windows::Storage::Streams::Buffer;
-using winrt::Windows::Storage::Streams::DataReader;
-using winrt::Windows::Storage::Streams::IBuffer;
-using winrt::Windows::Storage::Streams::IInputStream;
-using winrt::Windows::Storage::Streams::InputStreamOptions;
-using winrt::Windows::Storage::Streams::IOutputStream;
+namespace nearby::windows {
 
 // WifiLanSocket wraps the socket functions to read and write stream.
 // In WiFi LAN, A WifiLanSocket will be passed to StartAcceptingConnections's
@@ -102,12 +68,10 @@ using winrt::Windows::Storage::Streams::IOutputStream;
 class WifiLanSocket : public api::WifiLanSocket {
  public:
   WifiLanSocket();
-  explicit WifiLanSocket(StreamSocket socket);
-  explicit WifiLanSocket(std::unique_ptr<NearbyClientSocket> socket);
-  WifiLanSocket(WifiLanSocket&) = default;
+  explicit WifiLanSocket(
+      absl_nonnull std::unique_ptr<NearbyClientSocket> socket);
   WifiLanSocket(WifiLanSocket&&) = default;
-  ~WifiLanSocket() override;
-  WifiLanSocket& operator=(const WifiLanSocket&) = default;
+  ~WifiLanSocket() override = default;
   WifiLanSocket& operator=(WifiLanSocket&&) = default;
 
   // Returns the InputStream of the WifiLanSocket.
@@ -115,88 +79,43 @@ class WifiLanSocket : public api::WifiLanSocket {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  InputStream& GetInputStream() override;
+  InputStream& GetInputStream() override { return input_stream_; };
 
   // Returns the OutputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  OutputStream& GetOutputStream() override;
+  OutputStream& GetOutputStream() override { return output_stream_; };
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override { return client_socket_->Close(); };
 
-  bool Connect(const std::string& ip_address, int port);
+  bool Connect(const SocketAddress& server_address, absl::Duration timeout) {
+    return client_socket_->Connect(server_address, timeout);
+  };
 
  private:
-  // A simple wrapper to handle input stream of socket
-  class SocketInputStream : public InputStream {
-   public:
-    explicit SocketInputStream(IInputStream input_stream);
-    explicit SocketInputStream(NearbyClientSocket* client_socket);
-    ~SocketInputStream() = default;
-
-    ExceptionOr<ByteArray> Read(std::int64_t size) override;
-    ExceptionOr<size_t> Skip(size_t offset) override;
-    Exception Close() override;
-
-   private:
-    bool enable_blocking_socket_ = false;
-    IInputStream input_stream_{nullptr};
-    Buffer read_buffer_{nullptr};
-    NearbyClientSocket* client_socket_{nullptr};
-  };
-
-  // A simple wrapper to handle output stream of socket
-  class SocketOutputStream : public OutputStream {
-   public:
-    explicit SocketOutputStream(IOutputStream output_stream);
-    explicit SocketOutputStream(NearbyClientSocket* client_socket);
-    ~SocketOutputStream() = default;
-
-    Exception Write(const ByteArray& data) override;
-    Exception Flush() override;
-    Exception Close() override;
-
-   private:
-    bool enable_blocking_socket_ = false;
-    IOutputStream output_stream_{nullptr};
-    NearbyClientSocket* client_socket_{nullptr};
-  };
-
   // Internal properties
-  StreamSocket stream_soket_{nullptr};
-  SocketInputStream input_stream_{nullptr};
-  SocketOutputStream output_stream_{nullptr};
-
-  bool enable_blocking_socket_ = false;
-  std::unique_ptr<NearbyClientSocket> client_socket_;
+  absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
+  SocketInputStream input_stream_;
+  SocketOutputStream output_stream_;
 };
 
 // WifiLanServerSocket provides the support to server socket, this server socket
 // accepts connection from clients.
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanServerSocket(int port = 0);
-  WifiLanServerSocket(WifiLanServerSocket&) = default;
+  WifiLanServerSocket() = default;
   WifiLanServerSocket(WifiLanServerSocket&&) = default;
-  ~WifiLanServerSocket() override;
-  WifiLanServerSocket& operator=(const WifiLanServerSocket&) = default;
+  ~WifiLanServerSocket() override = default;
   WifiLanServerSocket& operator=(WifiLanServerSocket&&) = default;
 
   // Returns ip address.
   std::string GetIPAddress() const override;
 
   // Returns port.
-  int GetPort() const override;
-
-  // Sets port
-  void SetPort(int port) { port_ = port; }
-
-  StreamSocketListener GetSocketListener() const {
-    return stream_socket_listener_;
-  }
+  int GetPort() const override { return server_socket_.GetPort(); };
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -209,38 +128,20 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiLanServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    server_socket_.SetCloseNotifier(std::move(notifier));
+  };
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override {
+    server_socket_.Close();
+    return {Exception::kSuccess};
+  }
 
   // Binds to local port
-  bool listen();
+  bool Listen(int port);
 
  private:
-  // The listener is accepting incoming connections
-  fire_and_forget Listener_ConnectionReceived(
-      StreamSocketListener listener,
-      StreamSocketListenerConnectionReceivedEventArgs const& args);
-
-  mutable absl::Mutex mutex_;
-  absl::CondVar cond_;
-  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
-  StreamSocketListener stream_socket_listener_{nullptr};
-  winrt::event_token listener_event_token_{};
-
-  // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ = nullptr;
-
-  // IP addresses of the computer. mDNS uses them to advertise.
-  std::vector<std::string> ip_addresses_{};
-
-  // Cache socket not be picked by upper layer
-  int port_ = 0;
-  bool closed_ = false;
-
-  // Flag to enable blocking socket.
-  bool enable_blocking_socket_ = false;
   NearbyServerSocket server_socket_;
 };
 
@@ -272,16 +173,18 @@ class WifiLanMedium : public api::WifiLanMedium {
       CancellationFlag* cancellation_flag) override;
 
   std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) override;
 
-  std::unique_ptr<api::WifiLanServerSocket> ListenForService(
-      int port = 0) override;
+  std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;
 
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
     return absl::nullopt;
   }
+
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
+      const api::WifiLanServerSocket& server_socket) override;
 
  private:
   // Nsd status
@@ -302,14 +205,14 @@ class WifiLanMedium : public api::WifiLanMedium {
     return (medium_status_ & kMediumStatusDiscovering) != 0;
   }
 
-  // Checks whether the IP address is connectable in the given timeout.
-  // Parameters:
-  //   ip - IP string in format as 192.168.1.1
-  //   port - The IP port to connect.
-  //   timeout - IP is not connectable if cannot connect in the duration.
-  // Result - return true if the IP is connectable, otherwise return false.
-  bool IsConnectableIpAddress(absl::string_view ip, int port,
-                              absl::Duration timeout = absl::Seconds(1));
+  // Checks whether the service in the given timeout.
+  // Returns true if the IP is connectable, otherwise return false.
+  bool IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
+                              absl::Duration timeout);
+
+  std::unique_ptr<api::WifiLanSocket> ConnectToSocket(
+      const SocketAddress& address, CancellationFlag* cancellation_flag,
+      absl::Duration timeout);
 
   // Methods to manage discovred services.
   void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -326,18 +229,23 @@ class WifiLanMedium : public api::WifiLanMedium {
   // The API gets IP addresses, service name and text attributes of mDNS
   // from these properties,
   ExceptionOr<NsdServiceInfo> GetNsdServiceInformation(
-      IMapView<winrt::hstring, IInspectable> properties, bool is_device_found);
+      winrt::Windows::Foundation::Collections::IMapView<
+          winrt::hstring, winrt::Windows::Foundation::IInspectable>
+          properties,
+      bool is_device_found);
 
   // mDNS callbacks for advertising and discovery
-  fire_and_forget Watcher_DeviceAdded(DeviceWatcher sender,
-                                      DeviceInformation deviceInfo);
-  fire_and_forget Watcher_DeviceUpdated(
-      DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
-  fire_and_forget Watcher_DeviceRemoved(
-      DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
-
-  // Gets error message from exception pointer
-  std::string GetErrorMessage(std::exception_ptr eptr);
+  winrt::fire_and_forget Watcher_DeviceAdded(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformation deviceInfo);
+  winrt::fire_and_forget Watcher_DeviceUpdated(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          deviceInfoUpdate);
+  winrt::fire_and_forget Watcher_DeviceRemoved(
+      winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
+      winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
+          deviceInfoUpdate);
 
   void RestartScanning();
 
@@ -346,11 +254,13 @@ class WifiLanMedium : public api::WifiLanMedium {
   //
 
   // Advertising properties
-  DnssdServiceInstance dnssd_service_instance_{nullptr};
-  DnssdRegistrationResult dnssd_regirstraion_result_{nullptr};
+  winrt::Windows::Networking::ServiceDiscovery::Dnssd::DnssdServiceInstance
+      dnssd_service_instance_{nullptr};
+  winrt::Windows::Networking::ServiceDiscovery::Dnssd::DnssdRegistrationResult
+      dnssd_regirstraion_result_{nullptr};
 
   // Discovery properties
-  DeviceWatcher device_watcher_{nullptr};
+  winrt::Windows::Devices::Enumeration::DeviceWatcher device_watcher_{nullptr};
   winrt::event_token device_watcher_added_event_token;
   winrt::event_token device_watcher_updated_event_token;
   winrt::event_token device_watcher_removed_event_token;
@@ -361,7 +271,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
 
-  // Used to keep the service name is advertising.
+  // The mDNS service name we are currently advertising.
   std::string service_name_;
 
   // mDNS service
@@ -386,7 +296,6 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_LAN_H_

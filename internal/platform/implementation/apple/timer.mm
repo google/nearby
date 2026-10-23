@@ -38,7 +38,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
     return false;
   }
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (timer_ != nullptr) {
     GNCLoggerError(@"Timer has already started.");
     return false;
@@ -59,7 +59,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
     absl::AnyInvocable<void()> callback_to_run = nullptr;
     bool is_one_shot = (intervalInNanoseconds == DISPATCH_TIME_FOREVER);
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       // If Stop() was called concurrently, the callback will be null.
       if (!callback_ || callback_running_) {
         return;
@@ -76,7 +76,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
       callback_to_run();
     }
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (!is_one_shot && callback_to_run) {
         // For periodic timers, move the callback back for the next run.
         callback_ = std::move(callback_to_run);
@@ -93,7 +93,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
 }
 
 bool Timer::Stop() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (timer_ != nullptr) {
     dispatch_source_cancel(timer_);
     timer_ = nullptr;
@@ -103,30 +103,6 @@ bool Timer::Stop() {
     condvar_.Wait(&mutex_);
   }
   callback_ = nullptr;
-  return true;
-}
-
-bool Timer::FireNow() {
-  absl::AnyInvocable<void()> callback_to_run;
-  {
-    absl::MutexLock lock(&mutex_);
-
-    // Don't fire if there's no callback or if a callback is already in progress.
-    if (!callback_ || callback_running_) {
-      return false;
-    }
-    callback_running_ = true;
-    callback_to_run = std::move(callback_);
-  }
-
-  // Execute callback outside of the lock.
-  callback_to_run();
-  {
-    absl::MutexLock lock(&mutex_);
-    callback_ = std::move(callback_to_run);
-    callback_running_ = false;
-    condvar_.Signal();  // Notify Stop() if it's waiting.
-  }
   return true;
 }
 

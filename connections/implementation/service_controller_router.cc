@@ -15,34 +15,50 @@
 #include "connections/implementation/service_controller_router.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "connections/advertising_options.h"
+#include "connections/connection_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_service_controller.h"
+#include "connections/implementation/service_controller.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
 #include "connections/params.h"
 #include "connections/payload.h"
+#include "connections/status.h"
 #include "connections/v3/bandwidth_info.h"
+#include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
+#include "connections/v3/listeners.h"
 #include "connections/v3/listening_result.h"
-#include "internal/flags/nearby_flags.h"
-#include "internal/platform/feature_flags.h"
+#include "connections/v3/params.h"
+#include "internal/interop/device.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace connections {
 namespace {
+#if defined(__APPLE__) && !defined(GITHUB_BUILD) && defined(__cpp_exceptions)
+static_assert(false,
+              "Nearby Connections internal must be compiled with "
+              "-fno-exceptions");
+#endif
+
 // Length of a MAC address, which consists of 6 bytes uniquely identifying a
 // hardware interface.
 const std::size_t kMacAddressLength = 6u;
@@ -81,6 +97,7 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
     case location::nearby::proto::connections::WIFI_HOTSPOT:
     case location::nearby::proto::connections::WIFI_LAN:
     case location::nearby::proto::connections::WIFI_AWARE:
+    case location::nearby::proto::connections::WIFI_AWARE_R4:
     case location::nearby::proto::connections::WIFI_DIRECT:
     case location::nearby::proto::connections::WEB_RTC:
     case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:
@@ -96,28 +113,7 @@ ServiceControllerRouter::ServiceControllerRouter() {
 
 ServiceControllerRouter::ServiceControllerRouter(
     absl::AnyInvocable<bool()> if_hp_realtek_device)
-    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {
-  LOG(INFO)
-      << "ServiceControllerRouter going up checking if_hp_realtek_device.";
-}
-
-// Constructor called by the CrOS platform implementation to override the
-// kEnableBleV2 flag.
-ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
-    : ServiceControllerRouter() {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2) !=
-      enable_ble_v2) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        enable_ble_v2);
-    // CrOS uses the async signature for Scanning and has no support for the
-    // sync version.
-    // TODO(b/333408829): Enable async advertising flag once supported.
-    const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
-        .SetFlags({.enable_ble_v2_async_scanning = true});
-  }
-}
+    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {}
 
 ServiceControllerRouter::~ServiceControllerRouter() {
   LOG(INFO) << "ServiceControllerRouter going down.";
@@ -434,30 +430,35 @@ void ServiceControllerRouter::RequestConnectionV3(
   // CancellationListener as soon as possible.
   client->AddCancellationFlag(remote_device.GetEndpointId());
 
+  // v3_info must outlive the serializer task: the v1 ConnectionListener we
+  // build below is COPIED into ClientProxy::connections_ and its
+  // disconnected_cb / bandwidth_changed_cb fire long after this task returns.
+  auto v3_shared =
+      std::make_shared<v3::ConnectionListener>(std::move(info.listener));
+  std::string remote_endpoint_id = remote_device.GetEndpointId();
+
   RouteToServiceController(
       "scr-request-connection-v3",
-      [this, client, &remote_device, v3_info = std::move(info),
+      [this, client, remote_endpoint_id, v3_shared,
+       local_endpoint_info =
+           (info.local_device.GetType() ==
+            NearbyDevice::Type::kConnectionsDevice)
+               ? reinterpret_cast<v3::ConnectionsDevice&>(info.local_device)
+                     .GetEndpointInfo()
+               : "",
        connection_options, callback = std::move(callback)]() mutable {
-        std::string endpoint_id = remote_device.GetEndpointId();
+        const std::string& endpoint_id = remote_endpoint_id;
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
           callback({Status::kAlreadyConnectedToEndpoint});
           return;
         }
 
-        std::string endpoint_info;
-        if (v3_info.local_device.GetType() ==
-            NearbyDevice::Type::kConnectionsDevice) {
-          endpoint_info =
-              reinterpret_cast<v3::ConnectionsDevice&>(v3_info.local_device)
-                  .GetEndpointInfo();
-        }
-
         ConnectionListener listener = {
             .initiated_cb =
-                [&v3_info, &remote_device](
-                    const std::string& endpoint_id,
-                    const ConnectionResponseInfo& response_info) mutable {
+                [v3_shared, endpoint_id](
+                    const std::string& /*endpoint_id*/,
+                    const ConnectionResponseInfo& response_info) {
                   v3::InitialConnectionInfo new_info = {
                       .authentication_digits =
                           response_info.authentication_token,
@@ -468,18 +469,19 @@ void ServiceControllerRouter::RequestConnectionV3(
                       .authentication_status =
                           response_info.authentication_status,
                   };
-                  v3_info.listener.initiated_cb(remote_device, new_info);
+                  v3_shared->initiated_cb(
+                      v3::ConnectionsDevice(endpoint_id, "", {}), new_info);
                 },
             .accepted_cb =
-                [result_cb = v3_info.listener.result_cb](
-                    const std::string& endpoint_id) {
+                [result_cb =
+                     v3_shared->result_cb](const std::string& endpoint_id) {
                   v3::ConnectionResult result = {
                       .status = {Status::kSuccess},
                   };
                   result_cb(v3::ConnectionsDevice(endpoint_id, "", {}), result);
                 },
             .rejected_cb =
-                [result_cb = v3_info.listener.result_cb](
+                [result_cb = v3_shared->result_cb](
                     const std::string& endpoint_id, Status status) {
                   v3::ConnectionResult result = {
                       .status = status,
@@ -487,28 +489,29 @@ void ServiceControllerRouter::RequestConnectionV3(
                   result_cb(v3::ConnectionsDevice(endpoint_id, "", {}), result);
                 },
             .disconnected_cb =
-                [&v3_info](const std::string& endpoint_id) mutable {
+                [v3_shared](const std::string& endpoint_id) {
                   auto device = v3::ConnectionsDevice(endpoint_id, "", {});
-                  v3_info.listener.disconnected_cb(device);
+                  v3_shared->disconnected_cb(device);
                 },
             .bandwidth_changed_cb =
-                [this, &v3_info](const std::string& endpoint_id,
-                                 Medium medium) mutable {
+                [this, v3_shared](const std::string& endpoint_id,
+                                  Medium medium) mutable {
                   v3::BandwidthInfo bandwidth_info = {
                       .quality = GetMediumQuality(medium),
                       .medium = medium,
                   };
-                  v3_info.listener.bandwidth_changed_cb(
+                  v3_shared->bandwidth_changed_cb(
                       v3::ConnectionsDevice(endpoint_id, "", {}),
                       bandwidth_info);
                 },
         };
         ConnectionRequestInfo old_info = {
-            .endpoint_info = ByteArray(endpoint_info),
+            .endpoint_info = ByteArray(local_endpoint_info),
             .listener = std::move(listener),
         };
         Status status = GetServiceController()->RequestConnectionV3(
-            client, remote_device, std::move(old_info), connection_options);
+            client, v3::ConnectionsDevice(endpoint_id, "", {}),
+            std::move(old_info), connection_options);
         if (!status.Ok()) {
           LOG(WARNING) << "Unable to request connection to endpoint "
                        << endpoint_id << ": " << status.ToString();
@@ -739,6 +742,7 @@ ServiceController* ServiceControllerRouter::GetServiceController() {
                                      /*web_rtc_no_cellular=*/false,
                                      /*web_rtc=*/true,
                                      /*wifi_lan=*/true,
+                                     /*wifi_aware=*/true,
                                      /*wifi_hotspot=*/false,
                                      /*wifi_direct=*/true,
                                      /*awdl=*/false};

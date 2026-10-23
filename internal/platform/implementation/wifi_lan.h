@@ -15,14 +15,17 @@
 #ifndef PLATFORM_API_WIFI_LAN_H_
 #define PLATFORM_API_WIFI_LAN_H_
 
+#include <memory>
 #include <string>
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace api {
@@ -135,7 +138,7 @@ class WifiLanMedium {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.
@@ -151,6 +154,13 @@ class WifiLanMedium {
   // Returns the port range as a pair of min and max port.
   virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
+
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade.
+  // `server_socket` is the socket that is currently listening for service
+  // requests.
+  virtual UpgradeAddressInfo GetUpgradeAddressCandidates(
+      const WifiLanServerSocket& server_socket) = 0;
 };
 
 }  // namespace api

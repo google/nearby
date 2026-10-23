@@ -66,21 +66,21 @@ class CRYPTO_EXPORT HMAC {
   // this requirement is gone.  But a system crypto library may still enforce
   // this old requirement.  If the key is shorter than this recommended value,
   // Init() may fail.
-  ABSL_MUST_USE_RESULT bool Init(const unsigned char* key, size_t key_length);
+  [[nodiscard]] bool Init(const unsigned char* key, size_t key_length);
 
   // Initializes this instance using |key|. Call Init
   // only once. It returns false on the second or later calls.
-  ABSL_MUST_USE_RESULT bool Init(const SymmetricKey* key);
+  [[nodiscard]] bool Init(const SymmetricKey* key);
 
   // Initializes this instance using |key|. Call Init only once. It returns
   // false on the second or later calls.
-  ABSL_MUST_USE_RESULT bool Init(absl::string_view key) {
+  [[nodiscard]] bool Init(absl::string_view key) {
     return Init(nearbybase::as_bytes(absl::MakeSpan(key)));
   }
 
   // Initializes this instance using |key|. Call Init only once. It returns
   // false on the second or later calls.
-  ABSL_MUST_USE_RESULT bool Init(absl::Span<const uint8_t> key) {
+  [[nodiscard]] bool Init(absl::Span<const uint8_t> key) {
     return Init(key.data(), key.size());
   }
 
@@ -89,10 +89,10 @@ class CRYPTO_EXPORT HMAC {
   // returned in |digest|, which has |digest_length| bytes of storage available.
   // If |digest_length| is smaller than DigestLength(), the output will be
   // truncated. If it is larger, this method will fail.
-  ABSL_MUST_USE_RESULT bool Sign(absl::string_view data, unsigned char* digest,
-                                 size_t digest_length) const;
-  ABSL_MUST_USE_RESULT bool Sign(absl::Span<const uint8_t> data,
-                                 absl::Span<uint8_t> digest) const;
+  [[nodiscard]] bool Sign(absl::string_view data, unsigned char* digest,
+                          size_t digest_length) const;
+  [[nodiscard]] bool Sign(absl::Span<const uint8_t> data,
+                          absl::Span<uint8_t> digest) const;
 
   // Verifies that the HMAC for the message in |data| equals the HMAC provided
   // in |digest|, using the algorithm supplied to the constructor and the key
@@ -101,18 +101,17 @@ class CRYPTO_EXPORT HMAC {
   // comparisons may result in side-channel disclosures, such as timing, that
   // undermine the cryptographic integrity. |digest| must be exactly
   // |DigestLength()| bytes long.
-  ABSL_MUST_USE_RESULT bool Verify(absl::string_view data,
-                                   absl::string_view digest) const;
-  ABSL_MUST_USE_RESULT bool Verify(absl::Span<const uint8_t> data,
-                                   absl::Span<const uint8_t> digest) const;
+  [[nodiscard]] bool Verify(absl::string_view data,
+                            absl::string_view digest) const;
+  [[nodiscard]] bool Verify(absl::Span<const uint8_t> data,
+                            absl::Span<const uint8_t> digest) const;
 
   // Verifies a truncated HMAC, behaving identical to Verify(), except
   // that |digest| is allowed to be smaller than |DigestLength()|.
-  ABSL_MUST_USE_RESULT bool VerifyTruncated(absl::string_view data,
-                                            absl::string_view digest) const;
-  ABSL_MUST_USE_RESULT bool VerifyTruncated(
-      absl::Span<const uint8_t> data,
-      absl::Span<const uint8_t> digest) const ABSL_MUST_USE_RESULT;
+  [[nodiscard]] bool VerifyTruncated(absl::string_view data,
+                                     absl::string_view digest) const;
+  [[nodiscard]] bool VerifyTruncated(absl::Span<const uint8_t> data,
+                                     absl::Span<const uint8_t> digest) const;
 
  private:
   HashAlgorithm hash_alg_;

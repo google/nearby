@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #ifndef CORE_CONNECTION_OPTIONS_H_
 #define CORE_CONNECTION_OPTIONS_H_
 #include <string>
@@ -19,10 +20,10 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/options_base.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 struct ConnectionInfo {
   std::string local_endpoint_id;
@@ -31,11 +32,12 @@ struct ConnectionInfo {
   bool supports_5_ghz = false;
   std::string bssid;
   std::int32_t ap_frequency = -1;
-  std::string ip_address;
   std::vector<location::nearby::proto::connections::Medium> supported_mediums;
   std::int32_t keep_alive_interval_millis;
   std::int32_t keep_alive_timeout_millis;
   std::optional<location::nearby::connections::MediumRole> medium_role;
+  std::vector<location::nearby::proto::connections::WifiDirectAuthType>
+      supported_wifi_direct_auth_types;
 };
 
 // Connection Options: used for both Advertising and Discovery.
@@ -49,7 +51,7 @@ struct ConnectionOptions : public OptionsBase {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
-  ByteArray remote_bluetooth_mac_address;
+  MacAddress remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
@@ -62,7 +64,6 @@ struct ConnectionOptions : public OptionsBase {
   ConnectionInfo connection_info;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_CONNECTION_OPTIONS_H_

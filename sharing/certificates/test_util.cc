@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/bluetooth_address.h"
@@ -300,7 +301,8 @@ NearbySharePrivateCertificate GetNearbyShareTestPrivateCertificate(
 }
 
 nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
-    DeviceVisibility visibility, absl::Time not_before, uint8_t vendor_id) {
+    DeviceVisibility visibility, absl::Time not_before, uint8_t vendor_id,
+    absl::string_view binding_id) {
   nearby::sharing::proto::PublicCertificate cert;
   cert.set_secret_id(std::string(GetNearbyShareTestCertificateId().begin(),
                                  GetNearbyShareTestCertificateId().end()));
@@ -328,6 +330,9 @@ nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
   cert.set_metadata_encryption_key_tag(
       std::string(GetNearbyShareTestMetadataEncryptionKeyTag().begin(),
                   GetNearbyShareTestMetadataEncryptionKeyTag().end()));
+  if (!binding_id.empty()) {
+    cert.set_binding_id(binding_id);
+  }
   return cert;
 }
 
@@ -364,6 +369,19 @@ GetNearbyShareTestDecryptedPublicCertificate() {
           *NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
               GetNearbyShareTestPublicCertificate(
                   DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS),
+              GetNearbyShareTestEncryptedMetadataKey()));
+  return *cert;
+}
+
+const NearbyShareDecryptedPublicCertificate&
+GetNearbyShareTestDecryptedPublicCertificateWithBindingId() {
+  static const NearbyShareDecryptedPublicCertificate* cert =
+      new NearbyShareDecryptedPublicCertificate(
+          *NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
+              GetNearbyShareTestPublicCertificate(
+                  DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+                  GetNearbyShareTestNotBefore(), /*vendor_id=*/0,
+                  kCertificateTestBindingId),
               GetNearbyShareTestEncryptedMetadataKey()));
   return *cert;
 }

@@ -15,14 +15,12 @@
 #include "sharing/scheduling/nearby_share_periodic_scheduler.h"
 
 #include <memory>
-#include <optional>
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
-#include "sharing/scheduling/nearby_share_scheduler.h"
 
 namespace nearby {
 namespace sharing {
@@ -52,12 +50,12 @@ class NearbySharePeriodicSchedulerTest : public ::testing::Test {
     fake_context_.fake_clock()->FastForward(delta);
   }
 
-  NearbyShareScheduler* scheduler() { return scheduler_.get(); }
+  NearbySharePeriodicScheduler* scheduler() { return scheduler_.get(); }
 
  private:
   nearby::FakePreferenceManager preference_manager_;
   FakeContext fake_context_;
-  std::unique_ptr<NearbyShareScheduler> scheduler_;
+  std::unique_ptr<NearbySharePeriodicScheduler> scheduler_;
 };
 
 TEST_F(NearbySharePeriodicSchedulerTest, PeriodicRequest) {
@@ -66,10 +64,11 @@ TEST_F(NearbySharePeriodicSchedulerTest, PeriodicRequest) {
 
   // Immediately runs a first-time periodic request.
   scheduler()->Start();
-  std::optional<absl::Duration> time_until_next_request =
-      scheduler()->GetTimeUntilNextRequest();
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(), absl::ZeroDuration());
-  FastForward(*time_until_next_request);
+  absl::Duration time_until_next_request =
+      scheduler()->GetTimeUntilNextRequestForTest();
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
+            absl::ZeroDuration());
+  FastForward(time_until_next_request);
   scheduler()->HandleResult(/*success=*/true);
   EXPECT_EQ(scheduler()->GetLastSuccessTime(), Now());
 
@@ -77,7 +76,7 @@ TEST_F(NearbySharePeriodicSchedulerTest, PeriodicRequest) {
   absl::Duration elapsed_time = absl::Minutes(1);
   FastForward(elapsed_time);
 
-  EXPECT_EQ(scheduler()->GetTimeUntilNextRequest(),
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
             kTestRequestPeriod - elapsed_time);
 }
 

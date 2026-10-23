@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/windows/http_loader.h"
 
-#include <iostream>
 #include <string>
 
 #include "absl/status/status.h"
@@ -23,6 +22,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/logging.h"
 
@@ -209,6 +209,21 @@ absl::Status HttpLoader::ConnectWebServer() {
     return absl::FailedPreconditionError(absl::StrCat(GetLastError()));
   }
 
+  // Set WinInet timeout if provided by caller.
+  if (request_.timeout > absl::ZeroDuration() &&
+      request_.timeout < absl::InfiniteDuration()) {
+    DWORD timeout_ms = absl::ToInt64Milliseconds(request_.timeout);
+    ::InternetSetOptionA(internet_handle_, INTERNET_OPTION_CONNECT_TIMEOUT,
+                         reinterpret_cast<void*>(&timeout_ms),
+                         sizeof(timeout_ms));
+    ::InternetSetOptionA(internet_handle_, INTERNET_OPTION_SEND_TIMEOUT,
+                         reinterpret_cast<void*>(&timeout_ms),
+                         sizeof(timeout_ms));
+    ::InternetSetOptionA(internet_handle_, INTERNET_OPTION_RECEIVE_TIMEOUT,
+                         reinterpret_cast<void*>(&timeout_ms),
+                         sizeof(timeout_ms));
+  }
+
   connect_handle_ = InternetConnectA(internet_handle_,      /*Internet*/
                                      host_.c_str(),         /*Server name*/
                                      port_,                 /*Port*/
@@ -314,7 +329,7 @@ absl::StatusOr<WebResponse> HttpLoader::ProcessResponse() {
   web_response.status_text = status_text.value();
   auto headers = QueryResponseHeaders(request_handle_);
   if (!headers.ok()) {
-    headers.status();
+    return headers.status();
   }
   web_response.headers = *headers;
 

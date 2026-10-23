@@ -23,7 +23,7 @@ proto_library(
     srcs = [
         "offline_wire_formats.proto",
     ],
-    visibility = ["//visibility:private"],
+    visibility = ["//location/nearby/gestureexchange:__subpackages__"],
 )
 
 cc_proto_library(

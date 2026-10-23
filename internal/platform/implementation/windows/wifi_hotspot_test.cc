@@ -25,8 +25,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 
 TEST(WifiHotspotMedium, DISABLED_StartWifiHotspot) {
@@ -74,7 +73,7 @@ TEST(WifiHotspotMedium, DISABLED_WifiHotspotServerStartListen) {
     EXPECT_TRUE(hotspot_medium.StartWifiHotspot(&hotspot_credentials));
     absl::SleepFor(absl::Seconds(1));
     std::unique_ptr<api::WifiHotspotServerSocket> server_socket =
-        hotspot_medium.ListenForService(0);
+        hotspot_medium.ListenForService(/*port=*/0);
     absl::SleepFor(absl::Seconds(10));
     std::unique_ptr<api::WifiHotspotSocket> client_socket =
         server_socket->Accept();
@@ -122,7 +121,7 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
             kEnableIntelPieSdk,
         true);
 
-    EXPECT_TRUE(hotspot_medium.ConnectWifiHotspot(&hotspot_credentials));
+    EXPECT_TRUE(hotspot_medium.ConnectWifiHotspot(hotspot_credentials));
     absl::SleepFor(absl::Seconds(1));
     while (true) {
       LOG(INFO) << "Enter \"s\" to stop test:";
@@ -140,5 +139,4 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
 }
 
 }  // namespace
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

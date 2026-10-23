@@ -23,7 +23,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
-#include "webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
 namespace g3 {
@@ -58,8 +58,6 @@ class WebRtcMedium : public api::WebRtcMedium {
 
   WebRtcMedium() = default;
   ~WebRtcMedium() override;
-
-  const std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.

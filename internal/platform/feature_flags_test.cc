@@ -28,8 +28,8 @@ constexpr FeatureFlags::Flags kTestFeatureFlags{
 TEST(FeatureFlagsTest, CastUpdateWorks) {
   const FeatureFlags& features = FeatureFlags::GetInstance();
   EXPECT_TRUE(features.GetFlags().enable_async_bandwidth_upgrade);
-  const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
-      .SetFlags({.enable_async_bandwidth_upgrade = false});
+  FeatureFlags::GetMutableInstanceForTesting().SetFlags(
+      {.enable_async_bandwidth_upgrade = false});
 
   EXPECT_FALSE(features.GetFlags().enable_async_bandwidth_upgrade);
 }

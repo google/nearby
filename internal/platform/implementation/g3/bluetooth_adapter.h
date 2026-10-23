@@ -16,18 +16,14 @@
 #define PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 
 #include <cstdint>
-#include <memory>
 #include <string>
-#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble.h"
-#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/mac_address.h"
 
 namespace nearby {
@@ -36,28 +32,6 @@ namespace g3 {
 // BluetoothDevice and BluetoothAdapter have a mutual dependency.
 class BluetoothAdapter;
 
-// Opaque wrapper over a Ble peripheral. Must contain enough data about a
-// particular Ble device to connect to its GATT server.
-class BlePeripheral : public api::BlePeripheral {
- public:
-  ~BlePeripheral() override = default;
-
-  std::string GetName() const override;
-  ByteArray GetAdvertisementBytes(const std::string& service_id) const override;
-  void SetAdvertisementBytes(const std::string& service_id,
-                             const ByteArray& advertisement_bytes);
-  BluetoothAdapter& GetAdapter() { return adapter_; }
-
- private:
-  // Only BluetoothAdapter may instantiate BlePeripheral.
-  friend class BluetoothAdapter;
-
-  explicit BlePeripheral(BluetoothAdapter* adapter);
-
-  BluetoothAdapter& adapter_;
-  ByteArray advertisement_bytes_;
-};
-
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice : public api::BluetoothDevice {
  public:
@@ -65,7 +39,7 @@ class BluetoothDevice : public api::BluetoothDevice {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const override;
-  std::string GetMacAddress() const override;
+  MacAddress GetMacAddress() const override;
   BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:
@@ -108,13 +82,11 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   std::string GetName() const override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool SetName(absl::string_view name, bool persist) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns BT MAC address assigned to this adapter.
-  std::string GetMacAddress() const override { return mac_address_.ToString(); }
-  MacAddress mac_address() const { return mac_address_; }
+  MacAddress GetMacAddress() const override { return mac_address_; }
 
   BluetoothDevice& GetDevice() { return device_; }
 
@@ -123,27 +95,18 @@ class BluetoothAdapter : public api::BluetoothAdapter {
     return bluetooth_classic_medium_;
   }
 
-  BlePeripheral& GetPeripheral() { return peripheral_; }
+  void SetBleMedium(api::ble::BleMedium* medium);
+  api::ble::BleMedium* GetBleMedium() { return ble_medium_; }
 
-  void SetBleMedium(api::BleMedium* medium);
-  api::BleMedium* GetBleMedium() { return ble_medium_; }
-
-  void SetBleV2Medium(api::ble_v2::BleMedium* medium);
-  api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
-
-  void SetMacAddress(absl::string_view mac_address) {
-    MacAddress::FromString(mac_address, mac_address_);
-  }
+  void SetMacAddress(MacAddress mac_address) { mac_address_ = mac_address; }
 
   std::uint64_t GetUniqueId() { return unique_id_; }
 
  private:
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
-  BlePeripheral peripheral_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
-  api::BleMedium* ble_medium_ = nullptr;
-  api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
+  api::ble::BleMedium* ble_medium_ = nullptr;
   MacAddress mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";

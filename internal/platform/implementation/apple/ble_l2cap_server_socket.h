@@ -16,14 +16,14 @@
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/ble_v2.h"
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
+#include "internal/platform/implementation/ble.h"
 
 namespace nearby {
 namespace apple {
 
 // A BLE L2CAP server socket for listening incoming L2CAP socket.
-class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
+class BleL2capServerSocket : public api::ble::BleL2capServerSocket {
  public:
   BleL2capServerSocket() = default;
   ~BleL2capServerSocket() override;
@@ -43,7 +43,7 @@ class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
   // Returns nullptr on error.
   // Once error is reported, it is permanent, and L2CAP ServerSocket has to be
   // closed.
-  std::unique_ptr<api::ble_v2::BleL2capSocket> Accept() override
+  std::unique_ptr<api::ble::BleL2capSocket> Accept() override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes the L2CAP server socket.

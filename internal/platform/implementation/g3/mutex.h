@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_G3_MUTEX_H_
 #define PLATFORM_IMPL_G3_MUTEX_H_
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/posix_mutex.h"
@@ -35,7 +36,12 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
     mutex_.Lock();
     if (!check_) mutex_.ForgetDeadlockInfo();
   }
+
   void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.Unlock(); }
+
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
+    mutex_.AssertHeld();
+  }
 
  private:
   friend class ConditionVariable;

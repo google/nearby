@@ -24,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/common/nearby_share_enums.h"
 
@@ -41,14 +42,14 @@ ShareTarget::ShareTarget() { id = ++kLastGeneratedId; }
 ShareTarget::ShareTarget(
     std::string device_name, Url image_url, ShareTargetType type,
     bool is_incoming, std::optional<std::string> full_name, bool is_known,
-    std::optional<std::string> device_id, bool for_self_share)
+    absl::string_view device_id, bool for_self_share)
     : device_name(std::move(device_name)),
       image_url(std::move(image_url)),
       type(type),
       is_incoming(is_incoming),
       full_name(std::move(full_name)),
       is_known(is_known),
-      device_id(std::move(device_id)),
+      device_id(device_id),
       for_self_share(for_self_share) {
   id = ++kLastGeneratedId;
 }
@@ -75,9 +76,7 @@ std::string ShareTarget::ToString() const {
   if (image_url) {
     fmt.push_back(absl::StrFormat("image_url: %s", image_url->GetUrlPath()));
   }
-  if (device_id) {
-    fmt.push_back(absl::StrFormat("device_id: %s", *device_id));
-  }
+  fmt.push_back(absl::StrFormat("device_id: %s", device_id));
   fmt.push_back(absl::StrFormat("is_known: %d", is_known));
   fmt.push_back(absl::StrFormat("is_incoming: %d", is_incoming));
   fmt.push_back(absl::StrFormat("for_self_share: %d", for_self_share));

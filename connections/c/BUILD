@@ -12,16 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
+load("@rules_apple//apple:apple_xcframework.bzl", "apple_static_xcframework")
 load("@rules_apple//apple:macos.bzl", "macos_dylib")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
+load("//third_party/cpptoolchains/portable_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = [
     "//connections:__subpackages__",
     "//googlemac/iPhone/Nearby:__subpackages__",
     "//location/nearby:__subpackages__",
+    "//third_party/beto_core/nearby/connections:__subpackages__",
 ])
+
+exports_files(
+    srcs = [
+        "nc.h",
+    ],
+)
 
 licenses(["notice"])
 
@@ -44,21 +51,31 @@ cc_library(
         ":nc_types",
         "//connections:core",
         "//connections:core_types",
+        "//connections/implementation/analytics:analytics_recorder_impl",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:flag_reader",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
+        "//location/nearby/analytics/cpp/logging:event_logger",
+        "//location/nearby/analytics/cpp/proto:connections_log_cc_proto",
+        "//location/nearby/analytics/cpp/proto:sharing_log_cc_proto",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
     ] + select({
-        "@platforms//os:platform_ios": [
+        "@platforms//os:ios": [
+            "//internal/platform/implementation/apple",
             "//internal/platform/implementation/apple:nearby_logger",
+            "//internal/platform/implementation/apple/Mediums",
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 # iOS only.

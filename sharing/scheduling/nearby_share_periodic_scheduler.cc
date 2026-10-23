@@ -15,7 +15,6 @@
 #include "sharing/scheduling/nearby_share_periodic_scheduler.h"
 
 #include <algorithm>
-#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
@@ -41,17 +40,10 @@ NearbySharePeriodicScheduler::NearbySharePeriodicScheduler(
 
 NearbySharePeriodicScheduler::~NearbySharePeriodicScheduler() = default;
 
-std::optional<absl::Duration>
+absl::Duration
 NearbySharePeriodicScheduler::TimeUntilRecurringRequest(absl::Time now) const {
-  std::optional<absl::Time> last_success_time = GetLastSuccessTime();
-
-  // Immediately run a first-time request.
-  if (!last_success_time.has_value()) return absl::ZeroDuration();
-
-  absl::Duration time_elapsed_since_last_success = now - *last_success_time;
-
   return std::max(absl::ZeroDuration(),
-                  request_period_ - time_elapsed_since_last_success);
+                  request_period_ - (now - GetLastSuccessTime()));
 }
 
 }  // namespace sharing

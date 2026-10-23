@@ -18,34 +18,14 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 licenses(["notice"])
 
 cc_library(
-    name = "mocks",
-    testonly = 1,
-    hdrs = [
-        "mock_account_manager.h",
-        "mock_account_observer.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:signin_attempt",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_googletest//:gtest_for_library_testonly",
-    ],
-)
-
-cc_library(
     name = "test",
     srcs = [
-        "fake_account_manager.cc",
         "fake_clock.cc",
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
     ],
     hdrs = [
-        "fake_account_manager.h",
         "fake_clock.h",
         "fake_device_info.h",
         "fake_http_client.h",
@@ -54,19 +34,13 @@ cc_library(
         "fake_task_runner.h",
         "fake_timer.h",
     ],
-    copts = [
-        "-Ithird_party",
-    ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/base",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/network:types",
-        "//internal/platform:comm",
+        "//internal/platform:logging",
         "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:signin_attempt",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -76,7 +50,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",  # fixdeps: keep
     ],
 )
 
@@ -91,9 +64,6 @@ cc_test(
         "fake_task_runner_test.cc",
         "fake_timer_test.cc",
     ],
-    copts = [
-        "-Ithird_party",
-    ],
     shard_count = 8,
     deps = [
         ":test",
@@ -101,9 +71,9 @@ cc_test(
         "//internal/base:files",
         "//internal/network:types",
         "//internal/network:url",
-        "//internal/platform:types",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:platform_impl",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

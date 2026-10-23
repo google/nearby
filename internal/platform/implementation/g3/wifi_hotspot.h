@@ -20,13 +20,13 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -65,23 +65,18 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   static std::string GetName(absl::string_view ip_address, int port);
 
-  std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
-    return ip_address_;
-  }
-
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ip_address_ = ip_address;
   }
 
   int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return port_;
   }
 
   void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     port_ = port;
   }
 
@@ -112,6 +107,9 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   // Calls close_notifier if it was previously set, and marks socket as closed.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void PopulateHotspotCredentials(HotspotCredentials& hotspot_credentials)
+      override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Retrieves IP addresses from local machine
@@ -146,7 +144,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
-      absl::string_view ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) override;
 
   // Advertiser starts to listen on server socket
@@ -158,7 +156,8 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
-  bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) override;
+  bool ConnectWifiHotspot(
+      const HotspotCredentials& hotspot_credentials) override;
   // Discoverer disconnects from the Hotspot
   bool DisconnectWifiHotspot() override;
 

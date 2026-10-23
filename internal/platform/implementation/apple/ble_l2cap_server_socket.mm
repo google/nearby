@@ -20,13 +20,13 @@
 #include <utility>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPServer.h"
 
 namespace nearby {
 namespace apple {
 
 BleL2capServerSocket::~BleL2capServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
@@ -35,8 +35,8 @@ int BleL2capServerSocket::GetPSM() const { return psm_; }
 void BleL2capServerSocket::SetPSM(int psm) { psm_ = psm; }
 
 // TODO: b/399815436 - Refactor Accept() and AddPendingSocket() for better readability.
-std::unique_ptr<api::ble_v2::BleL2capSocket> BleL2capServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+std::unique_ptr<api::ble::BleL2capSocket> BleL2capServerSocket::Accept() {
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -48,7 +48,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleL2capServerSocket::Accept() {
 }
 
 bool BleL2capServerSocket::AddPendingSocket(std::unique_ptr<BleL2capSocket> socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) {
     return false;
   }
@@ -58,12 +58,12 @@ bool BleL2capServerSocket::AddPendingSocket(std::unique_ptr<BleL2capSocket> sock
 }
 
 void BleL2capServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 Exception BleL2capServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 

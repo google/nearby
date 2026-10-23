@@ -45,16 +45,6 @@ class WifiMedium {
     return impl_->IsInterfaceValid();
   }
 
-  bool VerifyInternetConnectivity() {
-    CHECK(impl_);
-    return impl_->VerifyInternetConnectivity();
-  }
-
-  std::string GetIpAddress() const {
-    CHECK(impl_);
-    return impl_->GetIpAddress();
-  }
-
   bool IsValid() const { return impl_ != nullptr; }
 
   api::WifiMedium& GetImpl() {

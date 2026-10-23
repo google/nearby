@@ -22,7 +22,6 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -31,7 +30,7 @@ Timer::~Timer() { Stop(); }
 
 bool Timer::Create(int delay, int interval,
                    absl::AnyInvocable<void()> callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if ((delay < 0) || (interval < 0)) {
     LOG(WARNING) << "Delay and interval shouldn\'t be negative value.";
     return false;
@@ -53,7 +52,7 @@ bool Timer::Create(int delay, int interval,
 }
 
 bool Timer::Stop() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (cancelable_task_ == nullptr) {
     return true;
   }
@@ -61,28 +60,6 @@ bool Timer::Stop() {
   bool result = cancelable_task_->Cancel();
   cancelable_task_ = nullptr;
   return result;
-}
-
-bool Timer::FireNow() {
-  absl::MutexLock lock(&mutex_);
-
-  if (!callback_) {
-    LOG(ERROR) << "callback_ is empty";
-    return false;
-  }
-
-  if (task_executor_ == nullptr) {
-    task_executor_ = std::make_unique<SubmittableExecutor>();
-  }
-
-  if (task_executor_ == nullptr) {
-    LOG(ERROR) << "Failed to fire the task due to cannot create executor.";
-    return false;
-  }
-
-  task_executor_->Execute([&]() { callback_(); });
-
-  return true;
 }
 
 }  // namespace windows

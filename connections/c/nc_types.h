@@ -53,7 +53,8 @@ typedef enum NC_MEDIUM {
   NC_MEDIUM_USB = 11,
   NC_MEDIUM_WEB_RTC_NON_CELLULAR = 12,
   NC_MEDIUM_AWDL = 13,
-  NC_MEDIUM_MAX = 14
+  NC_MEDIUM_WIFI_AWARE_R4 = 14,
+  NC_MEDIUM_MAX = 15
 } NC_MEDIUM;
 
 typedef enum NC_CONNECTION_TYPE {
@@ -305,6 +306,10 @@ typedef struct NC_OUT_OF_BAND_CONNECTION_METADATA {
   // generated such that no two IDs are identical.
   int endpoint_id;
 
+  //
+  // Properties for BLUETOOTH out-of-band connections.
+  //
+
   // Endpoint info to use for the injected connection; will be included in the
   // endpoint_found_cb callback. Should uniquely identify the InjectEndpoint()
   // call so that the client which made the call can verify the endpoint
@@ -315,6 +320,16 @@ typedef struct NC_OUT_OF_BAND_CONNECTION_METADATA {
 
   // Used for Bluetooth connections.
   NC_DATA remote_bluetooth_mac_address;
+
+  //
+  // Properties for BLE out-of-band connections.
+  //
+
+  // The BLE peripheral native ID to use for the BLE connection.
+  NC_DATA ble_peripheral_native_id;
+
+  // The Protocol/Service Multiplexer(psm) value to use for the BLE connection.
+  int psm;
 } NC_OUT_OF_BAND_CONNECTION_METADATA, *PNC_OUT_OF_BAND_CONNECTION_METADATA;
 
 // Defines the minimal function interface for reading phenotype flags. Callbacks
@@ -343,6 +358,43 @@ typedef struct NC_PHENOTYPE_FLAG_READER {
   // Frees a string allocated when calling get_string_flag_value.
   const void (*free_string_value)(const NC_DATA* value);
 } NC_PHENOTYPE_FLAG_READER;
+
+// Defines the minimal function interface for logging events. Callbacks
+// will be implemented by the client.
+// event_data - a serialized proto message of type
+// nearby.connections.ConnectionsLog.
+typedef void (*NcLogConnectionsEvent)(const NC_DATA* event_data);
+
+// Defines the struct for logging Nearby Connections events.
+typedef struct NC_EVENT_LOGGER {
+  NcLogConnectionsEvent log_connections_event;
+} NC_EVENT_LOGGER;
+
+// Types of events that require a decision from the client.
+typedef enum NC_EVENT_TYPE {
+  // The local device is about to join the remote endpoint's Wi-Fi hotspot.
+  // `data` contains the SSID of the hotspot.
+  NC_EVENT_TYPE_JOIN_HOTSPOT_PROMPT = 1,
+  // Reserved. `data` contains the PIN to display.
+  NC_EVENT_TYPE_DISPLAY_PIN = 2,
+  // Reserved. `data` is empty.
+  NC_EVENT_TYPE_ENTER_PIN = 3,
+} NC_EVENT_TYPE;
+
+// An event that requires a decision from the client. The event and its data
+// are only valid for the duration of the handler call.
+typedef struct NC_EVENT {
+  NC_EVENT_TYPE type;
+  int endpoint_id;
+  NC_DATA data;
+} NC_EVENT;
+
+// Handles an event synchronously. Returns true if the operation that
+// triggered the event may proceed, false to cancel it. Called on an internal
+// Nearby Connections thread, which is blocked until the handler returns.
+typedef bool (*NcCallbackEventHandler)(NC_INSTANCE instance,
+                                       const NC_EVENT* event,
+                                       CALLER_CONTEXT context);
 
 #ifdef __cplusplus
 }  // extern "C"

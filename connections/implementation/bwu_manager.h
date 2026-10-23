@@ -28,9 +28,11 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
-#include "connections/implementation/mediums/ble_v2.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
@@ -66,8 +68,6 @@ namespace connections {
 //     other, and upon doing so, close the prior EndpointChannel.
 class BwuManager : public EndpointManager::FrameProcessor {
  public:
-  using UpgradePathInfo = BwuHandler::UpgradePathInfo;
-
   struct Config {
     BooleanMediumSelector allow_upgrade_to;
     absl::Duration bandwidth_upgrade_retry_delay;
@@ -94,8 +94,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // @EndpointManagerReaderThread
   void OnIncomingFrame(location::nearby::connections::OfflineFrame& frame,
                        const std::string& endpoint_id, ClientProxy* client,
-                       Medium medium,
-                       PacketMetaData& packet_meta_data) override;
+                       Medium medium) override;
 
   // Cleans up in-progress upgrades after endpoint disconnection.
   // @EndpointManagerReaderThread
@@ -127,25 +126,45 @@ class BwuManager : public EndpointManager::FrameProcessor {
   bool IsUpgradeOngoing(const std::string& endpoint_id);
   Config GetConfig() const { return config_; }
 
+  // Returns `mediums` without the ones this device refuses to upgrade to, so
+  // that they are not advertised to the remote device in the
+  // ConnectionRequest. Currently this removes WIFI_LAN and WIFI_HOTSPOT when
+  // the matching `allow_upgrade_to` field is false (see kEnableWifiLanUpgrade
+  // and kEnableWifiHotspotClient).
+  std::vector<Medium> StripOutDisallowedUpgradeMediums(
+      std::vector<Medium> mediums) const;
+
+  // Returns the local endpoint's MediumRole populated from `mediums_`.
+  location::nearby::connections::MediumRole GetLocalMediumRole(
+      ClientProxy* client) const;
+
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);
 
   void InitBwuHandlers();
   void RunOnBwuManagerThread(const std::string& name, Runnable runnable);
+  void InitiateBwuForEndpoint(ClientProxy* client,
+                              const std::string& endpoint_id, Medium new_medium,
+                              bool allow_role_switch);
   std::vector<Medium> StripOutUnavailableMediums(
+      ClientProxy* client, const std::string& endpoint_id,
       const std::vector<Medium>& mediums) const;
-  Medium ChooseBestUpgradeMedium(const std::string& endpoint_id,
+  Medium ChooseBestUpgradeMedium(ClientProxy* client,
+                                 const std::string& endpoint_id,
                                  const std::vector<Medium>& mediums) const;
 
   // BaseBwuHandler
-  using ClientIntroduction = BwuNegotiationFrame::ClientIntroduction;
 
-  // Processes the BwuNegotiationFrames that come over the EndpointChannel on
-  // both initiator and responder side of the upgrade.
-  void OnBwuNegotiationFrame(ClientProxy* client,
-                             const BwuNegotiationFrame frame,
-                             const string& endpoint_id);
+  // Processes the
+  // location::nearby::connections::BandwidthUpgradeNegotiationFrames that come
+  // over the EndpointChannel on both initiator and responder side of the
+  // upgrade.
+  void OnBwuNegotiationFrame(
+      ClientProxy* client,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame&
+          frame,
+      const std::string& endpoint_id);
 
   // Called to revert any state changed in the course of setting up the upgraded
   // medium for an endpoint.
@@ -170,22 +189,27 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void RunUpgradeProtocol(ClientProxy* client, const std::string& endpoint_id,
                           std::unique_ptr<EndpointChannel> new_channel,
                           bool enable_encryption);
-  void RunUpgradeFailedProtocol(ClientProxy* client,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info);
-  void ProcessBwuPathAvailableEvent(ClientProxy* client,
-                                    const std::string& endpoint_id,
-                                    const UpgradePathInfo& upgrade_path_info);
+  void RunUpgradeFailedProtocol(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
+  void ProcessBwuPathAvailableEvent(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
   ErrorOr<std::unique_ptr<EndpointChannel>>
   ProcessBwuPathAvailableEventInternal(
       ClientProxy* client, const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info);
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
   void ProcessLastWriteToPriorChannelEvent(ClientProxy* client,
                                            const std::string& endpoint_id);
   void ProcessSafeToClosePriorChannelEvent(ClientProxy* client,
                                            const std::string& endpoint_id);
-  bool ReadClientIntroductionFrame(EndpointChannel* endpoint_channel,
-                                   ClientIntroduction& introduction);
+  bool ReadClientIntroductionFrame(
+      EndpointChannel* endpoint_channel,
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          ClientIntroduction& introduction);
   bool ReadClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   bool WriteClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   void ProcessEndpointDisconnection(ClientProxy* client,
@@ -193,7 +217,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                     CountDownLatch* barrier);
   void ProcessUpgradeFailureEvent(
       ClientProxy* client, const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_info,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_info,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
       bool record_analytic,
       location::nearby::proto::connections::OperationResultCode
@@ -215,7 +240,21 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   bool NeedToSwitchRole(
       ClientProxy* client, const std::string& endpoint_id, Medium medium,
-      const location::nearby::connections::MediumRole& medium_role);
+      const location::nearby::connections::MediumRole& medium_role,
+      const location::nearby::connections::OsInfo& remote_os_info) const;
+  bool CanSwitchRoleForMedium(ClientProxy* client,
+                              const std::string& endpoint_id,
+                              Medium medium) const;
+
+  void ProcessUpgradePathRequest(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
+
+  bool CanHost(
+      const location::nearby::connections::MediumRole& local_medium_role,
+      const location::nearby::connections::MediumRole& remote_medium_role,
+      Medium medium) const;
 
   virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
       ClientProxy* client) const;
@@ -234,7 +273,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   Mediums* mediums_;
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers_;
-  BleV2& ble_v2_medium_{mediums_->GetBleV2()};
+  Ble& ble_medium_{mediums_->GetBle()};
 
   EndpointManager* endpoint_manager_;
   EndpointChannelManager* channel_manager_;

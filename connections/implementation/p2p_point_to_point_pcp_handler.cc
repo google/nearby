@@ -16,7 +16,15 @@
 
 #include <vector>
 
+#include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/p2p_star_pcp_handler.h"
+#include "connections/implementation/pcp.h"
 #include "internal/flags/nearby_flags.h"
 
 namespace nearby {
@@ -41,9 +49,20 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetWifiLan().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
-  if (mediums_->GetWifi().IsAvailable() &&
-      mediums_->GetWifiDirect().IsGCAvailable()) {
-    mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiAware)) {
+    if (mediums_->GetWifiAware().IsAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::WIFI_AWARE_R4);
+    }
+  }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiDirect)) {
+    if (mediums_->GetWifi().IsAvailable() &&
+        mediums_->GetWifiDirect().IsGCAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
+    }
   }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {
@@ -55,15 +74,8 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    if (mediums_->GetBleV2().IsAvailable()) {
-      mediums.push_back(location::nearby::proto::connections::BLE);
-    }
-  } else {
-    if (mediums_->GetBle().IsAvailable()) {
-      mediums.push_back(location::nearby::proto::connections::BLE);
-    }
+  if (mediums_->GetBle().IsAvailable()) {
+    mediums.push_back(location::nearby::proto::connections::BLE);
   }
   return mediums;
 }

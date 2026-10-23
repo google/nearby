@@ -19,12 +19,13 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 
 namespace nearby {
@@ -67,7 +68,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
                                    const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (service_type_to_callback_map_.contains(service_type)) {
       LOG(INFO) << "WifiLan Discovery already start with service_type="
                 << service_type << "; impl=" << &GetImpl();
@@ -77,7 +78,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   api::WifiLanMedium::DiscoveredServiceCallback api_callback = {
       .service_discovered_cb =
           [this](const NsdServiceInfo& service_info) {
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             std::string service_type = service_info.GetServiceType();
             // Check callback for the service type.
             const auto& it = service_type_to_callback_map_.find(service_type);
@@ -116,7 +117,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
           },
       .service_lost_cb =
           [this](const NsdServiceInfo& service_info) {
-            MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             std::string service_type = service_info.GetServiceType();
             std::string service_name = service_info.GetServiceName();
             auto services_it = service_type_to_services_map_.find(service_type);
@@ -143,7 +144,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   };
   {
     // Insert callback to the map first no matter it succeeds or not.
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto pair = service_type_to_callback_map_.insert(
         {service_type, std::make_unique<DiscoveryCallbackInfo>()});
     auto& context = *pair.first->second;
@@ -159,7 +160,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   bool success = impl_->StartDiscovery(service_type, std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     service_type_to_callback_map_.erase(service_type);
     service_type_to_services_map_.erase(service_type);
   }
@@ -169,7 +170,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
 }
 
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!service_type_to_callback_map_.contains(service_type)) {
     return false;
   }
@@ -192,13 +193,17 @@ WifiLanSocket WifiLanMedium::ConnectToService(
 }
 
 WifiLanSocket WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "WifiLanMedium::ConnectToService: ip address="
-            << WifiUtils::GetHumanReadableIpAddress(ip_address)
-            << ", port=" << port;
+            << service_address;
   return WifiLanSocket(
-      impl_->ConnectToService(ip_address, port, cancellation_flag));
+      impl_->ConnectToService(service_address, cancellation_flag));
+}
+
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
+    const WifiLanServerSocket& server_socket) {
+  return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
 }
 
 }  // namespace nearby

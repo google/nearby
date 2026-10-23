@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
@@ -59,8 +60,8 @@ class Pipe {
     explicit PipeOutputStream(std::shared_ptr<Pipe> pipe) : pipe_(pipe) {}
     ~PipeOutputStream() override { DoClose(); }
 
-    Exception Write(const ByteArray& data) override {
-      return pipe_->Write(data);
+    Exception Write(absl::string_view data) override {
+      return pipe_->Write(ByteArray::FromStringView(data));
     }
     Exception Flush() override { return {Exception::kSuccess}; }
     Exception Close() override { return DoClose(); }

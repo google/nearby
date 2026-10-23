@@ -23,11 +23,11 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "sharing/advertisement_capabilities.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/public/logging.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 // v1 advertisements:
@@ -57,6 +57,7 @@ enum class TlvTypes : uint8_t {
   kUnknown = 0,
   kQrCode = 1,
   kVendorId = 2,
+  kCapabilities = 3,
 };
 // The length in bytes of the vendor ID in the TLV advertisement.
 constexpr uint8_t kVendorIdLength = 1;
@@ -126,7 +127,7 @@ bool ParseHasDeviceName(uint8_t b) {
 std::unique_ptr<Advertisement> Advertisement::NewInstance(
     std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_metadata_key,
     ShareTargetType device_type, std::optional<std::string> device_name,
-    uint8_t vendor_id) {
+    uint8_t vendor_id, AdvertisementCapabilities capabilities) {
   if (salt.size() != Advertisement::kSaltSize) {
     LOG(ERROR) << "Failed to create advertisement because the salt did "
                   "not match the expected length "
@@ -153,17 +154,21 @@ std::unique_ptr<Advertisement> Advertisement::NewInstance(
   // Using `new` to access a non-public constructor.
   return std::make_unique<Advertisement>(
       /* version= */ 0, std::move(salt), std::move(encrypted_metadata_key),
-      device_type, std::move(device_name), vendor_id);
+      device_type, std::move(device_name), vendor_id, std::move(capabilities));
 }
 
 std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
+  std::vector<uint8_t> capabilities_data = capabilities_.ToBytes();
   // We add 3 bytes for vendor ID because of type (1 byte), len (1 byte), and
   // the ID itself (1 byte).
   int size = kMinimumSize + (device_name_.has_value() ? 1 : 0) +
              (device_name_.has_value() ? device_name_->size() : 0) +
              (vendor_id_ != static_cast<uint8_t>(BlockedVendorId::kNone)
                   ? (kTlvMinimumLength + kVendorIdLength)
-                  : 0);
+                  : 0) +
+             (capabilities_.IsEmpty() || capabilities_data.empty()
+                  ? 0
+                  : (kTlvMinimumLength + capabilities_data.size()));
 
   std::vector<uint8_t> endpoint_info;
   endpoint_info.reserve(size);
@@ -190,6 +195,14 @@ std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
     // The vendor ID itself.
     endpoint_info.push_back(vendor_id_);
   }
+  // Add capabilities TLV
+  if (!capabilities_.IsEmpty() && !capabilities_data.empty()) {
+    VLOG(1) << "Adding capabilities to advertisement";
+    endpoint_info.push_back(static_cast<uint8_t>(TlvTypes::kCapabilities));
+    endpoint_info.push_back(static_cast<uint8_t>(capabilities_data.size()));
+    endpoint_info.insert(endpoint_info.end(), capabilities_data.begin(),
+                         capabilities_data.end());
+  }
 
   return endpoint_info;
 }
@@ -204,7 +217,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
     return nullptr;
   }
 
-  auto iter = endpoint_info.begin();
+  auto iter = endpoint_info.cbegin();
   uint8_t first_byte = *iter++;
 
   int version = ParseVersion(first_byte);
@@ -242,6 +255,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
   }
 
   uint8_t vendor_id = static_cast<uint8_t>(BlockedVendorId::kNone);
+  AdvertisementCapabilities capabilities{};
   while (endpoint_info.end() - iter >= kTlvMinimumLength) {
     // We will parse a TLV element now.
     TlvTypes type = static_cast<TlvTypes>(*iter++);
@@ -263,6 +277,11 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
         // TODO: b/341984671 - Implement handling for this TLV type.
         iter += value_len;
         break;
+      case TlvTypes::kCapabilities:
+        capabilities = AdvertisementCapabilities::Parse(
+            absl::MakeConstSpan(iter, value_len));
+        iter += value_len;
+        break;
       default:
         LOG(ERROR) << "Unknown TLV type: " << static_cast<uint8_t>(type);
         iter += value_len;
@@ -272,7 +291,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
 
   return Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_metadata_key), device_type,
-      std::move(optional_device_name), vendor_id);
+      std::move(optional_device_name), vendor_id, std::move(capabilities));
   // LINT.ThenChange(//depot/google3/third_party/nearby/connections/implementation/mediums/advertisements/advertisement_util.cc)
 }
 
@@ -280,7 +299,8 @@ bool Advertisement::operator==(const Advertisement& other) const {
   return version_ == other.version_ && salt_ == other.salt_ &&
          encrypted_metadata_key_ == other.encrypted_metadata_key_ &&
          device_type_ == other.device_type_ &&
-         device_name_ == other.device_name_ && vendor_id_ == other.vendor_id_;
+         device_name_ == other.device_name_ && vendor_id_ == other.vendor_id_ &&
+         capabilities_.ToBytes() == other.capabilities_.ToBytes();
 }
 
 // private
@@ -288,13 +308,14 @@ Advertisement::Advertisement(int version, std::vector<uint8_t> salt,
                              std::vector<uint8_t> encrypted_metadata_key,
                              ShareTargetType device_type,
                              std::optional<std::string> device_name,
-                             uint8_t vendor_id)
+                             uint8_t vendor_id,
+                             AdvertisementCapabilities capabilities)
     : version_(version),
       salt_(std::move(salt)),
       encrypted_metadata_key_(std::move(encrypted_metadata_key)),
       device_type_(device_type),
       device_name_(std::move(device_name)),
-      vendor_id_(vendor_id) {}
+      vendor_id_(vendor_id),
+      capabilities_(std::move(capabilities)) {}
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

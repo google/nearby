@@ -20,25 +20,23 @@
 #include <memory>
 #include <string>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
+#include "sharing/outgoing_targets_manager.h"
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_update_callback.h"
 
-namespace nearby {
+namespace nearby::sharing {
 
 class AccountManager;
-
-namespace sharing {
-
 class NearbyNotificationDelegate;
-class NearbyShareContactManager;
 
 // This service implements Nearby Sharing on top of the Nearby Connections mojo.
 // Currently, only single profile will be allowed to be bound at a time and only
@@ -109,20 +107,11 @@ class NearbySharingService {
     virtual void OnStartAdvertisingFailure() {}
     virtual void OnStartDiscoveryResult(bool success) {}
 
-    virtual void OnFastInitiationDevicesDetected() {}
-    virtual void OnFastInitiationDevicesNotDetected() {}
-    virtual void OnFastInitiationScanningStopped() {}
-
     virtual void OnBluetoothStatusChanged(AdapterState state) {}
-    virtual void OnWifiStatusChanged(AdapterState state) {}
     virtual void OnLanStatusChanged(AdapterState state) {}
     virtual void OnIrrecoverableHardwareErrorReported() {}
 
     virtual void OnCredentialError() {}
-
-    // Called during the |KeyedService| shutdown, but before everything has been
-    // cleaned up. It is safe to remove any observers on this event.
-    virtual void OnShutdown() = 0;
   };
 
   static std::string StatusCodeToString(StatusCodes status_code);
@@ -131,7 +120,6 @@ class NearbySharingService {
 
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;
-  virtual bool HasObserver(Observer* observer) = 0;
 
   // Shutdown the Nearby Sharing service, and cleanup.
   virtual void Shutdown(
@@ -153,28 +141,28 @@ class NearbySharingService {
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
       bool disable_wifi_hotspot,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current send surface.
   virtual void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Registers a receiver surface for handling payload transfer status, and
   // advertises the vendor ID specified by |vendor_id|.
   virtual void RegisterReceiveSurface(
       TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
       Advertisement::BlockedVendorId vendor_id,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current receive surface.
   virtual void UnregisterReceiveSurface(
       TransferUpdateCallback* transfer_callback,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters all foreground receive surfaces.
   virtual void ClearForegroundReceiveSurfaces(
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
+      absl::AnyInvocable<void(StatusCodes)> status_codes_callback) = 0;
 
   // Returns true if there is an ongoing file transfer.
   virtual bool IsTransferring() const = 0;
@@ -193,12 +181,6 @@ class NearbySharingService {
 
   // Returns true if the PC is connected to LAN (wifi/ethernet).
   virtual bool IsLanConnected() const = 0;
-
-  // Returns true if the Wi-Fi adapter is present.
-  virtual bool IsWifiPresent() const = 0;
-
-  // Returns true if the Wi-Fi adapter is powered.
-  virtual bool IsWifiPowered() const = 0;
 
   // Returns the QR Code Url.
   virtual std::string GetQrCodeUrl() const = 0;
@@ -224,6 +206,12 @@ class NearbySharingService {
       int64_t share_target_id,
       std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
 
+  virtual void InitiatePairing(
+      int64_t share_target_id,
+      service::proto::BindingRequest::Type binding_type,
+      absl::AnyInvocable<void(StatusCodes status_codes) &&>
+          status_codes_callback) = 0;
+
   // Checks to make sure visibility setting is valid and updates the service's
   // visibility if so.
   virtual void SetVisibility(
@@ -234,16 +222,19 @@ class NearbySharingService {
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
-  virtual NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() = 0;
-  virtual NearbyShareContactManager* GetContactManager() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;
   virtual AccountManager* GetAccountManager() = 0;
   virtual Clock& GetClock() = 0;
   virtual void SetAlternateServiceUuidForDiscovery(
       uint16_t alternate_service_uuid) = 0;
+  virtual SyncManager& sync_manager() = 0;
+  virtual OutgoingTargetsManager& outgoing_targets_manager() = 0;
+  virtual void UpdateBackupSavePath(
+      absl::string_view binding_id, absl::string_view save_path,
+      absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+          status_codes_callback) = 0;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_H_

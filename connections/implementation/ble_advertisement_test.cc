@@ -22,9 +22,9 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -45,13 +45,13 @@ using ::testing::status::StatusIs;
 
 // TODO(b/169550050): Implement UWBAddress.
 TEST(BleAdvertisementTest, ConstructionWorks) {
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
   BleAdvertisement ble_advertisement{
-      kVersion,        kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -60,7 +60,7 @@ TEST(BleAdvertisementTest, ConstructionWorks) {
   EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
   EXPECT_EQ(kEndpointId, ble_advertisement.GetEndpointId());
   EXPECT_EQ(endpoint_info, ble_advertisement.GetEndpointInfo());
-  EXPECT_EQ(kBluetoothMacAddress, ble_advertisement.GetBluetoothMacAddress());
+  EXPECT_EQ(mac_address, ble_advertisement.GetBluetoothMacAddress());
   EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
@@ -80,14 +80,15 @@ TEST(BleAdvertisementTest, ConstructionWorksForFastAdvertisement) {
 
 TEST(BleAdvertisementTest, ConstructionWorksWithEmptyEndpointInfo) {
   ByteArray empty_endpoint_info;
-
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   BleAdvertisement ble_advertisement{kVersion,
                                      kPcp,
                                      service_id_hash,
                                      std::string(kEndpointId),
                                      empty_endpoint_info,
-                                     std::string(kBluetoothMacAddress),
+                                     mac_address,
                                      ByteArray{},
                                      kWebRtcState};
 
@@ -98,7 +99,7 @@ TEST(BleAdvertisementTest, ConstructionWorksWithEmptyEndpointInfo) {
   EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
   EXPECT_EQ(kEndpointId, ble_advertisement.GetEndpointId());
   EXPECT_EQ(empty_endpoint_info, ble_advertisement.GetEndpointInfo());
-  EXPECT_EQ(kBluetoothMacAddress, ble_advertisement.GetBluetoothMacAddress());
+  EXPECT_EQ(mac_address, ble_advertisement.GetBluetoothMacAddress());
   EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
@@ -120,14 +121,15 @@ TEST(BleAdvertisementTest,
 
 TEST(BleAdvertisementTest, ConstructionWorksWithEmojiEndpointInfo) {
   ByteArray emoji_endpoint_info{std::string("\u0001F450 \u0001F450")};
-
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   BleAdvertisement ble_advertisement{kVersion,
                                      kPcp,
                                      service_id_hash,
                                      std::string(kEndpointId),
                                      emoji_endpoint_info,
-                                     std::string(kBluetoothMacAddress),
+                                     mac_address,
                                      ByteArray{},
                                      kWebRtcState};
 
@@ -138,7 +140,7 @@ TEST(BleAdvertisementTest, ConstructionWorksWithEmojiEndpointInfo) {
   EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
   EXPECT_EQ(kEndpointId, ble_advertisement.GetEndpointId());
   EXPECT_EQ(emoji_endpoint_info, ble_advertisement.GetEndpointInfo());
-  EXPECT_EQ(kBluetoothMacAddress, ble_advertisement.GetBluetoothMacAddress());
+  EXPECT_EQ(mac_address, ble_advertisement.GetBluetoothMacAddress());
   EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
@@ -162,12 +164,13 @@ TEST(BleAdvertisementTest, ConstructionFailsWithLongEndpointInfo) {
   std::string long_endpoint_name(BleAdvertisement::kMaxEndpointInfoLength + 1,
                                  'x');
   ByteArray long_endpoint_info{long_endpoint_name};
-
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   BleAdvertisement ble_advertisement{
       kVersion,           kPcp,
       service_id_hash,    std::string(kEndpointId),
-      long_endpoint_info, std::string(kBluetoothMacAddress),
+      long_endpoint_info, mac_address,
       ByteArray{},        kWebRtcState};
 
   EXPECT_FALSE(ble_advertisement.IsValid());
@@ -187,14 +190,13 @@ TEST(BleAdvertisementTest,
 
 TEST(BleAdvertisementTest, ConstructionFailsWithBadVersion) {
   auto bad_version = static_cast<BleAdvertisement::Version>(666);
-
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
   BleAdvertisement ble_advertisement{
-      bad_version,     kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      bad_version,   kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
 
   EXPECT_FALSE(ble_advertisement.IsValid());
 }
@@ -213,14 +215,13 @@ TEST(BleAdvertisementTest,
 
 TEST(BleAdvertisementTest, ConstructionFailsWithBadPCP) {
   auto bad_pcp = static_cast<Pcp>(666);
-
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
   BleAdvertisement ble_advertisement{
-      kVersion,        bad_pcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      bad_pcp,     service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
 
   EXPECT_FALSE(ble_advertisement.IsValid());
 }
@@ -237,48 +238,26 @@ TEST(BleAdvertisementTest, ConstructionFailsWithBadPCPForFastAdvertisement) {
 }
 
 TEST(BleAdvertisementTest, ConstructionSucceedsWithEmptyBluetoothMacAddress) {
-  std::string empty_bluetooth_mac_address = "";
-
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
   BleAdvertisement ble_advertisement{
       kVersion,        kPcp,
       service_id_hash, std::string(kEndpointId),
-      endpoint_info,   empty_bluetooth_mac_address,
+      endpoint_info,   {},
       ByteArray{},     kWebRtcState};
 
   EXPECT_TRUE(ble_advertisement.IsValid());
-}
-
-TEST(BleAdvertisementTest, ConstructionSucceedsWithInvalidBluetoothMacAddress) {
-  std::string bad_bluetooth_mac_address = "022:00";
-
-  ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
-  ByteArray endpoint_info{std::string(kEndpointName)};
-  BleAdvertisement ble_advertisement{kVersion,        kPcp,
-                                     service_id_hash, std::string(kEndpointId),
-                                     endpoint_info,   bad_bluetooth_mac_address,
-                                     ByteArray{},     kWebRtcState};
-
-  EXPECT_TRUE(ble_advertisement.IsValid());
-  EXPECT_EQ(kVersion, ble_advertisement.GetVersion());
-  EXPECT_EQ(kPcp, ble_advertisement.GetPcp());
-  EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
-  EXPECT_EQ(kEndpointId, ble_advertisement.GetEndpointId());
-  EXPECT_EQ(endpoint_info, ble_advertisement.GetEndpointInfo());
-  EXPECT_TRUE(ble_advertisement.GetBluetoothMacAddress().empty());
-  EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
 TEST(BleAdvertisementTest, ConstructionFromBytesWorks) {
   // Serialize good data into a good Ble Advertisement.
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   BleAdvertisement org_ble_advertisement{
-      kVersion,        kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
   ByteArray ble_advertisement_bytes(org_ble_advertisement);
 
   auto ble_status_or =
@@ -293,7 +272,7 @@ TEST(BleAdvertisementTest, ConstructionFromBytesWorks) {
   EXPECT_EQ(service_id_hash, ble_advertisement.GetServiceIdHash());
   EXPECT_EQ(kEndpointId, ble_advertisement.GetEndpointId());
   EXPECT_EQ(endpoint_info, ble_advertisement.GetEndpointInfo());
-  EXPECT_EQ(kBluetoothMacAddress, ble_advertisement.GetBluetoothMacAddress());
+  EXPECT_EQ(mac_address, ble_advertisement.GetBluetoothMacAddress());
   EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
@@ -325,11 +304,11 @@ TEST(BleAdvertisementTest, ConstructionFromLongLengthBytesWorks) {
   // Serialize good data into a good Ble Advertisement.
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   BleAdvertisement ble_advertisement{
-      kVersion,        kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
   ByteArray ble_advertisement_bytes(ble_advertisement);
 
   // Add bytes to the end of the valid Ble advertisement.
@@ -351,8 +330,7 @@ TEST(BleAdvertisementTest, ConstructionFromLongLengthBytesWorks) {
   EXPECT_EQ(service_id_hash, long_ble_advertisement.GetServiceIdHash());
   EXPECT_EQ(kEndpointId, long_ble_advertisement.GetEndpointId());
   EXPECT_EQ(endpoint_info, long_ble_advertisement.GetEndpointInfo());
-  EXPECT_EQ(kBluetoothMacAddress,
-            long_ble_advertisement.GetBluetoothMacAddress());
+  EXPECT_EQ(mac_address, long_ble_advertisement.GetBluetoothMacAddress());
   EXPECT_EQ(kWebRtcState, ble_advertisement.GetWebRtcState());
 }
 
@@ -370,11 +348,11 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthBytesFails) {
   // Serialize good data into a good Ble Advertisement.
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   BleAdvertisement ble_advertisement{
-      kVersion,        kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
   ByteArray ble_advertisement_bytes(ble_advertisement);
 
   // Shorten the valid Ble Advertisement.
@@ -410,11 +388,11 @@ TEST(BleAdvertisementTest,
   // Serialize good data into a good Ble Advertisement.
   ByteArray service_id_hash{std::string(kServiceIdHashBytes)};
   ByteArray endpoint_info{std::string(kEndpointName)};
+  MacAddress mac_address;
+  MacAddress::FromString(kBluetoothMacAddress, mac_address);
   BleAdvertisement ble_advertisement{
-      kVersion,        kPcp,
-      service_id_hash, std::string(kEndpointId),
-      endpoint_info,   std::string(kBluetoothMacAddress),
-      ByteArray{},     kWebRtcState};
+      kVersion,      kPcp,        service_id_hash, std::string(kEndpointId),
+      endpoint_info, mac_address, ByteArray{},     kWebRtcState};
   ByteArray ble_advertisement_bytes(ble_advertisement);
 
   // Corrupt the EndpointNameLength bits.

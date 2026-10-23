@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
@@ -56,34 +57,35 @@ std::unique_ptr<V1Frame> DecodeV1Frame(const std::vector<uint8_t>& data) {
 
 IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
                                            NearbyConnection* connection)
-    : service_thread_(service_thread),
-      connection_(connection) {
+    : service_thread_(service_thread), connection_(connection) {
   DCHECK(connection);
 }
 
 IncomingFramesReader::~IncomingFramesReader() {
-  LOG(INFO) << "~IncomingFramesReader is called";
-  CloseAllPendingReads();
+  VLOG(1) << "~IncomingFramesReader is called";
+  CloseAllPendingReads(/*is_timeout=*/false);
 }
 
 void IncomingFramesReader::ReadFrame(
-    std::function<void(std::optional<V1Frame>)> callback) {
-  ProcessReadRequest(std::nullopt, std::move(callback), absl::ZeroDuration());
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
+    absl::Duration timeout) {
+  ProcessReadRequest(std::nullopt, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::ReadFrame(
-    FrameType frame_type, std::function<void(std::optional<V1Frame>)> callback,
+    FrameType frame_type,
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   ProcessReadRequest(frame_type, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::ProcessReadRequest(
     std::optional<FrameType> frame_type,
-    std::function<void(std::optional<V1Frame>)> callback,
+    absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   std::unique_ptr<V1Frame> cached_frame;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!read_frame_info_queue_.empty()) {
       // There are already outstanding read requests, just queue this up.
       ReadFrameInfo read_fame_info{frame_type, std::move(callback), timeout};
@@ -95,27 +97,27 @@ void IncomingFramesReader::ProcessReadRequest(
     cached_frame = PopCachedFrame(frame_type);
   }
   if (cached_frame) {
-    callback(*cached_frame);
+    callback(/*is_timeout=*/false, std::move(*cached_frame));
     return;
   }
   {
     // No matching cached frame, queue this request, then read more frames.
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ReadFrameInfo read_frame_info{frame_type, std::move(callback), timeout};
     read_frame_info_queue_.push(std::move(read_frame_info));
 
     if (timeout != absl::ZeroDuration()) {
-    timeout_timer_ = std::make_unique<ThreadTimer>(
-        service_thread_, "frame_reader_timeout", timeout,
-        [reader = GetWeakPtr()]() {
-          auto frame_reader = reader.lock();
-          if (frame_reader == nullptr) {
-            LOG(WARNING) << "IncomingFramesReader has already been released "
-                            "before read timeout.";
-            return;
-          }
-          frame_reader->OnTimeout();
-        });
+      timeout_timer_ = std::make_unique<ThreadTimer>(
+          service_thread_, "frame_reader_timeout", timeout,
+          [reader = GetWeakPtr()]() {
+            auto frame_reader = reader.lock();
+            if (frame_reader == nullptr) {
+              LOG(WARNING) << "IncomingFramesReader has already been released "
+                              "before read timeout.";
+              return;
+            }
+            frame_reader->OnTimeout();
+          });
     }
   }
   ReadNextFrame();
@@ -131,7 +133,7 @@ void IncomingFramesReader::ReadNextFrame() {
         }
         if (!bytes.has_value()) {
           LOG(WARNING) << __func__ << ": Failed to read frame";
-          frame_reader->CloseAllPendingReads();
+          frame_reader->CloseAllPendingReads(/*is_timeout=*/false);
           return;
         }
         frame_reader->OnDataReadFromConnection(*bytes);
@@ -140,7 +142,7 @@ void IncomingFramesReader::ReadNextFrame() {
 
 void IncomingFramesReader::OnTimeout() {
   LOG(WARNING) << __func__ << ": Timed out reading from NearbyConnection.";
-  CloseAllPendingReads();
+  CloseAllPendingReads(/*is_timeout=*/true);
 }
 
 void IncomingFramesReader::OnDataReadFromConnection(
@@ -156,8 +158,9 @@ void IncomingFramesReader::OnDataReadFromConnection(
   FrameType frame_type = frame->type();
   bool cached_frame = false;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (read_frame_info_queue_.empty()) {
+      // Drop the frame if no one is waiting.
       return;
     }
     const ReadFrameInfo& frame_info = read_frame_info_queue_.front();
@@ -177,31 +180,31 @@ void IncomingFramesReader::OnDataReadFromConnection(
   Done(std::move(frame));
 }
 
-void IncomingFramesReader::CloseAllPendingReads() {
+void IncomingFramesReader::CloseAllPendingReads(bool is_timeout) {
   std::queue<ReadFrameInfo> queue;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     queue.swap(read_frame_info_queue_);
   }
   while (!queue.empty()) {
     ReadFrameInfo read_frame_info = std::move(queue.front());
     queue.pop();
-    read_frame_info.callback(std::nullopt);
+    read_frame_info.callback(is_timeout, std::nullopt);
   }
 }
 
 void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
   ReadFrameInfo read_frame_info;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     timeout_timer_.reset();
     read_frame_info = std::move(read_frame_info_queue_.front());
     read_frame_info_queue_.pop();
   }
-  read_frame_info.callback(*frame);
+  read_frame_info.callback(/*is_timeout=*/false, *frame);
 
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (read_frame_info_queue_.empty()) {
       return;
     }
@@ -209,12 +212,9 @@ void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
     read_frame_info_queue_.pop();
   }
 
-  if (read_frame_info.timeout != absl::ZeroDuration()) {
-    ReadFrame(*read_frame_info.frame_type,
-              std::move(read_frame_info.callback), read_frame_info.timeout);
-  } else {
-    ReadFrame(std::move(read_frame_info.callback));
-  }
+  ProcessReadRequest(read_frame_info.frame_type,
+                     std::move(read_frame_info.callback),
+                     read_frame_info.timeout);
 }
 
 std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(

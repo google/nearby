@@ -14,6 +14,7 @@
 
 #include "internal/platform/bluetooth_connection_info.h"
 
+#include <cstdint>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -22,6 +23,8 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
+#include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -35,22 +38,26 @@ constexpr absl::string_view kBluetoothUuid{"test"};
 constexpr char kAction = 0x0F;
 
 TEST(BluetoothConnectionInfoTest, TestGetFields) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
   EXPECT_EQ(info.GetMediumType(), Medium::BLUETOOTH);
-  EXPECT_EQ(info.GetMacAddress(), kMacAddr);
+  EXPECT_EQ(info.GetMacAddress(), mac_address);
   ASSERT_EQ(info.GetActions().size(), 1);
   EXPECT_EQ(info.GetActions()[0], kAction);
   EXPECT_EQ(info.GetBluetoothUuid(), kBluetoothUuid);
 }
 
-TEST(BluetoothConnectionInfoTest, TestGetLongMacAddr) {
-  BluetoothConnectionInfo info(absl::StrCat(kMacAddr, "\x56\x70\x89"),
-                               kBluetoothUuid, {kAction});
-  EXPECT_NE(info.GetMacAddress(), kMacAddr);
-}
-
 TEST(BluetoothConnectionInfoTest, TestToFromBytes) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -58,19 +65,24 @@ TEST(BluetoothConnectionInfoTest, TestToFromBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromNoMacAddress) {
-  BluetoothConnectionInfo info("", kBluetoothUuid, {kAction});
+  BluetoothConnectionInfo info({}, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
   info = result.value();
-  EXPECT_EQ(info.GetMacAddress(), "");
+  EXPECT_FALSE(info.GetMacAddress().IsSet());
   EXPECT_EQ(info.GetBluetoothUuid(), kBluetoothUuid);
   ASSERT_EQ(info.GetActions().size(), 1);
   EXPECT_EQ(info.GetActions()[0], kAction);
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromWrongLength) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   ++serialized[1];
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
@@ -78,7 +90,12 @@ TEST(BluetoothConnectionInfoTest, TestToFromWrongLength) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromNoBluetoothUuid) {
-  BluetoothConnectionInfo info(kMacAddr, "", {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, "", {kAction});
   std::string serialized = info.ToDataElementBytes();
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_OK(result);
@@ -91,7 +108,7 @@ TEST(BluetoothConnectionInfoTest, TestFromEmptyBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestFromNoAction) {
-  BluetoothConnectionInfo info("", "", {kAction});
+  BluetoothConnectionInfo info({}, "", {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[1] -= 1;
   auto result = BluetoothConnectionInfo::FromDataElementBytes(
@@ -105,7 +122,12 @@ TEST(BluetoothConnectionInfoTest, TestFromInvalidBytes) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestFromBadElementType) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
   std::string serialized = info.ToDataElementBytes();
   serialized[0] = 0x56;
   auto result = BluetoothConnectionInfo::FromDataElementBytes(serialized);
@@ -113,14 +135,24 @@ TEST(BluetoothConnectionInfoTest, TestFromBadElementType) {
 }
 
 TEST(BluetoothConnectionInfoTest, TestCopy) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
   BluetoothConnectionInfo copy(info);
   EXPECT_EQ(info, copy);
 }
 
 TEST(BluetoothConnectionInfoTest, TestEquals) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, {kAction});
-  BluetoothConnectionInfo info2(kMacAddr, kBluetoothUuid, {kAction});
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, {kAction});
+  BluetoothConnectionInfo info2(mac_address, kBluetoothUuid, {kAction});
   EXPECT_EQ(info, info2);
 }
 

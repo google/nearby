@@ -18,9 +18,16 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/strings/ascii.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/crypto.h" //NOLINT
+#include "internal/platform/crypto.h"  //NOLINT
+#include "internal/platform/nsd_service_info.h"
 #include "internal/platform/prng.h"
 
 namespace nearby {
@@ -28,6 +35,11 @@ namespace connections {
 
 namespace {
 constexpr int kDefaultSaltLength = 16;
+
+// Appended to the service ID before it is hashed, so that a Wi-Fi Aware
+// service name never collides with the Wi-Fi LAN mDNS service type derived
+// from the same service ID (AWDL does the same with "_AWDL").
+constexpr absl::string_view kWifiAwareServiceIdSuffixForServiceName = "_AWARE";
 }  // namespace
 
 ByteArray Utils::GenerateRandomBytes(size_t length) {
@@ -66,6 +78,24 @@ std::string Utils::GenerateSalt() { return GenerateSalt(kDefaultSaltLength); }
 std::string Utils::GenerateSalt(size_t length) {
   ByteArray salt = GenerateRandomBytes(length);
   return Base64Utils::Encode(salt);
+}
+
+std::string Utils::GenerateServiceType(absl::string_view service_id) {
+  const ByteArray service_id_hash = Sha256Hash(
+      std::string(service_id), NsdServiceInfo::kTypeFromServiceIdHashLength);
+  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
+                         absl::AsciiStrToUpper(absl::BytesToHexString(
+                             std::string(service_id_hash))));
+}
+
+std::string Utils::GenerateWifiAwareServiceName(absl::string_view service_id) {
+  // Wi-Fi Aware service names have the form of an mDNS service type without
+  // the trailing dot ("_<hash>._tcp"); that is what Apple's WiFiAwareServices
+  // Info.plist keys and Android's NAN service names look like.
+  return std::string(absl::StripSuffix(
+      GenerateServiceType(
+          absl::StrCat(service_id, kWifiAwareServiceIdSuffixForServiceName)),
+      "."));
 }
 
 }  // namespace connections

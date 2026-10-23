@@ -29,6 +29,7 @@ using ::nearby::connections::BooleanMediumSelector;
   selector.bluetooth = self.bluetooth;
   selector.web_rtc = self.webRTC;
   selector.wifi_lan = self.wifiLAN;
+  selector.wifi_aware = self.wifiAware;
   selector.wifi_hotspot = self.wifiHotspot;
   selector.wifi_direct = self.wifiDirect;
   selector.awdl = self.awdl;

@@ -15,9 +15,6 @@
 #include "sharing/internal/test/fake_context.h"
 
 #include "gtest/gtest.h"
-#include "absl/synchronization/notification.h"
-#include "absl/time/time.h"
-#include "internal/platform/task_runner.h"
 
 namespace nearby {
 namespace {
@@ -29,19 +26,6 @@ TEST(FakeContext, TestAccessMockContext) {
   EXPECT_NE(context.GetConnectivityManager(), nullptr);
   EXPECT_NE(context.CreateSequencedTaskRunner(), nullptr);
   EXPECT_NE(context.CreateConcurrentTaskRunner(5), nullptr);
-}
-
-TEST(FakeContext, ExecuteTask) {
-  FakeContext context;
-  absl::Notification notification;
-  bool is_called = false;
-  context.GetTaskRunner()->PostTask([&]() {
-    is_called = true;
-    notification.Notify();
-  });
-
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(1)));
-  EXPECT_TRUE(is_called);
 }
 
 }  // namespace

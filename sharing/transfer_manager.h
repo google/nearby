@@ -15,16 +15,17 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_TRANSFER_MANAGER_H_
 #define THIRD_PARTY_NEARBY_SHARING_TRANSFER_MANAGER_H_
 
-#include <functional>
 #include <memory>
+#include <queue>
 #include <string>
-#include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "sharing/internal/public/context.h"
+#include "internal/platform/task_runner.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/thread_timer.h"
 
@@ -39,11 +40,15 @@ class TransferManager {
   // Used to wait for the medium upgrade.
   static constexpr absl::Duration kMediumUpgradeTimeout = absl::Seconds(10);
 
-  TransferManager(Context* context, absl::string_view endpoint_id);
+  TransferManager(TaskRunner* absl_nonnull runner,
+                  absl::string_view endpoint_id,
+                  absl::AnyInvocable<void(absl::string_view endpoint_id,
+                                          std::unique_ptr<Payload> payload)>
+                      deferred_send_function);
 
   ~TransferManager();
 
-  void Send(std::function<void()> task) ABSL_LOCKS_EXCLUDED(mutex_);
+  void Send(std::unique_ptr<Payload> payload) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnMediumQualityChanged(Medium current_medium)
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool StartTransfer() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -52,11 +57,15 @@ class TransferManager {
  private:
   void StopWaitingForHighQualityMedium() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Context* context_;
-  std::string endpoint_id_;
+  TaskRunner& runner_;
+  const std::string endpoint_id_;
+  absl::AnyInvocable<void(absl::string_view endpoint_id,
+                            std::unique_ptr<Payload> payload)>
+      deferred_send_function_;
   absl::Mutex mutex_;
   bool is_waiting_for_high_quality_medium_ ABSL_GUARDED_BY(mutex_) = true;
-  std::vector<std::function<void()>> pending_tasks_ ABSL_GUARDED_BY(mutex_);
+  std::queue<std::unique_ptr<Payload>> pending_payloads_
+      ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<ThreadTimer> timeout_timer_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 

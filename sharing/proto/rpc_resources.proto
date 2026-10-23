@@ -27,7 +27,7 @@ option optimize_for = LITE_RUNTIME;
 // How a Certificate is distributed is determined by who is on a user's contact
 // list. For example, if Will adds Ryan to his contact list, Ryan will have a
 // ShareTarget with Will's Certificate attached to it.
-// NextId=11
+// NextId=13
 message PublicCertificate {
   // The secret (symmetric) identifier used when identifying the ShareTarget's
   // BLE advertisement.
@@ -66,6 +66,12 @@ message PublicCertificate {
   // Indicates if this public certificate corresponds to a device owned by the
   // current user.
   bool for_self_share = 10;
+
+  reserved 11;
+
+  // The binding id of device pair binding. If multiple bindings exist
+  // between two devices, it will return the newest binding_id.
+  string binding_id = 12;
 }
 
 // A member of a contact list. This is not inlined on the recommendation of
@@ -159,4 +165,6 @@ message Device {
   // The public certificates generated and uploaded from local device, to be
   // shared with contacts.
   repeated PublicCertificate public_certificates = 4;
+
+  reserved 5;
 }

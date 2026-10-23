@@ -16,18 +16,33 @@
 #define CORE_INTERNAL_OFFLINE_SIMULATION_USER_H_
 
 #include <string>
+#include <utility>
+#include <vector>
 
-#include "gtest/gtest.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/payload.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
 #include "internal/interop/device.h"
-#include "internal/platform/atomic_boolean.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
+#include "internal/platform/mutex.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -164,6 +179,28 @@ class OfflineSimulationUser {
   bool IsAdvertising() const { return client_.IsAdvertising(); }
 
   bool IsDiscovering() const { return client_.IsDiscovering(); }
+
+  std::pair<Status, std::vector<ConnectionInfoVariant>>
+  StartListeningForIncomingConnections(
+      const std::string& service_id, v3::ConnectionListener& listener,
+      const v3::ConnectionListeningOptions& options) {
+    return ctrl_.StartListeningForIncomingConnections(
+        &client_, service_id, std::move(listener), options);
+  }
+
+  void StopListeningForIncomingConnections() {
+    ctrl_.StopListeningForIncomingConnections(&client_);
+  }
+
+  void InitiateBandwidthUpgrade(const std::string& endpoint_id) {
+    ctrl_.InitiateBandwidthUpgrade(&client_, endpoint_id);
+  }
+
+  void SetCustomSavePath(const std::string& path) {
+    ctrl_.SetCustomSavePath(&client_, path);
+  }
+
+  void ShutdownBwuManagerExecutors() { ctrl_.ShutdownBwuManagerExecutors(); }
 
   bool IsConnected() const {
     return client_.IsConnectedToEndpoint(discovered_.endpoint_id);

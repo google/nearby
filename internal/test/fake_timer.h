@@ -33,7 +33,6 @@ class FakeTimer : public Timer {
              absl::AnyInvocable<void()> callback) override;
   void Stop() override;
   bool IsRunning() override;
-  bool FireNow() override;
 
  private:
   struct TimerData {

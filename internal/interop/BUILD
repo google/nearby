@@ -33,10 +33,7 @@ cc_library(
         "device.h",
         "device_provider.h",
     ],
-    visibility = [
-        "//connections:__subpackages__",
-        "//presence:__subpackages__",
-    ],
+    visibility = ["//connections:__subpackages__"],
     deps = [
         ":authentication_status",
         ":authentication_transport_interface",
@@ -54,7 +51,6 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//presence:__subpackages__",
         "//sharing:__subpackages__",
     ],
 )
@@ -69,9 +65,7 @@ cc_library(
         "fake_device_provider.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [
-        "//presence:__subpackages__",
-    ],
+    visibility = ["//visibility:private"],
     deps = [
         ":authentication_status",
         ":authentication_transport_interface",

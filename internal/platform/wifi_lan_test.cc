@@ -73,7 +73,6 @@ TEST_P(WifiLanMediumTest, CanConnectToService) {
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   nsd_service_info.SetServiceType(service_type);
-  nsd_service_info.SetIPAddress(server_socket.GetIPAddress());
   nsd_service_info.SetPort(server_socket.GetPort());
   wifi_lan_b.StartAdvertising(nsd_service_info);
 

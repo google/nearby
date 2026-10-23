@@ -25,13 +25,13 @@
 namespace nearby {
 namespace connections {
 
-// Creates an InternalPayload representing an outgoing Payload.
-ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
+// Creates an OutgoingInternalPayload representing an outgoing Payload.
+ErrorOr<std::unique_ptr<OutgoingInternalPayload>> CreateOutgoingInternalPayload(
     Payload payload);
 
-// Creates an InternalPayload representing an incoming Payload from a remote
-// endpoint.
-ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
+// Creates an IncomingInternalPayload representing an incoming Payload from a
+// remote endpoint.
+ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path);
 

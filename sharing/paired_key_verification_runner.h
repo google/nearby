@@ -22,6 +22,7 @@
 #include <optional>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
@@ -38,8 +39,6 @@ class PairedKeyVerificationRunner
     : public std::enable_shared_from_this<PairedKeyVerificationRunner> {
  public:
   enum class PairedKeyVerificationResult {
-    // Default value for verification result.
-    kUnknown,
     // Succeeded with verification.
     kSuccess,
     // Failed to verify.
@@ -52,10 +51,13 @@ class PairedKeyVerificationRunner
     proto::DeviceVisibility visibility;
     proto::DeviceVisibility last_visibility;
     absl::Time last_visibility_time;
+    // Set to true if device is advertising under lock screen.
+    bool screen_locked_advertising = false;
   };
 
   PairedKeyVerificationRunner(
-      Clock* clock, location::nearby::proto::sharing::OSType os_type,
+      Clock* absl_nonnull clock,
+      location::nearby::proto::sharing::OSType os_type,
       bool share_target_is_incoming,
       const VisibilityHistory& visibility_history,
       const std::vector<uint8_t>& token,
@@ -63,8 +65,9 @@ class PairedKeyVerificationRunner
           void(const nearby::sharing::service::proto::Frame& frame)>
           frame_writer,
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
-      NearbyShareCertificateManager* certificate_manager,
-      IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout);
+      NearbyShareCertificateManager* absl_nonnull certificate_manager,
+      IncomingFramesReader* absl_nonnull frames_reader,
+      absl::Duration read_frame_timeout);
 
   ~PairedKeyVerificationRunner();
 
@@ -84,10 +87,10 @@ class PairedKeyVerificationRunner
   void OnReadPairedKeyResultFrame(
       std::optional<nearby::sharing::service::proto::V1Frame> frame);
   void SendPairedKeyResultFrame(PairedKeyVerificationResult result);
-  // Verifies auth token hash in frame using private certificate for visibility.
-  // Returns either kSuccess or kUnable.  This function never returns kFail.
-  PairedKeyVerificationResult VerifyAuthTokenHashWithPrivateCertificate(
-      proto::DeviceVisibility visibility,
+  // Verifies auth token hash in frame using private certificates in
+  // `visibility_history_`. Returns either kSuccess or kUnable.  This function
+  // never returns kFail.
+  PairedKeyVerificationResult VerifyAuthTokenHashWithPrivateCertificates(
       const nearby::sharing::service::proto::V1Frame& frame);
   PairedKeyVerificationResult VerifyPairedKeyEncryptionFrame(
       const nearby::sharing::service::proto::V1Frame& frame);
@@ -95,22 +98,21 @@ class PairedKeyVerificationRunner
   // True if visibility has changed recently.
   bool IsVisibilityRecentlyUpdated() const;
 
-  nearby::Clock* const clock_;
+  nearby::Clock& clock_;
+  NearbyShareCertificateManager& certificate_manager_;
+  IncomingFramesReader& frames_reader_;
+  const bool share_target_is_incoming_;
   const location::nearby::proto::sharing::OSType os_type_;
-  VisibilityHistory visibility_history_;
+  const VisibilityHistory visibility_history_;
+  const std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
+  const absl::Duration read_frame_timeout_;
   std::vector<uint8_t> raw_token_;
   absl::AnyInvocable<void(const nearby::sharing::service::proto::Frame& frame)>
       frame_writer_;
-  std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
-  NearbyShareCertificateManager* certificate_manager_;
-  IncomingFramesReader* frames_reader_;
-  const absl::Duration read_frame_timeout_;
   std::function<void(PairedKeyVerificationResult,
                      ::location::nearby::proto::sharing::OSType)>
       callback_;
   PairedKeyVerificationResult verification_result_;
-  char local_prefix_;
-  char remote_prefix_;
 };
 
 }  // namespace nearby::sharing

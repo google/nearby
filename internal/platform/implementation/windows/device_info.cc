@@ -14,72 +14,51 @@
 
 #include "internal/platform/implementation/windows/device_info.h"
 
+// clang-format off
 #include <shlobj_core.h>
 #include <windows.h>
 #include <wtsapi32.h>
+#include <powrprof.h>
+#include <powerbase.h>
+// clang-format on
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/base/files.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
-#include "winrt/Windows.Foundation.Collections.h"
-#include "winrt/Windows.Foundation.h"
-#include "winrt/Windows.System.h"
 
 namespace nearby::windows {
-
-using IInspectable = winrt::Windows::Foundation::IInspectable;
-using KnownUserProperties = winrt::Windows::System::KnownUserProperties;
-using User = winrt::Windows::System::User;
-using UserType = winrt::Windows::System::UserType;
-using UserAuthenticationStatus =
-    winrt::Windows::System::UserAuthenticationStatus;
-
+namespace {
 using ::nearby::windows::string_utils::WideStringToString;
+}  // namespace
 
-template <typename T>
-using IVectorView = winrt::Windows::Foundation::Collections::IVectorView<T>;
-
-template <typename T>
-using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
-
-constexpr absl::string_view kLogsRelativePath = "Google\\Nearby\\Sharing\\Logs";
-constexpr absl::string_view kCrashDumpsRelativePath =
-    "Google\\Nearby\\Sharing\\CrashDumps";
+DeviceInfo::~DeviceInfo() {
+  if (suspend_resume_notification_handle_ != nullptr) {
+    PowerUnregisterSuspendResumeNotification(
+        suspend_resume_notification_handle_);
+  }
+}
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
-  DWORD size = 0;
-
-  // Get length of the computer name.
-  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
-    if (GetLastError() != ERROR_MORE_DATA) {
-      LOG(ERROR) << ": Failed to get device name size, error:"
-                 << GetLastError();
-      return std::nullopt;
-    }
+  std::optional<std::wstring> device_name = GetDnsHostName();
+  if (device_name.has_value()) {
+    return WideStringToString(*device_name);
   }
-  std::wstring device_name(size, L' ');
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
-      0) {
-    // On input size includes null termination.
-    // On output size excludes null termination.
-    device_name.resize(size);
-    return WideStringToString(device_name);
-  }
-
-  LOG(ERROR) << ": Failed to get device name, error:" << GetLastError();
   return std::nullopt;
 }
 
 api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
-  // TODO(b/230132370): return correct device type on the Windows platform.
   return api::DeviceInfo::DeviceType::kLaptop;
 }
 
@@ -87,77 +66,31 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
-  PWSTR path;
-  HRESULT result =
-      SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_DEFAULT, nullptr, &path);
-  if (result == S_OK) {
-    std::wstring download_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(download_path));
-  }
-
-  CoTaskMemFree(path);
-  return std::nullopt;
+FilePath DeviceInfo::GetDownloadPath() const {
+  return nearby::platform::windows::GetDownloadsPath();
 }
 
-std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
-  PWSTR path;
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
-                                        /*hToken=*/nullptr, &path);
-  if (result == S_OK) {
-    std::wstring local_appdata_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(local_appdata_path));
-  }
-
-  CoTaskMemFree(path);
-  return std::nullopt;
+FilePath DeviceInfo::GetLocalAppDataPath(FilePath sub_path) const {
+  return nearby::platform::windows::GetLocalAppDataPath(sub_path);
 }
 
-std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
-  PWSTR path;
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT,
-                                        /*hToken=*/nullptr, &path);
-  if (result == S_OK) {
-    std::wstring common_app_data_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(common_app_data_path));
-  }
-
-  CoTaskMemFree(path);
-  return std::nullopt;
-}
-
-std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
+FilePath DeviceInfo::GetTemporaryPath() const {
   return Files::GetTemporaryDirectory();
 }
 
-std::optional<FilePath> DeviceInfo::GetLogPath() const {
-  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
-  if (prefix_path.has_value()) {
-    return prefix_path.value().append(FilePath(kLogsRelativePath));
-  }
-  return std::nullopt;
-}
-
-std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
-  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
-  if (prefix_path.has_value()) {
-    return prefix_path.value().append(FilePath(kCrashDumpsRelativePath));
-  }
-  return std::nullopt;
+FilePath DeviceInfo::GetLogPath() const {
+  return nearby::platform::windows::GetLogPath();
 }
 
 bool DeviceInfo::IsScreenLocked() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.IsScreenLocked();
 }
 
 void DeviceInfo::RegisterScreenLockedListener(
     absl::string_view listener_name,
     std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   session_manager_.RegisterSessionListener(
       listener_name,
       [callback = std::move(callback)](SessionManager::SessionState state) {
@@ -171,18 +104,75 @@ void DeviceInfo::RegisterScreenLockedListener(
 
 void DeviceInfo::UnregisterScreenLockedListener(
     absl::string_view listener_name) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   session_manager_.UnregisterSessionListener(listener_name);
 }
 
 bool DeviceInfo::PreventSleep() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.PreventSleep();
 }
 
 bool DeviceInfo::AllowSleep() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.AllowSleep();
+}
+
+ULONG DeviceInfo::PowerSuspendResumeCallback(PVOID context, ULONG type,
+                                             PVOID setting) {
+  api::DeviceInfo::SuspendResumeEvent event;
+  switch (type) {
+    case PBT_APMSUSPEND:
+      event = api::DeviceInfo::SuspendResumeEvent::kSuspend;
+      break;
+    case PBT_APMRESUMESUSPEND:
+      event = api::DeviceInfo::SuspendResumeEvent::kResume;
+      break;
+    default:
+      return 0;
+  }
+  DeviceInfo* device_info = static_cast<DeviceInfo*>(context);
+  device_info->OnSuspendResumeEvent(event);
+  return 0;
+}
+
+int64_t DeviceInfo::RegisterSuspendResumeListener(
+    std::function<void(api::DeviceInfo::SuspendResumeEvent)> callback) {
+  absl::MutexLock lock(suspend_resume_mutex_);
+  int64_t listener_id = ++next_suspend_resume_listener_id_;
+  suspend_resume_listeners_.emplace(listener_id, std::move(callback));
+  if (suspend_resume_listeners_.size() == 1) {
+    DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS subscribe_params;
+    subscribe_params.Callback = PowerSuspendResumeCallback;
+    subscribe_params.Context = this;
+    PowerRegisterSuspendResumeNotification(
+        DEVICE_NOTIFY_CALLBACK, &subscribe_params,
+        &suspend_resume_notification_handle_);
+  }
+  return listener_id;
+}
+
+void DeviceInfo::UnregisterSuspendResumeListener(int64_t listener_id) {
+  absl::MutexLock lock(suspend_resume_mutex_);
+  suspend_resume_listeners_.erase(listener_id);
+  if (suspend_resume_listeners_.empty()) {
+    if (suspend_resume_notification_handle_ != nullptr) {
+    PowerUnregisterSuspendResumeNotification(
+        suspend_resume_notification_handle_);
+    }
+    suspend_resume_notification_handle_ = nullptr;
+  }
+}
+
+void DeviceInfo::OnSuspendResumeEvent(
+    api::DeviceInfo::SuspendResumeEvent event) {
+  LOG(INFO) << "OnSuspendResumeEvent: "
+            << (event == DeviceInfo::SuspendResumeEvent::kSuspend ? "kSuspend"
+                                                                  : "kResume");
+  absl::MutexLock lock(suspend_resume_mutex_);
+  for (auto& it : suspend_resume_listeners_) {
+    it.second(event);
+  }
 }
 
 }  // namespace nearby::windows

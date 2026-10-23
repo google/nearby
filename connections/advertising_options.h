@@ -35,6 +35,8 @@ struct AdvertisingOptions : public OptionsBase {
   bool enable_webrtc_listening;
   // Indicates whether the endpoint id should be stable.
   bool use_stable_endpoint_id = false;
+  // If true, a new endpoint id will be generated.
+  bool force_new_endpoint_id = false;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;

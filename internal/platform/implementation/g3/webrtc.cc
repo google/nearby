@@ -24,10 +24,11 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/medium_environment.h"
-#include "webrtc/api/create_modular_peer_connection_factory.h"
-#include "webrtc/api/peer_connection_interface.h"
-#include "webrtc/api/scoped_refptr.h"
-#include "webrtc/rtc_base/checks.h"
+#include "third_party/webrtc/files/stable/webrtc/api/create_modular_peer_connection_factory.h"
+#include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
+#include "third_party/webrtc/files/stable/webrtc/api/scoped_refptr.h"
+#include "third_party/webrtc/files/stable/webrtc/rtc_base/checks.h"
+#include "third_party/webrtc/files/stable/webrtc/rtc_base/thread.h"
 
 namespace nearby {
 namespace g3 {
@@ -59,8 +60,6 @@ void WebRtcSignalingMessenger::StopReceivingMessages() {
 }
 
 WebRtcMedium::~WebRtcMedium() { single_thread_executor_.Shutdown(); }
-
-const std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {

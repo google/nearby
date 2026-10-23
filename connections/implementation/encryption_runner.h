@@ -45,8 +45,7 @@ class EncryptionRunner {
                              std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                              const std::string& auth_token,
                              const ByteArray& raw_auth_token);
-    void CallFailureCallback(const std::string& endpoint_id,
-                             EndpointChannel* channel);
+    void CallFailureCallback(const std::string& endpoint_id);
     void Reset();
 
     // @EncryptionRunnerThread
@@ -56,27 +55,19 @@ class EncryptionRunner {
                             const ByteArray& raw_auth_token) &&>
         on_success_cb;
 
-    // Encryption has failed. The remote_endpoint_id and channel are given so
-    // that any pending state can be cleaned up.
-    //
-    // We return the EndpointChannel because, at this stage, simultaneous
-    // connections are a possibility. Use this channel to verify that the state
-    // you're cleaning up is for this EndpointChannel, and not state for another
-    // channel to the same endpoint.
+    // Encryption has failed.
     //
     // @EncryptionRunnerThread
-    absl::AnyInvocable<void(const std::string& endpoint_id,
-                            EndpointChannel* channel) &&>
-        on_failure_cb;
+    absl::AnyInvocable<void(const std::string& endpoint_id)> on_failure_cb;
   };
 
   // @AnyThread
   void StartServer(ClientProxy* client, const std::string& endpoint_id,
-                   EndpointChannel* endpoint_channel,
+                   std::shared_ptr<EndpointChannel> endpoint_channel,
                    ResultListener result_listener);
   // @AnyThread
   void StartClient(ClientProxy* client, const std::string& endpoint_id,
-                   EndpointChannel* endpoint_channel,
+                   std::shared_ptr<EndpointChannel> endpoint_channel,
                    ResultListener result_listener);
 
   // @AnyThread

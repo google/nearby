@@ -16,7 +16,6 @@
 
 #include <stddef.h>
 
-#include <optional>
 #include <utility>
 #include <vector>
 
@@ -42,13 +41,8 @@ void FakeNearbyShareScheduler::HandleResult(bool success) {
 
 void FakeNearbyShareScheduler::Reschedule() { ++num_reschedule_calls_; }
 
-std::optional<absl::Time> FakeNearbyShareScheduler::GetLastSuccessTime() const {
+absl::Time FakeNearbyShareScheduler::GetLastSuccessTime() const {
   return last_success_time_;
-}
-
-std::optional<absl::Duration>
-FakeNearbyShareScheduler::GetTimeUntilNextRequest() const {
-  return time_until_next_request_;
 }
 
 bool FakeNearbyShareScheduler::IsWaitingForResult() const {
@@ -64,14 +58,8 @@ void FakeNearbyShareScheduler::InvokeRequestCallback() {
   NotifyOfRequest();
 }
 
-void FakeNearbyShareScheduler::SetLastSuccessTime(
-    std::optional<absl::Time> time) {
+void FakeNearbyShareScheduler::SetLastSuccessTime(absl::Time time) {
   last_success_time_ = time;
-}
-
-void FakeNearbyShareScheduler::SetTimeUntilNextRequest(
-    std::optional<absl::Duration> time_delta) {
-  time_until_next_request_ = time_delta;
 }
 
 void FakeNearbyShareScheduler::SetIsWaitingForResult(bool is_waiting) {

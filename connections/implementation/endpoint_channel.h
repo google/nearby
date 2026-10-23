@@ -20,16 +20,13 @@
 #include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
-namespace nearby {
-namespace connections {
-
-using analytics::PacketMetaData;
+namespace nearby::connections {
 
 class EndpointChannel {
  public:
@@ -40,15 +37,9 @@ class EndpointChannel {
   virtual ExceptionOr<ByteArray>
   Read() = 0;  // throws Exception::IO, Exception::INTERRUPTED
 
-  virtual ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) = 0;
+  virtual Exception Write(absl::string_view data) = 0;  // throws Exception::IO
 
-  virtual Exception Write(const ByteArray& data) = 0;  // throws Exception::IO
-
-  virtual Exception Write(
-      const ByteArray& data,
-      PacketMetaData& packet_meta_data) = 0;  // throws Exception::IO
   // Closes this EndpointChannel, without tracking the closure in analytics.
-
   virtual void Close() = 0;
 
   // Closes this EndpointChannel and records the closure with the given reason.
@@ -59,8 +50,7 @@ class EndpointChannel {
   // and safe disconnection result.
   virtual void Close(
       location::nearby::proto::connections::DisconnectionReason reason,
-      location::nearby::analytics::proto::ConnectionsLog::
-          EstablishedConnection::SafeDisconnectionResult result) = 0;
+      nearby::analytics::SafeDisconnectionResult result) = 0;
 
   // True if the EndpointChannel is currently closed.
   virtual bool IsClosed() const = 0;
@@ -138,6 +128,9 @@ class EndpointChannel {
 
   // Enables the multiplex socket on the EndpointChannel.
   virtual bool EnableMultiplexSocket() { return false; }
+
+  virtual void SetLocalEndpointId(const std::string& local_endpoint_id) = 0;
+  virtual std::string GetLocalEndpointId() const = 0;
 };
 
 inline bool operator==(const EndpointChannel& lhs, const EndpointChannel& rhs) {
@@ -149,7 +142,6 @@ inline bool operator!=(const EndpointChannel& lhs, const EndpointChannel& rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_INTERNAL_ENDPOINT_CHANNEL_H_

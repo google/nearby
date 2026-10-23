@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
@@ -35,12 +36,22 @@ AwdlInputStream::AwdlInputStream(GNCNWFrameworkSocket* socket) : socket_(socket)
 
 ExceptionOr<ByteArray> AwdlInputStream::Read(std::int64_t size) {
   NSError* error = nil;
-  NSData* data = [socket_ readMaxLength:size error:&error];
-  if (data == nil) {
-    GNCLoggerError(@"Error reading socket: %@", error);
-    return {Exception::kIo};
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    auto result = [socket_ readStringWithMaxLength:size error:&error];
+    if (!result.has_value()) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    // OPTIMIZATION: Zero-copy transfer from std::string to ByteArray
+    return ExceptionOr<ByteArray>{ByteArray(std::move(result.value()))};
+  } else {
+    NSData* data = [socket_ readMaxLength:size error:&error];
+    if (data == nil) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
   }
-  return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
 }
 
 Exception AwdlInputStream::Close() {
@@ -53,7 +64,7 @@ Exception AwdlInputStream::Close() {
 
 AwdlOutputStream::AwdlOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception AwdlOutputStream::Write(const ByteArray& data) {
+Exception AwdlOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {
@@ -122,7 +133,9 @@ Exception AwdlServerSocket::Close() {
 
 #pragma mark - AwdlMedium
 
-AwdlMedium::AwdlMedium() { medium_ = [[GNCNWFramework alloc] init]; }
+AwdlMedium::AwdlMedium() { medium_ = [[GNCNWFramework alloc] initWithPeerToPeer:YES]; }
+
+AwdlMedium::AwdlMedium(GNCNWFramework* medium) : medium_(medium) {}
 
 bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);
@@ -144,8 +157,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_type,
           [this](const NsdServiceInfo& service_info) {
             service_callback_.service_lost_cb(service_info);
           }};
-  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback),
-                                       /*include_peer_to_peer=*/true);
+  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback));
 }
 
 bool AwdlMedium::StopDiscovery(const std::string& service_type) {
@@ -174,8 +186,7 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
 }
 
 std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(int port) {
-  GNCNWFrameworkServerSocket* serverSocket =
-      network_utils::ListenForService(medium_, port, /*include_peer_to_peer=*/true);
+  GNCNWFrameworkServerSocket* serverSocket = network_utils::ListenForService(medium_, port);
   if (serverSocket != nil) {
     return std::make_unique<AwdlServerSocket>(serverSocket);
   }
@@ -185,7 +196,7 @@ std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(int port) {
 std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(const api::PskInfo& psk_info,
                                                                     int port) {
   GNCNWFrameworkServerSocket* serverSocket =
-      network_utils::ListenForService(medium_, psk_info, port, /*include_peer_to_peer=*/true);
+      network_utils::ListenForService(medium_, psk_info, port);
   if (serverSocket != nil) {
     return std::make_unique<AwdlServerSocket>(serverSocket);
   }

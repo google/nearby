@@ -15,6 +15,14 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#ifdef __cplusplus
+#include <optional>
+#include <string>
+#endif
+
+
+@protocol GNCNWConnection;
+
 @interface GNCNWFrameworkSocket : NSObject
 
 /**
@@ -23,13 +31,11 @@
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
 /**
- * Creates a socket that allows reading/writing for a given connection.
+ * Creates a socket that allows reading/writing for a given connection wrapper.
  *
- * @param connection A bidirectional data connection between a local and remote endpoint. This class
- *                   will take ownership of connection and manage its lifetime. The connection
- *                   should not be shared or reused.
+ * @param connection A wrapper around the underlying network connection.
  */
-- (nonnull instancetype)initWithConnection:(nonnull nw_connection_t)connection
+- (nonnull instancetype)initWithConnection:(nonnull id<GNCNWConnection>)connection
     NS_DESIGNATED_INITIALIZER;
 
 /**
@@ -43,6 +49,21 @@
  *                   requested length.
  */
 - (nullable NSData *)readMaxLength:(NSUInteger)length error:(NSError **_Nullable)error;
+
+/**
+ * Reads the requested amount of bytes from the connection and converts it to a string.
+ *
+ * Blocks execution until the bytes have been read or an error occurs.
+ *
+ * @param length The number of bytes to read.
+ * @param[out] error Error that will be populated on failure. A read may return non-nil data along
+ *                   with an error. This normally happens if the data read is shorter than the
+ *                   requested length.
+ */
+#ifdef __cplusplus
+- (std::optional<std::string>)readStringWithMaxLength:(NSUInteger)length
+                                                error:(NSError **_Nullable)error;
+#endif
 
 /**
  * Writes the given data to the connection.

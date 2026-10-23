@@ -20,22 +20,24 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/output_stream.h"
-#include "internal/platform/payload_id.h"
 
 namespace nearby {
 
 class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(PayloadId payload_id, std::int64_t size);
-  InputFile(std::string file_path, std::int64_t size);
+#if defined(NEARBY_CHROMIUM)
+  explicit InputFile(PayloadId payload_id);
+#endif  // defined(NEARBY_CHROMIUM)
+  explicit InputFile(std::string file_path);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
   InputFile& operator=(InputFile&&);
@@ -66,6 +68,8 @@ class InputFile final {
   // versa.
   InputStream& GetInputStream();
 
+  absl::Time GetLastModifiedTime() const;
+
  private:
   std::unique_ptr<api::InputFile> impl_;
 };
@@ -73,37 +77,35 @@ class InputFile final {
 class OutputFile final {
  public:
   using Platform = api::ImplementationPlatform;
+#if defined(NEARBY_CHROMIUM)
   explicit OutputFile(PayloadId payload_id);
+#endif  // defined(NEARBY_CHROMIUM)
   explicit OutputFile(std::string file_path);
   ~OutputFile();
   OutputFile(OutputFile&&) noexcept;
-  OutputFile& operator=(OutputFile&&);
+  OutputFile& operator=(OutputFile&&) = delete;
 
   bool IsValid() const;
 
-  // Writes all data from ByteArray object to the underlying stream.
-  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Write(const ByteArray& data);
+  std::string GetFilePath() const { return file_path_; }
 
-  // Ensures that all data written by previous calls to Write() is passed
-  // down to the applicable transport layer.
-  Exception Flush();
+  // Writes all data from string_view object to the underlying stream.
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Write(absl::string_view data);
 
   // Disallows further writes to the file and frees system resources,
   // associated with it.
   Exception Close();
 
-  // Returns a handle to the underlying  output stream.
-  //
-  // Returned handle will remain valid even if OutputFile is moved, for as long
-  // as original OutputFile lifetime continues.
-  // Side effects of any non-const operation invoked for OutputFile (such as
-  // Write, or Close will be observable through OutputStream& handle, and vice
-  // versa.
-  OutputStream& GetOutputStream();
+  // Closes the file if open and deletes it from the filesystem.
+  // Returns true if the file was deleted.
+  bool Delete();
+
+  void SetLastModifiedTime(absl::Time last_modified_time);
 
  private:
   std::unique_ptr<api::OutputFile> impl_;
+  const std::string file_path_;
 };
 
 }  // namespace nearby

@@ -21,8 +21,7 @@
 #include "proto/sharing_enums.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // A single attachment to be sent by / received from a ShareTarget, can be
 // either a file or text.
@@ -41,11 +40,7 @@ class Attachment {
   Attachment(
       int64_t id, Family family, int64_t size, int32_t batch_id,
       location::nearby::proto::sharing::AttachmentSourceType source_type);
-  Attachment(const Attachment&);
-  Attachment(Attachment&&);
-  Attachment& operator=(const Attachment&);
-  Attachment& operator=(Attachment&&);
-  virtual ~Attachment();
+  virtual ~Attachment() = default;
 
   int64_t id() const { return id_; }
   Family family() const { return family_; }
@@ -60,14 +55,13 @@ class Attachment {
   virtual ShareType GetShareType() const = 0;
 
  private:
-  int64_t id_;
-  Family family_;
+  const int64_t id_;
+  const Family family_;
+  const int32_t batch_id_;
+  const location::nearby::proto::sharing::AttachmentSourceType source_type_;
   int64_t size_;
-  int32_t batch_id_;
-  location::nearby::proto::sharing::AttachmentSourceType source_type_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_ATTACHMENT_H_

@@ -21,6 +21,7 @@
 
 #import <Foundation/Foundation.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,7 +30,8 @@
 #import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
-#include "internal/platform/implementation/ble_v2.h"
+#import "internal/platform/implementation/apple/single_thread_executor.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
 
@@ -41,12 +43,22 @@
 namespace nearby {
 namespace apple {
 
+class BleMediumPeer;
+
 // The main BLE medium used inside of Nearby. This serves as the entry point for all BLE and GATT
 // related operations.
-class BleMedium : public api::ble_v2::BleMedium {
+class BleMedium : public api::ble::BleMedium {
+  friend class BleMediumPeer;
+
  public:
+  // Define factory types for managers.
+  using PeripheralManagerFactory = std::function<GNSPeripheralManager *()>;
+  using CentralManagerFactory = std::function<GNSCentralManager *(CBUUID *)>;
+
   BleMedium();
-  ~BleMedium() override = default;
+  // For testing only.
+  explicit BleMedium(GNCBLEMedium *medium);
+  ~BleMedium() override;
 
   // Async interface for StartAdvertising.
   //
@@ -54,16 +66,16 @@ class BleMedium : public api::ble_v2::BleMedium {
   // the stop_advertising callback in AdvertisingSession.
   //
   // Advertising must be stopped before attempting to start advertising again.
-  std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> StartAdvertising(
-      const api::ble_v2::BleAdvertisementData &advertising_data,
-      api::ble_v2::AdvertiseParameters advertise_set_parameters,
-      api::ble_v2::BleMedium::AdvertisingCallback callback) override;
+  std::unique_ptr<api::ble::BleMedium::AdvertisingSession> StartAdvertising(
+      const api::ble::BleAdvertisementData &advertising_data,
+      api::ble::AdvertiseParameters advertise_set_parameters,
+      api::ble::BleMedium::AdvertisingCallback callback) override;
 
   // Starts BLE advertising and returns whether or not it was successful.
   //
   // Advertising must be stopped before attempting to start advertising again.
-  bool StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
-                        api::ble_v2::AdvertiseParameters advertise_set_parameters) override;
+  bool StartAdvertising(const api::ble::BleAdvertisementData &advertising_data,
+                        api::ble::AdvertiseParameters advertise_set_parameters) override;
 
   // Stops advertising.
   //
@@ -76,20 +88,20 @@ class BleMedium : public api::ble_v2::BleMedium {
   // scanning, invoke the stop_scanning callback in ScanningSession.
   //
   // Scanning must be stopped before attempting to start scanning again.
-  std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> StartScanning(
-      const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BleMedium::ScanningCallback callback) override;
+  std::unique_ptr<api::ble::BleMedium::ScanningSession> StartScanning(
+      const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
+      api::ble::BleMedium::ScanningCallback callback) override;
 
   // Starts scanning and returns whether or not it was successful.
   //
   // Scanning must be stopped before attempting to start scanning again.
-  bool StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-                     api::ble_v2::BleMedium::ScanCallback callback) override;
+  bool StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
+                     api::ble::BleMedium::ScanCallback callback) override;
 
   // Starts scanning on multiple services and returns whether or not it was successful.
   bool StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
-                                     api::ble_v2::TxPowerLevel tx_power_level,
-                                     api::ble_v2::BleMedium::ScanCallback callback) override;
+                                     api::ble::TxPowerLevel tx_power_level,
+                                     api::ble::BleMedium::ScanCallback callback) override;
 
   // Stops scanning.
   //
@@ -109,28 +121,28 @@ class BleMedium : public api::ble_v2::BleMedium {
   // TODO(b/290385712): ServerGattConnectionCallback methods are not yet implemented.
   //
   // Starts a GATT server. Returns a nullptr upon error.
-  std::unique_ptr<api::ble_v2::GattServer> StartGattServer(
-      api::ble_v2::ServerGattConnectionCallback callback) override;
+  std::unique_ptr<api::ble::GattServer> StartGattServer(
+      api::ble::ServerGattConnectionCallback callback) override;
 
   // Connects to a GATT server and negotiates the specified connection parameters. Returns nullptr
   // upon error.
   //
   // The peripheral must outlive the GATT client or undefined behavior will occur. The peripheral
   // should not be modified by this method.
-  std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::ClientGattConnectionCallback callback) override;
+  std::unique_ptr<api::ble::GattClient> ConnectToGattServer(
+      api::ble::BlePeripheral::UniqueId peripheral_id, api::ble::TxPowerLevel tx_power_level,
+      api::ble::ClientGattConnectionCallback callback) override;
 
   // Opens a BLE server socket based on service ID.
   //
   // On success, returns a new BleServerSocket. On error, returns nullptr.
-  std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocket(
       const std::string &service_id) override;
 
   // Opens a L2CAP server socket based on service ID.
   //
   // On success, returns a new BleL2capServerSocket. On error, returns nullptr.
-  std::unique_ptr<api::ble_v2::BleL2capServerSocket> OpenL2capServerSocket(
+  std::unique_ptr<api::ble::BleL2capServerSocket> OpenL2capServerSocket(
       const std::string &service_id) override;
 
   // TODO(b/290385712): cancellation_flag support is not yet implemented.
@@ -141,10 +153,10 @@ class BleMedium : public api::ble_v2::BleMedium {
   // should not be modified by this method.
   //
   // On success, returns a new BleSocket. On error, returns nullptr.
-  std::unique_ptr<api::ble_v2::BleSocket> Connect(
-      const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
-      CancellationFlag *cancellation_flag) override;
+  std::unique_ptr<api::ble::BleSocket> Connect(const std::string &service_id,
+                                               api::ble::TxPowerLevel tx_power_level,
+                                               api::ble::BlePeripheral::UniqueId peripheral_id,
+                                               CancellationFlag *cancellation_flag) override;
 
   // TODO(b/290385712): cancellation_flag support is not yet implemented.
   //
@@ -154,9 +166,9 @@ class BleMedium : public api::ble_v2::BleMedium {
   // should not be modified by this method.
   //
   // On success, returns a new BleL2capSocket. On error, returns nullptr.
-  std::unique_ptr<api::ble_v2::BleL2capSocket> ConnectOverL2cap(
-      int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+  std::unique_ptr<api::ble::BleL2capSocket> ConnectOverL2cap(
+      int psm, const std::string &service_id, api::ble::TxPowerLevel tx_power_level,
+      api::ble::BlePeripheral::UniqueId peripheral_id,
       CancellationFlag *cancellation_flag) override;
 
   // Returns whether the hardware supports BOTH advertising extensions and extended scans.
@@ -170,7 +182,7 @@ class BleMedium : public api::ble_v2::BleMedium {
   //
   // Returns std::nullopt if cannot retrieve the BlePeripheral from the native
   // BLE peripheral id.
-  std::optional<api::ble_v2::BlePeripheral::UniqueId> RetrieveBlePeripheralIdFromNativeId(
+  std::optional<api::ble::BlePeripheral::UniqueId> RetrieveBlePeripheralIdFromNativeId(
       const std::string &ble_peripheral_native_id) override;
 
  private:
@@ -180,27 +192,39 @@ class BleMedium : public api::ble_v2::BleMedium {
     PeripheralsMap() = default;
     ~PeripheralsMap() = default;
 
-    api::ble_v2::BlePeripheral::UniqueId Add(id<GNCPeripheral> peripheral)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-    id<GNCPeripheral> Get(api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+    api::ble::BlePeripheral::UniqueId Add(id<GNCPeripheral> peripheral) ABSL_LOCKS_EXCLUDED(mutex_);
+    id<GNCPeripheral> Get(api::ble::BlePeripheral::UniqueId peripheral_id)
         ABSL_LOCKS_EXCLUDED(mutex_);
     void Clear() ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
     absl::Mutex mutex_;
-    absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, id<GNCPeripheral>> peripherals_
+    absl::flat_hash_map<api::ble::BlePeripheral::UniqueId, id<GNCPeripheral>> peripherals_
         ABSL_GUARDED_BY(mutex_);
   };
 
   void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                 NSDictionary<CBUUID *, NSData *> *serviceData);
   void ClearAdvertisementPacketsMap();
-  void CleanUpExpiredAdvertisementPackets(NSDate *now);
-  bool ShouldReportAdvertisement(NSDate *now, api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+  bool ShouldReportAdvertisement(NSDate *now, api::ble::BlePeripheral::UniqueId peripheral_id,
                                  NSDictionary<CBUUID *, NSData *> *service_data);
-  void AddAdvertisementPacketInfo(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+  void AddAdvertisementPacketInfo(api::ble::BlePeripheral::UniqueId peripheral_id,
                                   NSDictionary<CBUUID *, NSData *> *service_data);
   NSDate *GetLastTimestampToCleanExpiredAdvertisementPackets();
+
+  // Opens a BLE server socket based on service ID with deadlock safety.
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocketWithDeadlockSafety(
+      const std::string &service_id);
+
+  // Opens a BLE server socket based on service ID using the legacy implementation.
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocketLegacy(const std::string &service_id);
+
+  // The executor for handling callbacks.
+  apple::SingleThreadExecutor callback_executor_;
+
+  // Factories for lazy initialization
+  PeripheralManagerFactory peripheral_manager_factory_ = nullptr;
+  CentralManagerFactory central_manager_factory_ = nullptr;
 
   GNCBLEMedium *medium_;
 
@@ -212,7 +236,7 @@ class BleMedium : public api::ble_v2::BleMedium {
 
   absl::Mutex advertisement_packets_mutex_;
   // A map for maintaining the set of advertisement packets that should be tracked.
-  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, AdvertisementPacketInfo>
+  absl::flat_hash_map<api::ble::BlePeripheral::UniqueId, AdvertisementPacketInfo>
       advertisement_packets_map_ ABSL_GUARDED_BY(advertisement_packets_mutex_);
   // The timestamp of the last time to clean up expired advertisement packets. This is used to
   // prevent the map from growing indefinitely.
@@ -221,16 +245,27 @@ class BleMedium : public api::ble_v2::BleMedium {
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;
-  GNSCentralManager *socketCentralManager_;
+
+  absl::Mutex scanning_mutex_;
+  std::vector<Uuid> scanning_service_uuids_ ABSL_GUARDED_BY(scanning_mutex_);
+  GNSCentralManager *socketCentralManager_ ABSL_GUARDED_BY(scanning_mutex_);
 
   // Used for the blocking version of StartAdvertising and only has an advertisement found callback.
-  api::ble_v2::BleMedium::ScanCallback scan_cb_;
+  std::shared_ptr<api::ble::BleMedium::ScanCallback> scan_cb_ ABSL_GUARDED_BY(scanning_mutex_);
   // Used for the async version of StartAdvertising and has both an advertisement found and result
   // callback.
-  api::ble_v2::BleMedium::ScanningCallback scanning_cb_;
+  std::shared_ptr<api::ble::BleMedium::ScanningCallback> scanning_cb_
+      ABSL_GUARDED_BY(scanning_mutex_);
 
+  // Used for the BleServerSocket.
+  absl::Mutex server_socket_mutex_;
+  BleServerSocket *server_socket_ptr_ ABSL_GUARDED_BY(server_socket_mutex_) = nullptr;
+
+  // Used for the L2CAP server socket.
   absl::Mutex l2cap_server_socket_mutex_;
   BleL2capServerSocket *l2cap_server_socket_ptr_ = nullptr;
+
+  dispatch_queue_t connection_callback_queue_ = nullptr;
 };
 
 }  // namespace apple

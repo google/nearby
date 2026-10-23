@@ -111,6 +111,10 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
                std::function<void(Status status)> callback),
               (override));
 
+  MOCK_METHOD(void, OverrideSavePath,
+              (absl::string_view endpoint_id, absl::string_view path),
+              (override));
+
   MOCK_METHOD(std::string, Dump, (), (const, override));
 };
 

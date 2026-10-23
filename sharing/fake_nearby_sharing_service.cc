@@ -18,13 +18,22 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "location/nearby/sharing/lib/sync/sync_manager.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
+#include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_settings.h"
+#include "sharing/outgoing_share_session.h"
+#include "sharing/outgoing_targets_manager.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
 #include "sharing/transfer_metadata.h"
@@ -34,15 +43,28 @@
 namespace nearby {
 namespace sharing {
 
+FakeNearbySharingService::FakeNearbySharingService()
+    : service_thread_(&clock_, /*count=*/1),
+      analytics_recorder_(/*vendor_id=*/0, &mock_event_logger_),
+      sync_manager_(std::make_unique<SyncManager>(&identity_rpc_client_,
+                                                  &preference_manager_)),
+      outgoing_targets_manager_(std::make_unique<OutgoingTargetsManager>(
+          &clock_, &service_thread_, &connections_manager_,
+          &analytics_recorder_,
+          [this](const ShareTarget& target) {
+            FireShareTargetDiscovered(target);
+          },
+          [this](const ShareTarget& target) { FireShareTargetUpdated(target); },
+          [this](const ShareTarget& target) { FireShareTargetLost(target); },
+          /*transfer_update_callback=*/
+          [](OutgoingShareSession&, const TransferMetadata&) {})) {}
+
 void FakeNearbySharingService::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
 }
 
 void FakeNearbySharingService::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
-}
-bool FakeNearbySharingService::HasObserver(Observer* observer) {
-  return observers_.HasObserver(observer);
 }
 
 // Shutdown the Nearby Sharing service, and cleanup.
@@ -57,7 +79,7 @@ void FakeNearbySharingService::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     Advertisement::BlockedVendorId blocked_vendor_id, bool disable_wifi_hotspot,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   if (state == SendSurfaceState::kForeground) {
     foreground_send_surface_map_.insert(
         {transfer_callback,
@@ -76,7 +98,7 @@ void FakeNearbySharingService::RegisterSendSurface(
 // Unregisters the current send surface.
 void FakeNearbySharingService::UnregisterSendSurface(
     TransferUpdateCallback* transfer_callback,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   foreground_send_surface_map_.erase(transfer_callback);
   background_send_surface_map_.erase(transfer_callback);
 
@@ -87,7 +109,7 @@ void FakeNearbySharingService::UnregisterSendSurface(
 void FakeNearbySharingService::RegisterReceiveSurface(
     TransferUpdateCallback* transfer_callback, ReceiveSurfaceState state,
     Advertisement::BlockedVendorId vendor_id,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   if (state == ReceiveSurfaceState::kForeground) {
     foreground_receive_transfer_callbacks_.AddObserver(transfer_callback);
   } else {
@@ -100,7 +122,7 @@ void FakeNearbySharingService::RegisterReceiveSurface(
 // Unregisters the current receive surface.
 void FakeNearbySharingService::UnregisterReceiveSurface(
     TransferUpdateCallback* transfer_callback,
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   foreground_receive_transfer_callbacks_.RemoveObserver(transfer_callback);
   background_receive_transfer_callbacks_.RemoveObserver(transfer_callback);
   status_codes_callback(StatusCodes::kOk);
@@ -108,7 +130,7 @@ void FakeNearbySharingService::UnregisterReceiveSurface(
 
 // Unregisters all foreground receive surfaces.
 void FakeNearbySharingService::ClearForegroundReceiveSurfaces(
-    std::function<void(StatusCodes)> status_codes_callback) {
+    absl::AnyInvocable<void(StatusCodes)> status_codes_callback) {
   status_codes_callback(StatusCodes::kOk);
 }
 
@@ -147,18 +169,17 @@ void FakeNearbySharingService::Cancel(
   status_codes_callback(StatusCodes::kOk);
 }
 
+void FakeNearbySharingService::InitiatePairing(
+    int64_t share_target_id, service::proto::BindingRequest::Type binding_type,
+    absl::AnyInvocable<void(StatusCodes status_codes) &&>
+        status_codes_callback) {
+  initiate_pairing_callbacks_[share_target_id] =
+      std::move(status_codes_callback);
+}
+
 std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }
-
-NearbyShareLocalDeviceDataManager*
-FakeNearbySharingService::GetLocalDeviceDataManager() {
-  return nullptr;
-}
-
-NearbyShareContactManager* FakeNearbySharingService::GetContactManager() {
-  return nullptr;
-}
 
 NearbyShareCertificateManager*
 FakeNearbySharingService::GetCertificateManager() {
@@ -167,6 +188,14 @@ FakeNearbySharingService::GetCertificateManager() {
 
 AccountManager* FakeNearbySharingService::GetAccountManager() {
   return nullptr;
+}
+
+Clock& FakeNearbySharingService::GetClock() { return clock_; }
+
+SyncManager& FakeNearbySharingService::sync_manager() { return *sync_manager_; }
+
+OutgoingTargetsManager& FakeNearbySharingService::outgoing_targets_manager() {
+  return *outgoing_targets_manager_;
 }
 
 void FakeNearbySharingService::FireHighVisibilityChangeRequested() {
@@ -191,30 +220,6 @@ void FakeNearbySharingService::FireStartAdvertisingFailure() {
 void FakeNearbySharingService::FireStartDiscoveryResult(bool success) {
   for (auto& observer : observers_.GetObservers()) {
     observer->OnStartDiscoveryResult(success);
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationDevicesDetected() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesDetected();
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationDevicesNotDetected() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesNotDetected();
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationScanningStopped() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationScanningStopped();
-  }
-}
-
-void FakeNearbySharingService::FireShutdown() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnShutdown();
   }
 }
 
@@ -256,29 +261,53 @@ void FakeNearbySharingService::FireReceiveTransferUpdate(
 
 // Fire discovery events.
 void FakeNearbySharingService::FireShareTargetDiscovered(
-    SendSurfaceState state, ShareTarget share_target) {
-  if (state == SendSurfaceState::kForeground) {
-    for (auto& entry : foreground_send_surface_map_) {
-      entry.second.OnShareTargetDiscovered(share_target);
-    }
-  } else {
-    for (auto& entry : background_send_surface_map_) {
-      entry.second.OnShareTargetDiscovered(share_target);
-    }
+    ShareTarget share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(share_target);
   }
 }
 
-void FakeNearbySharingService::FireShareTargetLost(SendSurfaceState state,
-                                                   ShareTarget share_target) {
-  if (state == SendSurfaceState::kForeground) {
-    for (auto& entry : foreground_send_surface_map_) {
-      entry.second.OnShareTargetLost(share_target);
-    }
-  } else {
-    for (auto& entry : background_send_surface_map_) {
-      entry.second.OnShareTargetLost(share_target);
-    }
+void FakeNearbySharingService::FireShareTargetUpdated(
+    ShareTarget share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
   }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
+  }
+}
+
+void FakeNearbySharingService::FireShareTargetLost(ShareTarget share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
+  }
+}
+
+void FakeNearbySharingService::FireInitiatePairingResult(
+    int64_t share_target_id, StatusCodes status) {
+  auto it = initiate_pairing_callbacks_.find(share_target_id);
+  if (it == initiate_pairing_callbacks_.end()) {
+    return;
+  }
+  auto callback = std::move(it->second);
+  initiate_pairing_callbacks_.erase(it);
+  std::move(callback)(status);
+}
+
+void FakeNearbySharingService::UpdateBackupSavePath(
+    absl::string_view binding_id, absl::string_view save_path,
+    absl::AnyInvocable<void(NearbySharingService::StatusCodes)>
+        status_codes_callback) {
+  absl::StatusOr<FilePath> status =
+      sync_manager_->UpdateSyncBindingDestinationDirectory(binding_id,
+                                                           FilePath(save_path));
+  status_codes_callback(status.ok() ? StatusCodes::kOk : StatusCodes::kError);
 }
 
 }  // namespace sharing

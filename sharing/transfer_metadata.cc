@@ -24,9 +24,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
+#include "sharing/share_session_usage.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // static
 bool TransferMetadata::IsFinalStatus(Status status) {
@@ -90,15 +91,17 @@ std::string TransferMetadata::StatusToString(Status status) {
 // LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
 
 TransferMetadata::TransferMetadata(
-    Status status, float progress, std::optional<std::string> token,
-    bool is_original, bool is_final_status, bool is_self_share,
-    uint64_t transferred_bytes, uint64_t transfer_speed,
+    ShareSessionUsage usage, Status status, float progress,
+    std::optional<std::string> token, bool is_original, bool is_final_status,
+    bool is_self_share, uint64_t transferred_bytes, uint64_t transfer_speed,
     uint64_t estimated_time_remaining, int total_attachments_count,
     int transferred_attachments_count,
     std::optional<int64_t> in_progress_attachment_id,
     std::optional<uint64_t> in_progress_attachment_transferred_bytes,
-    std::optional<uint64_t> in_progress_attachment_total_bytes)
-    : status_(status),
+    std::optional<uint64_t> in_progress_attachment_total_bytes,
+    absl::string_view binding_id)
+    : usage_(usage),
+      status_(status),
       progress_(progress),
       token_(std::move(token)),
       is_original_(is_original),
@@ -112,7 +115,8 @@ TransferMetadata::TransferMetadata(
       in_progress_attachment_id_(in_progress_attachment_id),
       in_progress_attachment_transferred_bytes_(
           in_progress_attachment_transferred_bytes),
-      in_progress_attachment_total_bytes_(in_progress_attachment_total_bytes) {}
+      in_progress_attachment_total_bytes_(in_progress_attachment_total_bytes),
+      binding_id_(binding_id) {}
 
 TransferMetadata::~TransferMetadata() = default;
 
@@ -123,22 +127,26 @@ TransferMetadata& TransferMetadata::operator=(const TransferMetadata&) =
 
 std::string TransferMetadata::ToString() const {
   std::vector<std::string> fmt;
-
+  fmt.push_back(
+      absl::StrFormat("usage: %s", ShareSessionUsageToString(usage_)));
   fmt.push_back(absl::StrFormat("status: %s", StatusToString(status_)));
-  fmt.push_back(absl::StrFormat("progress: %.2f", progress_));
-  if (token_) {
-    fmt.push_back(absl::StrFormat("token: %s", *token_));
-  }
-  fmt.push_back(absl::StrFormat("is_original: %d", is_original_));
   fmt.push_back(absl::StrFormat("is_final_status: %d", is_final_status_));
   fmt.push_back(absl::StrFormat("is_self_share: %d", is_self_share_));
-  fmt.push_back(absl::StrFormat("transferred_bytes: %d", transferred_bytes_));
-  fmt.push_back(absl::StrFormat("transfer_speed: %d", transfer_speed_));
-  fmt.push_back(absl::StrFormat("estimated_time_remaining: %d",
-                                estimated_time_remaining_));
+  if (usage_ != ShareSessionUsage::kPairing) {
+    fmt.push_back(absl::StrFormat("progress: %.2f", progress_));
+    if (token_) {
+      fmt.push_back(absl::StrFormat("token: %s", *token_));
+    }
+    fmt.push_back(absl::StrFormat("is_original: %d", is_original_));
+    fmt.push_back(absl::StrFormat("transferred_bytes: %d", transferred_bytes_));
+    fmt.push_back(absl::StrFormat("transfer_speed: %d", transfer_speed_));
+    fmt.push_back(absl::StrFormat("estimated_time_remaining: %d",
+                                  estimated_time_remaining_));
+  } else {
+    fmt.push_back(absl::StrFormat("binding_id: %s", binding_id_));
+  }
 
   return absl::StrCat("TransferMetadata<", absl::StrJoin(fmt, ", "), ">");
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

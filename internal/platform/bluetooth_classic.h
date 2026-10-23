@@ -26,7 +26,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/observer_list.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -37,7 +37,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
 
@@ -156,7 +156,7 @@ class BluetoothServerSocket final {
   BluetoothServerSocket& operator=(const BluetoothServerSocket&) = default;
   ~BluetoothServerSocket() = default;
   explicit BluetoothServerSocket(
-      std::unique_ptr<api::BluetoothServerSocket> socket)
+      std::shared_ptr<api::BluetoothServerSocket> socket)
       : impl_(std::move(socket)) {}
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html#accept()
@@ -222,7 +222,7 @@ class BluetoothPairing final {
 
 // Container of operations that can be performed over the Bluetooth Classic
 // medium.
-class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
+class BluetoothClassicMedium {
  public:
   using Platform = api::ImplementationPlatform;
   struct DiscoveryCallback {
@@ -245,39 +245,11 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
     BluetoothDevice device;
   };
 
-  class Observer {
-   public:
-    virtual ~Observer() = default;
-
-    // Called when a new `device` is added. The `device` parameter becomes
-    // invalid after the call.
-    virtual void DeviceAdded(BluetoothDevice& device) {}
-
-    // Called when `device` is removed. The `device` parameter becomes invalid
-    // after the call.
-    virtual void DeviceRemoved(BluetoothDevice& device) {}
-
-    // Called when the address of `device` changed due to pairing. The
-    // `device` parameter becomes invalid after the call.
-    virtual void DeviceAddressChanged(BluetoothDevice& device,
-                                      absl::string_view old_address) {}
-
-    // Called when the paired property of `device` changed. The `device`
-    // parameter becomes invalid after the call.
-    virtual void DevicePairedChanged(BluetoothDevice& device,
-                                     bool new_paired_status) {}
-
-    // Called when `device` has connected or disconnected. The `device`
-    // parameter becomes invalid after the call.
-    virtual void DeviceConnectedStateChanged(BluetoothDevice& device,
-                                             bool connected) {}
-  };
-
   explicit BluetoothClassicMedium(BluetoothAdapter& adapter)
       : impl_(Platform::CreateBluetoothClassicMedium(adapter.GetImpl())),
         adapter_(adapter) {}
 
-  ~BluetoothClassicMedium() override;
+  virtual ~BluetoothClassicMedium();
 
   // NOTE(DiscoveryCallback):
   // BluetoothDevice is a proxy object created as a result of BT discovery.
@@ -333,43 +305,18 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
         impl_->ListenForService(service_name, service_uuid));
   }
 
-  // Return a Bluetooth pairing instance to handle the pairing process with the
-  // remote device.
-  std::unique_ptr<BluetoothPairing> CreatePairing(
-      BluetoothDevice& remote_device) {
-    std::unique_ptr<api::BluetoothPairing> bluetooth_pairing =
-        impl_->CreatePairing(remote_device.GetImpl());
-    return std::make_unique<BluetoothPairing>(std::move(bluetooth_pairing));
-  }
-
   bool IsValid() const { return impl_ != nullptr; }
 
   api::BluetoothClassicMedium& GetImpl() { return *impl_; }
   BluetoothAdapter& GetAdapter() { return adapter_; }
-  std::string GetMacAddress() const { return adapter_.GetMacAddress(); }
-  BluetoothDevice GetRemoteDevice(const std::string& mac_address) {
+
+  MacAddress GetAddress() const { return adapter_.GetAddress(); }
+  BluetoothDevice GetRemoteDevice(MacAddress mac_address) {
     return BluetoothDevice(impl_->GetRemoteDevice(mac_address));
   }
 
-  // Adds an observer. `observer` must be valid until RemoveObserver is called,
-  // or BluetoothClassicMedium is destroyed.
-  void AddObserver(Observer* observer);
-
-  // Removes an observer. It's OK to remove an unregistered observer.
-  void RemoveObserver(Observer* observer);
-
-  // api::BluetoothClassicMedium::Observer methods
-  void DeviceAdded(api::BluetoothDevice& device) override;
-  void DeviceRemoved(api::BluetoothDevice& device) override;
-  void DeviceAddressChanged(api::BluetoothDevice& device,
-                            absl::string_view old_address) override;
-  void DevicePairedChanged(api::BluetoothDevice& device,
-                           bool new_paired_status) override;
-  void DeviceConnectedStateChanged(api::BluetoothDevice& device,
-                                   bool connected) override;
-
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::BluetoothClassicMedium> impl_;
   BluetoothAdapter& adapter_;
   absl::flat_hash_map<api::BluetoothDevice*,
@@ -377,7 +324,6 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
       devices_ ABSL_GUARDED_BY(mutex_);
   DiscoveryCallback discovery_callback_ ABSL_GUARDED_BY(mutex_);
   bool discovery_enabled_ ABSL_GUARDED_BY(mutex_) = false;
-  ObserverList<Observer> observer_list_;
 };
 
 }  // namespace nearby

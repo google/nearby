@@ -18,7 +18,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "thread/fiber/fiber.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 
 namespace nearby {
 namespace apple {
@@ -77,6 +77,15 @@ TEST(CountDownLatchTest, InitialCountNegativeAwaitDoesNotBlock) {
   auto response = latch.Await();
 
   EXPECT_TRUE(response.Ok());
+}
+
+TEST(CountDownLatchTest, CountDown) {
+  CountDownLatch latch(2);
+  latch.CountDown();
+  latch.CountDown();
+  auto response = latch.Await(absl::Milliseconds(100));
+  EXPECT_TRUE(response.ok());
+  EXPECT_TRUE(response.result());
 }
 
 }  // namespace

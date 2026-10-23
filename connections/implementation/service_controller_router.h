@@ -57,7 +57,6 @@ namespace connections {
 class ServiceControllerRouter {
  public:
   ServiceControllerRouter();
-  explicit ServiceControllerRouter(bool enable_ble_v2);
   explicit ServiceControllerRouter(
       absl::AnyInvocable<bool()> if_hp_realtek_device);
   virtual ~ServiceControllerRouter();

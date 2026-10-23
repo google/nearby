@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "internal/proto/analytics/connections_log.pb.h"
+#include "connections/implementation/analytics/operation_result_with_medium.h"
 
 namespace nearby {
 
@@ -26,8 +26,7 @@ struct DiscoveryMetadataParams {
   bool is_extended_advertisement_supported = false;
   int connected_ap_frequency = 0;
   bool is_nfc_available = false;
-  std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                  OperationResultWithMedium>
+  std::vector<nearby::analytics::OperationResultWithMedium>
       operation_result_with_mediums = {};
 };
 

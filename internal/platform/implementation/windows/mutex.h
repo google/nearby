@@ -19,6 +19,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
+#include "internal/platform/condition_variable.h"
 
 namespace nearby {
 namespace windows {
@@ -49,6 +50,12 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
       mutex_.Unlock();
     } else {
       recursive_mutex_.unlock();
+    }
+  }
+
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.AssertHeld();
     }
   }
 

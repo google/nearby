@@ -38,6 +38,8 @@ namespace nearby {
 namespace api {
 namespace {
 
+constexpr absl::Duration kRequestTimeout = absl::Seconds(30);
+
 struct HttpTestContext {
   WebRequest web_request;
   WebResponse web_response;
@@ -132,7 +134,7 @@ class NearbyHttpClientTest : public ::testing::Test {
 
     absl::Notification notification;
     client_.StartRequest(
-        *request, [&result, &notification](
+        *request, api::kRequestTimeout, [&result, &notification](
                       const absl::StatusOr<HttpResponse>& http_response) {
           result = http_response;
           notification.Notify();
@@ -154,7 +156,7 @@ class NearbyHttpClientTest : public ::testing::Test {
       return request.status();
     }
 
-    return client_.GetResponse(*request);
+    return client_.GetResponse(*request, api::kRequestTimeout);
   }
 
   void CheckHeader(const std::multimap<std::string, std::string>& headers,
@@ -191,6 +193,7 @@ TEST_F(NearbyHttpClientTest, TestGet) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "GET");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   ASSERT_TRUE(result.ok());
@@ -210,6 +213,7 @@ TEST_F(NearbyHttpClientTest, TestGetWithQuery) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com?name=name1&age=36");
   EXPECT_EQ(web_request.method, "GET");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   ASSERT_TRUE(result.ok());
@@ -225,6 +229,7 @@ TEST_F(NearbyHttpClientTest, TestGetWithErrorResult) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com?name=name1&age=36");
   EXPECT_EQ(web_request.method, "GET");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   EXPECT_FALSE(result.ok());
@@ -240,6 +245,7 @@ TEST_F(NearbyHttpClientTest, TestPostAsync) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "POST");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   ASSERT_TRUE(result.ok());
@@ -258,6 +264,7 @@ TEST_F(NearbyHttpClientTest, TestPost) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "POST");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   ASSERT_TRUE(result.ok());
@@ -277,6 +284,7 @@ TEST_F(NearbyHttpClientTest, TestPostWithHeaderAsync) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "POST");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
   ASSERT_NO_FATAL_FAILURE(
       CheckHeader(web_request.headers, "Content_Type", "text/json"));
   ASSERT_NO_FATAL_FAILURE(CheckHeader(web_request.headers, "size", "596"));
@@ -297,6 +305,7 @@ TEST_F(NearbyHttpClientTest, TestPostWithErrorResultAsync) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "POST");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
   ASSERT_NO_FATAL_FAILURE(
       CheckHeader(web_request.headers, "Content_Type", "text/json"));
   ASSERT_NO_FATAL_FAILURE(CheckHeader(web_request.headers, "size", "596"));
@@ -315,6 +324,7 @@ TEST_F(NearbyHttpClientTest, TestRequestWithCleanThreadsAsync) {
   api::WebRequest web_request = GetWebRequest();
   EXPECT_EQ(web_request.url, "http://www.google.com");
   EXPECT_EQ(web_request.method, "GET");
+  EXPECT_EQ(web_request.timeout, api::kRequestTimeout);
 
   // Checks response.
   ASSERT_TRUE(result.ok());
@@ -334,7 +344,7 @@ TEST_F(NearbyHttpClientTest, TestCancellableRequestAsync) {
   absl::StatusOr<HttpResponse> result;
   absl::Notification notification;
   client().StartCancellableRequest(
-      std::move(cancellable_request),
+      std::move(cancellable_request), api::kRequestTimeout,
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();
@@ -362,7 +372,7 @@ TEST_F(NearbyHttpClientTest, TestCancelCancellableRequestAsync) {
   absl::StatusOr<HttpResponse> result;
   absl::Notification notification;
   client().StartCancellableRequest(
-      std::move(cancellable_request),
+      std::move(cancellable_request), api::kRequestTimeout,
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();
@@ -386,7 +396,7 @@ TEST_F(NearbyHttpClientTest,
   absl::Notification notification;
   auto client = std::make_unique<NearbyHttpClient>();
   client->StartCancellableRequest(
-      std::move(cancellable_request),
+      std::move(cancellable_request), api::kRequestTimeout,
       [&](const absl::StatusOr<HttpResponse>& response) {
         result = response;
         notification.Notify();

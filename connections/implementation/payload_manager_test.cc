@@ -15,22 +15,27 @@
 #include "connections/implementation/payload_manager.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/file.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -42,7 +47,6 @@ namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::Medium;
-using ::nearby::analytics::PacketMetaData;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -85,8 +89,12 @@ class PayloadSimulationUser : public SimulationUser {
  public:
   explicit PayloadSimulationUser(
       absl::string_view name,
-      BooleanMediumSelector allowed = BooleanMediumSelector())
-      : SimulationUser(std::string(name), allowed) {}
+      BooleanMediumSelector allowed = BooleanMediumSelector(),
+      SetSafeToDisconnect set_safe_to_disconnect =
+          SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                              /*payload_received_ack=*/true,
+                              /*safe_to_disconnect_version=*/5))
+      : SimulationUser(std::string(name), allowed, set_safe_to_disconnect) {}
   ~PayloadSimulationUser() override {
     LOG(INFO) << "PayloadSimulationUser: [down] name=" << info_.data();
     // SystemClock::Sleep(kDefaultTimeout);
@@ -112,13 +120,37 @@ class PayloadSimulationUser : public SimulationUser {
 
     OfflineFrame offline_frame;
 
-    ByteArray bytes = parser::ForDataPayloadTransfer(header, chunk);
-    offline_frame.ParseFromString(std::string(bytes));
-
-    PacketMetaData packet_meta_data;
+    std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(bytes);
 
     pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
-                        Medium::WIFI_HOTSPOT, packet_meta_data);
+                        Medium::WIFI_HOTSPOT);
+  }
+
+  void SetCustomSavePath(const std::string& path) {
+    pm_.SetCustomSavePath(&client_, path);
+  }
+
+  void ReceiveFileChunk(Payload::Id payload_id, absl::string_view file_name,
+                        int64_t total_size, int64_t offset,
+                        absl::string_view body, int32_t flags) {
+    PayloadTransferFrame::PayloadHeader header;
+    header.set_id(payload_id);
+    header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+    header.set_total_size(total_size);
+    header.set_file_name(std::string(file_name));
+    header.set_parent_folder("");
+    PayloadTransferFrame::PayloadChunk chunk;
+    chunk.set_body(std::string(body));
+    chunk.set_offset(offset);
+    chunk.set_flags(flags);
+
+    OfflineFrame offline_frame;
+    std::string bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(bytes);
+
+    pm_.OnIncomingFrame(offline_frame, discovered_.endpoint_id, &client_,
+                        Medium::WIFI_LAN);
   }
 
   Status CancelPayload() {
@@ -198,6 +230,42 @@ TEST_P(PayloadManagerTest, CanSendBytePayload) {
   env_.Stop();
 }
 
+TEST_P(PayloadManagerTest, CanSendFilePayload) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string src_file_path =
+      absl::StrCat(::testing::TempDir(), "/test_send_file_src.txt");
+  {
+    OutputFile out_file(src_file_path);
+    ASSERT_TRUE(out_file.IsValid());
+    ASSERT_TRUE(out_file.Write(kMessage).Ok());
+    ASSERT_TRUE(out_file.Close().Ok());
+  }
+
+  user_a.GetClient().OverrideSavePath(user_a.GetDiscovered().endpoint_id,
+                                      ::testing::TempDir());
+  user_a.ExpectPayload(payload_latch_);
+  user_b.SendPayload(Payload("parent_folder", "test_send_file_dst.txt",
+                             InputFile(src_file_path)));
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kSuccess;
+      },
+      kProgressTimeout));
+  ASSERT_NE(user_a.GetPayload().AsFile(), nullptr);
+  EXPECT_EQ(user_a.GetPayload().GetFileName(), "test_send_file_dst.txt");
+  EXPECT_EQ(user_a.GetPayload().GetParentFolder(), "parent_folder");
+  user_a.GetPayload().AsFile()->Close();
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
 TEST_P(PayloadManagerTest, PayloadId0IsError) {
   env_.Start();
   PayloadSimulationUser user_a(kDeviceA, GetParam());
@@ -221,10 +289,9 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
 
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -233,22 +300,22 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= 2 * message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= 2 * kMessage.size();
       },
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result2, message);
+  EXPECT_EQ(result2.AsStringView(), kMessage);
   LOG(INFO) << "Packet 2 handled.";
 
   rx.Close();
@@ -266,8 +333,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -276,12 +342,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
@@ -291,7 +357,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx->Write(message).Ok()) break;
+    if (!tx->Write(kMessage).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -319,8 +385,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -329,12 +394,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_b.CancelPayload(), Status{Status::kSuccess});
@@ -344,7 +409,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx->Write(message).Ok()) break;
+    if (!tx->Write(kMessage).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -373,10 +438,9 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx->Write(message);
+  tx->Write(kMessage);
 
   Payload payload(std::move(input));
   payload.SetOffset(kOffset);
@@ -387,22 +451,22 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size() - kOffset;
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size() - kOffset;
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, ByteArray("sage"));
   LOG(INFO) << "Packet 1 handled.";
 
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= 2 * message.size() - kOffset;
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= 2 * kMessage.size() - kOffset;
       },
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result2, message);
+  EXPECT_EQ(result2.AsStringView(), kMessage);
   LOG(INFO) << "Packet 2 handled.";
 
   rx.Close();
@@ -413,18 +477,137 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   env_.Stop();
 }
 
+TEST_P(PayloadManagerTest,
+       SendStreamPayload_SendsPayloadReceivedAck_WhenEnabled) {
+  env_.Start();
+  PayloadSimulationUser user_a(
+      kDeviceA, GetParam(),
+      SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                          /*payload_received_ack=*/true,
+                          /*safe_to_disconnect_version=*/6));
+  PayloadSimulationUser user_b(
+      kDeviceB, GetParam(),
+      SetSafeToDisconnect(/*safe_to_disconnect=*/true,
+                          /*payload_received_ack=*/true,
+                          /*safe_to_disconnect_version=*/6));
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  auto [input, tx] = CreatePipe();
+  user_a.ExpectPayload(payload_latch_);
+  tx->Write(kMessage);
+
+  user_b.SendPayload(Payload(std::move(input)));
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
+  InputStream& rx = *user_a.GetPayload().AsStream();
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
+      },
+      kProgressTimeout));
+  ByteArray result = rx.Read(kChunkSize).result();
+  EXPECT_EQ(result.AsStringView(), kMessage);
+
+  // Close the write end of the pipe, which sends the last chunk.
+  // With payload_received_ack enabled, this triggers SendPayloadReceivedAck
+  // and concurrent destruction of PendingPayload on the receiver side.
+  rx.Close();
+  tx->Close();
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kSuccess;
+      },
+      kProgressTimeout));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
 TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
   env_.Start();
   PayloadSimulationUser user(kDeviceB, GetParam());
   auto [input, tx] = CreatePipe();
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
   Payload payload(std::move(input));
   user.ReceivePayload(std::move(payload), "1234");
   ASSERT_EQ(user.GetPayload().AsStream(), nullptr);
   user.Stop();
   env_.Stop();
 }
+
+#if !defined(NEARBY_CHROMIUM)
+TEST_P(PayloadManagerTest, CancelIncompleteIncomingFilePayloadDeletesFile) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98765;
+  constexpr absl::string_view kFileName = "incomplete_canceled_file.txt";
+  user_a.ReceiveFileChunk(kPayloadId, kFileName, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+
+  FilePath file_path = FilePath(temp_dir).append(FilePath(kFileName));
+  EXPECT_TRUE(Files::FileExists(file_path));
+
+  EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
+  EXPECT_FALSE(Files::FileExists(file_path));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, DuplicateIncomingPayloadIdFailsPayload) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98766;
+  constexpr absl::string_view kFileName1 = "dup_id_file_1.txt";
+  constexpr absl::string_view kFileName2 = "dup_id_file_2.txt";
+  user_a.ReceiveFileChunk(kPayloadId, kFileName1, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+
+  FilePath file_path1 = FilePath(temp_dir).append(FilePath(kFileName1));
+  FilePath file_path2 = FilePath(temp_dir).append(FilePath(kFileName2));
+  EXPECT_TRUE(Files::FileExists(file_path1));
+
+  // Receiving another initial chunk with the same payload ID must be treated as
+  // a payload error, failing the payload and deleting the incomplete file
+  // without disconnecting the endpoint.
+  user_a.ReceiveFileChunk(kPayloadId, kFileName2, kMessage.size() * 2,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kFailure;
+      },
+      kProgressTimeout));
+  EXPECT_TRUE(user_a.IsConnected());
+  EXPECT_FALSE(Files::FileExists(file_path1));
+  EXPECT_FALSE(Files::FileExists(file_path2));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+#endif  // !defined(NEARBY_CHROMIUM)
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
                          ::testing::ValuesIn(kTestCases));

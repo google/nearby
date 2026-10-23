@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 licenses(["notice"])
 
 cc_library(
@@ -26,26 +28,26 @@ cc_library(
         "private_certificate_data.h",
         "public_certificate_database.h",
         "sharing_platform.h",
-        "sharing_rpc_client.h",
         "system_info.h",
-        "wifi_adapter.h",
     ],
     visibility = [
+        "//internal/account:__pkg__",
         "//location/nearby/analytics/cpp/logging:__pkg__",
         "//location/nearby/cpp/sharing:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//location/nearby/sharing/sdk/test_client:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [
         "//internal/base:file_path",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
-        "//proto/identity/v1:rpcs_cc_proto",
-        "//sharing/analytics",
+        "//internal/platform/implementation:types",
+        "//location/nearby/sharing/lib/account:account_manager",
+        "//location/nearby/sharing/lib/sync:sync_binding_prefs_cc_proto",
+        "//location/nearby/sharing/lib/sync:sync_config_prefs_cc_proto",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
@@ -55,11 +57,7 @@ cc_library(
 cc_library(
     name = "mock_sharing_platform",
     testonly = True,
-    srcs = [
-        "fake_nearby_share_client.cc",
-    ],
     hdrs = [
-        "fake_nearby_share_client.h",
         "mock_app_info.h",
         "mock_bluetooth_adapter.h",
         "mock_fast_init_ble_beacon.h",
@@ -68,19 +66,16 @@ cc_library(
         "mock_public_certificate_db.h",
         "mock_sharing_platform.h",
         "mock_system_info.h",
-        "mock_wifi_adapter.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         ":platform",
         "//internal/base:file_path",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
-        "//sharing/analytics",
-        "//sharing/proto:share_cc_proto",
+        "//internal/platform/implementation:types",
+        "//location/nearby/sharing/lib/account:account_manager",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_for_library_testonly",

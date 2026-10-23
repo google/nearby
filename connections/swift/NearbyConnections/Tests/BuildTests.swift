@@ -23,4 +23,9 @@ class BuildTests: XCTestCase {
   func testBuild() {
     // At least one test case is needed.
   }
+
+  func testEnableWifiAware() {
+    let connectionManager = ConnectionManager(serviceID: "test", strategy: .pointToPoint)
+    connectionManager.enableWifiAware()
+  }
 }

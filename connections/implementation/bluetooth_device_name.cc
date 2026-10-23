@@ -21,8 +21,8 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
@@ -58,6 +58,14 @@ BluetoothDeviceName::BluetoothDeviceName(Version version, Pcp pcp,
   endpoint_info_ = endpoint_info;
   uwb_address_ = uwb_address;
   web_rtc_state_ = web_rtc_state;
+  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
+    LOG(INFO)
+        << "While constructing bluetooth device name, truncating Endpoint Info "
+        << absl::BytesToHexString(std::string(endpoint_info_)) << " ("
+        << endpoint_info_.size() << " bytes) down to " << kMaxEndpointInfoLength
+        << " bytes";
+    endpoint_info_ = ByteArray(endpoint_info_.data(), kMaxEndpointInfoLength);
+  }
 }
 
 BluetoothDeviceName::BluetoothDeviceName(
@@ -154,6 +162,14 @@ BluetoothDeviceName::BluetoothDeviceName(
     return;
   }
   endpoint_info_ = *endpoint_info_bytes;
+  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
+    LOG(INFO) << "While deserializing bluetooth device name, truncating "
+                 "Endpoint Info "
+              << absl::BytesToHexString(std::string(endpoint_info_)) << " ("
+              << endpoint_info_.size() << " bytes) down to "
+              << kMaxEndpointInfoLength << " bytes";
+    endpoint_info_ = ByteArray(endpoint_info_.data(), kMaxEndpointInfoLength);
+  }
 
   // If the input stream has extra bytes, it's for UWB address. The first byte
   // is the address length. It can be 2-byte short address or 8-byte extended
@@ -203,23 +219,14 @@ BluetoothDeviceName::operator std::string() const {
 
   ByteArray reserved_bytes{kReservedLength};
 
-  ByteArray usable_endpoint_info(endpoint_info_);
-  if (endpoint_info_.size() > kMaxEndpointInfoLength) {
-    LOG(INFO) << "While serializing Advertisement, truncating Endpoint Name "
-              << absl::BytesToHexString(endpoint_info_.data()) << " ("
-              << endpoint_info_.size() << " bytes) down to "
-              << kMaxEndpointInfoLength << " bytes";
-    usable_endpoint_info.SetData(endpoint_info_.data(), kMaxEndpointInfoLength);
-  }
-
   // clang-format off
   std::string out = absl::StrCat(std::string(1, version_and_pcp_byte),
                                  endpoint_id_,
                                  std::string(service_id_hash_),
                                  std::string(1, field_byte),
                                  std::string(reserved_bytes),
-                                 std::string(1, usable_endpoint_info.size()),
-                                 std::string(usable_endpoint_info));
+                                 std::string(1, endpoint_info_.size()),
+                                 std::string(endpoint_info_));
   // clang-format on
 
   // If UWB address is available, attach it at the end.

@@ -19,17 +19,20 @@
 #include "absl/synchronization/mutex.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
 
 namespace nearby::g3 {
 
 class PreferencesRepository {
  public:
-  PreferencesRepository() = default;
+  explicit PreferencesRepository(FilePath base_path)
+      : file_path_(base_path.append(FilePath("settings.json"))) {}
 
   nlohmann::json LoadPreferences() ABSL_LOCKS_EXCLUDED(&mutex_);
   bool SavePreferences(nlohmann::json preferences) ABSL_LOCKS_EXCLUDED(&mutex_);
 
  private:
+  const FilePath file_path_;
   // Avoid to write in google3, just create a memory value to simulate a
   // preferences storage
   nlohmann::json value_ = nlohmann::json::object();

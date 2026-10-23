@@ -17,9 +17,10 @@
 
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/mutex.h"
 #include "internal/weave/packet.h"
 
 namespace nearby {
@@ -46,7 +47,7 @@ class Packetizer {
   void Reset() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::string pending_payloads_ ABSL_GUARDED_BY(mutex_);
   bool is_message_complete_ ABSL_GUARDED_BY(mutex_) = false;
 };

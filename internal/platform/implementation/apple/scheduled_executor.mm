@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/time/time.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/runnable.h"
 
 // Defines the state of a scheduled task. This enum is at global scope
@@ -93,7 +94,32 @@ class ExecutorCancelable : public nearby::api::Cancelable {
 
 namespace nearby {
 namespace apple {
+namespace {
 
+#if defined(__APPLE__) && !defined(GITHUB_BUILD) && defined(__cpp_exceptions)
+static_assert(false, "Nearby Apple platform implementation must be compiled with "
+                     "-fno-exceptions");
+#endif
+
+void ExecuteRunnable(Runnable &runnable) {
+  @try {
+#if defined(__cpp_exceptions)
+    try {
+      runnable();
+    } catch (const std::exception &e) {
+      GNCLoggerError(@"Runnable threw C++ exception: %s", e.what());
+    } catch (...) {
+      GNCLoggerError(@"Runnable threw unknown C++ exception");
+    }
+#else
+    runnable();
+#endif
+  } @catch (NSException *e) {
+    GNCLoggerError(@"Runnable threw ObjC exception: %@: %@", e.name, e.reason);
+  }
+}
+
+}  // namespace
 
 ScheduledExecutor::ScheduledExecutor() { impl_ = [GNCOperationQueueImpl implWithMaxConcurrency:1]; }
 
@@ -105,7 +131,6 @@ ScheduledExecutor::~ScheduledExecutor() {
   Shutdown();
   impl_ = nil;
 }
-
 
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable,
                                                              absl::Duration duration) {
@@ -133,7 +158,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
           }
           GNCScheduledTaskState expected = GNCScheduledTaskState::kScheduled;
           if (task->_state.compare_exchange_strong(expected, GNCScheduledTaskState::kRunning)) {
-            task->_runnable();
+            ExecuteRunnable(task->_runnable);
             task->_state.store(GNCScheduledTaskState::kDone);
           }
         }];
@@ -152,7 +177,7 @@ bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
   // Submit the runnable to the queue.
   __block Runnable local_runnable = std::move(runnable);
   [impl_.queue addOperationWithBlock:^{
-    local_runnable();
+    ExecuteRunnable(local_runnable);
   }];
   return true;
 }

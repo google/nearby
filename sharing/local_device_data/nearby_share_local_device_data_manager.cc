@@ -43,18 +43,6 @@ void NearbyShareLocalDeviceDataManager::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
 
-void NearbyShareLocalDeviceDataManager::Start() {
-  if (is_running_) return;
-
-  is_running_ = true;
-}
-
-void NearbyShareLocalDeviceDataManager::Stop() {
-  if (!is_running_) return;
-
-  is_running_ = false;
-}
-
 void NearbyShareLocalDeviceDataManager::NotifyLocalDeviceDataChanged(
     bool did_device_name_change, bool did_full_name_change,
     bool did_icon_change) {

@@ -20,15 +20,16 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/cancellable_task.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/lockable.h"
 #include "internal/platform/monitored_runnable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/thread_check_runnable.h"
 
@@ -47,23 +48,23 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   ScheduledExecutor& operator=(ScheduledExecutor&& other)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     {
-      MutexLock other_lock(&other.mutex_);
+      absl::MutexLock other_lock(other.mutex_);
       impl_ = std::move(other.impl_);
     }
     return *this;
   }
   void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_)
       impl_->Execute(MonitoredRunnable(
           name, ThreadCheckRunnable(this, std::move(runnable))));
   }
 
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_) impl_->Execute(ThreadCheckRunnable(this, std::move(runnable)));
   }
 
@@ -71,7 +72,7 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   Cancelable Schedule(Runnable&& runnable, absl::Duration duration)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (impl_) {
       auto task = std::make_shared<CancellableTask>(
           ThreadCheckRunnable(this, std::move(runnable)));
@@ -82,7 +83,105 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
     }
   }
 
+  Cancelable ScheduleRepeatedly(Runnable&& runnable, absl::Duration duration)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    {
+      absl::MutexLock lock(mutex_);
+      if (!impl_) {
+        return Cancelable();
+      }
+    }
+
+    auto cancellable_task = std::make_shared<CancellableTask>(
+        ThreadCheckRunnable(this, std::move(runnable)), /*is_repeated=*/true);
+
+    auto repeated_task_handler =
+        std::make_shared<RepeatedTask>(this, cancellable_task, duration);
+
+    // Start the first execution.
+    repeated_task_handler->Start();
+    return Cancelable(cancellable_task, repeated_task_handler);
+  }
+
  private:
+  // This class encapsulates the state and re-scheduling logic for a single
+  // repeated task. An instance is created for each call to
+  // ScheduleRepeatedly.
+  class RepeatedTask : public api::Cancelable,
+                       public std::enable_shared_from_this<RepeatedTask> {
+   public:
+    RepeatedTask(ScheduledExecutor* executor,
+                 std::shared_ptr<CancellableTask> cancellable_task,
+                 absl::Duration delay)
+        : executor_(executor),
+          cancellable_task_(std::move(cancellable_task)),
+          delay_(delay) {}
+
+    // Starts the first execution of the task.
+    void Start() {
+      absl::MutexLock lock(executor_->mutex_);
+      ScheduleNextUnderLock();
+    }
+
+    // Implementation of api::Cancelable. This cancels future executions.
+    bool Cancel() override {
+      if (cancelled_.Set(true)) {
+        return true;  // Already cancelled
+      }
+
+      // Cancel the pending scheduled task, if any.
+      absl::MutexLock lock(executor_->mutex_);
+      if (pending_future_) {
+        pending_future_->Cancel();
+      }
+      return true;
+    }
+
+   private:
+    void Run() {
+      if (cancelled_.Get()) {
+        return;
+      }
+
+      // Re-schedule the next execution before running the task to avoid clock
+      // slip as much as possible.
+      // Ideally the next event should be scheduled at
+      // (last scheduled time + delay).  So that if the task takes too long to
+      // finish, we can still catch up the schedule.
+      // However, that would require changing the scheduler to allow scheduling
+      // an event at a specific time.
+      {
+        absl::MutexLock lock(executor_->mutex_);
+        ScheduleNextUnderLock();
+      }
+
+      (*cancellable_task_)();
+
+      if (cancelled_.Get()) {
+        return;
+      }
+    }
+
+    void ScheduleNextUnderLock()
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_->mutex_) {
+      if (cancelled_.Get() || !executor_->impl_) {
+        return;
+      }
+      // Schedule the next run, capturing a shared_ptr to ourself to keep
+      // this object alive.
+      pending_future_ = executor_->impl_->Schedule(
+          [self = shared_from_this()]() { self->Run(); }, delay_);
+    }
+
+    ScheduledExecutor* const executor_;
+    const std::shared_ptr<CancellableTask> cancellable_task_;
+    const absl::Duration delay_;
+
+    AtomicBoolean cancelled_{false};
+    std::shared_ptr<api::Cancelable> pending_future_
+        ABSL_GUARDED_BY(executor_->mutex_);
+  };
+
   void DoShutdown() ABSL_LOCKS_EXCLUDED(mutex_) {
     std::unique_ptr<api::ScheduledExecutor> executor = ReleaseExecutor();
     if (executor) {
@@ -92,11 +191,11 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
 
   std::unique_ptr<api::ScheduledExecutor> ReleaseExecutor()
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return std::move(impl_);
   }
 
-  mutable Mutex mutex_;
+  mutable absl::Mutex mutex_;
   std::unique_ptr<api::ScheduledExecutor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 

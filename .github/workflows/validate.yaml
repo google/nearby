@@ -14,7 +14,14 @@
 
 name: Validate
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   FORCE_COLOR: true
@@ -24,7 +31,8 @@ jobs:
     name: Build Swift
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: sync repo
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Build
@@ -34,7 +42,7 @@ jobs:
     name: Test Swift
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Test
@@ -44,21 +52,6 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Build Connections
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //connections:core
-    - name: Build Presence
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //presence
-    - name: Build Sharing
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
-
-  build-rust-linux:
-    name: Build Rust on Linux
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    - name: Build FPP
-      run:  cargo build --manifest-path presence/fpp/fpp/Cargo.toml
-  
+      run: CC=clang-18 CXX=clang-18++ BAZEL_CXXOPTS="-std=c++20" bazel build --@com_google_protobuf//bazel/toolchains:prefer_prebuilt_protoc=true --copt='-DGITHUB_BUILD' //connections:core

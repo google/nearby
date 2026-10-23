@@ -17,8 +17,8 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/log/log_sink_registry.h"
 #include "internal/platform/implementation/apple/os_log_sink.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace apple {

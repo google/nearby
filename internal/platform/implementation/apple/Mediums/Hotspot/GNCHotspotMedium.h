@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <Foundation/Foundation.h> // NOLINT
+#import <Foundation/Foundation.h>  // NOLINT
 #import <Network/Network.h>
+
+NS_ASSUME_NONNULL_BEGIN
 
 @class GNCIPv4Address;
 @class GNCHotspotSocket;
+@class GNCNWFramework;
+@class GNCNWFrameworkSocket;
 
 /**
  * The main Hotspot medium used inside of Nearby. This class is responsible for managing the
@@ -27,21 +31,38 @@
 @interface GNCHotspotMedium : NSObject
 
 /**
+ * Initializes the Hotspot medium with the specified queue.
+ *
+ * @param queue The queue to use for all internal operations.
+ * @return An initialized Hotspot medium.
+ */
+- (instancetype)initWithQueue:(dispatch_queue_t)queue;
+
+/**
+ * Initializes the Hotspot medium with the specified queue and network framework.
+ *
+ * @param queue The queue to use for all internal operations.
+ * @param nwFramework The network framework to use for connections.
+ * @return An initialized Hotspot medium.
+ */
+- (instancetype)initWithQueue:(dispatch_queue_t)queue
+                  nwFramework:(GNCNWFramework *)nwFramework NS_DESIGNATED_INITIALIZER;
+
+/**
  * Connects to a Wifi Hotspot with the specified SSID and password.
  *
  * @param ssid The SSID of the Hotspot to connect to.
  * @param password The password of the Hotspot to connect to.
  * @return YES if the connection was successful, NO otherwise.
  */
-- (BOOL)connectToWifiNetworkWithSSID:(nonnull NSString *)ssid
-                      password:(nonnull NSString *)password;
+- (BOOL)connectToWifiNetworkWithSSID:(NSString *)ssid password:(NSString *)password;
 
 /**
  * Disconnects from a Wifi Hotspot with the specified SSID.
  *
  * @param ssid The SSID of the Hotspot to disconnect from.
  */
-- (void) disconnectToWifiNetworkWithSSID:(nonnull NSString *)ssid;
+- (void)disconnectToWifiNetworkWithSSID:(NSString *)ssid;
 
 /**
  * Gets the current Wifi SSID.
@@ -58,8 +79,11 @@
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occurred.
  */
-- (nullable GNCHotspotSocket *)connectToHost:(nonnull GNCIPv4Address *)host
+- (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
-                                           error:(NSError **_Nullable)error;
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           error:(NSError *_Nullable *_Nullable)error;
 
 @end
+
+NS_ASSUME_NONNULL_END

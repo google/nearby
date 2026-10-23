@@ -15,7 +15,6 @@
 #include "sharing/internal/test/fake_connectivity_manager.h"
 
 #include "gtest/gtest.h"
-#include "sharing/internal/public/connectivity_manager.h"
 
 namespace nearby {
 namespace {
@@ -28,40 +27,16 @@ TEST(FakeConnectivityManager, TestIsLanConnected) {
   EXPECT_FALSE(connection_manager.IsLanConnected());
 }
 
-TEST(FakeConnectivityManager, TestGetCurrentConnection) {
-  FakeConnectivityManager connection_manager;
-  ConnectivityManager::ConnectionType connection =
-      connection_manager.GetConnectionType();
-  EXPECT_EQ(connection, ConnectivityManager::ConnectionType::kWifi);
-  connection_manager.SetConnectionType(
-      ConnectivityManager::ConnectionType::kEthernet);
-  EXPECT_EQ(connection_manager.GetConnectionType(),
-            ConnectivityManager::ConnectionType::kEthernet);
-}
-
 TEST(FakeConnectivityManager, TestListener) {
   FakeConnectivityManager connection_manager;
-  ConnectivityManager::ConnectionType connection_type =
-      connection_manager.GetConnectionType();
   bool is_lan_connected = false;
-  connection_manager.RegisterConnectionListener(
-      "test", [&connection_type, &is_lan_connected](
-                  ConnectivityManager::ConnectionType connection,
-                  bool connected, bool internet_connected) {
-        connection_type = connection;
-        is_lan_connected = connected;
+  connection_manager.RegisterLanListener(
+      "test", [&is_lan_connected](bool lan_connected) {
+        is_lan_connected = lan_connected;
       });
-  EXPECT_EQ(connection_manager.GetListenerCount(), 1);
-  connection_manager.SetConnectionType(
-      ConnectivityManager::ConnectionType::kEthernet);
   connection_manager.SetLanConnected(true);
-  EXPECT_EQ(connection_type, ConnectivityManager::ConnectionType::kEthernet);
   ASSERT_TRUE(is_lan_connected);
-  connection_manager.UnregisterConnectionListener("test");
-  EXPECT_EQ(connection_manager.GetListenerCount(), 0);
-  connection_manager.SetConnectionType(
-      ConnectivityManager::ConnectionType::kWifi);
-  EXPECT_EQ(connection_type, ConnectivityManager::ConnectionType::kEthernet);
+  connection_manager.UnregisterLanListener("test");
   EXPECT_TRUE(is_lan_connected);
 }
 

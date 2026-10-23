@@ -26,10 +26,11 @@ class Timer {
   //
   // @param delay  The amount of time in milliseconds relative to the current
   //        time that must elapse before the timer is signaled for the first
-  //        time.
+  //        time.  If delay is negative, it will be treated as 0.
   // @param period The period of the timer, in milliseconds. If this parameter
   //        is zero, the timer is signaled once. If this parameter is greater
-  //        than zero, the timer is periodic.
+  //        than zero, the timer is periodic.  If period is negative, it will be
+  //        treated as 0.
   // @param callback The callback is called when timer is signaled
   //
   // @return Returns true if succeed, otherwise false is returned.
@@ -37,7 +38,6 @@ class Timer {
                      absl::AnyInvocable<void()> callback) = 0;
   virtual void Stop() = 0;
   virtual bool IsRunning() = 0;
-  virtual bool FireNow() = 0;
 };
 
 }  // namespace nearby

@@ -21,7 +21,11 @@
 #include <string>
 #include <vector>
 
+#include "net/proto2/contrib/parse_proto/parse_text_proto.h"
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -31,10 +35,15 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/implementation/windows/preferences_manager_test.proto.h"
 
 namespace nearby {
 namespace windows {
 namespace {
+using ::proto2::contrib::parse_proto::ParseTextProtoOrDie;
+using ::protobuf_matchers::EqualsProto;
+using ::testing::IsEmpty;
+
 using json = ::nlohmann::json;
 constexpr absl::string_view kPreferencesFilePath = "Google/Nearby/Sharing";
 }  // namespace
@@ -182,6 +191,48 @@ TEST(PreferencesManager, RemoveKey) {
   pm.Remove(string_key);
   auto result = pm.GetString(string_key, "default key");
   EXPECT_EQ(result, "default key");
+}
+
+TEST(PreferencesManager, RemoveKeyPrefix) {
+  constexpr absl::string_view kKeyPrefix = "test_key_prefix.";
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
+  for (int i = 0; i < 10; ++i) {
+    pm.SetString(absl::StrCat(kKeyPrefix, i), absl::StrCat("value", i));
+  }
+  constexpr absl::string_view string_key = "string_key";
+  pm.SetString(string_key, "this is a test string");
+  EXPECT_EQ(pm.GetString(string_key, ""), "this is a test string");
+
+  EXPECT_TRUE(pm.RemoveKeyPrefix(kKeyPrefix));
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_THAT(pm.GetString(absl::StrCat(kKeyPrefix, i), ""),
+              IsEmpty());
+  }
+  EXPECT_EQ(pm.GetString(string_key, ""), "this is a test string");
+}
+
+TEST(PreferencesManager, SetAndGetProtoMessage) {
+  std::string proto_key = "proto_key";
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
+  windows::tests::SyncConfig sync_config = ParseTextProtoOrDie(R"pb(
+    folders {
+      id: "folder_id"
+      label: "test_folder"
+      index_id: 1
+      max_sequence: 100
+    }
+    folders {
+      id: "folder_id2"
+      label: "test_folder2"
+      index_id: 2
+      max_sequence: 200
+    }
+  )pb");
+  windows::tests::SyncConfig sync_config_out;
+  EXPECT_FALSE(pm.GetProtoMessage(proto_key, &sync_config_out));
+  pm.SetProtoMessage(proto_key, sync_config);
+  EXPECT_TRUE(pm.GetProtoMessage(proto_key, &sync_config_out));
+  EXPECT_THAT(sync_config_out, EqualsProto(sync_config));
 }
 
 }  // namespace windows

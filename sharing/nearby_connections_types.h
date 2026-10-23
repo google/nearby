@@ -28,7 +28,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
-#include "internal/base/files.h"
 #include "internal/interop/authentication_status.h"
 
 namespace nearby {
@@ -97,8 +96,10 @@ enum class Status {
   kTimeout = 17,
   // No status is available
   kUnknown = 18,
+  // There was an error trying to use the device's Wi-Fi Aware capabilities.
+  kWifiAwareError = 19,
   // Value of the next enum variant.
-  kNextValue = 19,
+  kNextValue = 20,
 };
 // LINT.ThenChange(
 //     ../connections/status.h:status_enum,
@@ -225,6 +226,8 @@ struct AdvertisingOptions {
   // Indicates whether the endpoint id should be stable. When visibility is
   // everyone mode, we should set this to true to avoid duplicated endpoint ids.
   bool use_stable_endpoint_id = false;
+  // If true, a new endpoint id will be generated.
+  bool force_new_endpoint_id = false;
   // Optional. If set, BLE advertisements will be in their "fast advertisement"
   // form, use this UUID, and non-connectable; if empty, BLE advertisements
   // will otherwise be normal and connectable.
@@ -334,6 +337,10 @@ enum class Medium {
   kWifiDirect = 8,
   kWebRtc = 9,
   kBleL2Cap = 10,
+  kUsb = 11,
+  kWebRtcNonCellular = 12,
+  kAwdl = 13,
+  kWifiAwareR4 = 14,
 };
 
 // Log severity levels. This is passed as a member of
@@ -355,14 +362,6 @@ enum class DistanceInfo {
   kFar = 4,
 };
 
-struct InputFile {
-  InputFile() = default;
-  explicit InputFile(absl::string_view file_path)
-      : path(file_path) {}
-
-  FilePath path;
-};
-
 // A simple payload containing raw bytes.
 struct BytesPayload {
   // The bytes of this payload.
@@ -374,8 +373,7 @@ struct FilePayload {
   // The file to which this payload points to. When sending this payload, the
   // NearbyConnections library reads from this file. When receiving a file
   // payload it writes to this file.
-  InputFile file;
-  int64_t size;
+  FilePath file_path;
   std::string parent_folder;
 };
 
@@ -408,35 +406,21 @@ struct Payload {
   explicit Payload(std::vector<uint8_t> bytes)
       : Payload(GenerateId(), std::move(bytes)) {}
 
-  explicit Payload(InputFile file,
-                   absl::string_view parent_folder = absl::string_view()) {
-    id = std::hash<std::string>()(file.path.ToString());
-
-    content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
-    if (size.has_value()) {
-      content.file_payload.size = *size;
-    }
-
-    content.file_payload.file = std::move(file);
-    content.file_payload.parent_folder = std::string(parent_folder);
-  }
+  explicit Payload(FilePath file_path,
+                   absl::string_view parent_folder = absl::string_view())
+      : Payload(std::hash<std::string>()(file_path.ToString()), file_path,
+                parent_folder) {}
 
   Payload(int64_t id, std::vector<uint8_t> bytes) : id(id) {
     content.type = PayloadContent::Type::kBytes;
     content.bytes_payload.bytes = std::move(bytes);
   }
 
-  Payload(int64_t id, InputFile file,
+  Payload(int64_t id, FilePath file_path,
           absl::string_view parent_folder = absl::string_view())
       : id(id) {
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
-    if (size.has_value()) {
-      content.file_payload.size = *size;
-    }
-
-    content.file_payload.file = std::move(file);
+    content.file_payload.file_path = file_path;
     content.file_payload.parent_folder = std::string(parent_folder);
   }
 

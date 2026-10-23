@@ -47,6 +47,33 @@
                                          byte4:bytes[3]];
 }
 
++ (nullable instancetype)addressWithDottedRepresentation:(NSString *)address {
+  NSArray<NSString *> *components = [address componentsSeparatedByString:@"."];
+  if (components.count != 4) {
+    return nil;
+  }
+
+  uint8_t bytes[4];
+  for (int i = 0; i < 4; ++i) {
+    NSScanner *scanner = [NSScanner scannerWithString:components[i]];
+    int value;
+    // The string must be a valid integer and must not contain any other characters.
+    if (![scanner scanInt:&value] || ![scanner isAtEnd]) {
+      return nil;
+    }
+
+    if (value < 0 || value > 255) {
+      return nil;
+    }
+    bytes[i] = (uint8_t)value;
+  }
+
+  return [[GNCIPv4Address alloc] initWithByte1:bytes[0]
+                                         byte2:bytes[1]
+                                         byte3:bytes[2]
+                                         byte4:bytes[3]];
+}
+
 - (NSData *)binaryRepresentation {
   const uint8_t bytes[] = {_byte1, _byte2, _byte3, _byte4};
   return [NSData dataWithBytes:bytes length:4];

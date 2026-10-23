@@ -43,7 +43,7 @@ TEST(SingleThreadExecutorTest, CanExecute) {
   });
   absl::Mutex mutex;
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     if (!done) {
       cond.WaitWithTimeout(&mutex, absl::Seconds(1));
     }
@@ -61,7 +61,7 @@ TEST(SingleThreadExecutorTest, CanExecuteNamedTask) {
   });
   absl::Mutex mutex;
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     if (!done) {
       cond.WaitWithTimeout(&mutex, absl::Seconds(1));
     }
@@ -85,7 +85,7 @@ TEST(SingleThreadExecutorTest, JobsExecuteInOrder) {
   });
   absl::Mutex mutex;
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     if (!done) {
       cond.WaitWithTimeout(&mutex, absl::Seconds(1));
     }

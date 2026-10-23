@@ -14,7 +14,6 @@
 
 #include "connections/implementation/endpoint_manager.h"
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -24,15 +23,16 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "testing/fuzzing/fuzztest.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
-#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mock_endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/listeners.h"
 #include "connections/status.h"
@@ -45,10 +45,12 @@
 #include "internal/test/fake_single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
 
+using ::fuzztest::Filter;
+using ::fuzztest::Map;
+using ::fuzztest::String;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
@@ -60,68 +62,12 @@ using ::testing::MockFunction;
 using ::testing::Return;
 using ::testing::StrictMock;
 
-class MockEndpointChannel : public EndpointChannel {
- public:
-  MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
-  MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData & packet_meta_data),
-              (override));
-  MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
-  MOCK_METHOD(Exception, Write,
-              (const ByteArray& data, PacketMetaData& packet_meta_data),
-              (override));
-  MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));
-  MOCK_METHOD(void, Close,
-              (DisconnectionReason reason,
-               location::nearby::analytics::proto::ConnectionsLog::
-                   EstablishedConnection::SafeDisconnectionResult result),
-              (override));
-  MOCK_METHOD(location::nearby::proto::connections::ConnectionTechnology,
-              GetTechnology, (), (const, override));
-  MOCK_METHOD(location::nearby::proto::connections::ConnectionBand, GetBand, (),
-              (const, override));
-  MOCK_METHOD(int, GetFrequency, (), (const, override));
-  MOCK_METHOD(int, GetTryCount, (), (const, override));
-  MOCK_METHOD(std::string, GetType, (), (const, override));
-  MOCK_METHOD(std::string, GetServiceId, (), (const, override));
-  MOCK_METHOD(std::string, GetName, (), (const, override));
-  MOCK_METHOD(Medium, GetMedium, (), (const, override));
-  MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const, override));
-  MOCK_METHOD(void, EnableEncryption,
-              (std::shared_ptr<EncryptionContext> context), (override));
-  MOCK_METHOD(void, DisableEncryption, (), (override));
-  MOCK_METHOD(bool, IsPaused, (), (const, override));
-  MOCK_METHOD(bool, IsEncrypted, (), (override));
-  MOCK_METHOD(ExceptionOr<ByteArray>, TryDecrypt, (const ByteArray& data),
-              (override));
-  MOCK_METHOD(void, Pause, (), (override));
-  MOCK_METHOD(void, Resume, (), (override));
-  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const, override));
-  MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const, override));
-  MOCK_METHOD(uint32_t, GetNextKeepAliveSeqNo, (), (const, override));
-  MOCK_METHOD(void, SetAnalyticsRecorder,
-              (analytics::AnalyticsRecorder*, const std::string&), (override));
-
-  bool IsClosed() const override {
-    absl::MutexLock lock(&mutex_);
-    return closed_;
-  }
-  void DoClose() {
-    absl::MutexLock lock(&mutex_);
-    closed_ = true;
-  }
-
- private:
-  mutable absl::Mutex mutex_;
-  bool closed_ = false;
-};
-
 class MockFrameProcessor : public EndpointManager::FrameProcessor {
  public:
   MOCK_METHOD(void, OnIncomingFrame,
               (OfflineFrame & offline_frame,
                const std::string& from_endpoint_id, ClientProxy* to_client,
-               Medium current_medium, PacketMetaData& packet_meta_data),
+               Medium current_medium),
               (override));
 
   MOCK_METHOD(void, OnEndpointDisconnect,
@@ -133,16 +79,12 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 
 class SetSafeToDisconnect {
  public:
-  SetSafeToDisconnect(bool safe_to_disconnect, bool auto_reconnect,
-                      bool payload_received_ack,
+  SetSafeToDisconnect(bool safe_to_disconnect, bool payload_received_ack,
                       std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         safe_to_disconnect);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableAutoReconnect,
-        auto_reconnect);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnablePayloadReceivedAck,
@@ -151,6 +93,10 @@ class SetSafeToDisconnect {
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
         safe_to_disconnect_version);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kFilterUnconfirmedEndpointFrames,
+        false);
   }
 };
 
@@ -165,11 +111,11 @@ class EndpointManagerTest : public ::testing::Test {
  protected:
   void RegisterEndpoint(std::unique_ptr<MockEndpointChannel> channel,
                         bool should_close = true) {
-    CountDownLatch done(1);
+    auto done = std::make_shared<CountDownLatch>(1);
     if (should_close) {
       ON_CALL(*channel, Close(_))
           .WillByDefault(
-              [&done](DisconnectionReason reason) { done.CountDown(); });
+              [done](DisconnectionReason reason) { done->CountDown(); });
     }
     EXPECT_CALL(*channel, GetMedium()).WillRepeatedly(Return(Medium::BLE));
     EXPECT_CALL(*channel, GetLastReadTimestamp())
@@ -181,10 +127,10 @@ class EndpointManagerTest : public ::testing::Test {
                          connection_options_, std::move(channel), listener_,
                          connection_token_);
     if (should_close) {
-      EXPECT_TRUE(done.Await(absl::Milliseconds(1000)).result());
+      EXPECT_TRUE(done->Await(absl::Milliseconds(1000)).result());
     }
   }
-  SetSafeToDisconnect set_safe_to_disconnect_{true, false, true, 5};
+  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
   std::unique_ptr<ClientProxy> client_ = std::make_unique<ClientProxy>();
   ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,
@@ -273,16 +219,16 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
       false /*supports_5_ghz*/,
       "" /*bssid*/,
       2412 /*ap_frequency*/,
-      "8xqT" /*ip_address in 4 bytes format*/,
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
 
-  auto read_data = parser::ForConnectionRequestConnections({}, connection_info);
+  std::string read_data =
+      parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
-  EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(read_data)))
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(read_data))))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
@@ -319,6 +265,8 @@ TEST_F(EndpointManagerTest, UnregisterFrameProcessorWorks) {
 
 TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  absl::Mutex close_mutex;
+  bool closed = false;
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::ControlMessage control;
   header.set_id(12345);
@@ -327,22 +275,24 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   control.set_offset(150);
   control.set_event(PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
 
-  ON_CALL(*endpoint_channel, Read(_))
-      .WillByDefault([channel = endpoint_channel.get()]() {
-        if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
+  ON_CALL(*endpoint_channel, Read())
+      .WillByDefault([&, channel = endpoint_channel.get()]() {
+        absl::MutexLock lock(close_mutex);
+        if (closed) return ExceptionOr<ByteArray>(Exception::kIo);
         LOG(INFO) << "Simulate read delay: wait";
         absl::SleepFor(absl::Milliseconds(100));
         LOG(INFO) << "Simulate read delay: done";
-        if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
+        if (closed) return ExceptionOr<ByteArray>(Exception::kIo);
         return ExceptionOr<ByteArray>(ByteArray{});
       });
   ON_CALL(*endpoint_channel, Close(_))
       .WillByDefault(
-          [channel = endpoint_channel.get()](DisconnectionReason reason) {
-            channel->DoClose();
+          [&, channel = endpoint_channel.get()](DisconnectionReason reason) {
+            absl::MutexLock lock(close_mutex);
+            closed = true;
             LOG(INFO) << "Channel closed";
           });
-  EXPECT_CALL(*endpoint_channel, Write(_, _))
+  EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
 
   RegisterEndpoint(std::move(endpoint_channel), false);
@@ -359,7 +309,7 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
 
 TEST_F(EndpointManagerTest, SingleReadOnReadError) {
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(
           Return(ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer)));
   EXPECT_CALL(*endpoint_channel, Write(_))
@@ -377,7 +327,7 @@ TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
   CountDownLatch latch(1);
   const ByteArray payload("not a valid frame");
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
@@ -391,40 +341,58 @@ TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
 
-TEST_F(EndpointManagerTest, ReadInvalidEncryptedPayloadIgnoresFrame) {
-  // 1. EndpointChannel is unencrypted.
-  // 2. EndpointManager receives an invalid encrypted frame.
-  // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption fails
-  // too.
-  // 4. Invalid frame is ignored. No bad side effects.
-  const ByteArray payload("not a valid frame");
-  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
-  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
-      .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kExecution)));
-  EXPECT_CALL(*endpoint_channel, Write(_))
-      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
-  RegisterEndpoint(std::move(endpoint_channel));
+class EndpointManagerFuzzTest
+    : public fuzztest::PerIterationFixtureAdapter<EndpointManagerTest> {
+ public:
+  void ReadInvalidEncryptedPayloadIgnoresFrame(const ByteArray payload) {
+    // 1. EndpointChannel is unencrypted.
+    // 2. EndpointManager receives an invalid encrypted frame.
+    // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption fails
+    // too.
+    // 4. Invalid frame is ignored. No bad side effects.
+    auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+    EXPECT_CALL(*endpoint_channel, Read())
+        .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+    EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
+        .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kExecution)));
+    // Only write once when disconnecting
+    EXPECT_CALL(*endpoint_channel, Write(_)).Times(1);
+    RegisterEndpoint(std::move(endpoint_channel));
+  }
+
+  void ReadInvalidPayloadFromEncryptedChannelIgnoresFrame(ByteArray payload) {
+    // 1. EndpointChannel is encrypted.
+    // 2. EndpointManager receives an invalid encrypted frame.
+    // 3. No calls to TryDecrypt.
+    auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+    EXPECT_CALL(*endpoint_channel, Read())
+        .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+    EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload))).Times(0);
+    // Only write once when disconnecting
+    EXPECT_CALL(*endpoint_channel, Write(_)).Times(1);
+    RegisterEndpoint(std::move(endpoint_channel));
+  }
+};
+
+auto InvalidPayloadDomain() {
+  return Filter(
+      [](ByteArray payload) {
+        return !parser::FromBytes(payload.AsStringView()).ok();
+      },
+      Map([](std::string payloadString) { return ByteArray(payloadString); },
+          String()));
 }
 
-TEST_F(EndpointManagerTest, ReadInvalidPayloadFromEncryptedChannel) {
-  // 1. EndpointChannel is encrypted.
-  // 2. EndpointManager receives an invalid encrypted frame.
-  // 3. No calls to TryDecrypt.
-  const ByteArray payload("not a valid frame");
-  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
-  EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
-  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload))).Times(0);
-  EXPECT_CALL(*endpoint_channel, Write(_))
-      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
-  RegisterEndpoint(std::move(endpoint_channel));
-}
+FUZZ_TEST_F(EndpointManagerFuzzTest, ReadInvalidEncryptedPayloadIgnoresFrame)
+    .WithDomains(InvalidPayloadDomain());
+
+FUZZ_TEST_F(EndpointManagerFuzzTest,
+            ReadInvalidPayloadFromEncryptedChannelIgnoresFrame)
+    .WithDomains(InvalidPayloadDomain());
 
 TEST_F(EndpointManagerTest, TryDecrypt) {
   // 1. EndpointChannel is unencrypted.
@@ -443,25 +411,88 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       false /*supports_5_ghz*/,
       "" /*bssid*/,
       2412 /*ap_frequency*/,
-      "8xqT" /*ip_address in 4 bytes format*/,
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
-  ByteArray decrypted_data =
+  std::string decrypted_data =
       parser::ForConnectionRequestConnections({}, connection_info);
   EXPECT_CALL(*connect_request, OnIncomingFrame);
   EXPECT_CALL(*connect_request, OnEndpointDisconnect);
-  EXPECT_CALL(*endpoint_channel, Read(_))
+  EXPECT_CALL(*endpoint_channel, Read())
       .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
       .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
   EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
       .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
-      .WillOnce(Return(ExceptionOr<ByteArray>(decrypted_data)));
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(decrypted_data))));
   EXPECT_CALL(*endpoint_channel, Write(_))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
   em_.RegisterFrameProcessor(V1Frame::CONNECTION_REQUEST,
                              connect_request.get());
   processors_.emplace_back(std::move(connect_request));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest,
+       FilterUnconfirmedFrames_DiscardsPayloadBeforeConfirmation) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFilterUnconfirmedEndpointFrames,
+      true);
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(1024);
+  PayloadTransferFrame::PayloadChunk chunk;
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+  std::string payload_bytes = parser::ForDataPayloadTransfer(header, chunk);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  auto payload_processor = std::make_unique<MockFrameProcessor>();
+  EXPECT_CALL(*payload_processor, OnIncomingFrame).Times(0);
+  EXPECT_CALL(*payload_processor, OnEndpointDisconnect);
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce(Return(ExceptionOr<ByteArray>(ByteArray(payload_bytes))))
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  em_.RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                             payload_processor.get());
+  processors_.emplace_back(std::move(payload_processor));
+  RegisterEndpoint(std::move(endpoint_channel));
+}
+
+TEST_F(EndpointManagerTest,
+       FilterUnconfirmedFrames_AllowsPayloadAfterConfirmation) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFilterUnconfirmedEndpointFrames,
+      true);
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(12345);
+  header.set_type(PayloadTransferFrame::PayloadHeader::BYTES);
+  header.set_total_size(1024);
+  PayloadTransferFrame::PayloadChunk chunk;
+  chunk.set_body("payload data");
+  chunk.set_offset(150);
+  chunk.set_flags(1);
+  std::string payload_bytes = parser::ForDataPayloadTransfer(header, chunk);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  auto payload_processor = std::make_unique<MockFrameProcessor>();
+  EXPECT_CALL(mock_listener_.accepted_cb, Call).Times(1);
+  EXPECT_CALL(*payload_processor, OnIncomingFrame).Times(1);
+  EXPECT_CALL(*payload_processor, OnEndpointDisconnect);
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce([this, payload_bytes]() {
+        client_->OnConnectionAccepted(endpoint_id_);
+        return ExceptionOr<ByteArray>(ByteArray(payload_bytes));
+      })
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+  em_.RegisterFrameProcessor(V1Frame::PAYLOAD_TRANSFER,
+                             payload_processor.get());
+  processors_.emplace_back(std::move(payload_processor));
   RegisterEndpoint(std::move(endpoint_channel));
 }
 
@@ -508,6 +539,133 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
   endpoint_manager.reset();
 }
 
+TEST_F(EndpointManagerTest, ProcessDisconnectionFrameDuringDestruction) {
+  // This test uses a `FakeSingleThreadExecutor` in order to control when
+  // tasks are executed in order to simulate the scenario where
+  // "safe-to-disconnect" is posted to the executor before the EndpointManager
+  // is destructed, and executed during its destruction.
+  std::unique_ptr<SingleThreadExecutor> serial_executor =
+      std::make_unique<FakeSingleThreadExecutor>();
+  FakeSingleThreadExecutor* fake_serial_executor =
+      static_cast<FakeSingleThreadExecutor*>(serial_executor.get());
+  std::unique_ptr<EndpointManager> endpoint_manager =
+      std::make_unique<TestEndpointManager>(&ecm_, std::move(serial_executor));
+
+  CountDownLatch read_latch(1);
+  CountDownLatch write_latch(1);
+  CountDownLatch read_exit_latch(1);
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, GetType())
+      .WillRepeatedly(Return(""));
+  EXPECT_CALL(*endpoint_channel, GetMedium())
+      .WillRepeatedly(Return(Medium::BLE));
+  EXPECT_CALL(*endpoint_channel, GetLastReadTimestamp())
+      .WillRepeatedly(Return(start_time_));
+  EXPECT_CALL(*endpoint_channel, GetLastWriteTimestamp())
+      .WillRepeatedly(Return(start_time_));
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillOnce([&read_latch]() {
+        read_latch.Await();
+        return ExceptionOr<ByteArray>(ByteArray(
+            parser::ForDisconnection(/*request_safe_to_disconnect=*/true,
+                                     /*ack_safe_to_disconnect=*/false)));
+      })
+      .WillRepeatedly([&read_exit_latch]() {
+        read_exit_latch.CountDown();
+        return ExceptionOr<ByteArray>(Exception::kIo);
+      });
+  std::string disconnection_ack =
+      parser::ForDisconnection(/*request_safe_to_disconnect=*/true,
+                               /*ack_safe_to_disconnect=*/true);
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(
+          [&write_latch, disconnection_ack](absl::string_view data) {
+            if (data == disconnection_ack) {
+              write_latch.CountDown();
+              return Exception{Exception::kSuccess};
+            }
+            return Exception{Exception::kIo};
+          });
+  EXPECT_CALL(*endpoint_channel, Close(_)).WillRepeatedly(Return());
+
+  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
+
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/true);
+  EXPECT_CALL(mock_listener_.initiated_cb, Call).Times(1);
+  ConnectionOptions connection_options{
+      .keep_alive_interval_millis = 0,
+      .keep_alive_timeout_millis = 0,
+  };
+  endpoint_manager->RegisterEndpoint(
+      client_.get(), endpoint_id_, info_, connection_options,
+      std::move(endpoint_channel), listener_, connection_token_);
+
+  client_->SetRemoteSafeToDisconnectVersion(endpoint_id_, 5);
+  ecm_.UpdateSafeToDisconnectForEndpoint(endpoint_id_, true);
+
+  // When ProcessDisconnectionFrame runs on the reader thread, it will post
+  // "safe-to-disconnect" to serial_executor. Because
+  // SetRunExecutablesImmediately is set to false after RegisterEndpoint
+  // completes, the task will remain queued on fake_serial_executor.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/false);
+  read_latch.CountDown();
+
+  // Wait until ProcessDisconnectionFrame has processed the DISCONNECTION frame,
+  // posted "safe-to-disconnect" to fake_serial_executor, and written the ACK.
+  EXPECT_TRUE(write_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(read_exit_latch.Await(absl::Milliseconds(1000)).result());
+  absl::SleepFor(absl::Milliseconds(100));
+
+  // Simulate Core destruction of ClientProxy by destroying `client_`.
+  client_.reset();
+
+  // Simulate ServiceController destruction of EndpointManager by destroying
+  // `endpoint_manager`, and set the `FakeSingleThreadExecutor` to run
+  // executables on calls `Execute`. When `endpoint_manager` is destructed, it
+  // will block on calls to `Execute` to run all pending executables, notably
+  // "safe-to-disconnect" from above. However, "safe-to-disconnect" will have a
+  // reference to a destroyed ClientProxy.
+  //
+  // Expect no crash when "safe-to-disconnect" is executed during the
+  // destruction.
+  fake_serial_executor->SetRunExecutablesImmediately(
+      /*run_executables_immediately=*/true);
+  endpoint_manager.reset();
+}
+
+TEST_F(EndpointManagerTest,
+       RemoveEndpointCancelsEndpointBeforeNotifyingFrameProcessors) {
+  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+  EXPECT_CALL(*endpoint_channel, Read())
+      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+  EXPECT_CALL(*endpoint_channel, Write(_))
+      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
+
+  auto frame_processor = std::make_unique<MockFrameProcessor>();
+  bool cancelled_when_notified = false;
+  EXPECT_CALL(*frame_processor, OnEndpointDisconnect)
+      .WillOnce([&cancelled_when_notified](
+                    ClientProxy* client, const std::string& /*service_id*/,
+                    const std::string& endpoint_id, CountDownLatch barrier,
+                    DisconnectionReason /*reason*/) {
+        cancelled_when_notified =
+            client->GetCancellationFlag(endpoint_id)->Cancelled();
+        barrier.CountDown();
+      });
+
+  em_.RegisterFrameProcessor(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION,
+                             frame_processor.get());
+  processors_.emplace_back(std::move(frame_processor));
+
+  RegisterEndpoint(std::move(endpoint_channel), /*should_close=*/false);
+  client_->AddCancellationFlag(endpoint_id_);
+  ASSERT_FALSE(client_->GetCancellationFlag(endpoint_id_)->Cancelled());
+
+  em_.UnregisterEndpoint(client_.get(), endpoint_id_);
+  EXPECT_TRUE(cancelled_when_notified);
+}
+
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

@@ -25,17 +25,14 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -45,8 +42,7 @@
 #include "winrt/Windows.Storage.Streams.h"
 #include "winrt/base.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
@@ -85,8 +81,8 @@ using ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
 using ::winrt::Windows::Foundation::Collections::IVectorView;
 using ::winrt::Windows::Storage::Streams::Buffer;
 using ::winrt::Windows::Storage::Streams::DataWriter;
-using Permission = api::ble_v2::GattCharacteristic::Permission;
-using Property = api::ble_v2::GattCharacteristic::Property;
+using Permission = api::ble::GattCharacteristic::Permission;
+using Property = api::ble::GattCharacteristic::Property;
 
 constexpr absl::Duration kGattServerTimeout = absl::Milliseconds(500);
 constexpr int kGattServerCheckIntervalInMills = 50;
@@ -113,88 +109,92 @@ std::string ConvertGattStatusToString(
 }  // namespace
 
 BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
-                             api::ble_v2::ServerGattConnectionCallback callback)
+                             api::ble::ServerGattConnectionCallback callback)
     : adapter_(dynamic_cast<BluetoothAdapter*>(adapter)),
       gatt_connection_callback_(std::move(callback)) {
   DCHECK(adapter_ != nullptr);
 }
 
-absl::optional<api::ble_v2::GattCharacteristic>
-BleGattServer::CreateCharacteristic(
+std::optional<api::ble::GattCharacteristic> BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
-    api::ble_v2::GattCharacteristic::Permission permission,
-    api::ble_v2::GattCharacteristic::Property property) {
-  absl::MutexLock lock(&mutex_);
+    api::ble::GattCharacteristic::Permission permission,
+    api::ble::GattCharacteristic::Property property,
+    const ByteArray& initial_value) {
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": create characteristic, service_uuid: "
             << std::string(service_uuid)
             << ", characteristic_uuid: " << std::string(characteristic_uuid);
 
   if (!service_uuid_.IsEmpty() && service_uuid_ != service_uuid) {
     LOG(ERROR) << __func__ << ": Only support one GATT service for now.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   service_uuid_ = service_uuid;
 
-  api::ble_v2::GattCharacteristic gatt_characteristic;
+  api::ble::GattCharacteristic gatt_characteristic;
   gatt_characteristic.uuid = characteristic_uuid;
   gatt_characteristic.service_uuid = service_uuid;
   gatt_characteristic.permission = permission;
   gatt_characteristic.property = property;
 
-  GattCharacteristicData gatt_characteristic_data;
+  GattCharacteristicData& gatt_characteristic_data =
+      gatt_characteristic_datas_.emplace_back();
   gatt_characteristic_data.gatt_characteristic = gatt_characteristic;
-
-  gatt_characteristic_datas_.push_back(gatt_characteristic_data);
+  gatt_characteristic_data.data = initial_value;
 
   return gatt_characteristic;
 }
 
 bool BleGattServer::UpdateCharacteristic(
-    const api::ble_v2::GattCharacteristic& characteristic,
+    const api::ble::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
-  absl::MutexLock lock(&mutex_);
+  bool is_indicate_characteristic = false;
+  GattLocalCharacteristic local_characteristic = nullptr;
   LOG(INFO) << __func__
             << ": update characteristic: " << std::string(characteristic.uuid);
+  {
+    absl::MutexLock lock(mutex_);
+    if (characteristic.service_uuid != service_uuid_) {
+      LOG(ERROR) << __func__ << ": Cannot find the GATT service.";
+      return false;
+    }
 
-  if (characteristic.service_uuid != service_uuid_) {
-    LOG(ERROR) << __func__ << ": Cannot found the GATT service.";
-    return false;
-  }
+    bool found = false;
+    for (auto& it : gatt_characteristic_datas_) {
+      if (it.gatt_characteristic.uuid == characteristic.uuid) {
+        VLOG(1) << __func__ << ": Found the characteristic to update.";
+        it.data = value;
+        found = true;
 
-  for (auto& it : gatt_characteristic_datas_) {
-    if (it.gatt_characteristic.uuid == characteristic.uuid) {
-      VLOG(1) << __func__ << ": Found the characteristic to update.";
-      it.data = value;
-
-      // If it is in running, notify the value changed.
-      if (is_advertising_) {
-        // Make sure the character has indication property.
-        bool is_indicate_characteristic = false;
-        if ((it.gatt_characteristic.property & Property::kIndicate) !=
-            Property::kNone) {
+        // If it is in running, notify the value changed.
+        if (is_advertising_ && (it.gatt_characteristic.property &
+                                Property::kIndicate) != Property::kNone) {
           is_indicate_characteristic = true;
+          local_characteristic = it.local_characteristic;
         }
-
-        LOG(INFO) << __func__ << ": Notify characteristic value updated.";
-        if (is_indicate_characteristic) {
-          NotifyValueChanged(it.gatt_characteristic);
-        }
+        break;
       }
+    }
 
-      return true;
+    if (!found) {
+      LOG(ERROR) << __func__ << ": Failed to update the characteristic.";
+      return false;
     }
   }
 
-  LOG(ERROR) << __func__ << ": Failed to update the characteristic.";
+  if (is_indicate_characteristic) {
+    LOG(INFO) << __func__ << ": Notify characteristic value updated.";
+    NotifyValueChanged(local_characteristic, value);
+  }
 
-  return false;
+  return true;
 }
 
 absl::Status BleGattServer::NotifyCharacteristicChanged(
-    const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+    const api::ble::GattCharacteristic& characteristic, bool confirm,
     const ByteArray& new_value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   // Currently, the method is not hooked up at platform layer.
   VLOG(1) << __func__
           << ": Notify characteristic=" << std::string(characteristic.uuid)
@@ -205,25 +205,31 @@ absl::Status BleGattServer::NotifyCharacteristicChanged(
 void BleGattServer::Stop() {
   absl::AnyInvocable<void()> close_notifier = nullptr;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     VLOG(1) << __func__ << ": Start to stop GATT server.";
     if (gatt_service_provider_ != nullptr) {
-      try {
-        if (is_advertising_) {
+      if (is_advertising_) {
+        try {
           gatt_service_provider_.StopAdvertising();
+        } catch (const winrt::hresult_error& error) {
+          LOG(ERROR) << __func__ << ": WinRT exception during StopAdvertising: "
+                     << error.code() << ": "
+                     << winrt::to_string(error.message());
+        } catch (const std::exception& exception) {
+          LOG(ERROR) << __func__ << ": Exception during StopAdvertising: "
+                     << exception.what();
+        } catch (...) {
+          LOG(ERROR) << __func__
+                     << ": Unknown exception during StopAdvertising.";
         }
-
-        gatt_characteristic_datas_.clear();
-        service_uuid_ = Uuid();
-        gatt_service_provider_ = nullptr;
-      } catch (std::exception exception) {
-        LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-      } catch (const winrt::hresult_error& error) {
-        LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-                   << winrt::to_string(error.message());
-      } catch (...) {
-        LOG(ERROR) << __func__ << ": Unknown exception.";
       }
+
+      service_provider_advertisement_changed_revoker_.reset();
+      gatt_characteristic_datas_.clear();
+      service_uuid_ = Uuid();
+      gatt_service_provider_ = nullptr;
+      is_advertising_ = false;
+      is_gatt_server_inited_ = false;
     } else {
       LOG(WARNING) << __func__ << ": no GATT server is running.";
     }
@@ -278,9 +284,11 @@ bool BleGattServer::InitializeGattServer() {
 
     gatt_service_provider_ = service_provider_result.ServiceProvider();
 
-    service_provider_advertisement_changed_token_ =
+    service_provider_advertisement_changed_revoker_.emplace(
         gatt_service_provider_.AdvertisementStatusChanged(
-            {this, &BleGattServer::ServiceProvider_AdvertisementStatusChanged});
+            winrt::auto_revoke,
+            {this,
+             &BleGattServer::ServiceProvider_AdvertisementStatusChanged}));
     LOG(INFO) << __func__ << ": GATT service created.";
 
     // Create GATT characteristics.
@@ -353,22 +361,25 @@ bool BleGattServer::InitializeGattServer() {
 
       // Setup gatt local characteristic events.
       if (is_read_supported) {
-        characteristic_data.read_token =
+        characteristic_data.read_revoker.emplace(
             characteristic_data.local_characteristic.ReadRequested(
-                {this, &BleGattServer::Characteristic_ReadRequestedAsync});
+                winrt::auto_revoke,
+                {this, &BleGattServer::Characteristic_ReadRequestedAsync}));
       }
 
       if (is_write_supported) {
-        characteristic_data.write_token =
+        characteristic_data.write_revoker.emplace(
             characteristic_data.local_characteristic.WriteRequested(
-                {this, &BleGattServer::Characteristic_WriteRequestedAsync});
+                winrt::auto_revoke,
+                {this, &BleGattServer::Characteristic_WriteRequestedAsync}));
       }
 
       if (is_indicate_supported) {
-        characteristic_data.subscribed_clients_changed_token =
+        characteristic_data.subscribed_clients_changed_revoker.emplace(
             characteristic_data.local_characteristic.SubscribedClientsChanged(
+                winrt::auto_revoke,
                 {this,
-                 &BleGattServer::Characteristic_SubscribedClientsChanged});
+                 &BleGattServer::Characteristic_SubscribedClientsChanged}));
       }
     }
 
@@ -396,7 +407,7 @@ bool BleGattServer::InitializeGattServer() {
 
 bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
                                        bool is_connectable) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   try {
     VLOG(1) << __func__ << ": service_data="
@@ -475,7 +486,7 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
 }
 
 bool BleGattServer::StopAdvertisement() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   try {
     LOG(INFO) << __func__ << ": stop advertisement.";
@@ -492,7 +503,7 @@ bool BleGattServer::StopAdvertisement() {
     }
 
     if (gatt_service_provider_.AdvertisementStatus() ==
-        GattServiceProviderAdvertisementStatus ::Stopped) {
+        GattServiceProviderAdvertisementStatus::Stopped) {
       LOG(WARNING) << __func__ << ": no GATT advertisement is running.";
       is_advertising_ = false;
       return true;
@@ -520,7 +531,7 @@ bool BleGattServer::StopAdvertisement() {
 }
 
 void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
@@ -536,14 +547,12 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   auto deferral = args.GetDeferral();
 
   try {
-    // Find the characteristic value.
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_local_characteristic);
-
-    if (characteristic_data == nullptr) {
+    Uuid characteristic_uuid =
+        winrt_guid_to_nearby_uuid(gatt_local_characteristic.Uuid());
+    std::optional<ByteArray> data = GetCharacteristicValue(characteristic_uuid);
+    if (!data.has_value()) {
       LOG(ERROR) << __func__ << ": Failed to find characteristic="
-                 << ::winrt::to_string(
-                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
+                 << std::string(characteristic_uuid);
       deferral.Complete();
       return {};
     }
@@ -555,11 +564,9 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
       return {};
     }
 
-    const ByteArray& data = characteristic_data->data;
-
-    Buffer buffer = Buffer(data.size());
-    std::memcpy(buffer.data(), data.data(), data.size());
-    buffer.Length(data.size());
+    Buffer buffer = Buffer(data->size());
+    std::memcpy(buffer.data(), data->data(), data->size());
+    buffer.Length(data->size());
     request.RespondWithValue(buffer);
     deferral.Complete();
 
@@ -598,69 +605,29 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
                    ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
 
   try {
-    std::vector<api::ble_v2::GattCharacteristic>
-        added_subscribed_characteristics;
-    std::vector<api::ble_v2::GattCharacteristic>
-        removed_subscribed_characteristics;
+    auto current_subscribed_clients =
+        gatt_local_characteristic.SubscribedClients();
+    Uuid characteristic_uuid =
+        winrt_guid_to_nearby_uuid(gatt_local_characteristic.Uuid());
 
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_local_characteristic);
-
-    if (characteristic_data == nullptr) {
+    std::optional<SubscribedClientsUpdate> update = UpdateSubscribedClients(
+        characteristic_uuid, current_subscribed_clients);
+    if (!update.has_value()) {
       LOG(ERROR) << __func__ << ": Failed to find characteristic="
-                 << ::winrt::to_string(
-                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
+                 << std::string(characteristic_uuid);
       return;
     }
 
-    auto current_subscribed_clients =
-        gatt_local_characteristic.SubscribedClients();
-
-    for (const auto& current_subscribed_client : current_subscribed_clients) {
-      bool found = false;
-      for (const auto& old_subscribed_client :
-           characteristic_data->subscribed_clients) {
-        if (current_subscribed_client.Session().DeviceId().Id() ==
-            old_subscribed_client.Session().DeviceId().Id()) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        // This is a new subscribed client.
-        added_subscribed_characteristics.push_back(
-            characteristic_data->gatt_characteristic);
-      }
-    }
-
-    for (const auto& old_subscribed_client :
-         characteristic_data->subscribed_clients) {
-      bool found = false;
-      for (const auto& current_subscribed_client : current_subscribed_clients) {
-        if (current_subscribed_client.Session().DeviceId().Id() ==
-            old_subscribed_client.Session().DeviceId().Id()) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        // This is subscribed client to remove.
-        removed_subscribed_characteristics.push_back(
-            characteristic_data->gatt_characteristic);
-      }
-    }
-
-    characteristic_data->subscribed_clients = current_subscribed_clients;
     for (const auto& subscribed_characteristic :
-         added_subscribed_characteristics) {
+         update->added_characteristics) {
       gatt_connection_callback_.characteristic_subscription_cb(
           subscribed_characteristic);
 
-      NotifyValueChanged(subscribed_characteristic);
+      NotifyValueChanged(gatt_local_characteristic, update->data);
     }
 
     for (const auto& subscribed_characteristic :
-         added_subscribed_characteristics) {
+         update->removed_characteristics) {
       gatt_connection_callback_.characteristic_unsubscription_cb(
           subscribed_characteristic);
     }
@@ -685,30 +652,19 @@ void BleGattServer::ServiceProvider_AdvertisementStatusChanged(
 }
 
 void BleGattServer::NotifyValueChanged(
-    const api::ble_v2::GattCharacteristic& gatt_characteristic) {
+    GattLocalCharacteristic local_characteristic, ByteArray data) {
+  if (local_characteristic == nullptr) {
+    LOG(ERROR) << __func__ << ": Local characteristic is nullptr.";
+    return;
+  }
+
   try {
-    GattCharacteristicData* characteristic_data =
-        FindGattCharacteristicData(gatt_characteristic);
-
-    if (characteristic_data == nullptr) {
-      LOG(ERROR) << __func__ << ": Failed to find characteristic="
-                 << std::string(gatt_characteristic.uuid);
-      return;
-    }
-
-    if (characteristic_data->local_characteristic == nullptr) {
-      return;
-    }
-
-    const ByteArray& data = characteristic_data->data;
-
     Buffer buffer = Buffer(data.size());
     std::memcpy(buffer.data(), data.data(), data.size());
     buffer.Length(data.size());
 
     IVectorView<GattClientNotificationResult> results =
-        characteristic_data->local_characteristic.NotifyValueAsync(buffer)
-            .get();
+        local_characteristic.NotifyValueAsync(buffer).get();
 
     for (const auto& result : results) {
       if (result.Status() != GattCommunicationStatus::Success) {
@@ -728,31 +684,70 @@ void BleGattServer::NotifyValueChanged(
   }
 }
 
-BleGattServer::GattCharacteristicData*
-BleGattServer::FindGattCharacteristicData(
-    const GattLocalCharacteristic& gatt_local_characteristic) {
-  for (auto& characteristic_data : gatt_characteristic_datas_) {
-    if (gatt_local_characteristic.Uuid() ==
-        characteristic_data.local_characteristic.Uuid()) {
-      return &characteristic_data;
+std::optional<ByteArray> BleGattServer::GetCharacteristicValue(
+    const Uuid& characteristic_uuid) {
+  absl::MutexLock lock(mutex_);
+  for (const auto& characteristic_data : gatt_characteristic_datas_) {
+    if (characteristic_data.gatt_characteristic.uuid == characteristic_uuid) {
+      return characteristic_data.data;
     }
   }
 
-  return nullptr;
+  return std::nullopt;
 }
 
-BleGattServer::GattCharacteristicData*
-BleGattServer::FindGattCharacteristicData(
-    const api::ble_v2::GattCharacteristic& gatt_characteristic) {
+std::optional<BleGattServer::SubscribedClientsUpdate>
+BleGattServer::UpdateSubscribedClients(
+    const Uuid& characteristic_uuid,
+    const IVectorView<GattSubscribedClient>& current_subscribed_clients) {
+  absl::MutexLock lock(mutex_);
   for (auto& characteristic_data : gatt_characteristic_datas_) {
-    if (gatt_characteristic.uuid ==
-        characteristic_data.gatt_characteristic.uuid) {
-      return &characteristic_data;
+    if (characteristic_data.gatt_characteristic.uuid != characteristic_uuid) {
+      continue;
     }
+
+    SubscribedClientsUpdate update;
+    update.data = characteristic_data.data;
+
+    for (const auto& current_subscribed_client : current_subscribed_clients) {
+      bool found = false;
+      for (const auto& old_subscribed_client :
+           characteristic_data.subscribed_clients) {
+        if (current_subscribed_client.Session().DeviceId().Id() ==
+            old_subscribed_client.Session().DeviceId().Id()) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // This is a new subscribed client.
+        update.added_characteristics.push_back(
+            characteristic_data.gatt_characteristic);
+      }
+    }
+
+    for (const auto& old_subscribed_client :
+         characteristic_data.subscribed_clients) {
+      bool found = false;
+      for (const auto& current_subscribed_client : current_subscribed_clients) {
+        if (current_subscribed_client.Session().DeviceId().Id() ==
+            old_subscribed_client.Session().DeviceId().Id()) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // This is subscribed client to remove.
+        update.removed_characteristics.push_back(
+            characteristic_data.gatt_characteristic);
+      }
+    }
+
+    characteristic_data.subscribed_clients = current_subscribed_clients;
+    return update;
   }
 
-  return nullptr;
+  return std::nullopt;
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

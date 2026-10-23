@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/common/nearby_share_enums.h"
 
@@ -33,7 +34,7 @@ struct ShareTarget {
       std::string device_name, ::nearby::network::Url image_url,
       ShareTargetType type,
       bool is_incoming, std::optional<std::string> full_name, bool is_known,
-      std::optional<std::string> device_id, bool for_self_share);
+      absl::string_view device_id, bool for_self_share);
   ShareTarget(const ShareTarget&);
   ShareTarget(ShareTarget&&);
   ShareTarget& operator=(const ShareTarget&);
@@ -54,7 +55,7 @@ struct ShareTarget {
   // True if the local device has the PublicCertificate this target is
   // advertising.
   bool is_known = false;
-  std::optional<std::string> device_id;
+  std::string device_id;
   // True if the remote device is also owned by the current user.
   bool for_self_share = false;
   // Vendor ID of the target. This can change over the lifetime of the target.

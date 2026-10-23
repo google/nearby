@@ -15,10 +15,17 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "connections/implementation/bluetooth_device_name.h"
+#include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/mac_address.h"
 
@@ -39,7 +46,14 @@ class InjectedBluetoothDevice : public api::BluetoothDevice {
   // api::BluetoothDevice:
   std::string GetName() const override { return name_; }
 
-  std::string GetMacAddress() const override { return mac_address_; }
+  MacAddress GetMacAddress() const override {
+    if (mac_address_.empty()) {
+      return MacAddress();
+    }
+    MacAddress address;
+    MacAddress::FromString(mac_address_, address);
+    return address;
+  }
 
  private:
   const std::string name_;
@@ -57,16 +71,13 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
     const std::string& endpoint_id, const ByteArray& endpoint_info,
     const ByteArray& service_id_hash, Pcp pcp) {
   // Valid MAC address is required.
-  absl::StatusOr<uint64_t> bluetooth_mac_address_bytes_uint64 =
-      remote_bluetooth_mac_address.Read6BytesAsUint64();
-  if (!bluetooth_mac_address_bytes_uint64.ok()) {
-    return BluetoothDevice(/*device=*/nullptr);
-  }
-
   MacAddress remote_mac_address;
-  if (!MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
-                              remote_mac_address)
-      || !remote_mac_address.IsSet()) {
+  if (!MacAddress::FromBytes(
+          absl::MakeSpan(reinterpret_cast<const uint8_t*>(
+                             remote_bluetooth_mac_address.data()),
+                         remote_bluetooth_mac_address.size()),
+          remote_mac_address) ||
+      !remote_mac_address.IsSet()) {
     return BluetoothDevice(/*device=*/nullptr);
   }
 
@@ -91,6 +102,15 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
   devices_.emplace_back(std::move(injected_device));
 
   return device_to_return;
+}
+
+bool InjectedBluetoothDeviceStore::IsInjectedDevice(MacAddress mac_address) {
+  for (const auto& device : devices_) {
+    if (device->GetMacAddress() == mac_address) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace connections

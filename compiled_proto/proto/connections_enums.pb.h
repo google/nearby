@@ -72,6 +72,8 @@ enum ConnectionTechnology : int;
 extern const uint32_t ConnectionTechnology_internal_data_[];
 enum ConnectionsStrategy : int;
 extern const uint32_t ConnectionsStrategy_internal_data_[];
+enum DctPayloadType : int;
+extern const uint32_t DctPayloadType_internal_data_[];
 enum DeviceType : int;
 extern const uint32_t DeviceType_internal_data_[];
 enum DisconnectionReason : int;
@@ -102,6 +104,10 @@ enum StopAdvertisingReason : int;
 extern const uint32_t StopAdvertisingReason_internal_data_[];
 enum StopDiscoveringReason : int;
 extern const uint32_t StopDiscoveringReason_internal_data_[];
+enum SupportedService : int;
+extern const uint32_t SupportedService_internal_data_[];
+enum WifiDirectAuthType : int;
+extern const uint32_t WifiDirectAuthType_internal_data_[];
 }  // namespace connections
 }  // namespace proto
 }  // namespace nearby
@@ -141,6 +147,9 @@ internal::EnumTraitsT<::location::nearby::proto::connections::ConnectionTechnolo
 template <>
 internal::EnumTraitsT<::location::nearby::proto::connections::ConnectionsStrategy_internal_data_>
     internal::EnumTraitsImpl::value<::location::nearby::proto::connections::ConnectionsStrategy>;
+template <>
+internal::EnumTraitsT<::location::nearby::proto::connections::DctPayloadType_internal_data_>
+    internal::EnumTraitsImpl::value<::location::nearby::proto::connections::DctPayloadType>;
 template <>
 internal::EnumTraitsT<::location::nearby::proto::connections::DeviceType_internal_data_>
     internal::EnumTraitsImpl::value<::location::nearby::proto::connections::DeviceType>;
@@ -186,6 +195,12 @@ internal::EnumTraitsT<::location::nearby::proto::connections::StopAdvertisingRea
 template <>
 internal::EnumTraitsT<::location::nearby::proto::connections::StopDiscoveringReason_internal_data_>
     internal::EnumTraitsImpl::value<::location::nearby::proto::connections::StopDiscoveringReason>;
+template <>
+internal::EnumTraitsT<::location::nearby::proto::connections::SupportedService_internal_data_>
+    internal::EnumTraitsImpl::value<::location::nearby::proto::connections::SupportedService>;
+template <>
+internal::EnumTraitsT<::location::nearby::proto::connections::WifiDirectAuthType_internal_data_>
+    internal::EnumTraitsImpl::value<::location::nearby::proto::connections::WifiDirectAuthType>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -290,17 +305,18 @@ enum Medium : int {
   USB = 11,
   WEB_RTC_NON_CELLULAR = 12,
   AWDL = 13,
+  WIFI_AWARE_R4 = 14,
 };
 
 extern const uint32_t Medium_internal_data_[];
 inline constexpr Medium Medium_MIN =
     static_cast<Medium>(0);
 inline constexpr Medium Medium_MAX =
-    static_cast<Medium>(13);
+    static_cast<Medium>(14);
 inline bool Medium_IsValid(int value) {
-  return 0 <= value && value <= 13;
+  return 0 <= value && value <= 14;
 }
-inline constexpr int Medium_ARRAYSIZE = 13 + 1;
+inline constexpr int Medium_ARRAYSIZE = 14 + 1;
 const ::std::string& Medium_Name(Medium value);
 template <typename T>
 const ::std::string& Medium_Name(T value) {
@@ -311,6 +327,32 @@ const ::std::string& Medium_Name(T value) {
 }
 bool Medium_Parse(
     ::absl::string_view name, Medium* PROTOBUF_NONNULL value);
+enum WifiDirectAuthType : int {
+  WIFI_DIRECT_TYPE_UNKNOWN = 0,
+  WIFI_DIRECT_WITH_PASSWORD = 1,
+  WIFI_DIRECT_WITH_PIN [[deprecated]] = 2,
+  WIFI_DIRECT_WITH_DEVICE_NAME = 3,
+};
+
+extern const uint32_t WifiDirectAuthType_internal_data_[];
+inline constexpr WifiDirectAuthType WifiDirectAuthType_MIN =
+    static_cast<WifiDirectAuthType>(0);
+inline constexpr WifiDirectAuthType WifiDirectAuthType_MAX =
+    static_cast<WifiDirectAuthType>(3);
+inline bool WifiDirectAuthType_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int WifiDirectAuthType_ARRAYSIZE = 3 + 1;
+const ::std::string& WifiDirectAuthType_Name(WifiDirectAuthType value);
+template <typename T>
+const ::std::string& WifiDirectAuthType_Name(T value) {
+  static_assert(::std::is_same<T, WifiDirectAuthType>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to WifiDirectAuthType_Name().");
+  return WifiDirectAuthType_Name(static_cast<WifiDirectAuthType>(value));
+}
+bool WifiDirectAuthType_Parse(
+    ::absl::string_view name, WifiDirectAuthType* PROTOBUF_NONNULL value);
 enum ConnectionTechnology : int {
   CONNECTION_TECHNOLOGY_UNKNOWN_TECHNOLOGY = 0,
   CONNECTION_TECHNOLOGY_BLE_GATT = 1,
@@ -1095,6 +1137,10 @@ enum OperationResultCode : int {
   CONNECTIVITY_AWDL_INVALID_CREDENTIAL = 3604,
   CONNECTIVITY_AWDL_CLIENT_SOCKET_CREATION_FAILURE = 3605,
   CONNECTIVITY_CHANNEL_IO_ERROR_ON_AWDL = 3606,
+  CONNECTIVITY_WIFI_AWARE_DO_UNAVAILABLE = 3607,
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_SCREEN_OFF = 3608,
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_TIMEOUT = 3609,
+  CONNECTIVITY_WIFI_AWARE_JOIN_NETWORK_FAILED = 3610,
   NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR = 4500,
   NEARBY_BLUETOOTH_MAC_ADDRESS_INVALID_FOR_CONNECT = 4501,
   NEARBY_WEB_RTC_CONNECTION_FLOW_NULL = 4502,
@@ -1208,6 +1254,7 @@ enum OperationResultCode : int {
   NEARBY_CONNECTION_LISTENER_NULL = 4610,
   NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE = 4611,
   NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612,
+  NEARBY_PAIRED_KEY_VERIFICATION_FAILURE = 4613,
   DCT_ERROR_BLE_DISABLED = 5000,
   DCT_ERROR_BLE_ADV_FAILED = 5001,
   DCT_ERROR_BLE_SCAN_FAILED = 5002,
@@ -1233,17 +1280,54 @@ enum OperationResultCode : int {
   DCT_ERROR_SERVICE_CANCELLED = 5022,
   DCT_ERROR_UNVERIFIED_INTEGRITY = 5023,
   DCT_ERROR_HTTP_SERVER_CLOSED = 5024,
+  DCT_ERROR_CHECKIN_FAILURE = 5025,
+  DCT_ERROR_REMOTE_ATTESTATION_TIMEOUT = 5026,
+  DCT_ERROR_REMOTE_ATTESTATION_NULL_PACKET = 5027,
+  DCT_ERROR_REMOTE_ATTESTATION_STATUS_NOT_AVAILABLE = 5028,
+  DCT_ERROR_REMOTE_ATTESTATION_HASH_TOO_SHORT = 5029,
+  DCT_ERROR_REMOTE_ATTESTATION_APPLE_INTEGRITY_UNAVAILABLE = 5030,
+  DCT_ERROR_LOCAL_ATTESTATION_PLAY_INTEGRITY_UNAVAILABLE = 5031,
+  DCT_ERROR_LOCAL_ATTESTATION_TIMEOUT = 5032,
+  DCT_ERROR_PARALLEL_ATTESTATION_TIMEOUT = 5033,
+  DCT_ERROR_REMOTE_MDNS_DISCOVERY_TIMEOUT = 5034,
+  DCT_ERROR_REMOTE_MDNS_REGISTER_SERVICE = 5035,
+  DCT_ERROR_REMOTE_REQUEST_FAILED = 5036,
+  DCT_ERROR_REMOTE_RESPONSE_FAILED = 5037,
+  DCT_ERROR_REMOTE_CONTROL_MESSAGE_EXCHANGE = 5038,
+  DCT_ERROR_REMOTE_CAPABILITY_MISMATCH = 5039,
+  DCT_ERROR_REMOTE_HIGH_SPEED_MEDIUM_UNAVAILABLE = 5040,
+  DCT_ERROR_REMOTE_WIFI_DISABLED = 5041,
+  DCT_ERROR_REMOTE_WIFI_DISCONNECTED = 5042,
+  DCT_ERROR_REMOTE_WIFI_CREDENTIAL_TRANSFER = 5043,
+  DCT_ERROR_REMOTE_WIFI_INTERNET_CONNECTION = 5044,
+  DCT_ERROR_REMOTE_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 5045,
+  DCT_ERROR_REMOTE_USER_CANCELLED = 5046,
+  DCT_ERROR_REMOTE_SERVICE_CANCELLED = 5047,
+  DCT_ERROR_REMOTE_UNVERIFIED_INTEGRITY = 5048,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_LOW_SPEED = 5049,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_CONNECTION = 5050,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_PLUGGED = 5051,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NOT_HOST = 5052,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MDNS_DISCOVERY_NOT_STARTED = 5053,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_MEDIUM = 5054,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NETWORK_NOT_STARTED = 5055,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_MEDIUM_NEGOTIATION = 5056,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NOT_STARTED = 5057,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_HOST_NETWORK_NOT_AVAILABLE = 5058,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_NO_INCOMING_HTTP_CONNECTION = 5059,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_USB_NO_CONNECTED_DEVICE = 5060,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED_INTERRUPTED = 5061,
 };
 
 extern const uint32_t OperationResultCode_internal_data_[];
 inline constexpr OperationResultCode OperationResultCode_MIN =
     static_cast<OperationResultCode>(0);
 inline constexpr OperationResultCode OperationResultCode_MAX =
-    static_cast<OperationResultCode>(5024);
+    static_cast<OperationResultCode>(5061);
 inline bool OperationResultCode_IsValid(int value) {
   return ::google::protobuf::internal::ValidateEnum(value, OperationResultCode_internal_data_);
 }
-inline constexpr int OperationResultCode_ARRAYSIZE = 5024 + 1;
+inline constexpr int OperationResultCode_ARRAYSIZE = 5061 + 1;
 const ::std::string& OperationResultCode_Name(OperationResultCode value);
 template <typename T>
 const ::std::string& OperationResultCode_Name(T value) {
@@ -1358,6 +1442,59 @@ const ::std::string& OsType_Name(T value) {
 }
 bool OsType_Parse(
     ::absl::string_view name, OsType* PROTOBUF_NONNULL value);
+enum SupportedService : int {
+  SUPPORTED_SERVICE_UNSPECIFIED = 0,
+  SUPPORTED_SERVICE_SETTINGS_ESIM = 1,
+  SUPPORTED_SERVICE_DATA_MIGRATION = 2,
+  SUPPORTED_SERVICE_DATA_TRANSFER = 3,
+};
+
+extern const uint32_t SupportedService_internal_data_[];
+inline constexpr SupportedService SupportedService_MIN =
+    static_cast<SupportedService>(0);
+inline constexpr SupportedService SupportedService_MAX =
+    static_cast<SupportedService>(3);
+inline bool SupportedService_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int SupportedService_ARRAYSIZE = 3 + 1;
+const ::std::string& SupportedService_Name(SupportedService value);
+template <typename T>
+const ::std::string& SupportedService_Name(T value) {
+  static_assert(::std::is_same<T, SupportedService>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SupportedService_Name().");
+  return SupportedService_Name(static_cast<SupportedService>(value));
+}
+bool SupportedService_Parse(
+    ::absl::string_view name, SupportedService* PROTOBUF_NONNULL value);
+enum DctPayloadType : int {
+  DCT_PAYLOAD_TYPE_UNSPECIFIED = 0,
+  DCT_PAYLOAD_TYPE_REQUEST = 1,
+  DCT_PAYLOAD_TYPE_BYTES_RESPONSE = 2,
+  DCT_PAYLOAD_TYPE_FILES_RESPONSE = 3,
+  DCT_PAYLOAD_TYPE_ONE_WAY_MESSAGE = 4,
+};
+
+extern const uint32_t DctPayloadType_internal_data_[];
+inline constexpr DctPayloadType DctPayloadType_MIN =
+    static_cast<DctPayloadType>(0);
+inline constexpr DctPayloadType DctPayloadType_MAX =
+    static_cast<DctPayloadType>(4);
+inline bool DctPayloadType_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int DctPayloadType_ARRAYSIZE = 4 + 1;
+const ::std::string& DctPayloadType_Name(DctPayloadType value);
+template <typename T>
+const ::std::string& DctPayloadType_Name(T value) {
+  static_assert(::std::is_same<T, DctPayloadType>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DctPayloadType_Name().");
+  return DctPayloadType_Name(static_cast<DctPayloadType>(value));
+}
+bool DctPayloadType_Parse(
+    ::absl::string_view name, DctPayloadType* PROTOBUF_NONNULL value);
 
 // ===================================================================
 
@@ -1397,6 +1534,8 @@ template <>
 struct is_proto_enum<::location::nearby::proto::connections::SessionRole> : std::true_type {};
 template <>
 struct is_proto_enum<::location::nearby::proto::connections::Medium> : std::true_type {};
+template <>
+struct is_proto_enum<::location::nearby::proto::connections::WifiDirectAuthType> : std::true_type {};
 template <>
 struct is_proto_enum<::location::nearby::proto::connections::ConnectionTechnology> : std::true_type {};
 template <>
@@ -1441,6 +1580,10 @@ template <>
 struct is_proto_enum<::location::nearby::proto::connections::DeviceType> : std::true_type {};
 template <>
 struct is_proto_enum<::location::nearby::proto::connections::OsType> : std::true_type {};
+template <>
+struct is_proto_enum<::location::nearby::proto::connections::SupportedService> : std::true_type {};
+template <>
+struct is_proto_enum<::location::nearby::proto::connections::DctPayloadType> : std::true_type {};
 
 }  // namespace protobuf
 }  // namespace google

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "internal/platform/mac_address.h"
+#include <cstdint>
 
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
@@ -75,6 +76,39 @@ TEST(MacAddressTest, Hash) {
       MacAddress(),
       addr1,
   }));
+}
+
+TEST(MacAddressTest, ToBytesSuccess) {
+  MacAddress mac_address;
+  EXPECT_TRUE(MacAddress::FromUint64(0x00B0D063C226, mac_address));
+  uint8_t bytes[6];
+  EXPECT_TRUE(mac_address.ToBytes(bytes));
+  EXPECT_EQ(bytes[0], 0x00);
+  EXPECT_EQ(bytes[1], 0xB0);
+  EXPECT_EQ(bytes[2], 0xD0);
+  EXPECT_EQ(bytes[3], 0x63);
+  EXPECT_EQ(bytes[4], 0xC2);
+  EXPECT_EQ(bytes[5], 0x26);
+}
+
+TEST(MacAddressTest, ToBytesInvalidLength) {
+  MacAddress mac_address;
+  EXPECT_TRUE(MacAddress::FromUint64(0x00B0D063C226, mac_address));
+  uint8_t bytes[5];
+  EXPECT_FALSE(mac_address.ToBytes(bytes));
+}
+
+TEST(MacAddressTest, FromBytesSuccess) {
+  uint8_t bytes[6] = {0x00, 0xB0, 0xD0, 0x63, 0xC2, 0x26};
+  MacAddress mac_address;
+  EXPECT_TRUE(MacAddress::FromBytes(bytes, mac_address));
+  EXPECT_EQ(mac_address.address(), 0x00B0D063C226);
+}
+
+TEST(MacAddressTest, FromBytesInvalidLength) {
+  uint8_t bytes[5] = {0x00, 0xB0, 0xD0, 0x63, 0xC2};
+  MacAddress mac_address;
+  EXPECT_FALSE(MacAddress::FromBytes(bytes, mac_address));
 }
 
 }  // namespace

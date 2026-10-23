@@ -26,7 +26,9 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
@@ -39,16 +41,14 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
 
-using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::Medium;
+using ::nearby::analytics::SafeDisconnectionResult;
 using EncryptionContext = BaseEndpointChannel::EncryptionContext;
 
 constexpr size_t kChunkSize = 64 * 1024;
@@ -82,7 +82,8 @@ std::function<void()> MakeDataPump(
       if (monitor) {
         monitor(read_response.result());
       }
-      auto write_response = output->Write(read_response.result());
+      auto write_response =
+          output->Write(read_response.result().AsStringView());
       if (write_response.Raised()) {
         LOG(INFO) << "Peer writer closed on '" << label << "'";
         input->Close();
@@ -99,7 +100,7 @@ std::function<void(const ByteArray&)> MakeDataMonitor(absl::string_view label,
   return [label, capture, mutex](const ByteArray& input) mutable {
     std::string s = std::string(input);
     {
-      absl::MutexLock lock(mutex);
+      absl::MutexLock lock(*mutex);
       *capture += s;
     }
     LOG(INFO) << "source='" << label << "'"
@@ -109,8 +110,8 @@ std::function<void(const ByteArray&)> MakeDataMonitor(absl::string_view label,
 
 std::pair<std::unique_ptr<EncryptionContext>,
           std::unique_ptr<EncryptionContext>>
-DoDhKeyExchange(BaseEndpointChannel* channel_a,
-                BaseEndpointChannel* channel_b) {
+DoDhKeyExchange(std::shared_ptr<EndpointChannel> channel_a,
+                std::shared_ptr<EndpointChannel> channel_b) {
   std::unique_ptr<EncryptionContext> context_a;
   std::unique_ptr<EncryptionContext> context_b;
   EncryptionRunner crypto_a;
@@ -135,8 +136,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-A side key negotiation failed";
                 latch.CountDown();
               },
@@ -158,8 +158,7 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
                 latch.CountDown();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id,
-                       EndpointChannel* channel) {
+              [&latch](const std::string& endpoint_id) {
                 LOG(INFO) << "client-B side key negotiation failed";
                 latch.CountDown();
               },
@@ -184,9 +183,9 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
                                  // to server "b".
   auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
                                  // to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+  auto channel_a = std::make_shared<MockEndpointChannel>(server_a.first.get(),
                                                          client_a.second.get());
-  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+  auto channel_b = std::make_shared<MockEndpointChannel>(server_b.first.get(),
                                                          client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
@@ -207,33 +206,33 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
                    MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
-  auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
+  auto context = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context.first, nullptr);
   ASSERT_NE(context.second, nullptr);
 
   EndpointChannelManager ecm_a;
-  ecm_a.EncryptChannelForEndpoint(std::string(kEndpointId),
-                                  std::move(context.first));
   ecm_a.RegisterChannelForEndpoint(&proxy_a, std::string(kEndpointId),
                                    std::move(channel_a));
+  ecm_a.EncryptChannelForEndpoint(std::string(kEndpointId),
+                                  std::move(context.first));
 
   EndpointChannelManager ecm_b;
-  ecm_b.EncryptChannelForEndpoint(std::string(kEndpointId),
-                                  std::move(context.second));
   ecm_b.RegisterChannelForEndpoint(&proxy_b, std::string(kEndpointId),
                                    std::move(channel_b));
+  ecm_b.EncryptChannelForEndpoint(std::string(kEndpointId),
+                                  std::move(context.second));
 
   EXPECT_EQ(channel_a_raw->GetType(), "ENCRYPTED_BLUETOOTH");
   EXPECT_EQ(channel_b_raw->GetType(), "ENCRYPTED_BLUETOOTH");
 
-  ByteArray tx_message{"data message"};
+  absl::string_view tx_message = "data message";
   channel_a_raw->Write(tx_message);
   ByteArray rx_message = std::move(channel_b_raw->Read().result());
 
   // Verify expectations.
-  EXPECT_EQ(rx_message, tx_message);
+  EXPECT_EQ(rx_message.AsStringView(), tx_message);
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     std::string message{tx_message};
     EXPECT_TRUE(capture_a.find(message) == std::string::npos &&
                 capture_b.find(message) == std::string::npos);
@@ -243,11 +242,11 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
-      std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      kEndpointId, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
   ecm_b.UnregisterChannelForEndpoint(
-      std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      kEndpointId, DisconnectionReason::REMOTE_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
 }
 
 TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
@@ -265,9 +264,9 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
                                  // to server "b".
   auto server_b = CreatePipe();  // Data pump "b" reads from client "b", writes
                                  // to server "a".
-  auto channel_a = std::make_unique<MockEndpointChannel>(server_a.first.get(),
+  auto channel_a = std::make_shared<MockEndpointChannel>(server_a.first.get(),
                                                          client_a.second.get());
-  auto channel_b = std::make_unique<MockEndpointChannel>(server_b.first.get(),
+  auto channel_b = std::make_shared<MockEndpointChannel>(server_b.first.get(),
                                                          client_b.second.get());
   auto channel_a_raw = channel_a.get();
   auto channel_b_raw = channel_b.get();
@@ -288,17 +287,30 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
                    MakeDataMonitor(kMonitorB, &capture_b, &mutex)));
 
   // Run DH key exchange; setup encryption contexts for channels.
-  auto context = DoDhKeyExchange(channel_a.get(), channel_b.get());
+  auto context = DoDhKeyExchange(channel_a, channel_b);
   ASSERT_NE(context.first, nullptr);
   ASSERT_NE(context.second, nullptr);
 
+  auto client_a_dummy = CreatePipe();
+  auto server_a_dummy = CreatePipe();
+  auto channel_a_init = std::make_shared<MockEndpointChannel>(
+      server_a_dummy.first.get(), client_a_dummy.second.get());
+  auto client_b_dummy = CreatePipe();
+  auto server_b_dummy = CreatePipe();
+  auto channel_b_init = std::make_shared<MockEndpointChannel>(
+      server_b_dummy.first.get(), client_b_dummy.second.get());
+
   EndpointChannelManager ecm_a;
+  ecm_a.RegisterChannelForEndpoint(&proxy_a, std::string(kEndpointId),
+                                   std::move(channel_a_init));
   ecm_a.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.first));
   ecm_a.ReplaceChannelForEndpoint(&proxy_a, std::string(kEndpointId),
                                   std::move(channel_a), false);
 
   EndpointChannelManager ecm_b;
+  ecm_b.RegisterChannelForEndpoint(&proxy_b, std::string(kEndpointId),
+                                   std::move(channel_b_init));
   ecm_b.EncryptChannelForEndpoint(std::string(kEndpointId),
                                   std::move(context.second));
   ecm_b.ReplaceChannelForEndpoint(&proxy_b, std::string(kEndpointId),
@@ -311,13 +323,110 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
-      std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      kEndpointId, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
   ecm_b.UnregisterChannelForEndpoint(
-      std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      kEndpointId, DisconnectionReason::REMOTE_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
+}
+
+TEST(BaseEndpointChannelManagerTest,
+     CreateNewTimeoutDisconnectedStateUnregisterDuringWait) {
+  ClientProxy proxy;
+  EndpointChannelManager ecm;
+  auto client = CreatePipe();
+  auto server = CreatePipe();
+  auto channel = std::make_shared<MockEndpointChannel>(server.first.get(),
+                                                       client.second.get());
+  auto channel_raw = channel.get();
+
+  ON_CALL(*channel_raw, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, std::string(kEndpointId),
+                                 std::move(channel));
+
+  EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 1);
+
+  MultiThreadExecutor executor(1);
+  CountDownLatch start_latch(1);
+  CountDownLatch finish_latch(1);
+  bool wait_result = false;
+
+  executor.Execute([&]() {
+    start_latch.CountDown();
+    wait_result =
+        ecm.CreateNewTimeoutDisconnectedState(kEndpointId, absl::Seconds(5));
+    finish_latch.CountDown();
+  });
+
+  ASSERT_TRUE(start_latch.Await(absl::Seconds(1)).result());
+
+  // Wait for the endpoint to enter the waiting state.
+  absl::Time deadline = absl::Now() + absl::Seconds(1);
+  while (!ecm.IsWaitingForSafeToDisconnectTimeoutForTesting(kEndpointId)) {
+    ASSERT_TRUE(absl::Now() < deadline)
+        << "Timed out waiting for endpoint to enter wait state.";
+    absl::SleepFor(absl::Milliseconds(10));
+  }
+
+  // Close the channel first to prevent UnregisterChannelForEndpoint from
+  // attempting to write disconnection frames to it, bypassing the 500ms data
+  // transfer delay and potential segfaults.
+  channel_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+
+  bool unregister_result = ecm.UnregisterChannelForEndpoint(
+      kEndpointId, DisconnectionReason::LOCAL_DISCONNECTION,
+      SafeDisconnectionResult::kSafeDisconnection);
+  EXPECT_TRUE(unregister_result);
+
+  EXPECT_TRUE(finish_latch.Await(absl::Seconds(2)).result());
+  EXPECT_TRUE(wait_result);
+  EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 0);
+}
+
+TEST(BaseEndpointChannelManagerTest,
+     CreateNewTimeoutDisconnectedStateReturnsFalseForNonexistentEndpoint) {
+  EndpointChannelManager ecm;
+  EXPECT_FALSE(ecm.CreateNewTimeoutDisconnectedState("NonexistentEndpoint",
+                                                     absl::Seconds(1)));
+}
+
+TEST(BaseEndpointChannelManagerTest, IsWifiAwareConnected) {
+  ClientProxy proxy;
+  EndpointChannelManager ecm;
+
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
+
+  auto pipe = CreatePipe();
+  auto channel = std::make_shared<MockEndpointChannel>(pipe.first.get(),
+                                                       pipe.second.get());
+  ON_CALL(*channel, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, std::string(kEndpointId), channel);
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
+
+  auto aware_pipe = CreatePipe();
+  auto aware_channel = std::make_shared<MockEndpointChannel>(
+      aware_pipe.first.get(), aware_pipe.second.get());
+  ON_CALL(*aware_channel, GetMedium).WillByDefault([]() {
+    return Medium::WIFI_AWARE;
+  });
+
+  ecm.RegisterChannelForEndpoint(&proxy, "aware_endpoint", aware_channel);
+  EXPECT_TRUE(ecm.isWifiAwareConnected());
+
+  channel->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  aware_channel->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+
+  ecm.UnregisterChannelForEndpoint("aware_endpoint",
+                                   DisconnectionReason::LOCAL_DISCONNECTION,
+                                   SafeDisconnectionResult::kSafeDisconnection);
+  EXPECT_FALSE(ecm.isWifiAwareConnected());
 }
 
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

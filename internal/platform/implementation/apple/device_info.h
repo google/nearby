@@ -34,17 +34,13 @@ class DeviceInfo : public api::DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<FilePath> GetDownloadPath() const override;
+  FilePath GetDownloadPath() const override;
 
-  std::optional<FilePath> GetLocalAppDataPath() const override;
+  FilePath GetLocalAppDataPath(FilePath sub_path) const override;
 
-  std::optional<FilePath> GetCommonAppDataPath() const override;
+  FilePath GetTemporaryPath() const override;
 
-  std::optional<FilePath> GetTemporaryPath() const override;
-
-  std::optional<FilePath> GetLogPath() const override;
-
-  std::optional<FilePath> GetCrashDumpPath() const override;
+  FilePath GetLogPath() const override;
 
   bool IsScreenLocked() const override;
 

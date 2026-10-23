@@ -91,7 +91,7 @@ SessionManager::~SessionManager() { StopSession(); }
 bool SessionManager::RegisterSessionListener(
     absl::string_view listener_name,
     absl::AnyInvocable<void(SessionState)> callback) {
-  absl::MutexLock lock(&session_mutex_);
+  absl::MutexLock lock(session_mutex_);
   LOG(INFO) << __func__ << ": Registering listener: " << listener_name;
 
   // Create session thread if no running thread.
@@ -122,7 +122,7 @@ bool SessionManager::RegisterSessionListener(
 
 bool SessionManager::UnregisterSessionListener(
     absl::string_view listener_name) {
-  absl::MutexLock lock(&session_mutex_);
+  absl::MutexLock lock(session_mutex_);
   LOG(INFO) << __func__ << ": Unregistering listener: " << listener_name;
   if (session_thread_ == nullptr) {
     LOG(ERROR) << __func__ << ": No running listener.";
@@ -196,12 +196,12 @@ void SessionManager::NotifySessionState(SessionState state) {
   LOG(INFO) << __func__
             << ": Notifying session state: " << static_cast<int>(state);
   if (state == SessionManager::SessionState::kLock) {
-    absl::MutexLock lock(&session_mutex_);
+    absl::MutexLock lock(session_mutex_);
     for (auto& it : *SessionManager::session_callbacks_) {
       it.second(SessionManager::SessionState::kLock);
     }
   } else if (state == SessionManager::SessionState::kUnlock) {
-    absl::MutexLock lock(&session_mutex_);
+    absl::MutexLock lock(session_mutex_);
     for (auto& it : *SessionManager::session_callbacks_) {
       it.second(SessionManager::SessionState::kUnlock);
     }
@@ -250,7 +250,7 @@ void SessionManager::StopSession() {
     return;
   }
 
-  absl::MutexLock lock(&session_mutex_);
+  absl::MutexLock lock(session_mutex_);
   if (session_thread_ == nullptr) {
     return;
   }

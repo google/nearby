@@ -20,35 +20,72 @@ cc_library(
     name = "analytics",
     srcs = [
         "analytics_recorder.cc",
-        "throughput_recorder.cc",
     ],
     hdrs = [
         "advertising_metadata_params.h",
         "analytics_recorder.h",
         "connection_attempt_metadata_params.h",
         "discovery_metadata_params.h",
-        "packet_meta_data.h",
-        "throughput_recorder.h",
+        "operation_result_with_medium.h",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = ["//connections:__subpackages__"],
     deps = [
         "//connections:core_types",
-        "//internal/analytics:event_logger",
         "//internal/platform:error_code_recorder",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "analytics_recorder_impl",
+    srcs = [
+        "analytics_recorder_impl.cc",
+    ],
+    hdrs = [
+        "analytics_recorder_impl.h",
+    ],
+    copts = ["-DCORE_ADAPTER_DLL"],
+    visibility = [
+        "//connections/c:__pkg__",
+        "//sharing:__pkg__",
+    ],
+    deps = [
+        ":analytics",
+        "//connections:core_types",
+        "//internal/platform:error_code_recorder",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
-        "//internal/proto/analytics:connections_log_cc_proto",
+        "//location/nearby/analytics/cpp/logging:event_logger",
+        "//location/nearby/analytics/cpp/proto:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/meta:type_traits",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf_lite",
+    ],
+)
+
+cc_library(
+    name = "mock_analytics_recorder",
+    testonly = True,
+    hdrs = [
+        "mock_analytics_recorder.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//connections:__subpackages__"],
+    deps = [
+        ":analytics",
+        "//connections:core_types",
+        "//internal/platform:error_code_recorder",
+        "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_for_library_testonly",
     ],
 )
 
@@ -56,19 +93,20 @@ cc_test(
     name = "analytics_test",
     size = "small",
     srcs = [
-        "analytics_recorder_test.cc",
-        "throughput_recorder_test.cc",
+        "analytics_recorder_impl_test.cc",
     ],
     shard_count = 16,
     deps = [
         ":analytics",
+        ":analytics_recorder_impl",
         "//connections:core_types",
-        "//internal/analytics:mock_event_logger",
         "//internal/platform:base",
         "//internal/platform:error_code_recorder",
+        "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "//internal/proto/analytics:connections_log_cc_proto",
+        "//location/nearby/analytics/cpp/logging:mock_event_logger",
+        "//location/nearby/analytics/cpp/proto:connections_log_cc_proto",
         "//net/proto2/contrib/parse_proto:parse_text_proto",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",

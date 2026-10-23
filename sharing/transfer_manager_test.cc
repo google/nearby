@@ -14,6 +14,7 @@
 
 #include "sharing/transfer_manager.h"
 
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -21,7 +22,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
-#include "sharing/internal/test/fake_context.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/nearby_connections_types.h"
 
 namespace nearby {
@@ -32,15 +33,20 @@ constexpr absl::string_view kEndpointId = "endpoint";
 constexpr absl::Duration kNotificationTimeout = absl::Milliseconds(200);
 
 TEST(TransferManager, MediumUpgradeSuccess) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -53,15 +59,20 @@ TEST(TransferManager, MediumUpgradeSuccess) {
 }
 
 TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -70,20 +81,25 @@ TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
   ASSERT_TRUE(is_called);
   is_called = false;
-  transfer_manager.Send([&]() { is_called = true; });
+  transfer_manager.Send(std::make_unique<Payload>());
   ASSERT_TRUE(is_called);
 }
 
 TEST(TransferManager, MediumUpgradeFailed) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
@@ -94,20 +110,24 @@ TEST(TransferManager, MediumUpgradeFailed) {
 }
 
 TEST(TransferManager, MediumUpgradeTimeout) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(TransferManager::kMediumUpgradeTimeout);
+  fake_clock.FastForward(TransferManager::kMediumUpgradeTimeout);
 
   ASSERT_TRUE(
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
@@ -115,20 +135,24 @@ TEST(TransferManager, MediumUpgradeTimeout) {
 }
 
 TEST(TransferManager, CancelStartedTransfer) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(absl::Seconds(5));
+  fake_clock.FastForward(absl::Seconds(5));
   ASSERT_TRUE(transfer_manager.CancelTransfer());
 
   ASSERT_FALSE(
@@ -137,20 +161,24 @@ TEST(TransferManager, CancelStartedTransfer) {
 }
 
 TEST(TransferManager, CancelTimedOutMediumUpgrade) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   ASSERT_FALSE(is_called);
   ASSERT_TRUE(transfer_manager.StartTransfer());
-  FakeClock* clock = static_cast<FakeClock*>(context.GetClock());
-  clock->FastForward(TransferManager::kMediumUpgradeTimeout);
+  fake_clock.FastForward(TransferManager::kMediumUpgradeTimeout);
 
   ASSERT_TRUE(
       notification.WaitForNotificationWithTimeout(kNotificationTimeout));
@@ -159,15 +187,20 @@ TEST(TransferManager, CancelTimedOutMediumUpgrade) {
 }
 
 TEST(TransferManager, MediumUpgradeBeforeStartTransfer) {
-  FakeContext context;
+  FakeClock fake_clock;
+  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
   absl::Notification notification;
   bool is_called = false;
 
-  TransferManager transfer_manager{&context, kEndpointId};
-  transfer_manager.Send([&]() {
-    is_called = true;
-    notification.Notify();
-  });
+  TransferManager transfer_manager{
+      &executor, kEndpointId,
+      [&](absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
+        is_called = true;
+        if (!notification.HasBeenNotified()) {
+          notification.Notify();
+        }
+      }};
+  transfer_manager.Send(std::make_unique<Payload>());
 
   transfer_manager.OnMediumQualityChanged(Medium::kWifiLan);
 

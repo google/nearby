@@ -21,7 +21,6 @@
 // clang-format on
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
@@ -38,7 +37,8 @@ class WifiLanMdns {
 
   bool StartMdnsService(
       const std::string& service_name, const std::string& service_type,
-      int port, absl::flat_hash_map<std::string, std::string> text_records)
+      int port,
+      const absl::flat_hash_map<std::string, std::string>& text_records)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool StopMdnsService() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -48,23 +48,19 @@ class WifiLanMdns {
  private:
   static void DnsServiceRegisterComplete(DWORD Status, PVOID pQueryContext,
                                          PDNS_SERVICE_INSTANCE pInstance);
-  std::optional<std::string> GetComputerName();
   void CleanUp() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   absl::Mutex mutex_;
   std::unique_ptr<absl::Notification> dns_service_notification_ = nullptr;
   bool is_service_started_ ABSL_GUARDED_BY(mutex_) = false;
-  std::unique_ptr<std::wstring> dns_service_instance_name_
-      ABSL_GUARDED_BY(mutex_);
-  std::unique_ptr<std::wstring> host_name_ ABSL_GUARDED_BY(mutex_);
+  std::wstring dns_service_instance_name_ ABSL_GUARDED_BY(mutex_);
+  std::wstring host_name_ ABSL_GUARDED_BY(mutex_);
   DNS_SERVICE_INSTANCE
   dns_service_instance_ ABSL_GUARDED_BY(mutex_);
   DNS_SERVICE_REGISTER_REQUEST dns_service_register_request_
       ABSL_GUARDED_BY(mutex_);
   std::vector<std::wstring> text_keys_ ABSL_GUARDED_BY(mutex_);
   std::vector<std::wstring> text_values_ ABSL_GUARDED_BY(mutex_);
-  PWSTR* keys_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  PWSTR* values_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace nearby::windows

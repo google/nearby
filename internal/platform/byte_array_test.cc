@@ -104,27 +104,6 @@ TEST(ByteArrayTest, CreateFromAbslStringReturnsTheSame) {
   EXPECT_EQ(bytes.AsStringView(), kTestString);
 }
 
-TEST(ByteArrayTest, Read6BytesAsUint64EmptyByteArrayReturnsError) {
-  ByteArray bytes;
-  auto result = bytes.Read6BytesAsUint64();
-  EXPECT_FALSE(result.ok());
-  EXPECT_EQ(result.status().code(), absl::StatusCode::kFailedPrecondition);
-}
-
-TEST(ByteArrayTest, Read6BytesAsUint64NotEnoughBytesReturnsError) {
-  ByteArray bytes({0x01, 0x02, 0x03, 0x04, 0x05});
-  auto result = bytes.Read6BytesAsUint64();
-  EXPECT_FALSE(result.ok());
-  EXPECT_EQ(result.status().code(), absl::StatusCode::kFailedPrecondition);
-}
-
-TEST(ByteArrayTest, Read6BytesAsUint64) {
-  ByteArray bytes({0x01, 0x02, 0x03, 0x04, 0x05, 0x06});
-  auto result = bytes.Read6BytesAsUint64();
-  EXPECT_TRUE(result.ok());
-  EXPECT_EQ(bytes.Read6BytesAsUint64().value(), 0x010203040506);
-}
-
 TEST(ByteArrayTest, IteratorTypes) {
   static_assert(std::same_as<decltype(std::declval<ByteArray>().begin()),
                              ByteArray::iterator>);

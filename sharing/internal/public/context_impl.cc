@@ -16,9 +16,7 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <memory>
-#include <utility>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/clock_impl.h"
@@ -29,7 +27,6 @@
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/connectivity_manager_impl.h"
 
@@ -57,10 +54,6 @@ sharing::api::BluetoothAdapter& ContextImpl::GetBluetoothAdapter() const {
   return platform_.GetBluetoothAdapter();
 }
 
-sharing::api::WifiAdapter& ContextImpl::GetWifiAdapter() const {
-  return platform_.GetWifiAdapter();
-}
-
 api::FastInitiationManager& ContextImpl::GetFastInitiationManager() const {
   return platform_.GetFastInitiationManager();
 }
@@ -75,10 +68,6 @@ std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(
   std::unique_ptr<TaskRunner> task_runner =
       std::make_unique<TaskRunnerImpl>(concurrent_count);
   return task_runner;
-}
-
-TaskRunner* ContextImpl::GetTaskRunner() {
-  return &platform_.GetDefaultTaskRunner();
 }
 
 }  // namespace nearby

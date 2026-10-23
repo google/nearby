@@ -13,30 +13,59 @@
 // limitations under the License.
 
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/awdl.h"
+
+#include <memory>
+
+#include "connections/implementation/mediums/awdl/awdl_interface.h"
+#include "connections/implementation/mediums/ble.h"
+#include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
+#ifndef NO_WEBRTC
+#include "connections/implementation/mediums/webrtc/webrtc_impl.h"
+#endif
+#include "connections/implementation/mediums/webrtc.h"
+#include "connections/implementation/mediums/wifi.h"
+#include "connections/implementation/mediums/wifi_aware/wifi_aware_interface.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_interface.h"
+#include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot.h"
+#include "connections/implementation/mediums/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
 
+Mediums::Mediums()
+    : bluetooth_classic_(CreateBluetoothClassic(bluetooth_radio_)),
+      wifi_aware_(CreateWifiAware()),
+      wifi_direct_(CreateWifiDirect()),
+#ifndef NO_WEBRTC
+      webrtc_(std::make_unique<mediums::WebRtcImpl>()),
+#else
+      webrtc_(std::make_unique<mediums::WebRtc>()),
+#endif
+      awdl_(CreateAwdl()) {
+}
+
 BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
 
-BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
+BluetoothClassicInterface& Mediums::GetBluetoothClassic() {
+  return *bluetooth_classic_;
+}
 
 Ble& Mediums::GetBle() { return ble_; }
-
-BleV2& Mediums::GetBleV2() { return ble_v2_; }
 
 Wifi& Mediums::GetWifi() { return wifi_; }
 
 WifiLan& Mediums::GetWifiLan() { return wifi_lan_; }
 
+WifiAwareInterface& Mediums::GetWifiAware() { return *wifi_aware_; }
+
 WifiHotspot& Mediums::GetWifiHotspot() { return wifi_hotspot_; }
 
-WifiDirect& Mediums::GetWifiDirect() { return wifi_direct_; }
+WifiDirectInterface& Mediums::GetWifiDirect() { return *wifi_direct_; }
 
-mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
+mediums::WebRtc& Mediums::GetWebRtc() { return *webrtc_; }
 
-Awdl& Mediums::GetAwdl() { return awdl_; }
+AwdlInterface& Mediums::GetAwdl() { return *awdl_; }
 
 }  // namespace connections
 }  // namespace nearby

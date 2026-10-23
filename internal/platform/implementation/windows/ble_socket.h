@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,64 +15,54 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_SOCKET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_SOCKET_H_
 
-#include "internal/platform/implementation/ble.h"
-#include "internal/platform/implementation/windows/ble.h"
+#include <cstdint>
+
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
 
-// TODO(b/269152309): Implement BLE Weave Socket
-// This is just a fake stub to appease the BLE Medium abstraction. Windows
-// does not support BLE Weave sockets currently. BLE is only used in the
-// pre-connection phase handshake (advertising & discovering), connection is
-// delegated to Bluetooth Classic Medium to establish RFCOMM socket.
-class BleSocket : public api::BleSocket {
+class BleSocket : public api::ble::BleSocket {
  public:
-  ~BleSocket() override;
+  BleSocket() = default;
+  ~BleSocket() override = default;
 
-  // Returns the InputStream of this connected BleSocket.
-  InputStream& GetInputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  InputStream& GetInputStream() override;
 
-  // Returns the OutputStream of this connected BleSocket.
-  // This stream is for local side to write.
-  OutputStream& GetOutputStream() override ABSL_LOCKS_EXCLUDED(mutex_);
+  OutputStream& GetOutputStream() override;
 
-  // Returns true if socket is closed.
-  bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
+  Exception Close() override;
 
-  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+  api::ble::BlePeripheral::UniqueId GetRemotePeripheralId() override {
+    return 0LL;
+  };
 
-  // Returns valid BlePeripheral pointer if there is a connection, and
-  // nullptr otherwise.
-  BlePeripheral* GetRemotePeripheral() override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Connect();
 
-  // Unhooked InputStream & OutputStream for empty implementation.
  private:
-  class FakeInputStream : public InputStream {
-    ~FakeInputStream() override = default;
-    ExceptionOr<ByteArray> Read(std::int64_t size) override {
-      return ExceptionOr<ByteArray>(Exception::kFailed);
-    }
-    Exception Close() override { return {.value = Exception::kFailed}; }
+  class BleInputStream : public InputStream {
+   public:
+    ~BleInputStream() override = default;
+    ExceptionOr<ByteArray> Read(std::int64_t size) override;
+    Exception Close() override;
   };
-  class FakeOutputStream : public OutputStream {
-    ~FakeOutputStream() override = default;
 
-    Exception Write(const ByteArray& data) override {
-      return {.value = Exception::kFailed};
-    }
-    Exception Flush() override { return {.value = Exception::kFailed}; }
-    Exception Close() override { return {.value = Exception::kFailed}; }
+  class BleOutputStream : public OutputStream {
+   public:
+    ~BleOutputStream() override = default;
+
+    Exception Write(absl::string_view data) override;
+    Exception Flush() override;
+    Exception Close() override;
   };
-  FakeInputStream fake_input_stream_;
-  FakeOutputStream fake_output_stream_;
-  mutable absl::Mutex mutex_;
-  BlePeripheral* peripheral_;
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+
+  BleInputStream input_stream_{};
+  BleOutputStream output_stream_{};
 };
 
 }  // namespace windows

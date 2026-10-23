@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
@@ -35,12 +36,22 @@ WifiLanInputStream::WifiLanInputStream(GNCNWFrameworkSocket* socket) : socket_(s
 
 ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
   NSError* error = nil;
-  NSData* data = [socket_ readMaxLength:size error:&error];
-  if (data == nil) {
-    GNCLoggerError(@"Error reading socket: %@", error);
-    return {Exception::kIo};
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    auto result = [socket_ readStringWithMaxLength:size error:&error];
+    if (!result.has_value()) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    // OPTIMIZATION: Zero-copy transfer from std::string to ByteArray
+    return ExceptionOr<ByteArray>{ByteArray(std::move(result.value()))};
+  } else {
+    NSData* data = [socket_ readMaxLength:size error:&error];
+    if (data == nil) {
+      GNCLoggerError(@"Error reading socket: %@", error);
+      return {Exception::kIo};
+    }
+    return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
   }
-  return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
 }
 
 Exception WifiLanInputStream::Close() {
@@ -53,7 +64,7 @@ Exception WifiLanInputStream::Close() {
 
 WifiLanOutputStream::WifiLanOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception WifiLanOutputStream::Write(const ByteArray& data) {
+Exception WifiLanOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {
@@ -124,6 +135,8 @@ Exception WifiLanServerSocket::Close() {
 
 WifiLanMedium::WifiLanMedium() { medium_ = [[GNCNWFramework alloc] init]; }
 
+WifiLanMedium::WifiLanMedium(GNCNWFramework* medium) : medium_(medium) {}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);
 }
@@ -145,7 +158,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
             service_callback_.service_lost_cb(service_info);
           }};
 
-  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback), false);
+  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback));
 }
 
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
@@ -163,9 +176,9 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
-  GNCNWFrameworkSocket* socket = network_utils::ConnectToService(
-      medium_, ip_address, port, /*include_peer_to_peer=*/false, cancellation_flag);
+    const ServiceAddress& service_address, CancellationFlag* cancellation_flag) {
+  GNCNWFrameworkSocket* socket =
+      network_utils::ConnectToService(medium_, service_address, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }
@@ -173,12 +186,23 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 }
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
-  GNCNWFrameworkServerSocket* serverSocket =
-      network_utils::ListenForService(medium_, port, /*include_peer_to_peer=*/false);
+  GNCNWFrameworkServerSocket* serverSocket = network_utils::ListenForService(medium_, port);
   if (serverSocket != nil) {
     return std::make_unique<WifiLanServerSocket>(serverSocket);
   }
   return nil;
+}
+
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
+    const api::WifiLanServerSocket& server_socket) {
+  std::string ip_address = server_socket.GetIPAddress();
+  api::UpgradeAddressInfo result;
+  result.num_interfaces = 1;
+  result.num_ipv6_only_interfaces = 0;
+  result.address_candidates.push_back(
+      {.address = std::vector<char>(ip_address.begin(), ip_address.end()),
+       .port = static_cast<uint16_t>(server_socket.GetPort())});
+  return result;
 }
 
 }  // namespace apple

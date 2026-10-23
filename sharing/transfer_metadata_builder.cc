@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "sharing/share_session_usage.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby {
@@ -27,6 +29,7 @@ namespace sharing {
 TransferMetadataBuilder TransferMetadataBuilder::Clone(
     const TransferMetadata& metadata) {
   TransferMetadataBuilder builder;
+  builder.usage_ = metadata.usage();
   builder.is_original_ = metadata.is_original();
   builder.progress_ = metadata.progress();
   builder.status_ = metadata.status();
@@ -53,6 +56,18 @@ TransferMetadataBuilder& TransferMetadataBuilder::operator=(
     TransferMetadataBuilder&&) = default;
 
 TransferMetadataBuilder::~TransferMetadataBuilder() = default;
+
+TransferMetadataBuilder& TransferMetadataBuilder::set_usage(
+    ShareSessionUsage usage) {
+  usage_ = usage;
+  return *this;
+}
+
+TransferMetadataBuilder& TransferMetadataBuilder::set_binding_id(
+    absl::string_view binding_id) {
+  binding_id_ = binding_id;
+  return *this;
+}
 
 TransferMetadataBuilder& TransferMetadataBuilder::set_is_original(
     bool is_original) {
@@ -138,12 +153,12 @@ TransferMetadataBuilder::set_in_progress_attachment_total_bytes(
 
 TransferMetadata TransferMetadataBuilder::build() const {
   return TransferMetadata(
-      status_, progress_, token_, is_original_,
+      usage_, status_, progress_, token_, is_original_,
       TransferMetadata::IsFinalStatus(status_), is_self_share_,
       transferred_bytes_, transfer_speed_, estimated_time_remaining_,
       total_attachments_count_, transferred_attachments_count_,
       in_progress_attachment_id_, in_progress_attachment_transferred_bytes_,
-      in_progress_attachment_total_bytes_);
+      in_progress_attachment_total_bytes_, binding_id_);
 }
 
 }  // namespace sharing

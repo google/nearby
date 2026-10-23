@@ -14,16 +14,16 @@
 
 #include "internal/platform/implementation/shared/file.h"
 
-#include <cstring>
+#include <cstdint>
 #include <fstream>
 #include <memory>
-#include <ostream>
 #include <string>
 
 #include "file/util/temp_path.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace shared {
@@ -40,10 +40,7 @@ class FileTest : public ::testing::Test {
   void WriteToFile(absl::string_view text) {
     file_ << text;
     file_.flush();
-    size_ += text.size();
   }
-
-  size_t GetSize() const { return size_; }
 
   void AssertEquals(const ExceptionOr<ByteArray>& bytes,
                     const std::string& expected) {
@@ -61,44 +58,43 @@ class FileTest : public ::testing::Test {
   std::unique_ptr<TempPath> temp_path_;
   std::string path_;
   std::fstream file_;
-  size_t size_ = 0;
 };
 
 TEST_F(FileTest, IOFile_NonExistentPathInput) {
   auto io_file =
-      shared::IOFile::CreateInputFile("/not/a/valid/path.txt", GetSize());
+      shared::IOFile::CreateInputFile("/not/a/valid/path.txt");
   ExceptionOr<ByteArray> read_result = io_file->Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
   EXPECT_TRUE(read_result.GetException().Raised(Exception::kIo));
 }
 
 TEST_F(FileTest, IOFile_GetFilePath) {
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   EXPECT_EQ(io_file->GetFilePath(), path_);
 }
 
 TEST_F(FileTest, IOFile_EmptyFileEOF) {
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   AssertEmpty(io_file->Read(kMaxSize));
 }
 
 TEST_F(FileTest, IOFile_ReadWorks) {
   WriteToFile("abc");
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   io_file->Read(kMaxSize);
   SUCCEED();
 }
 
 TEST_F(FileTest, IOFile_ReadUntilEOF) {
   WriteToFile("abc");
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   AssertEquals(io_file->Read(kMaxSize), "abc");
   AssertEmpty(io_file->Read(kMaxSize));
 }
 
 TEST_F(FileTest, IOFile_ReadWithSize) {
   WriteToFile("abc");
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   AssertEquals(io_file->Read(2), "ab");
   AssertEquals(io_file->Read(1), "c");
   AssertEmpty(io_file->Read(kMaxSize));
@@ -106,7 +102,7 @@ TEST_F(FileTest, IOFile_ReadWithSize) {
 
 TEST_F(FileTest, IOFile_GetTotalSize) {
   WriteToFile("abc");
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   EXPECT_EQ(io_file->GetTotalSize(), 3);
   AssertEquals(io_file->Read(1), "a");
   EXPECT_EQ(io_file->GetTotalSize(), 3);
@@ -114,7 +110,7 @@ TEST_F(FileTest, IOFile_GetTotalSize) {
 
 TEST_F(FileTest, IOFile_CloseInput) {
   WriteToFile("abc");
-  auto io_file = shared::IOFile::CreateInputFile(path_, GetSize());
+  auto io_file = shared::IOFile::CreateInputFile(path_);
   io_file->Close();
   ExceptionOr<ByteArray> read_result = io_file->Read(kMaxSize);
   EXPECT_FALSE(read_result.ok());
@@ -123,25 +119,25 @@ TEST_F(FileTest, IOFile_CloseInput) {
 
 TEST_F(FileTest, IOFile_NonExistentPathOutput) {
   auto io_file = shared::IOFile::CreateOutputFile("/not/a/valid/path.txt");
-  ByteArray bytes("a", 1);
+  absl::string_view bytes("a", 1);
   EXPECT_TRUE(io_file->Write(bytes).Raised(Exception::kIo));
 }
 
 TEST_F(FileTest, IOFile_Write) {
   auto io_file_output = shared::IOFile::CreateOutputFile(path_);
-  ByteArray bytes1("a");
-  ByteArray bytes2("bc");
+  absl::string_view bytes1("a");
+  absl::string_view bytes2("bc");
   EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
   auto io_file_input =
-      shared::IOFile::CreateInputFile(io_file_output->GetFilePath(), GetSize());
+      shared::IOFile::CreateInputFile(io_file_output->GetFilePath());
   AssertEquals(io_file_input->Read(kMaxSize), "abc");
 }
 
 TEST_F(FileTest, IOFile_CloseOutput) {
   auto io_file = shared::IOFile::CreateOutputFile(path_);
   io_file->Close();
-  ByteArray bytes("a");
+  absl::string_view bytes("a");
   EXPECT_EQ(io_file->Write(bytes), Exception{Exception::kIo});
 }
 

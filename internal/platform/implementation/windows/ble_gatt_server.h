@@ -17,7 +17,9 @@
 
 #include <windows.h>
 
+#include <list>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
@@ -27,11 +29,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -41,24 +43,24 @@
 namespace nearby {
 namespace windows {
 
-class BleGattServer : public api::ble_v2::GattServer {
+class BleGattServer : public api::ble::GattServer {
  public:
   // Make sure the adapter parameter is not null.
   BleGattServer(api::BluetoothAdapter* adapter,
-                api::ble_v2::ServerGattConnectionCallback callback);
+                api::ble::ServerGattConnectionCallback callback);
   ~BleGattServer() override = default;
-  absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
+  std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
-      api::ble_v2::GattCharacteristic::Permission permission,
-      api::ble_v2::GattCharacteristic::Property property) override
+      api::ble::GattCharacteristic::Permission permission,
+      api::ble::GattCharacteristic::Property property,
+      const ByteArray& initial_value) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool UpdateCharacteristic(const api::ble::GattCharacteristic& characteristic,
+                            const nearby::ByteArray& value) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool UpdateCharacteristic(
-      const api::ble_v2::GattCharacteristic& characteristic,
-      const nearby::ByteArray& value) override ABSL_LOCKS_EXCLUDED(mutex_);
-
   absl::Status NotifyCharacteristicChanged(
-      const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
+      const api::ble::GattCharacteristic& characteristic, bool confirm,
       const ByteArray& new_value) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   void Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
@@ -73,7 +75,7 @@ class BleGattServer : public api::ble_v2::GattServer {
  private:
   // Used to save native data related to the GATT characteristic.
   struct GattCharacteristicData {
-    api::ble_v2::GattCharacteristic gatt_characteristic;
+    api::ble::GattCharacteristic gatt_characteristic;
     ByteArray data;
     ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
         GattLocalCharacteristic local_characteristic = nullptr;
@@ -81,53 +83,77 @@ class BleGattServer : public api::ble_v2::GattServer {
         ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
             GattSubscribedClient>
         subscribed_clients;
-    ::winrt::event_token read_token{};
-    ::winrt::event_token write_token{};
-    ::winrt::event_token subscribed_clients_changed_token{};
+    std::optional<SafeAutoRevoker<
+        ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+            GattLocalCharacteristic::ReadRequested_revoker>>
+        read_revoker;
+    std::optional<SafeAutoRevoker<
+        ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+            GattLocalCharacteristic::WriteRequested_revoker>>
+        write_revoker;
+    std::optional<SafeAutoRevoker<
+        ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+            GattLocalCharacteristic::SubscribedClientsChanged_revoker>>
+        subscribed_clients_changed_revoker;
+  };
+
+  // Represents the difference in subscribed clients for a GATT characteristic,
+  // containing the characteristics for newly added and removed client
+  // subscriptions, as well as the current characteristic value.
+  struct SubscribedClientsUpdate {
+    std::vector<api::ble::GattCharacteristic> added_characteristics;
+    std::vector<api::ble::GattCharacteristic> removed_characteristics;
+    ByteArray data;
   };
 
   bool InitializeGattServer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void NotifyValueChanged(
-      const api::ble_v2::GattCharacteristic& gatt_characteristic)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+          GattLocalCharacteristic local_characteristic,
+      ByteArray data) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  GattCharacteristicData* FindGattCharacteristicData(
-      const ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattLocalCharacteristic& gatt_local_characteristic)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  GattCharacteristicData* FindGattCharacteristicData(
-      const api::ble_v2::GattCharacteristic& gatt_characteristic)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Retrieves the cached value of `characteristic_uuid`. Returns
+  // `std::nullopt` if the characteristic is not found in the server's
+  // registered characteristics.
+  std::optional<ByteArray> GetCharacteristicValue(
+      const Uuid& characteristic_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Updates the recorded subscribed clients for `characteristic_uuid` to
+  // match `current_subscribed_clients`. Returns a `SubscribedClientsUpdate`
+  // containing the added and removed characteristics, or `std::nullopt` if the
+  // characteristic is not found.
+  std::optional<SubscribedClientsUpdate> UpdateSubscribedClients(
+      const Uuid& characteristic_uuid,
+      const ::winrt::Windows::Foundation::Collections::IVectorView<
+          ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+              GattSubscribedClient>& current_subscribed_clients)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   ::winrt::fire_and_forget Characteristic_ReadRequestedAsync(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattReadRequestedEventArgs args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattReadRequestedEventArgs args);
   ::winrt::fire_and_forget Characteristic_WriteRequestedAsync(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattWriteRequestedEventArgs args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattWriteRequestedEventArgs args);
   void Characteristic_SubscribedClientsChanged(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattLocalCharacteristic const& gatt_local_characteristic,
-      ::winrt::Windows::Foundation::IInspectable const& args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      ::winrt::Windows::Foundation::IInspectable const& args);
 
   void ServiceProvider_AdvertisementStatusChanged(
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
           GattServiceProvider const& sender,
       ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
-          GattServiceProviderAdvertisementStatusChangedEventArgs const& args)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+          GattServiceProviderAdvertisementStatusChangedEventArgs const& args);
 
   absl::Mutex mutex_;
 
   BluetoothAdapter* const adapter_ = nullptr;
-  api::ble_v2::ServerGattConnectionCallback gatt_connection_callback_{};
+  api::ble::ServerGattConnectionCallback gatt_connection_callback_{};
 
   ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
       GattServiceProvider gatt_service_provider_ ABSL_GUARDED_BY(mutex_) =
@@ -136,14 +162,16 @@ class BleGattServer : public api::ble_v2::GattServer {
   absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_) = nullptr;
 
   Uuid service_uuid_ ABSL_GUARDED_BY(mutex_);
-  std::vector<GattCharacteristicData> gatt_characteristic_datas_
+  std::list<GattCharacteristicData> gatt_characteristic_datas_
       ABSL_GUARDED_BY(mutex_);
 
   bool is_advertising_ ABSL_GUARDED_BY(mutex_) = false;
   bool is_gatt_server_inited_ ABSL_GUARDED_BY(mutex_) = false;
 
-  ::winrt::event_token service_provider_advertisement_changed_token_
-      ABSL_GUARDED_BY(mutex_) = {};
+  std::optional<SafeAutoRevoker<
+      ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
+          GattServiceProvider::AdvertisementStatusChanged_revoker>>
+      service_provider_advertisement_changed_revoker_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace windows

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,31 +15,40 @@
 #ifndef PLATFORM_IMPL_G3_BLE_H_
 #define PLATFORM_IMPL_G3_BLE_H_
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/escaping.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
-#include "internal/platform/implementation/g3/bluetooth_classic.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace g3 {
 
-class BleMedium;
-
-class BleSocket : public api::BleSocket, public SocketBase {
+class BleSocket : public api::ble::BleSocket, public SocketBase {
  public:
-  BleSocket() = default;
-  explicit BleSocket(BlePeripheral* peripheral) : peripheral_(peripheral) {}
+  explicit BleSocket(BluetoothAdapter* adapter) : adapter_(adapter) {}
 
   // Returns the InputStream of this connected BleSocket.
   InputStream& GetInputStream() override {
@@ -60,17 +69,21 @@ class BleSocket : public api::BleSocket, public SocketBase {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return SocketBase::Close(); }
 
-  // Returns valid BlePeripheral pointer if there is a connection, and
-  // nullptr otherwise.
-  BlePeripheral* GetRemotePeripheral() override ABSL_LOCKS_EXCLUDED(mutex_);
+  api::ble::BlePeripheral::UniqueId GetRemotePeripheralId() override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  BlePeripheral* peripheral_;
+  BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
 };
 
-class BleServerSocket {
+class BleServerSocket : public api::ble::BleServerSocket {
  public:
-  ~BleServerSocket();
+  explicit BleServerSocket(BluetoothAdapter* adapter) : adapter_(adapter) {}
+  BleServerSocket(const BleServerSocket&) = default;
+  BleServerSocket& operator=(const BleServerSocket&) = default;
+  BleServerSocket(BleServerSocket&&) = default;
+  BleServerSocket& operator=(BleServerSocket&&) = default;
+  ~BleServerSocket() override;
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -82,7 +95,7 @@ class BleServerSocket {
   // Called by the server side of a connection.
   // Returns BleSocket to the server side.
   // If not null, returned socket is connected to its remote (client-side) peer.
-  std::unique_ptr<api::BleSocket> Accept(BlePeripheral* peripheral)
+  std::unique_ptr<api::ble::BleSocket> Accept() override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Blocks until either:
@@ -96,100 +109,205 @@ class BleServerSocket {
 
   // Called by the server side of a connection before passing ownership of
   // BleServerSocker to user, to track validity of a pointer to this
-  // server socket,
+  // server socket.
   void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   // Calls close_notifier if it was previously set, and marks socket as closed.
-  Exception Close() ABSL_LOCKS_EXCLUDED(mutex_);
+  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  absl::Mutex mutex_;
+  mutable absl::Mutex mutex_;
   absl::CondVar cond_;
+  BluetoothAdapter* adapter_ = nullptr;  // Our Adapter. Read only.
   absl::flat_hash_set<BleSocket*> pending_sockets_ ABSL_GUARDED_BY(mutex_);
   absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 // Container of operations that can be performed over the BLE medium.
-class BleMedium : public api::BleMedium {
+class BleMedium : public api::ble::BleMedium {
  public:
-  explicit BleMedium(api::BluetoothAdapter& adapter);
+  explicit BleMedium(BluetoothAdapter& adapter);
   ~BleMedium() override;
 
   // Returns true once the Ble advertising has been initiated.
-  bool StartAdvertising(
-      const std::string& service_id, const ByteArray& advertisement_bytes,
-      const std::string& fast_advertisement_service_uuid) override
+  bool StartAdvertising(const api::ble::BleAdvertisementData& advertising_data,
+                        api::ble::AdvertiseParameters advertise_parameters)
+      override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopAdvertising() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::unique_ptr<AdvertisingSession> StartAdvertising(
+      const api::ble::BleAdvertisementData& advertising_data,
+      api::ble::AdvertiseParameters advertise_parameters,
+      AdvertisingCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  bool StartScanning(const Uuid& service_uuid,
+                     api::ble::TxPowerLevel tx_power_level,
+                     ScanCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopAdvertising(const std::string& service_id) override
+  bool StartMultipleServicesScanning(const std::vector<Uuid>& service_uuids,
+                                     api::ble::TxPowerLevel tx_power_level,
+                                     ScanCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool StopScanning() override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<ScanningSession> StartScanning(
+      const Uuid& service_uuid, api::ble::TxPowerLevel tx_power_level,
+      ScanningCallback callback) override ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::ble::GattServer> StartGattServer(
+      api::ble::ServerGattConnectionCallback callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::ble::GattClient> ConnectToGattServer(
+      api::ble::BlePeripheral::UniqueId peripheral_id,
+      api::ble::TxPowerLevel tx_power_level,
+      api::ble::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Returns true once the Ble scanning has been initiated.
-  bool StartScanning(const std::string& service_id,
-                     const std::string& fast_advertisement_service_uuid,
-                     DiscoveredPeripheralCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  // Open server socket to listen for incoming connection.
+  //
+  // On success, returns a new BleServerSocket.
+  // On error, returns nullptr.
+  std::unique_ptr<api::ble::BleServerSocket> OpenServerSocket(
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Returns true once Ble scanning for service_id is well and truly
-  // stopped; after this returns, there must be no more invocations of the
-  // DiscoveredPeripheralCallback passed in to StartScanning() for service_id.
-  bool StopScanning(const std::string& service_id) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Returns true once Ble socket connection requests to service_id can be
-  // accepted.
-  bool StartAcceptingConnections(const std::string& service_id,
-                                 AcceptedConnectionCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  bool StopAcceptingConnections(const std::string& service_id) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::unique_ptr<api::ble::BleL2capServerSocket> OpenL2capServerSocket(
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connects to existing remote Ble peripheral.
   //
   // On success, returns a new BleSocket.
   // On error, returns nullptr.
-  std::unique_ptr<api::BleSocket> Connect(
-      api::BlePeripheral& remote_peripheral, const std::string& service_id,
+  std::unique_ptr<api::ble::BleSocket> Connect(
+      const std::string& service_id, api::ble::TxPowerLevel tx_power_level,
+      api::ble::BlePeripheral::UniqueId remote_peripheral_id,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  BluetoothAdapter& GetAdapter() { return *adapter_; }
+  bool IsExtendedAdvertisementsAvailable() override;
+
+  BluetoothAdapter& GetAdapter() { return adapter_; }
+
+  std::optional<api::ble::BlePeripheral::UniqueId>
+  RetrieveBlePeripheralIdFromNativeId(
+      const std::string& ble_peripheral_native_id) override;
 
  private:
-  static constexpr int kMaxConcurrentAcceptLoops = 5;
+  class GattClient;
+  // A concrete implementation for GattServer.
+  class GattServer : public api::ble::GattServer {
+   public:
+    GattServer(BleMedium& medium,
+               api::ble::ServerGattConnectionCallback callback);
+    ~GattServer() override;
 
-  struct AdvertisingInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+    std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
+        const Uuid& service_uuid, const Uuid& characteristic_uuid,
+        api::ble::GattCharacteristic::Permission permission,
+        api::ble::GattCharacteristic::Property property,
+        const ByteArray& initial_value) override;
 
-    std::string service_id;
+    bool UpdateCharacteristic(
+        const api::ble::GattCharacteristic& characteristic,
+        const nearby::ByteArray& value) override;
+
+    absl::Status NotifyCharacteristicChanged(
+        const api::ble::GattCharacteristic& characteristic, bool confirm,
+        const ByteArray& new_value) override;
+
+    void Stop() override;
+    bool IsStopped() { return stopped_; }
+    bool DiscoverBleMediumGattCharacteristics(
+        const Uuid& service_uuid,
+        const std::vector<Uuid>& characteristic_uuids);
+
+    absl::StatusOr<ByteArray> ReadCharacteristic(
+        api::ble::BlePeripheral::UniqueId remote_device_id,
+        const api::ble::GattCharacteristic& characteristic, int offset);
+
+    absl::Status WriteCharacteristic(
+        api::ble::BlePeripheral::UniqueId remote_device_id,
+        const api::ble::GattCharacteristic& characteristic, int offset,
+        absl::string_view data);
+
+    bool AddCharacteristicSubscription(
+        api::ble::BlePeripheral::UniqueId remote_device_id,
+        const api::ble::GattCharacteristic& characteristic,
+        absl::AnyInvocable<void(absl::string_view value)>);
+    bool RemoveCharacteristicSubscription(
+        api::ble::BlePeripheral::UniqueId remote_device_id,
+        const api::ble::GattCharacteristic& characteristic);
+
+    bool HasCharacteristic(const api::ble::GattCharacteristic& characteristic);
+
+    void Connect(GattClient* client);
+    void Disconnect(GattClient* client);
+
+   private:
+    using SubscriberKey = std::pair<const api::ble::BlePeripheral::UniqueId,
+                                    api::ble::GattCharacteristic>;
+    using SubscriberCallback =
+        absl::AnyInvocable<void(absl::string_view value)>;
+    absl::Mutex mutex_;
+    BleMedium& medium_;
+    api::ble::ServerGattConnectionCallback callback_;
+    absl::flat_hash_map<api::ble::GattCharacteristic, absl::StatusOr<ByteArray>>
+        characteristics_ ABSL_GUARDED_BY(mutex_);
+    absl::flat_hash_map<SubscriberKey, SubscriberCallback> subscribers_
+        ABSL_GUARDED_BY(mutex_);
+    std::vector<GattClient*> connected_clients_ ABSL_GUARDED_BY(mutex_);
+    std::atomic_bool stopped_ = false;
+    Lender<api::ble::GattServer*> lender_{this};
   };
 
-  struct ScanningInfo {
-    bool Empty() const { return service_id.empty(); }
-    void Clear() { service_id.clear(); }
+  // A concrete implementation for GattClient.
+  class GattClient : public api::ble::GattClient {
+   public:
+    GattClient(api::ble::BlePeripheral::UniqueId peripheral_id,
+               Borrowable<api::ble::GattServer*> gatt_server,
+               api::ble::ClientGattConnectionCallback callback);
+    ~GattClient() override;
+    bool DiscoverServiceAndCharacteristics(
+        const Uuid& service_uuid,
+        const std::vector<Uuid>& characteristic_uuids) override;
 
-    std::string service_id;
+    std::optional<api::ble::GattCharacteristic> GetCharacteristic(
+        const Uuid& service_uuid, const Uuid& characteristic_uuid) override;
+
+    std::optional<std::string> ReadCharacteristic(
+        const api::ble::GattCharacteristic& characteristic) override;
+
+    bool WriteCharacteristic(
+        const api::ble::GattCharacteristic& characteristic,
+        absl::string_view value,
+        api::ble::GattClient::WriteType write_type) override;
+
+    void Disconnect() override;
+
+    void OnServerDisconnected();
+
+   private:
+    absl::Mutex mutex_;
+
+    // A flag to indicate the gatt connection alive or not. If it is
+    // disconnected/*false*/, the instance needs to be created again to bring
+    // it alive.
+    std::atomic_bool is_connection_alive_ = true;
+    api::ble::BlePeripheral::UniqueId peripheral_id_;
+    Borrowable<api::ble::GattServer*> gatt_server_;
+    api::ble::ClientGattConnectionCallback callback_;
   };
 
+  bool IsStopped(Borrowable<api::ble::GattServer*> server);
   absl::Mutex mutex_;
-  BluetoothAdapter* adapter_;  // Our device adapter; read-only.
-
-  // A thread pool dedicated to running all the accept loops from
-  // StartAdvertising().
-  MultiThreadExecutor accept_loops_runner_{kMaxConcurrentAcceptLoops};
-  std::atomic_bool acceptance_thread_running_ = false;
-
-  // A thread pool dedicated to wait to complete the accept_loops_runner_.
-  MultiThreadExecutor close_accept_loops_runner_{1};
-
-  // A server socket is established when start advertising.
-  std::unique_ptr<BleServerSocket> server_socket_;
-  AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
-  ScanningInfo scanning_info_ ABSL_GUARDED_BY(mutex_);
+  BluetoothAdapter& adapter_;  // Our device adapter; read-only.
+  absl::flat_hash_map<std::string, BleServerSocket*> server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>
+      scanning_internal_session_ids_ ABSL_GUARDED_BY(mutex_);
+  bool is_extended_advertisements_available_ = false;
+  ScanCallback scan_callback_;
 };
 
 }  // namespace g3

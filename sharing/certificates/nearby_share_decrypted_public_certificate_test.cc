@@ -50,6 +50,7 @@ TEST(NearbyShareDecryptedPublicCertificateTest, Decrypt) {
   PublicCertificate proto_cert =
       GetNearbyShareTestPublicCertificate(kTestPublicCertificateVisibility);
   proto_cert.set_for_self_share(true);
+  proto_cert.set_binding_id("binding_id");
 
   std::optional<NearbyShareDecryptedPublicCertificate> cert =
       NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
@@ -65,6 +66,7 @@ TEST(NearbyShareDecryptedPublicCertificateTest, Decrypt) {
   EXPECT_EQ(GetNearbyShareTestMetadata().SerializeAsString(),
             cert->unencrypted_metadata().SerializeAsString());
   EXPECT_EQ(proto_cert.for_self_share(), cert->for_self_share());
+  EXPECT_EQ(proto_cert.binding_id(), cert->binding_id());
 }
 
 TEST(NearbyShareDecryptedPublicCertificateTest, Decrypt_IncorrectKeyFailure) {

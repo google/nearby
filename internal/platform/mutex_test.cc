@@ -14,11 +14,13 @@
 
 #include "internal/platform/mutex.h"
 
+#include <atomic>
+
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
@@ -27,7 +29,7 @@ namespace {
 class MutexTest : public testing::Test {
  public:
   void VerifyStepReached(int expected) {
-    absl::MutexLock lock(&step_mutex_);
+    absl::MutexLock lock(step_mutex_);
     absl::Time deadline = absl::Now() + kTimeToWait;
     while (step_ != expected) {
       if (step_cond_.WaitWithDeadline(&step_mutex_, deadline)) break;
@@ -67,7 +69,12 @@ TEST_F(MutexTest, BasicLockingWorks) {
   VerifyStepReached(2);
 }
 
-#ifdef THREAD_SANITIZER
+// This test re-locks a Mutex that the thread already holds, and then unlocks it
+// from a thread that doesn't hold it. On most platforms nearby::Mutex is an
+// absl::Mutex, which allows neither. TSan and absl's debug-mode deadlock
+// detection report the cross-thread unlock as an error, so only run this test
+// in optimized builds without TSan.
+#if defined(THREAD_SANITIZER) || !defined(NDEBUG)
 TEST_F(MutexTest, DISABLED_DoubleLockIsDeadlock)
 ABSL_NO_THREAD_SAFETY_ANALYSIS {
 #else
@@ -110,6 +117,39 @@ TEST_F(MutexTest, DoubleLockIsNotDeadlock) {
   test_mutex.Unlock();  // Let executor continue.
   VerifyStepReached(2);
 }
+
+TEST_F(MutexTest, AssertHeld) {
+  Mutex mutex;
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+}
+
+TEST_F(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+  RecursiveMutex mutex;
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+}
+
+#ifndef NDEBUG
+using MutexDeathTest = MutexTest;
+// Mutex death test may fail on some platforms.
+TEST_F(MutexDeathTest, DISABLED_MutexAssertHeldWithoutLock) {
+  Mutex mutex;
+  EXPECT_DEATH(mutex.AssertHeld(), "");
+}
+
+// RecursiveMutex death test may fail on some platforms.
+TEST_F(MutexDeathTest, DISABLED_RecursiveMutexAssertHeldWithoutLock) {
+  RecursiveMutex mutex;
+  EXPECT_DEATH(mutex.AssertHeld(), "");
+}
+#endif
 
 }  // namespace
 }  // namespace nearby

@@ -18,15 +18,19 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/system_clock.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // An endpoint channel implementation used for testing. The read and write
 // output can be set.
@@ -44,17 +48,13 @@ class FakeEndpointChannel : public EndpointChannel {
     read_timestamp_ = SystemClock::ElapsedRealtime();
     return read_output_;
   }
-  ExceptionOr<ByteArray> Read(PacketMetaData& packet_meta_data) override {
-    read_timestamp_ = SystemClock::ElapsedRealtime();
-    return read_output_;
-  }
-  Exception Write(const ByteArray& data) override {
+  Exception Write(absl::string_view data)
+      ABSL_LOCKS_EXCLUDED(write_mutex_) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
-    return write_output_;
-  }
-  Exception Write(const ByteArray& data,
-                  PacketMetaData& packet_meta_data) override {
-    write_timestamp_ = SystemClock::ElapsedRealtime();
+    {
+      absl::MutexLock lock(write_mutex_);
+      written_frames_.push_back(std::string(data));
+    }
     return write_output_;
   }
   void Close() override { is_closed_ = true; }
@@ -63,10 +63,8 @@ class FakeEndpointChannel : public EndpointChannel {
     is_closed_ = true;
     disconnection_reason_ = reason;
   }
-  void Close(
-      location::nearby::proto::connections::DisconnectionReason reason,
-      location::nearby::analytics::proto::ConnectionsLog::
-          EstablishedConnection::SafeDisconnectionResult result) override {
+  void Close(location::nearby::proto::connections::DisconnectionReason reason,
+             nearby::analytics::SafeDisconnectionResult result) override {
     Close(reason);
   }
   bool IsClosed() const override { return is_closed_; }
@@ -103,9 +101,18 @@ class FakeEndpointChannel : public EndpointChannel {
   }
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override {}
+  void SetLocalEndpointId(const std::string& local_endpoint_id) override {
+    local_endpoint_id_ = local_endpoint_id;
+  }
+  std::string GetLocalEndpointId() const override { return local_endpoint_id_; }
 
   void set_read_output(ExceptionOr<ByteArray> output) { read_output_ = output; }
   void set_write_output(Exception output) { write_output_ = output; }
+  std::vector<std::string> GetWrittenFrames() const
+      ABSL_LOCKS_EXCLUDED(write_mutex_) {
+    absl::MutexLock lock(write_mutex_);
+    return written_frames_;
+  }
   bool is_closed() const { return is_closed_; }
   location::nearby::proto::connections::DisconnectionReason
   disconnection_reason() const {
@@ -115,6 +122,8 @@ class FakeEndpointChannel : public EndpointChannel {
  private:
   ExceptionOr<ByteArray> read_output_;
   Exception write_output_{Exception::kSuccess};
+  mutable absl::Mutex write_mutex_;
+  std::vector<std::string> written_frames_ ABSL_GUARDED_BY(write_mutex_);
   Medium medium_;
   std::string service_id_;
   absl::Time read_timestamp_ = absl::InfinitePast();
@@ -123,10 +132,10 @@ class FakeEndpointChannel : public EndpointChannel {
   bool is_paused_ = false;
   location::nearby::proto::connections::DisconnectionReason
       disconnection_reason_;
+  std::string local_endpoint_id_;
   mutable uint32_t next_keep_alive_seq_no_ = 0;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_ENDPOINT_CHANNEL_H_

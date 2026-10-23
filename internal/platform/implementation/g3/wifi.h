@@ -16,15 +16,15 @@
 #define PLATFORM_IMPL_G3_WIFI_H_
 
 #include <string>
-#include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/wifi.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::g3 {
 
 class WifiMedium;
 
@@ -44,8 +44,12 @@ class WifiMedium : public api::WifiMedium {
     }
 
     wifi_capability_ = {true, false, true};
-    wifi_information_ = {true, "nearby_test_ap",       "34:36:3B:C7:8C:77",
-                         5230, ip_addr_dot_decimal, ip_addr_4bytes};
+    wifi_information_ = {
+      .is_connected = true,
+      .ssid = "nearby_test_ap",
+      .bssid = "34:36:3B:C7:8C:77",
+      .ap_frequency = 5230,
+    };
   }
   ~WifiMedium() override = default;
 
@@ -57,54 +61,13 @@ class WifiMedium : public api::WifiMedium {
   // If the WiFi Adaptor supports to start a Wifi interface.
   bool IsInterfaceValid() const override { return true; }
   api::WifiCapability& GetCapability() override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return wifi_capability_;
   }
   api::WifiInformation& GetInformation() override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return wifi_information_;
   }
-  std::string GetIpAddress() override {
-    absl::MutexLock lock(&mutex_);
-    return wifi_information_.ip_address_dot_decimal;
-  }
-
-  class ScanResultCallback : public api::WifiMedium::ScanResultCallback {
-   public:
-    // TODO(b/184975123): replace with real implementation.
-    ~ScanResultCallback() override = default;
-
-    // TODO(b/184975123): replace with real implementation.
-    void OnScanResults(
-        const std::vector<api::WifiScanResult>& scan_results) override {}
-  };
-
-  // Does not take ownership of the passed-in scan_result_callback -- destroying
-  // that is up to the caller.
-  // TODO(b/184975123): replace with real implementation.
-  bool Scan(const api::WifiMedium::ScanResultCallback& scan_result_callback)
-      override {
-    return false;
-  }
-
-  // If 'password' is an empty string, none has been provided. Returns
-  // WifiConnectionStatus::CONNECTED on success, or the appropriate failure code
-  // otherwise.
-  // TODO(b/184975123): replace with real implementation.
-  api::WifiConnectionStatus ConnectToNetwork(
-      absl::string_view ssid, absl::string_view password,
-      api::WifiAuthType auth_type) override {
-    return api::WifiConnectionStatus::kUnknown;
-  }
-
-  // Blocks until it's certain of there being a connection to the internet, or
-  // returns false if it fails to do so.
-  //
-  // How this method wants to verify said connection is totally up to it (so it
-  // can feel free to ping whatever server, download whatever resource, etc.
-  // that it needs to gain confidence that the internet is reachable hereon in).
-  // TODO(b/184975123): replace with real implementation.
-  bool VerifyInternetConnectivity() override { return false; }
 
  private:
   absl::Mutex mutex_;
@@ -112,7 +75,6 @@ class WifiMedium : public api::WifiMedium {
   api::WifiInformation wifi_information_ ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::g3
 
 #endif  // PLATFORM_IMPL_G3_WIFI_H_

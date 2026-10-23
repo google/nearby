@@ -15,7 +15,7 @@
 #ifndef PLATFORM_API_SYSTEM_CLOCK_H_
 #define PLATFORM_API_SYSTEM_CLOCK_H_
 
-#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {

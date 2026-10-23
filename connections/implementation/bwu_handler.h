@@ -17,38 +17,29 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/offline_frames.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
 
-using BwuNegotiationFrame =
-    location::nearby::connections::BandwidthUpgradeNegotiationFrame;
-
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BwuHandler {
  public:
-  using UpgradePathInfo = parser::UpgradePathInfo;
-
-  class IncomingSocket {
-   public:
-    virtual ~IncomingSocket() = default;
-
-    virtual std::string ToString() = 0;
-    virtual void Close() = 0;
-  };
-
   struct IncomingSocketConnection {
-    std::unique_ptr<IncomingSocket> socket;
-    std::unique_ptr<EndpointChannel> channel;
+    explicit IncomingSocketConnection(
+        absl_nonnull std::unique_ptr<EndpointChannel> channel)
+        : channel(std::move(channel)) {}
+
+    absl_nonnull std::unique_ptr<EndpointChannel> channel;
   };
+
   using IncomingConnectionCallback = absl::AnyInvocable<void(
       ClientProxy* client,
       std::unique_ptr<IncomingSocketConnection> connection)>;
@@ -59,7 +50,7 @@ class BwuHandler {
   // that hasn't already been done), and returns a serialized UpgradePathInfo
   // that can be sent to the Responder.
   // @BwuHandlerThread
-  virtual ByteArray InitializeUpgradedMediumForEndpoint(
+  virtual std::string InitializeUpgradedMediumForEndpoint(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id) = 0;
 
@@ -83,10 +74,11 @@ class BwuHandler {
   // Initiator, and returns a new EndpointChannel for the upgraded medium.
   // @BwuHandlerThread
   virtual ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(ClientProxy* client,
-                                const std::string& service_id,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info) = 0;
+  CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) = 0;
 
   // Returns the upgrade medium of the BwuHandler.
   // @BwuHandlerThread

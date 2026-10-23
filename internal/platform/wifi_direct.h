@@ -15,21 +15,33 @@
 #ifndef PLATFORM_PUBLIC_WIFI_DIRECT_H_
 #define PLATFORM_PUBLIC_WIFI_DIRECT_H_
 
+#include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
 #include <utility>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
 // Socket class for both WifiDirect GO ( created through accept connection from
 // STA) and STA side (created through connect request to WifiDirect GO side)
 // Class WifiDirectSocket is copyable & movable
-class WifiDirectSocket final {
+class WifiDirectSocket : public Socket {
  public:
   WifiDirectSocket() = default;
   WifiDirectSocket(const WifiDirectSocket&) = default;
@@ -45,7 +57,7 @@ class WifiDirectSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiDirectSocket object is destroyed.
-  InputStream& GetInputStream() {
+  InputStream& GetInputStream() override {
     CHECK(impl_);
     return impl_->GetInputStream();
   }
@@ -55,13 +67,13 @@ class WifiDirectSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiDirectSocket object is destroyed.
-  OutputStream& GetOutputStream() {
+  OutputStream& GetOutputStream() override {
     CHECK(impl_);
     return impl_->GetOutputStream();
   }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() {
+  Exception Close() override {
     CHECK(impl_);
     return impl_->Close();
   }
@@ -99,16 +111,11 @@ class WifiDirectServerSocket final {
       std::unique_ptr<api::WifiDirectServerSocket> socket)
       : impl_(std::move(socket)) {}
 
-  // Returns ip address.
-  std::string GetIPAddress() const {
-    CHECK(impl_);
-    return impl_->GetIPAddress();
-  }
-
-  // Returns port.
-  int GetPort() const {
-    CHECK(impl_);
-    return impl_->GetPort();
+  // Populates the WifiDirect credentials with the server socket's service
+  // addresses and ports.
+  void PopulateWifiDirectCredentials(
+      WifiDirectCredentials& wifi_direct_credentials) {
+    impl_->PopulateWifiDirectCredentials(wifi_direct_credentials);
   }
 
   // Blocks until either:
@@ -147,8 +154,15 @@ class WifiDirectServerSocket final {
 class WifiDirectMedium {
  public:
   using Platform = api::ImplementationPlatform;
+  using WifiDirectAuthType =
+      ::location::nearby::proto::connections::WifiDirectAuthType;
 
-  WifiDirectMedium() : impl_(Platform::CreateWifiDirectMedium()) {}
+  WifiDirectMedium()
+      : impl_(NearbyFlags::GetInstance().GetBoolFlag(
+                  connections::config_package_nearby::
+                      nearby_connections_feature::kEnableWifiDirect)
+                  ? Platform::CreateWifiDirectMedium()
+                  : nullptr) {}
   ~WifiDirectMedium() = default;
 
   // Returns a new WifiDirectSocket by ip address and port.
@@ -158,26 +172,25 @@ class WifiDirectMedium {
 
   // Returns a new WifiDirectServerSocket.
   // On Success, WifiDirectServerSocket::IsValid() returns true.
-  WifiDirectServerSocket ListenForService(int port = 0) {
-    return WifiDirectServerSocket(impl_->ListenForService(port));
+  WifiDirectServerSocket ListenForService() {
+    return WifiDirectServerSocket(impl_->ListenForService(/*port=*/0));
   }
 
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
     return impl_->GetDynamicPortRange();
   }
 
   bool StartWifiDirect() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return impl_->StartWifiDirect(&wifi_direct_credentials_);
   }
   bool StopWifiDirect() { return impl_->StopWifiDirect(); }
 
-  bool ConnectWifiDirect(absl::string_view ssid, absl::string_view password) {
-    MutexLock lock(&mutex_);
-    wifi_direct_credentials_.SetSSID(std::string(ssid));
-    wifi_direct_credentials_.SetPassword(std::string(password));
-    return impl_->ConnectWifiDirect(&wifi_direct_credentials_);
+  bool ConnectWifiDirect(const WifiDirectCredentials& wifi_direct_credentials) {
+    absl::MutexLock lock(mutex_);
+    wifi_direct_credentials_ = wifi_direct_credentials;
+    return impl_->ConnectWifiDirect(wifi_direct_credentials_);
   }
   bool DisconnectWifiDirect() { return impl_->DisconnectWifiDirect(); }
 
@@ -188,14 +201,29 @@ class WifiDirectMedium {
     return impl_->IsInterfaceValid();
   }
 
+  bool IsGOSupported() const;
+
+  bool IsGCSupported() const;
+
   bool IsValid() const { return impl_ != nullptr; }
   api::WifiDirectMedium& GetImpl() {
     CHECK(impl_);
     return *impl_;
   }
 
+  // Returns the supported WifiDirect auth types.
+  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
+      const {
+    // NOTE: This assumes that supported_wifi_direct_auth_types_ is populated
+    // during the constructor or at some other initialization phase.
+    if (impl_ == nullptr) {
+      return {};
+    }
+    return impl_->GetSupportedWifiDirectAuthTypes();
+  }
+
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::WifiDirectMedium> impl_;
   WifiDirectCredentials wifi_direct_credentials_ ABSL_GUARDED_BY(mutex_);
 };

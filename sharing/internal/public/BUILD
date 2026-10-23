@@ -12,7 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
+
+cc_library(
+    name = "pref_names",
+    hdrs = [
+        "pref_names.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
 
 cc_library(
     name = "types",
@@ -40,33 +55,29 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":logging",
         ":types",
         "//internal/flags:nearby_flags",
-        "//internal/network:url",
         "//internal/platform:types",
         "//sharing/flags/generated:generated_flags",
         "//sharing/internal/api:platform",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
 )
 
 cc_test(
-    name = "nearby_context_test",
+    name = "connectivity_manager_impl_test",
     size = "small",
     timeout = "short",
     srcs = [
         "connectivity_manager_impl_test.cc",
     ],
-    shard_count = 8,
     deps = [
         ":nearby_context",
         ":types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//sharing/internal/api:mock_sharing_platform",
         "//sharing/internal/api:platform",
         "@com_github_protobuf_matchers//protobuf-matchers",

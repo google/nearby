@@ -15,23 +15,20 @@
 #ifndef CORE_PAYLOAD_H_
 #define CORE_PAYLOAD_H_
 
-#include <cstdint>
-#include <functional>
+#include <cstddef>
 #include <memory>
-#include <utility>
+#include <string>
 #include <variant>
 
-#include "absl/types/variant.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/payload_id.h"
-#include "internal/platform/prng.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // Payload is default-constructible, and moveable, but not copyable container
 // that holds at most one instance of one of:
@@ -53,9 +50,7 @@ class Payload {
 
   // Constructors for outgoing payloads.
   explicit Payload(ByteArray&& bytes);
-
   explicit Payload(const ByteArray& bytes);
-  explicit Payload(InputFile input_file);
 
   // InputFile is just "a pointer to a file on your disc", a wrapper around a
   // file name or file descriptor. It has no understanding that Nearby is going
@@ -105,8 +100,11 @@ class Payload {
 
   const std::string& GetFileName() const;
   const std::string& GetParentFolder() const;
+  absl::Time GetLastModifiedTime() const { return last_modified_time_; }
 
  private:
+  void InitFilePayload(Id id, std::string parent_folder, std::string file_name,
+                       InputFile input_file);
   PayloadType FindType() const;
 
   Id id_{GenerateId()};
@@ -114,12 +112,12 @@ class Payload {
 
   std::string parent_folder_;
   std::string file_name_;
+  absl::Time last_modified_time_ = absl::Now();
 
   PayloadType type_{FindType()};
   Content content_;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_PAYLOAD_H_

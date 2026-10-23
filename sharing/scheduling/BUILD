@@ -97,7 +97,7 @@ cc_test(
     ],
     deps = [
         ":scheduling",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/internal/api:platform",
         "//sharing/internal/public:types",

@@ -18,8 +18,7 @@
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 
 TEST(WifiMedium, DISABLED_GetCapabilityAndInformation) {
@@ -37,15 +36,11 @@ TEST(WifiMedium, DISABLED_GetCapabilityAndInformation) {
     LOG(INFO) << "Is Connected? " << information.is_connected
               << "; ssid = " << information.ssid
               << "; bssid = " << information.bssid
-              << "; ap_frequency: " << information.ap_frequency
-              << "; ip_address_dot_decimal: "
-              << information.ip_address_dot_decimal
-              << "; ip_address_4_bytes: " << information.ip_address_4_bytes;
+              << "; ap_frequency: " << information.ap_frequency;
   } else {
     LOG(INFO) << "Skip the test";
   }
 }
 
 }  // namespace
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

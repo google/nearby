@@ -18,49 +18,92 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/time/time.h"
+#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/executor.h"
-#include "internal/platform/settable_future.h"
+#include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
 template <typename T>
 class Future final {
  public:
-  using FutureCallback = typename SettableFuture<T>::FutureCallback;
-  // Default Future. Does not time out.
-  Future() : impl_(std::make_shared<SettableFuture<T>>()) {}
+  // Sets the value of the Future.
+  bool Set(T value) {
+    MutexLock lock(&state_->mutex);
+    if (!state_->done) {
+      state_->value = ExceptionOr<T>(std::move(value));
+      state_->done = true;
+      state_->completed.Notify();
+      return true;
+    }
+    return false;
+  }
 
-  // Creates a Future with a timeout.
-  explicit Future(absl::Duration timeout)
-      : impl_(std::make_shared<SettableFuture<T>>(timeout)) {}
+  // Sets the exception of the Future.
+  bool SetException(Exception exception) {
+    MutexLock lock(&state_->mutex);
+    return SetExceptionLocked(exception);
+  }
 
-  virtual bool Set(T value) { return impl_->Set(std::move(value)); }
-  virtual bool SetException(Exception exception) {
-    return impl_->SetException(exception);
+  ExceptionOr<T> Get() {
+    MutexLock lock(&state_->mutex);
+    while (!state_->done) {
+      state_->completed.Wait();
+    }
+    return state_->value;
   }
-  virtual ExceptionOr<T> Get() { return impl_->Get(); }
-  virtual ExceptionOr<T> Get(absl::Duration timeout) {
-    return impl_->Get(timeout);
+
+  // Gets the value of the Future, timing out after the specified duration.
+  ExceptionOr<T> Get(absl::Duration timeout) {
+    MutexLock lock(&state_->mutex);
+    while (!state_->done) {
+      absl::Time start_time = SystemClock::ElapsedRealtime();
+      if (state_->completed.Wait(timeout).Raised(Exception::kInterrupted)) {
+        SetExceptionLocked({Exception::kInterrupted});
+        break;
+      }
+      absl::Duration spent = SystemClock::ElapsedRealtime() - start_time;
+      if (spent < timeout) {
+        timeout -= spent;
+      } else if (!state_->done) {
+        SetExceptionLocked({Exception::kTimeout});
+        break;
+      }
+    }
+    return state_->value;
   }
-  void AddListener(FutureCallback callback, api::Executor* executor) {
-    impl_->AddListener(std::move(callback), executor);
+
+  // Returns true if the Future has been set.
+  bool IsSet() const {
+    MutexLock lock(&state_->mutex);
+    return state_->done;
   }
-  bool IsSet() const { return impl_->IsSet(); }
 
  private:
-  // Instance of future implementation is wrapped in shared_ptr<> to make
-  // it possible to pass Future by value and share the implementation.
-  // This allows for the following constructions:
-  // 1)
-  // Future<bool> future;
-  // RunOnXyzThread([future]() { future.Set(DoTheJobAndReport()); });
-  // if (future.Get().Ok()) { /*...*/ }
-  // 2)
-  // Future<bool> future = DoSomeAsyncWork(); // Returns future, but keeps copy.
-  // if (future.Get().Ok()) { /*...*/ }
-  std::shared_ptr<SettableFuture<T>> impl_;
+  struct FutureState {
+    mutable Mutex mutex;
+    ConditionVariable completed{&mutex};
+    bool done ABSL_GUARDED_BY(mutex) = {false};
+    ExceptionOr<T> value ABSL_GUARDED_BY(mutex) =
+        ExceptionOr<T>(Exception::kFailed);
+  };
+
+  bool SetExceptionLocked(Exception exception) {
+    if (!state_->done) {
+      state_->value = ExceptionOr<T>(exception.value != Exception::kSuccess
+                                         ? exception
+                                         : Exception{Exception::kFailed});
+      state_->done = true;
+      state_->completed.Notify();
+    }
+    return true;
+  }
+
+  std::shared_ptr<FutureState> state_ = std::make_shared<FutureState>();
 };
 
 }  // namespace nearby

@@ -36,11 +36,11 @@
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/private_certificate_data.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 
@@ -62,12 +62,6 @@ enum InitStatusMetric {
   kInvalidOperation = 4,
   kMaxValue = kInvalidOperation
 };
-
-std::string EncodeString(absl::string_view unencoded_string) {
-  std::string result;
-  absl::WebSafeBase64Escape(unencoded_string, &result);
-  return result;
-}
 
 std::optional<std::string> DecodeString(const std::string* encoded_string) {
   std::string result;
@@ -348,22 +342,28 @@ void NearbyShareCertificateStorageImpl::GetPublicCertificate(
         });
     return;
   }
-  VLOG(1) << __func__ << ": Calling LoadCertificate on database, key: " << id;
+  VLOG(1) << __func__ << ": Calling LoadCertificate on database, key: "
+          << absl::BytesToHexString(id);
   public_certificate_database_->LoadCertificate(id, std::move(callback));
 }
 
-std::optional<std::vector<NearbySharePrivateCertificate>>
-NearbyShareCertificateStorageImpl::GetPrivateCertificates() const {
+std::vector<NearbySharePrivateCertificate>
+NearbyShareCertificateStorageImpl::GetPrivateCertificates() {
   std::vector<PrivateCertificateData> list =
       preference_manager_.GetPrivateCertificateArray(
-          prefs::kNearbySharingPrivateCertificateListName);
+          PrefNames::kPrivateCertificateList);
   std::vector<NearbySharePrivateCertificate> certs;
   certs.reserve(list.size());
   for (const PrivateCertificateData& cert_data : list) {
     std::optional<NearbySharePrivateCertificate> cert(
         NearbySharePrivateCertificate::FromCertificateData(cert_data));
+    // If any certificates in preference manager are corrupted, we need to
+    // delete all certificates and regenerate them.
     if (!cert) {
-      return std::nullopt;
+      LOG(ERROR) << "Certificate data corrupted, cleaning up.";
+      ClearPrivateCertificates();
+      // TODO: ftsui - Look into regenerating certificates when this happens.
+      return {};
     }
     // Skip selected contacts visibility certificates.  They are obsolete.
     if (cert->visibility() ==
@@ -376,9 +376,9 @@ NearbyShareCertificateStorageImpl::GetPrivateCertificates() const {
   return certs;
 }
 
-std::optional<absl::Time>
+absl::Time
 NearbyShareCertificateStorageImpl::NextPublicCertificateExpirationTime() const {
-  if (public_certificate_expirations_.empty()) return std::nullopt;
+  if (public_certificate_expirations_.empty()) return absl::InfiniteFuture();
 
   // |public_certificate_expirations_| is sorted by expiration date.
   return public_certificate_expirations_.front().second;
@@ -392,7 +392,7 @@ void NearbyShareCertificateStorageImpl::ReplacePrivateCertificates(
     list.push_back(cert.ToCertificateData());
   }
   preference_manager_.SetPrivateCertificateArray(
-      prefs::kNearbySharingPrivateCertificateListName, list);
+      PrefNames::kPrivateCertificateList, list);
 }
 
 void NearbyShareCertificateStorageImpl::AddPublicCertificates(
@@ -505,7 +505,7 @@ void NearbyShareCertificateStorageImpl::ClearPublicCertificates(
 bool NearbyShareCertificateStorageImpl::FetchPublicCertificateExpirations() {
   std::vector<std::pair<std::string, int64_t>> expirations =
       preference_manager_.GetCertificateExpirationArray(
-          prefs::kNearbySharingPublicCertificateExpirationDictName);
+          PrefNames::kPublicCertificateExpirationDict);
   public_certificate_expirations_.clear();
   if (expirations.empty()) {
     return false;
@@ -531,12 +531,12 @@ void NearbyShareCertificateStorageImpl::SavePublicCertificateExpirations() {
   expirations.reserve(public_certificate_expirations_.size());
   for (const std::pair<std::string, absl::Time>& pair :
        public_certificate_expirations_) {
-    expirations.emplace_back(EncodeString(pair.first),
+    expirations.emplace_back(absl::WebSafeBase64Escape(pair.first),
                              absl::ToUnixNanos(pair.second));
   }
 
   preference_manager_.SetCertificateExpirationArray(
-      prefs::kNearbySharingPublicCertificateExpirationDictName, expirations);
+      PrefNames::kPublicCertificateExpirationDict, expirations);
 }
 
 }  // namespace nearby::sharing

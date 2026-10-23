@@ -59,7 +59,6 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//sharing:__subpackages__",
     ],
     deps = [
         ":url",
@@ -70,6 +69,8 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -87,17 +88,20 @@ cc_library(
     visibility = [
         "//internal:__pkg__",
         "//internal:__subpackages__",
-        "//sharing:__subpackages__",
     ],
     deps = [
         ":types",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
     ],
 )
 

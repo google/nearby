@@ -1,0 +1,205 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/base/nullability.h"
+#include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
+#include "connections/implementation/offline_frames.h"
+#include "connections/strategy.h"
+#include "internal/base/masker.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
+
+namespace nearby {
+namespace connections {
+
+namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+WifiDirectBwuHandler::WifiDirectBwuHandler(
+    WifiDirect* absl_nonnull wifi_direct_medium,
+    IncomingConnectionCallback incoming_connection_callback)
+    : BaseBwuHandler(std::move(incoming_connection_callback)),
+      wifi_direct_medium_(*wifi_direct_medium) {}
+
+// Called by BWU initiator. Set up WifiDirect upgraded medium for this
+// endpoint, and returns an upgrade path info (ServiceName, Pin for Wifi WPS,
+// Gateway used as IPAddress, Port) for remote party to perform connection.
+std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    const std::string& endpoint_id) {
+  auto remote_device_name = client->GetRemoteDeviceName(endpoint_id);
+  WifiDirectCredentials* wifi_direct_crendential =
+      wifi_direct_medium_.GetCredentials(upgrade_service_id);
+  wifi_direct_crendential->SetRemoteDeviceName(remote_device_name);
+
+  // Create WifiDirect GO
+  if (!wifi_direct_medium_.StartWifiDirect()) {
+    LOG(INFO) << "Failed to start Wifi Direct!";
+    return {};
+  }
+
+  if (!wifi_direct_medium_.IsAcceptingConnections(upgrade_service_id)) {
+    if (!wifi_direct_medium_.StartAcceptingConnections(
+            upgrade_service_id,
+            absl::bind_front(
+                &WifiDirectBwuHandler::OnIncomingWifiDirectConnection, this,
+                client))) {
+      LOG(ERROR)
+          << "WifiDirectBwuHandler couldn't initiate WifiDirect upgrade for "
+          << "service " << upgrade_service_id << " and endpoint " << endpoint_id
+          << " because it failed to start listening for incoming WifiLan "
+             "connections.";
+      return {};
+    }
+    LOG(INFO)
+        << "WifiDirectBwuHandler successfully started listening for incoming "
+           "WifiDirect connections while upgrading endpoint "
+        << endpoint_id;
+  }
+
+  // Note: Credentials are not generated until Medium StartWifiDirect() is
+  // called and the server socket is created. Be careful moving this codeblock
+  // around.
+  wifi_direct_crendential =
+      wifi_direct_medium_.GetCredentials(upgrade_service_id);
+  std::string ssid = wifi_direct_crendential->GetSSID();
+  std::string password = wifi_direct_crendential->GetPassword();
+  std::string device_name = wifi_direct_crendential->GetDeviceName();
+  std::string pin = wifi_direct_crendential->GetPin();
+  std::string gateway = wifi_direct_crendential->GetGateway();
+  int port = wifi_direct_crendential->GetPort();
+  int freq = wifi_direct_crendential->GetFrequency();
+
+  if (ssid.empty()) {
+    LOG(INFO) << "Start WifiDirect GO with DeviceName: " << device_name
+              << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
+              << ",  Gateway: " << gateway << ", Frequency: " << freq;
+  } else {
+    LOG(INFO) << "Start WifiDirect GO with SSID: " << ssid
+              << ",  Password: " << masker::Mask(password)
+              << ",  Port: " << port << ",  Gateway: " << gateway
+              << ", Frequency: " << freq;
+  }
+
+  bool disabling_encryption =
+      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+  return parser::ForBwuWifiDirectPathAvailable(
+      ssid, password, port, freq,
+      /* supports_disabling_encryption */ disabling_encryption, gateway,
+      device_name, pin);
+}
+
+void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
+    const std::string& upgrade_service_id) {
+  wifi_direct_medium_.StopAcceptingConnections(upgrade_service_id);
+  wifi_direct_medium_.StopWifiDirect();
+  wifi_direct_medium_.DisconnectWifiDirect();
+
+  LOG(INFO) << "WifiDirectBwuHandler successfully reverted all states for "
+            << "upgrade service ID " << upgrade_service_id;
+}
+
+ErrorOr<std::unique_ptr<EndpointChannel>>
+WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
+  if (!upgrade_path_info.has_wifi_direct_credentials()) {
+    LOG(INFO) << "No WifiDirect Credential";
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
+  }
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+      WifiDirectCredentials& upgrade_path_info_credentials =
+          upgrade_path_info.wifi_direct_credentials();
+
+  const std::string& ssid = upgrade_path_info_credentials.ssid();
+  const std::string& password = upgrade_path_info_credentials.password();
+  const std::string& device_name = upgrade_path_info_credentials.device_name();
+  const std::string& pin = upgrade_path_info_credentials.pin();
+  std::int32_t port = upgrade_path_info_credentials.port();
+  const std::string& gateway = upgrade_path_info_credentials.gateway();
+  std::int32_t freq = upgrade_path_info_credentials.frequency();
+
+  if (ssid.empty()) {
+    LOG(INFO) << "Received WifiDirect credential DeviceName: " << device_name
+              << ",  pin: " << masker::Mask(pin) << ",  Port: " << port
+              << ",  Gateway: " << gateway << ", Frequency: " << freq;
+  } else {
+    LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
+              << ",  Password: " << masker::Mask(password)
+              << ",  Port: " << port << ",  Gateway: " << gateway
+              << ", Frequency: " << freq
+              << ". SSID/PASSWORD auth type is not supported, return";
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
+  }
+
+  WifiDirectCredentials wifi_direct_credentials;
+  wifi_direct_credentials.SetSSID(ssid);
+  wifi_direct_credentials.SetPassword(password);
+  wifi_direct_credentials.SetDeviceName(device_name);
+  wifi_direct_credentials.SetPin(pin);
+  wifi_direct_credentials.SetPort(port);
+  wifi_direct_credentials.SetGateway(gateway);
+  wifi_direct_credentials.SetFrequency(freq);
+
+  if (!wifi_direct_medium_.ConnectWifiDirect(wifi_direct_credentials)) {
+    LOG(ERROR) << "Connect to WifiDiret GO failed";
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
+  }
+
+  std::shared_ptr<CancellationFlag> cancellation_flag =
+      client->GetCancellationFlag(endpoint_id);
+  ErrorOr<std::unique_ptr<EndpointChannel>> channel_result =
+      wifi_direct_medium_.Connect(service_id, gateway, port,
+                                  cancellation_flag.get());
+  if (channel_result.has_error()) {
+    LOG(ERROR)
+        << "WifiDirectBwuHandler failed to connect to the WifiDirect service("
+        << port << ") for endpoint " << endpoint_id;
+    return {Error(channel_result.error().operation_result_code().value())};
+  }
+
+  VLOG(1)
+      << "WifiDirectBwuHandler successfully connected to WifiDirect service ("
+      << gateway << ":" << port << ") while upgrading endpoint " << endpoint_id;
+  return std::move(channel_result.value());
+}
+
+void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(
+    ClientProxy* client, const std::string& upgrade_service_id,
+    std::unique_ptr<EndpointChannel> channel) {
+  auto connection =
+      std::make_unique<IncomingSocketConnection>(std::move(channel));
+  NotifyOnIncomingConnection(client, std::move(connection));
+}
+}  // namespace connections
+}  // namespace nearby

@@ -15,12 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_NETWORK_UTILS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_NETWORK_UTILS_H_
 
-#include <functional>
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 
 @class GNCNWFramework;
 @class GNCNWFrameworkServerSocket;
@@ -44,22 +44,19 @@ struct NetworkDiscoveredServiceCallback {
  * Starts listening for incoming connections on the specified port.
  * @param medium The NW framework to use.
  * @param port The port to listen on.
- * @param include_peer_to_peer Whether to include peer-to-peer connections.
  * @return A pointer to the server socket.
  */
-GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
-                                             bool include_peer_to_peer);
+GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port);
 
 /**
  * Starts listening for incoming connections using PSK based TLS on the specified port.
  * @param medium The NW framework to use.
  * @param psk_info The PSK info to use for listening.
  * @param port The port to listen on.
- * @param include_peer_to_peer Whether to include peer-to-peer connections.
  * @return A pointer to the server socket.
  */
 GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::PskInfo& psk_info,
-                                             int port, bool include_peer_to_peer);
+                                             int port);
 
 /**
  *  Starts advertising a service with the specified service info.
@@ -97,11 +94,10 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
  *  @param medium The NW framework to use.
  *  @param service_type The service type to discover.
  *  @param callback The callback to call when a service is discovered or lost.
- *  @param include_peer_to_peer Whether to include peer-to-peer connections.
  *  @return True if the service was successfully started.
  */
 bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
-                    NetworkDiscoveredServiceCallback callback, bool include_peer_to_peer);
+                    NetworkDiscoveredServiceCallback callback);
 
 /**
  *  Stops discovery for services of the specified type.
@@ -144,12 +140,11 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
  * @param medium The NW framework to use.
  * @param ip_address The ip address of the service to connect to.
  * @param port The port of the service to connect to.
- * @param include_peer_to_peer Whether to include peer-to-peer connections.
  * @param cancellation_flag The cancellation flag to use.
  * @return A pointer to the socket.
  */
-GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string& ip_address,
-                                       int port, bool include_peer_to_peer,
+GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
+                                       const ServiceAddress& service_address,
                                        CancellationFlag* cancellation_flag);
 }  // namespace network_utils
 }  // namespace apple

@@ -35,9 +35,14 @@
                                 byte3:(uint8_t)byte3
                                 byte4:(uint8_t)byte4 NS_DESIGNATED_INITIALIZER;
 
+/** Creates an IPv4 address from a 4 byte integer. */
 + (nonnull instancetype)addressFromFourByteInt:(uint32_t)address;
 
+/** Creates an IPv4 address from a 4 byte data object. */
 + (nonnull instancetype)addressFromData:(nonnull NSData *)address;
+
+/** Creates an IPv4 address from a human readable dotted representation. */
++ (nullable instancetype)addressWithDottedRepresentation:(nonnull NSString *)address;
 
 /** The first byte of the IP address. */
 @property(nonatomic, readonly) uint8_t byte1;

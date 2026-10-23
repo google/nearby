@@ -18,13 +18,14 @@
 
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/base.h"
@@ -35,87 +36,7 @@ namespace {
 using ::winrt::Windows::Foundation::IInspectable;
 using ::winrt::Windows::Foundation::PropertyValue;
 
-constexpr absl::string_view kIpDotdecimal{"192.168.1.37"};
-constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
-
 }  // namespace
-
-TEST(UtilsTests, MacAddressToString) {
-  const uint64_t input = 0x000034363bc70c71;
-  std::string expected = "34:36:3B:C7:0C:71";
-  std::string result = uint64_to_mac_address_string(input);
-  EXPECT_EQ(result, expected);
-}
-
-TEST(UtilsTests, MacAddressToStringInvalid) {
-  const uint64_t input = 0x1234567890ABCDEF;  // Invalid MAC address
-  std::string result = uint64_to_mac_address_string(input);
-  EXPECT_TRUE(result.empty());
-}
-
-TEST(UtilsTests, StringToMacAddress) {
-  std::string input = "34:36:3B:C7:8C:71";
-  const uint64_t expected = 0x000034363bc78c71;
-  uint64_t result = mac_address_string_to_uint64(input);
-  EXPECT_EQ(result, expected);
-}
-
-TEST(UtilsTests, StringToMacAddressInvalid) {
-  std::string input = "34:36:3B:C7:8C:7Z";  // Invalid hex character
-  uint64_t result = mac_address_string_to_uint64(input);
-  EXPECT_EQ(result, 0);
-}
-
-TEST(UtilsTests, Ip4BytesToDotdecimal) {
-  std::string result =
-      ipaddr_4bytes_to_dotdecimal_string(absl::string_view(kIp4Bytes, 4));
-
-  EXPECT_EQ(result, kIpDotdecimal);
-}
-
-TEST(UtilsTests, Ip4BytesToDotdecimalInvalid) {
-  std::string result = ipaddr_4bytes_to_dotdecimal_string(absl::string_view());
-  EXPECT_TRUE(result.empty());
-}
-
-TEST(UtilsTests, IpDotdecimalTo4Bytes) {
-  std::string result =
-      ipaddr_dotdecimal_to_4bytes_string(std::string(kIpDotdecimal));
-
-  EXPECT_EQ(result, std::string(kIp4Bytes, 4));
-}
-
-TEST(UtilsTests, IpDotdecimalTo4BytesEmpty) {
-  std::string result = ipaddr_dotdecimal_to_4bytes_string("");
-  EXPECT_TRUE(result.empty());
-}
-
-TEST(UtilsTests, IpDotdecimalTo4BytesInvalid) {
-  std::string result = ipaddr_dotdecimal_to_4bytes_string("192.168.1.256");
-  // inet_addr returns INADDR_NONE for invalid address.
-  char expected[] = {(char)255, (char)255, (char)255, (char)255};
-  EXPECT_EQ(result, std::string(expected, 4));
-}
-
-TEST(UtilsTests, Sha256) {
-  std::string input = "Hello World";
-  // sha256("Hello World")
-  const char expected_sha256[] = {
-      (char)0xa5, (char)0x91, (char)0xa6, (char)0xd4, (char)0x0b, (char)0xf4,
-      (char)0x20, (char)0x40, (char)0x4a, (char)0x01, (char)0x17, (char)0x33,
-      (char)0xcf, (char)0xb7, (char)0xb1, (char)0x90, (char)0xd6, (char)0x2c,
-      (char)0x65, (char)0xbf, (char)0x0b, (char)0xcd, (char)0xa3, (char)0x2b,
-      (char)0x57, (char)0xb2, (char)0x77, (char)0xd9, (char)0xad, (char)0x9f,
-      (char)0x14, (char)0x6e};
-
-  ByteArray result = Sha256(input, 32);
-  EXPECT_EQ(result.size(), 32);
-  EXPECT_EQ(memcmp(result.data(), expected_sha256, 32), 0);
-
-  result = Sha256(input, 16);
-  EXPECT_EQ(result.size(), 16);
-  EXPECT_EQ(memcmp(result.data(), expected_sha256, 16), 0);
-}
 
 TEST(UtilsTests, ConvertBetweenWinrtGuidAndNearbyUuidSuccessfully) {
   Uuid uuid(0x123e4567e89b12d3, 0xa456426614174000);
@@ -178,6 +99,94 @@ TEST(UtilsTests, InspectableReader_ReadStringArray) {
   EXPECT_THROW(
       InspectableReader::ReadStringArray(PropertyValue::CreateBoolean(true)),
       std::invalid_argument);
+}
+
+TEST(UtilsTests, GetDnsHostName) {
+  std::optional<std::wstring> host_name = GetDnsHostName();
+  ASSERT_TRUE(host_name.has_value());
+  LOG(ERROR) << "host_name: "
+             << nearby::windows::string_utils::WideStringToString(*host_name);
+}
+
+TEST(UtilsTests, IsIntelWifiAdapter) {
+  bool is_intel_wifi_adapter = IsIntelWifiAdapter();
+  LOG(ERROR) << "is_intel_wifi_adapter: " << is_intel_wifi_adapter;
+}
+
+namespace {
+
+struct FakeRevoker {
+  bool* revoked = nullptr;
+  int exception_type = 0;  // 0 = none, 1 = hresult, 2 = std::exception, 3 = int
+
+  explicit FakeRevoker(bool* revoked, int exception_type = 0)
+      : revoked(revoked), exception_type(exception_type) {}
+
+  FakeRevoker(const FakeRevoker&) = delete;
+  FakeRevoker& operator=(const FakeRevoker&) = delete;
+
+  FakeRevoker(FakeRevoker&& other) noexcept
+      : revoked(other.revoked), exception_type(other.exception_type) {
+    other.revoked = nullptr;
+  }
+
+  ~FakeRevoker() {
+    if (*this) {
+      revoke();
+    }
+  }
+
+  void revoke() {
+    if (revoked != nullptr) {
+      *revoked = true;
+      revoked = nullptr;
+    }
+    if (exception_type == 1) {
+      throw winrt::hresult_error(E_FAIL, L"Simulated WinRT error");
+    } else if (exception_type == 2) {
+      throw std::runtime_error("Simulated std::exception");
+    } else if (exception_type == 3) {
+      throw 42;
+    }
+  }
+
+  explicit operator bool() const noexcept { return revoked != nullptr; }
+};
+
+}  // namespace
+
+TEST(UtilsTests, SafeAutoRevoker_RevokesOnDestruction) {
+  bool revoked = false;
+  {
+    SafeAutoRevoker<FakeRevoker> safe_revoker{FakeRevoker(&revoked)};
+    EXPECT_FALSE(revoked);
+  }
+  EXPECT_TRUE(revoked);
+}
+
+TEST(UtilsTests, SafeAutoRevoker_DoesNotRevokeWhenEmpty) {
+  EXPECT_NO_THROW(
+      { SafeAutoRevoker<FakeRevoker> safe_revoker{FakeRevoker(nullptr, 1)}; });
+}
+
+TEST(UtilsTests, SafeAutoRevoker_IgnoresExceptions) {
+  bool revoked1 = false;
+  bool revoked2 = false;
+  bool revoked3 = false;
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker1{FakeRevoker(&revoked1, 1)};
+  });
+  EXPECT_TRUE(revoked1);
+
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker2{FakeRevoker(&revoked2, 2)};
+  });
+  EXPECT_TRUE(revoked2);
+
+  EXPECT_NO_THROW({
+    SafeAutoRevoker<FakeRevoker> safe_revoker3{FakeRevoker(&revoked3, 3)};
+  });
+  EXPECT_TRUE(revoked3);
 }
 
 }  // namespace windows

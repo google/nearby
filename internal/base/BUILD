@@ -19,21 +19,19 @@ licenses(["notice"])
 
 cc_library(
     name = "base",
-    srcs = [
-    ],
     hdrs = [
         "observer_list.h",
     ],
     visibility = [
         "//internal/account:__subpackages__",
-        "//internal/platform:__pkg__",
-        "//internal/test:__pkg__",
+        "//internal/platform:__subpackages__",
+        "//location/nearby/sharing/lib:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [
-        "//internal/platform:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -51,8 +49,6 @@ cc_library(
     ],
     deps = [
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -64,12 +60,33 @@ cc_library(
 )
 
 cc_library(
+    name = "masker",
+    srcs = ["masker.cc"],
+    hdrs = ["masker.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "file_path",
     srcs = ["file_path.cc"],
     hdrs = ["file_path.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":compatible_u8_string",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "file_path_sanitize",
+    srcs = ["file_path_sanitize.cc"],
+    hdrs = ["file_path_sanitize.h"],
+    visibility = ["//visibility:public"],
+    deps = [
         "@com_google_absl//absl/strings",
     ],
 )
@@ -82,6 +99,7 @@ cc_library(
     deps = [
         ":file_path",
         "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -116,6 +134,21 @@ cc_test(
 )
 
 cc_test(
+    name = "file_path_sanitize_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "file_path_sanitize_test.cc",
+    ],
+    deps = [
+        ":file_path_sanitize",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "files_test",
     size = "small",
     timeout = "short",
@@ -125,6 +158,20 @@ cc_test(
     deps = [
         ":file_path",
         ":files",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "masker_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "masker_test.cc",
+    ],
+    deps = [
+        ":masker",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

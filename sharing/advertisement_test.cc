@@ -21,6 +21,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
+#include "sharing/advertisement_capabilities.h"
 #include "sharing/common/nearby_share_enums.h"
 
 namespace nearby {
@@ -43,6 +44,7 @@ struct TestParameters {
   ShareTargetType target_type;
   std::optional<std::string> target_name;
   int vendor_id;
+  AdvertisementCapabilities capabilities;
 };
 
 class AdvertisementTest : public testing::TestWithParam<TestParameters> {};
@@ -51,17 +53,18 @@ TEST_P(AdvertisementTest, TestAdvertisementRoundTrip) {
   auto params = GetParam();
   auto advertisement = Advertisement::NewInstance(
       params.salt, params.encrypted_metadata_key, params.target_type,
-      params.target_name, params.vendor_id);
+      params.target_name, params.vendor_id, params.capabilities);
   auto bytes = advertisement->ToEndpointInfo();
   auto advertisement_from_bytes = Advertisement::FromEndpointInfo(bytes);
   EXPECT_EQ(*advertisement_from_bytes, *advertisement);
 }
 
 TEST(BadAdvertisementTest, TestTlvParsingOnAdvertisement) {
+  AdvertisementCapabilities capabilities{};
   auto advertisement = Advertisement::NewInstance(
       std::vector<uint8_t>(Advertisement::kSaltSize),
       std::vector<uint8_t>(Advertisement::kMetadataEncryptionKeyHashByteSize),
-      ShareTargetType::kLaptop, std::nullopt, /*vendor_id=*/1);
+      ShareTargetType::kLaptop, std::nullopt, /*vendor_id=*/1, capabilities);
   auto bytes = advertisement->ToEndpointInfo();
   // Add a TLV field for QR code.
   bytes.insert(bytes.end(), kQrCodeTlvBytes.begin(), kQrCodeTlvBytes.end());
@@ -149,6 +152,24 @@ INSTANTIATE_TEST_SUITE_P(
             .target_type = ShareTargetType::kLaptop,
             .target_name = std::nullopt,
             .vendor_id = 0}));
+INSTANTIATE_TEST_SUITE_P(
+    Capabilities, AdvertisementTest,
+    testing::Values(
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kPhone,
+                       .target_name = std::nullopt,
+                       .vendor_id = 0,
+                       .capabilities = AdvertisementCapabilities{}},
+        TestParameters{.salt = std::vector<uint8_t>(Advertisement::kSaltSize),
+                       .encrypted_metadata_key = std::vector<uint8_t>(
+                           Advertisement::kMetadataEncryptionKeyHashByteSize),
+                       .target_type = ShareTargetType::kPhone,
+                       .target_name = std::nullopt,
+                       .vendor_id = 0,
+                       .capabilities = AdvertisementCapabilities{
+                           AdvertisementCapabilities::Capability::kFileSync}}));
 
 }  // namespace
 }  // namespace sharing

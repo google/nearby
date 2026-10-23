@@ -26,7 +26,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/base/file_path.h"
+#include "absl/types/span.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -35,8 +35,6 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/nearby_file_handler.h"
-#include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
@@ -69,31 +67,10 @@ class OutgoingShareSession : public ShareSession {
     obfuscated_gaia_id_ = std::move(obfuscated_gaia_id);
   }
 
-  const std::vector<Payload>& text_payloads() const { return text_payloads_; }
-
-  const std::vector<Payload>& wifi_credentials_payloads() const {
-    return wifi_credentials_payloads_;
-  }
-
-  const std::vector<Payload>& file_payloads() const { return file_payloads_; }
-
-  void InitiateSendAttachments(
+  // Returns true if the attachments are valid and payloads are created
+  // successfully.
+  bool InitiateSendAttachments(
       std::unique_ptr<AttachmentContainer> attachment_container);
-
-  bool ProcessKeyVerificationResult(
-      PairedKeyVerificationRunner::PairedKeyVerificationResult result,
-      location::nearby::proto::sharing::OSType share_target_os_type);
-
-  std::vector<FilePath> GetFilePaths() const;
-
-  void CreateTextPayloads();
-  void CreateWifiCredentialsPayloads();
-  // Create file payloads and update the file size of all file attachments.
-  // The list of file infos must be sorted in the same order as the file
-  // attachments in the share target.
-  // Returns true if all file payloads are created successfully.
-  bool CreateFilePayloads(
-      const std::vector<NearbyFileHandler::FileInfo>& files);
 
   // Returns true if the introduction frame is written successfully.
   // `timeout_callback` is called if accept is not received from both sender and
@@ -104,14 +81,16 @@ class OutgoingShareSession : public ShareSession {
   // ConnectionResponseFrame.
   bool AcceptTransfer(
       std::function<
-          void(std::optional<
-               nearby::sharing::service::proto::ConnectionResponseFrame>)>
+          void(bool is_timeout,
+               std::optional<
+                   nearby::sharing::service::proto::ConnectionResponseFrame>)>
           response_callback);
 
   // Process the ConnectionResponseFrame.
   // On success, returns std::nullopt.
   // On failure, returns the status if the connection should be aborted.
   std::optional<TransferMetadata::Status> HandleConnectionResponse(
+      bool is_timeout,
       std::optional<nearby::sharing::service::proto::ConnectionResponseFrame>
           response);
 
@@ -121,7 +100,8 @@ class OutgoingShareSession : public ShareSession {
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
       std::function<
-          void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
+          void(bool is_timeout,
+               std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
       std::function<void()> payload_transder_update_callback);
   // Send the next payload to NearbyConnectionManager.
@@ -150,7 +130,6 @@ class OutgoingShareSession : public ShareSession {
   // Establish a connection to the remote device identified by `endpoint_info`.
   // `callback` is called when with the connection establishment status..
   void Connect(std::vector<uint8_t> endpoint_info,
-               std::optional<std::vector<uint8_t>> bluetooth_mac_address,
                nearby::sharing::proto::DataUsage data_usage,
                bool disable_wifi_hotspot,
                std::function<void(absl::string_view endpoint_id,
@@ -163,6 +142,41 @@ class OutgoingShareSession : public ShareSession {
 
   std::optional<TransferMetadata> ProcessPayloadTransferUpdates();
 
+  void SetAdvancedProtectionStatus(bool advanced_protection_enabled) {
+    advanced_protection_enabled_ = advanced_protection_enabled;
+  }
+
+  // Returns true if the session is connected or in the process of connecting.
+  bool IsActive() const {
+    return IsConnected() || is_connecting_;
+  }
+
+  const std::vector<Payload>& text_payloads() const { return text_payloads_; }
+
+  const std::vector<Payload>& wifi_credentials_payloads() const {
+    return wifi_credentials_payloads_;
+  }
+
+  const std::vector<Payload>& file_payloads() const { return file_payloads_; }
+
+  // Returns true if the session is a transfer session.
+  // Otherwise, it is a pairing session.
+  bool is_transfer_session() const { return is_transfer_session_; }
+
+  // Initiates the peer binding message exchange with the remote device.
+  // `binding_id` is the result of a successful call to InitiateBinding rpc.
+  // `cert_ids` are the public certificate ids that can be used to identify this
+  // device.
+  // `callback` is called when either a BindingResponse frame is received or a
+  // timeout occurs.
+  void StartPeerBinding(
+      std::string binding_id,
+      nearby::sharing::service::proto::BindingRequest::Type binding_type,
+      absl::Span<const std::string> cert_ids,
+      absl::AnyInvocable<
+          void(const nearby::sharing::service::proto::BindingResponse&)>
+          callback);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -174,6 +188,12 @@ class OutgoingShareSession : public ShareSession {
   std::optional<Payload> ExtractNextPayload();
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;
+
+  void CreateTextPayloads();
+  void CreateWifiCredentialsPayloads();
+  // Create file payloads and update the file size of all file attachments.
+  // Returns true if all file payloads are created successfully.
+  bool CreateFilePayloads();
 
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.
@@ -191,6 +211,10 @@ class OutgoingShareSession : public ShareSession {
   absl::Time connection_start_time_;
   // Timeout waiting for remote disconnect in order to complete transfer.
   std::unique_ptr<ThreadTimer> disconnection_timeout_;
+  bool advanced_protection_enabled_ = false;
+  bool is_connecting_ = false;
+  // Session can be for transfer or pairing.
+  bool is_transfer_session_ = false;
 };
 
 }  // namespace nearby::sharing

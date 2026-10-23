@@ -14,10 +14,12 @@
 
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPConnection.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPConnection.h"
 #import "internal/platform/implementation/apple/utils.h"
-#include "internal/platform/implementation/ble_v2.h"
+
+#include "internal/platform/implementation/ble.h"
 
 namespace nearby {
 namespace apple {
@@ -52,40 +54,81 @@ BleL2capInputStream::~BleL2capInputStream() {
 }
 
 ExceptionOr<ByteArray> BleL2capInputStream::Read(std::int64_t size) {
-  // Block until either (a) the connection has been closed, (b) we have enough data to return.
-  NSData *dataToReturn;
-  [condition_ lock];
-  while (true) {
-    // Check if the stream has been closed or severed.
-    if (!newDataPackets_) break;
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    std::string dataToReturn;
+    bool success = false;
 
-    if (newDataPackets_.count > 0) {
-      // Add the packet data to the accumulated data.
-      for (NSData *data in newDataPackets_) {
-        if (data.length > 0) {
-          [accumulatedData_ appendData:data];
+    [condition_ lock];
+    while (true) {
+      // Check if the stream has been closed or severed.
+      if (!newDataPackets_) break;
+
+      if (newDataPackets_.count > 0) {
+        // Add the packet data to the accumulated data.
+        for (NSData *data in newDataPackets_) {
+          if (data.length > 0) {
+            [accumulatedData_ appendData:data];
+          }
         }
+        [newDataPackets_ removeAllObjects];
       }
-      [newDataPackets_ removeAllObjects];
+
+      if (accumulatedData_.length > 0) {
+        std::int64_t sizeToReturn =
+            (accumulatedData_.length < size) ? accumulatedData_.length : size;
+        NSRange range = NSMakeRange(0, (NSUInteger)sizeToReturn);
+
+        // Copy bytes directly into std::string, avoiding [NSData subdataWithRange:]
+        dataToReturn.assign((const char *)accumulatedData_.bytes, sizeToReturn);
+        [accumulatedData_ replaceBytesInRange:range withBytes:nil length:0];
+
+        success = true;
+        break;
+      }
+      [condition_ wait];
     }
+    [condition_ unlock];
 
-    if (accumulatedData_.length > 0) {
-      // Return up to |size| bytes of the data.
-      std::int64_t sizeToReturn = (accumulatedData_.length < size) ? accumulatedData_.length : size;
-      NSRange range = NSMakeRange(0, (NSUInteger)sizeToReturn);
-      dataToReturn = [accumulatedData_ subdataWithRange:range];
-      [accumulatedData_ replaceBytesInRange:range withBytes:nil length:0];
-      break;
+    if (success) {
+      // OPTIMIZATION: Zero-copy transfer from std::string to ByteArray
+      return ExceptionOr<ByteArray>{ByteArray(std::move(dataToReturn))};
+    } else {
+      return ExceptionOr<ByteArray>{Exception::kIo};
     }
-
-    [condition_ wait];
-  }
-  [condition_ unlock];
-
-  if (dataToReturn) {
-    return ExceptionOr<ByteArray>{ByteArray((const char *)dataToReturn.bytes, dataToReturn.length)};
   } else {
-    return ExceptionOr<ByteArray>{Exception::kIo};
+    // Legacy Path
+    NSData *dataToReturn;
+    [condition_ lock];
+    while (true) {
+      if (!newDataPackets_) break;
+
+      if (newDataPackets_.count > 0) {
+        for (NSData *data in newDataPackets_) {
+          if (data.length > 0) {
+            [accumulatedData_ appendData:data];
+          }
+        }
+        [newDataPackets_ removeAllObjects];
+      }
+
+      if (accumulatedData_.length > 0) {
+        std::int64_t sizeToReturn =
+            (accumulatedData_.length < size) ? accumulatedData_.length : size;
+        NSRange range = NSMakeRange(0, (NSUInteger)sizeToReturn);
+        dataToReturn = [accumulatedData_ subdataWithRange:range];
+        [accumulatedData_ replaceBytesInRange:range withBytes:nil length:0];
+        break;
+      }
+      [condition_ wait];
+    }
+    [condition_ unlock];
+
+    if (dataToReturn) {
+      return ExceptionOr<ByteArray>{
+          ByteArray((const char *)dataToReturn.bytes, dataToReturn.length)};
+    } else {
+      return ExceptionOr<ByteArray>{Exception::kIo};
+    }
   }
 }
 
@@ -104,14 +147,24 @@ BleL2capOutputStream::~BleL2capOutputStream() {
   NSCAssert(!connection_, @"BleL2capOutputStream not closed before destruction");
 }
 
-Exception BleL2capOutputStream::Write(const ByteArray &data) {
+Exception BleL2capOutputStream::Write(absl::string_view data) {
   [condition_ lock];
   if (!connection_) {
     [condition_ unlock];
     return {Exception::kIo};
   }
 
-  NSMutableData *packet = [NSMutableData dataWithBytes:data.data() length:data.size()];
+  NSData *packet;
+  if (GNCFeatureFlags.singleCopyEnabled) {
+    // OPTIMIZATION: Use DISPATCH_DATA_DESTRUCTOR_DEFAULT to perform a
+    // single copy into a GCD-managed buffer. No NSData required.
+    dispatch_data_t dispatchData =
+        dispatch_data_create(data.data(), data.size(), nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    // dispatch_data_t is toll-free bridged to NSData
+    packet = (NSData *)dispatchData;
+  } else {
+    packet = [NSMutableData dataWithBytes:data.data() length:data.size()];
+  }
 
   // Send the data, blocking until the completion handler is called.
   __block BOOL isComplete = NO;
@@ -166,23 +219,23 @@ BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection)
     : BleL2capSocket(connection, BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {}
 
 BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection,
-                               api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+                               api::ble::BlePeripheral::UniqueId peripheral_id)
     : input_stream_(std::make_unique<BleL2capInputStream>(connection)),
       output_stream_(std::make_unique<BleL2capOutputStream>(connection)),
       peripheral_id_(peripheral_id) {}
 
 BleL2capSocket::~BleL2capSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 bool BleL2capSocket::IsClosed() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return closed_;
 }
 
 Exception BleL2capSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
   return {Exception::kSuccess};
 }

@@ -22,7 +22,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 @class GNCBLEGATTCharacteristic;
 
@@ -36,25 +36,25 @@ CBUUID *CBUUID16FromCPP(const Uuid &uuid);
 CBUUID *CBUUID128FromCPP(const Uuid &uuid);
 
 /** Converts a C++ write type enum to a CoreBluetooth write type. */
-CBCharacteristicWriteType CBCharacteristicWriteTypeFromCPP(api::ble_v2::GattClient::WriteType wt);
+CBCharacteristicWriteType CBCharacteristicWriteTypeFromCPP(api::ble::GattClient::WriteType wt);
 
-/** 
- * Converts a C++ permission enum to CoreBluetooth permissions. 
- * 
+/**
+ * Converts a C++ permission enum to CoreBluetooth permissions.
+ *
  * This conversion keeps multiple permission values intact.
  */
-CBAttributePermissions CBAttributePermissionsFromCPP(api::ble_v2::GattCharacteristic::Permission p);
+CBAttributePermissions CBAttributePermissionsFromCPP(api::ble::GattCharacteristic::Permission p);
 
-/** 
- * Converts a C++ property enum to CoreBluetooth properties. 
- * 
+/**
+ * Converts a C++ property enum to CoreBluetooth properties.
+ *
  * This conversion keeps multiple property values intact.
  */
 CBCharacteristicProperties CBCharacteristicPropertiesFromCPP(
-    api::ble_v2::GattCharacteristic::Property p);
+    api::ble::GattCharacteristic::Property p);
 
 /** Converts a C++ characteristic to an Objective-C characteristic. */
-GNCBLEGATTCharacteristic *ObjCGATTCharacteristicFromCPP(const api::ble_v2::GattCharacteristic &c);
+GNCBLEGATTCharacteristic *ObjCGATTCharacteristicFromCPP(const api::ble::GattCharacteristic &c);
 
 NSMutableDictionary<CBUUID *, NSData *> *ObjCServiceDataFromCPP(
     const absl::flat_hash_map<Uuid, nearby::ByteArray> &sd);
@@ -62,24 +62,24 @@ NSMutableDictionary<CBUUID *, NSData *> *ObjCServiceDataFromCPP(
 /** Converts a 16 or 128 bit CoreBluetooth UUID to a C++ UUID. */
 Uuid CPPUUIDFromObjC(CBUUID *uuid);
 
-/** 
- * Converts CoreBluetooth permissions to a C++ permission enum. 
- * 
+/**
+ * Converts CoreBluetooth permissions to a C++ permission enum.
+ *
  * This conversion keeps multiple permission values intact.
  */
-api::ble_v2::GattCharacteristic::Permission CPPGATTCharacteristicPermissionFromObjC(
+api::ble::GattCharacteristic::Permission CPPGATTCharacteristicPermissionFromObjC(
     CBAttributePermissions p);
 
-/** 
- * Converts CoreBluetooth properties to a C++ property enum. 
- * 
+/**
+ * Converts CoreBluetooth properties to a C++ property enum.
+ *
  * This conversion keeps multiple property values intact.
  */
-api::ble_v2::GattCharacteristic::Property CPPGATTCharacteristicPropertyFromObjC(
+api::ble::GattCharacteristic::Property CPPGATTCharacteristicPropertyFromObjC(
     CBCharacteristicProperties p);
 
 /** Converts an Objective-C characteristic to a C++ characteristic. */
-api::ble_v2::GattCharacteristic CPPGATTCharacteristicFromObjC(GNCBLEGATTCharacteristic *c);
+api::ble::GattCharacteristic CPPGATTCharacteristicFromObjC(GNCBLEGATTCharacteristic *c);
 
 }  // namespace apple
 }  // namespace nearby

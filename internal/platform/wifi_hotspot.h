@@ -18,21 +18,19 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
+#include "internal/platform/socket.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
@@ -40,7 +38,7 @@ namespace nearby {
 // Socket class for both SoftAP ( created through accept connection from STA)
 // and STA side (created through connect request to SoftAP side)
 // Class WifiHotspotSocket is copyable & movable
-class WifiHotspotSocket final {
+class WifiHotspotSocket : public Socket {
  public:
   WifiHotspotSocket() = default;
   WifiHotspotSocket(const WifiHotspotSocket&) = default;
@@ -56,7 +54,7 @@ class WifiHotspotSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  InputStream& GetInputStream() {
+  InputStream& GetInputStream() override{
     CHECK(impl_);
     return impl_->GetInputStream();
   }
@@ -66,13 +64,13 @@ class WifiHotspotSocket final {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  OutputStream& GetOutputStream() {
+  OutputStream& GetOutputStream() override{
     CHECK(impl_);
     return impl_->GetOutputStream();
   }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() {
+  Exception Close() override{
     CHECK(impl_);
     return impl_->Close();
   }
@@ -110,16 +108,10 @@ class WifiHotspotServerSocket final {
       std::unique_ptr<api::WifiHotspotServerSocket> socket)
       : impl_(std::move(socket)) {}
 
-  // Returns ip address.
-  std::string GetIPAddress() const {
-    CHECK(impl_);
-    return impl_->GetIPAddress();
-  }
-
-  // Returns port.
-  int GetPort() const {
-    CHECK(impl_);
-    return impl_->GetPort();
+  // Populates the hotspot credentials with the server socket's service
+  // addresses and ports.
+  void PopulateHotspotCredentials(HotspotCredentials& hotspot_credentials) {
+    impl_->PopulateHotspotCredentials(hotspot_credentials);
   }
 
   // Blocks until either:
@@ -164,13 +156,13 @@ class WifiHotspotMedium {
 
   // Returns a new WifiHotspotSocket by ip address and port.
   // On Success, WifiHotspotSocket::IsValid()returns true.
-  WifiHotspotSocket ConnectToService(absl::string_view ip_address, int port,
+  WifiHotspotSocket ConnectToService(const ServiceAddress& service_address,
                                      CancellationFlag* cancellation_flag);
 
   // Returns a new WifiHotspotServerSocket.
   // On Success, WifiHotspotServerSocket::IsValid() returns true.
-  WifiHotspotServerSocket ListenForService(int port = 0) {
-    return WifiHotspotServerSocket(impl_->ListenForService(port));
+  WifiHotspotServerSocket ListenForService() {
+    return WifiHotspotServerSocket(impl_->ListenForService(/*port=*/0));
   }
 
   // Returns the port range as a pair of min and max port.
@@ -179,16 +171,17 @@ class WifiHotspotMedium {
   }
 
   bool StartWifiHotspot() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return impl_->StartWifiHotspot(&hotspot_credentials_);
   }
   bool StopWifiHotspot() { return impl_->StopWifiHotspot(); }
 
   bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     hotspot_credentials_ = hotspot_credentials;
-    return impl_->ConnectWifiHotspot(&hotspot_credentials_);
+    return impl_->ConnectWifiHotspot(hotspot_credentials);
   }
+
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 
   HotspotCredentials* GetCredential() { return &hotspot_credentials_; }
@@ -208,7 +201,7 @@ class WifiHotspotMedium {
   }
 
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::WifiHotspotMedium> impl_;
   HotspotCredentials hotspot_credentials_ ABSL_GUARDED_BY(mutex_);
 };

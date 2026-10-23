@@ -17,24 +17,28 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 
 namespace nearby {
@@ -178,6 +182,7 @@ class WifiLanServerSocket final {
 
   bool IsValid() const { return impl_ != nullptr; }
   api::WifiLanServerSocket& GetImpl() { return *impl_; }
+  const api::WifiLanServerSocket& GetImpl() const { return *impl_; }
 
  private:
   std::shared_ptr<api::WifiLanServerSocket> impl_;
@@ -186,8 +191,6 @@ class WifiLanServerSocket final {
 // Container of operations that can be performed over the WifiLan medium.
 class WifiLanMedium {
  public:
-  using Platform = api::ImplementationPlatform;
-
   struct DiscoveredServiceCallback {
     absl::AnyInvocable<void(NsdServiceInfo service_info,
                             const std::string& service_type)>
@@ -203,7 +206,7 @@ class WifiLanMedium {
     DiscoveredServiceCallback medium_callback;
   };
 
-  WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
+  WifiLanMedium() : impl_(api::ImplementationPlatform::CreateWifiLanMedium()) {}
   ~WifiLanMedium() = default;
 
   // Starts WifiLan advertising.
@@ -241,7 +244,7 @@ class WifiLanMedium {
 
   // Returns a new WifiLanSocket by ip address and port.
   // On Success, WifiLanSocket::IsValid()returns true.
-  WifiLanSocket ConnectToService(const std::string& ip_address, int port,
+  WifiLanSocket ConnectToService(const ServiceAddress& service_address,
                                  CancellationFlag* cancellation_flag);
 
   // Returns a new WifiLanServerSocket.
@@ -251,7 +254,7 @@ class WifiLanMedium {
   }
 
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
     return impl_->GetDynamicPortRange();
   }
 
@@ -267,8 +270,15 @@ class WifiLanMedium {
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
 
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade.
+  // `server_socket` is the socket that is currently listening for service
+  // requests.
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
+      const WifiLanServerSocket& server_socket);
+
  private:
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::unique_ptr<api::WifiLanMedium> impl_;
 
   // Used to keep the map from service type to discovery callback.

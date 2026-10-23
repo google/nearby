@@ -29,4 +29,14 @@ WifiDirectSocket WifiDirectMedium::ConnectToService(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }
 
+bool WifiDirectMedium::IsGOSupported() const {
+  CHECK(impl_);
+  return impl_->IsGOSupported();
+}
+
+bool WifiDirectMedium::IsGCSupported() const {
+  CHECK(impl_);
+  return impl_->IsGCSupported();
+}
+
 }  // namespace nearby

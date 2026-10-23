@@ -19,6 +19,8 @@
 #include <regex>  //NOLINT
 #include <string>
 
+#include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames.h"
@@ -26,9 +28,12 @@
 #include "connections/medium_selector.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
+#include "sharing/internal/base/utf_string_conversions.h"
 
 namespace nearby {
 namespace connections {
+
 namespace parser {
 namespace {
 
@@ -41,6 +46,7 @@ using ClientIntroduction = ::location::nearby::connections::
 using WifiHotspotCredentials = UpgradePathInfo::WifiHotspotCredentials;
 using WifiLanSocket = UpgradePathInfo::WifiLanSocket;
 using WifiAwareCredentials = UpgradePathInfo::WifiAwareCredentials;
+using WifiAwareR4Credentials = UpgradePathInfo::WifiAwareR4Credentials;
 using WifiDirectCredentials = UpgradePathInfo::WifiDirectCredentials;
 using BluetoothCredentials = UpgradePathInfo::BluetoothCredentials;
 using WebRtcCredentials = UpgradePathInfo::WebRtcCredentials;
@@ -56,21 +62,28 @@ constexpr absl::string_view kIpv4PatternString{
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$"};
-constexpr absl::string_view kIpv6PatternString{
-    "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-    "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$"};
 constexpr absl::string_view kWifiDirectSsidPatternString{
     "^DIRECT-[a-zA-Z0-9]{2}.*$"};
 constexpr int kWifiDirectSsidMaxLength = 32;
 constexpr int kWifiPasswordSsidMinLength = 8;
 constexpr int kWifiPasswordSsidMaxLength = 64;
+// For Windows Wifi Direct based on WinRT Windows.Devices.WiFiDirect, user can't
+// choose pin when pairing with the other device. Instead, When GO is created, a
+// pin is created by OS. But at this stage, BWU has already sent device name as
+// credential to GC for connection. Current BWU design has no way to send second
+// ForBwuWifiDirectPathAvailable frame with pin as crdential to GC. To avoid
+// major change in BWU structure, we decided to use ConfirmOnly(Push Button) for
+// WPS, so no pin is required, the min length should be 0.
+constexpr int kWifiDirectPinMinLength = 0;
+constexpr int kWifiDirectPinMaxLength = 16;
 
 inline bool WithinRange(int value, int min, int max) {
-  return value >= min && value < max;
+  return value >= min && value <= max;
+}
+
+bool IsValidWifiLanServiceAddress(const ServiceAddress& service_address) {
+  return !service_address.IsLoopbackAddress() &&
+         !service_address.IsLinkLocalAddress();
 }
 
 Exception EnsureValidConnectionRequestFrame(
@@ -138,16 +151,25 @@ Exception EnsureValidPayloadTransferControlFrame(
   return {Exception::kSuccess};
 }
 
-bool CheckForIllegalCharacters(std::string toBeValidated,
+bool CheckForIllegalCharacters(absl::string_view toBeValidated,
                                const absl::string_view illegalPatterns[],
                                size_t illegalPatternsSize) {
   if (toBeValidated.empty()) {
     return false;
   }
 
+  // Null bytes are rejected to prevent null-byte injection attacks. C-style
+  // APIs (like system file operations) treat '\0' as a string terminator,
+  // whereas C++ strings can contain them. This discrepancy can lead to
+  // validation bypasses (e.g., validating "file.sh\0.png" as a PNG but
+  // creating "file.sh" on disk).
+  if (absl::StrContains(toBeValidated, '\0') ||
+      !nearby::utils::IsStringUtf8(toBeValidated)) {
+    return true;
+  }
+
   for (int index = 0; index < illegalPatternsSize; index++) {
-    if (toBeValidated.find(std::string(illegalPatterns[index])) !=
-        std::string::npos) {
+    if (absl::StrContains(toBeValidated, illegalPatterns[index])) {
       return true;
     }
   }
@@ -176,20 +198,21 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
           location::nearby::connections::PayloadTransferFrame::PayloadHeader::
               FILE) {
     if (frame.payload_header().has_file_name()) {
-      if (CheckForIllegalCharacters(frame.payload_header().file_name(),
-                                    kIllegalFileNamePatterns,
+      const std::string& file_name = frame.payload_header().file_name();
+      if (CheckForIllegalCharacters(file_name, kIllegalFileNamePatterns,
                                     kIllegalFileNamePatternsSize)) {
-        LOG(ERROR) << "File name " << frame.payload_header().file_name()
-                   << " has illegal characters";
+        LOG(ERROR) << "File name (hex) " << absl::BytesToHexString(file_name)
+                   << " has illegal characters or invalid UTF-8";
         return {Exception::kIllegalCharacters};
       }
     }
     if (frame.payload_header().has_parent_folder()) {
-      if (CheckForIllegalCharacters(frame.payload_header().parent_folder(),
-                                    kIllegalParentFolderPatterns,
+      const std::string& parent_folder = frame.payload_header().parent_folder();
+      if (CheckForIllegalCharacters(parent_folder, kIllegalParentFolderPatterns,
                                     kIllegalParentFolderPatternsSize)) {
-        LOG(ERROR) << "Parent folder " << frame.payload_header().parent_folder()
-                   << " has illegal characters";
+        LOG(ERROR) << "Parent folder (hex) "
+                   << absl::BytesToHexString(parent_folder)
+                   << " has illegal characters or invalid UTF-8";
         return {Exception::kIllegalCharacters};
       }
     }
@@ -232,13 +255,32 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
       !WithinRange(wifi_hotspot_credentials.password().length(),
                    kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_hotspot_credentials.has_gateway())
+
+  if ((!wifi_hotspot_credentials.has_gateway() ||
+       wifi_hotspot_credentials.gateway().empty()) &&
+      wifi_hotspot_credentials.address_candidates_size() == 0) {
     return {Exception::kInvalidProtocolBuffer};
+  }
+
   const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
-  const std::regex ip6_pattern(std::string(kIpv6PatternString).c_str());
-  if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern) ||
-        std::regex_match(wifi_hotspot_credentials.gateway(), ip6_pattern)))
-    return {Exception::kInvalidProtocolBuffer};
+  if (wifi_hotspot_credentials.has_gateway() &&
+      !wifi_hotspot_credentials.gateway().empty()) {
+    if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern))) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (!wifi_hotspot_credentials.has_port() ||
+        !WithinRange(wifi_hotspot_credentials.port(), 1, 65535)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
+
+  for (const auto& address_candidate :
+       wifi_hotspot_credentials.address_candidates()) {
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
 
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.
@@ -247,10 +289,33 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
 
 Exception EnsureValidBandwidthUpgradeWifiLanPathAvailableFrame(
     const WifiLanSocket& wifi_lan_socket) {
-  if (!wifi_lan_socket.has_ip_address())
+  if ((!wifi_lan_socket.has_ip_address() || wifi_lan_socket.wifi_port() <= 0) &&
+      wifi_lan_socket.address_candidates_size() == 0) {
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_lan_socket.has_wifi_port() || wifi_lan_socket.wifi_port() < 0)
-    return {Exception::kInvalidProtocolBuffer};
+  }
+
+  if (wifi_lan_socket.has_ip_address()) {
+    location::nearby::connections::ServiceAddress proto;
+    proto.set_ip_address(wifi_lan_socket.ip_address());
+    proto.set_port(wifi_lan_socket.wifi_port());
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(proto, service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (!IsValidWifiLanServiceAddress(service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
+
+  for (const auto& address_candidate : wifi_lan_socket.address_candidates()) {
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (!IsValidWifiLanServiceAddress(service_address)) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
 
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.
@@ -269,27 +334,48 @@ Exception EnsureValidBandwidthUpgradeWifiAwarePathAvailableFrame(
   return {Exception::kSuccess};
 }
 
-Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
-    const WifiDirectCredentials& wifi_direct_credentials) {
-  const std::regex ssid_pattern(
-      std::string(kWifiDirectSsidPatternString).c_str());
-  if (!wifi_direct_credentials.has_ssid() ||
-      !(wifi_direct_credentials.ssid().length() < kWifiDirectSsidMaxLength &&
-        std::regex_match(wifi_direct_credentials.ssid(), ssid_pattern)))
+Exception EnsureValidBandwidthUpgradeWifiAwareR4PathAvailableFrame(
+    const WifiAwareR4Credentials& wifi_aware_r4_credentials) {
+  if (!wifi_aware_r4_credentials.has_service_id())
     return {Exception::kInvalidProtocolBuffer};
-
-  if (!wifi_direct_credentials.has_password() ||
-      !WithinRange(wifi_direct_credentials.password().length(),
-                   kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
-    return {Exception::kInvalidProtocolBuffer};
-
-  if (!wifi_direct_credentials.has_frequency() ||
-      wifi_direct_credentials.frequency() < -1)
+  if (!wifi_aware_r4_credentials.has_service_info())
     return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.
   return {Exception::kSuccess};
+}
+
+Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
+    const WifiDirectCredentials& wifi_direct_credentials) {
+  if (!wifi_direct_credentials.has_frequency() ||
+      wifi_direct_credentials.frequency() < -1)
+    return {Exception::kInvalidProtocolBuffer};
+
+  const std::regex ssid_pattern(
+      std::string(kWifiDirectSsidPatternString).c_str());
+  bool ssid_valid =
+      wifi_direct_credentials.has_ssid() &&
+      wifi_direct_credentials.ssid().length() <= kWifiDirectSsidMaxLength &&
+      std::regex_match(wifi_direct_credentials.ssid(), ssid_pattern);
+  bool password_valid =
+      wifi_direct_credentials.has_password() &&
+      WithinRange(wifi_direct_credentials.password().length(),
+                  kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength);
+  bool device_name_valid =
+      wifi_direct_credentials.has_device_name() &&
+      wifi_direct_credentials.device_name().length() < kWifiDirectSsidMaxLength;
+  bool pin_valid =
+      wifi_direct_credentials.has_pin() &&
+      WithinRange(wifi_direct_credentials.pin().length(),
+                  kWifiDirectPinMinLength, kWifiDirectPinMaxLength);
+
+  if ((ssid_valid && password_valid) || (device_name_valid && pin_valid))
+    return {Exception::kSuccess};
+  return {Exception::kInvalidProtocolBuffer};
+
+  // For backwards compatibility reasons, no other fields should be null-checked
+  // for this frame. Parameter checking (eg. must be within this range) is fine.
 }
 
 Exception EnsureValidBandwidthUpgradeBluetoothPathAvailableFrame(
@@ -337,6 +423,13 @@ Exception EnsureValidBandwidthUpgradePathAvailableFrame(
       if (upgrade_path_info.has_wifi_aware_credentials()) {
         return EnsureValidBandwidthUpgradeWifiAwarePathAvailableFrame(
             upgrade_path_info.wifi_aware_credentials());
+      }
+      return {Exception::kInvalidProtocolBuffer};
+
+    case Medium::WIFI_AWARE_R4:
+      if (upgrade_path_info.has_wifi_aware_r4_credentials()) {
+        return EnsureValidBandwidthUpgradeWifiAwareR4PathAvailableFrame(
+            upgrade_path_info.wifi_aware_r4_credentials());
       }
       return {Exception::kInvalidProtocolBuffer};
 

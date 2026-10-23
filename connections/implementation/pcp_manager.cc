@@ -122,6 +122,7 @@ PcpManager::StartListeningForIncomingConnections(
     ClientProxy* client, absl::string_view service_id,
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options) {
+  if (shutdown_) return {{Status::kOutOfOrderApiCall}, {}};
   if (!SetCurrentPcpHandler(options.strategy)) {
     return {{Status::kError}, {}};
   }

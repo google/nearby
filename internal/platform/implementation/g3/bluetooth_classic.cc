@@ -30,7 +30,9 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/types.h"
 
 namespace nearby {
 namespace g3 {
@@ -45,7 +47,7 @@ BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -62,7 +64,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
 }
 
 bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR) << "Failed to connect to BT server socket: already connected";
@@ -80,17 +82,17 @@ bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
 
 void BluetoothServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 BluetoothServerSocket::~BluetoothServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception BluetoothServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -101,11 +103,11 @@ Exception BluetoothServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -173,10 +175,21 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   LOG(INFO) << "G3 ConnectToService [self]: medium=" << this
             << ", adapter=" << &GetAdapter()
             << ", device=" << &GetAdapter().GetDevice();
-  // First, find an instance of remote medium, that exposed this device.
-  auto& adapter = static_cast<BluetoothDevice&>(remote_device).GetAdapter();
+
+  // Find the device in the MediumEnvironment, so that injected devices are
+  // supported in tests.
+  api::BluetoothDevice* device =
+      MediumEnvironment::Instance().FindBluetoothDevice(
+          remote_device.GetMacAddress());
+  if (device == nullptr) {
+    LOG(ERROR) << "G3 ConnectToService [peer]: device=" << &remote_device
+               << " not found";
+    return {};
+  }
+
+  auto& adapter = down_cast<BluetoothDevice*>(device)->GetAdapter();
   auto* medium =
-      static_cast<BluetoothClassicMedium*>(adapter.GetBluetoothClassicMedium());
+      down_cast<BluetoothClassicMedium*>(adapter.GetBluetoothClassicMedium());
 
   if (!medium) return {};  // Adapter is not bound to medium. Bail out.
 
@@ -186,7 +199,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
             << ", uuid=" << service_uuid;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&medium->mutex_);
+    absl::MutexLock medium_lock(medium->mutex_);
     auto item = medium->sockets_.find(service_uuid);
     server_socket = item != medium->sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
@@ -227,38 +240,23 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   return socket;
 }
 
-std::unique_ptr<api::BluetoothServerSocket>
+std::shared_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
-  auto socket = std::make_unique<BluetoothServerSocket>(GetAdapter());
+  auto socket = std::make_shared<BluetoothServerSocket>(GetAdapter());
   socket->SetCloseNotifier([this, uuid = service_uuid]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     sockets_.erase(uuid);
   });
   LOG(INFO) << "Adding service: medium=" << this << ", uuid=" << service_uuid;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   sockets_.emplace(service_uuid, socket.get());
   return socket;
 }
 
-std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
-    api::BluetoothDevice& remote_device) {
-  return std::make_unique<BluetoothPairing>(remote_device);
-}
-
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
-    const std::string& mac_address) {
+    MacAddress mac_address) {
   return MediumEnvironment::Instance().FindBluetoothDevice(mac_address);
-}
-
-void BluetoothClassicMedium::AddObserver(
-    api::BluetoothClassicMedium::Observer* observer) {
-  MediumEnvironment::Instance().AddObserver(observer);
-}
-
-void BluetoothClassicMedium::RemoveObserver(
-    api::BluetoothClassicMedium::Observer* observer) {
-  MediumEnvironment::Instance().RemoveObserver(observer);
 }
 
 }  // namespace g3

@@ -84,15 +84,6 @@ void FakeTimer::ClockUpdated() {
   timer_data_ = timer_data;
 }
 
-bool FakeTimer::FireNow() {
-  if (IsRunning()) {
-    timer_data_.callback();
-    return true;
-  }
-
-  return false;
-}
-
 bool FakeTimer::InternalStart(int delay, int period,
                               absl::AnyInvocable<void()> callback) {
   if (delay < 0 || period < 0 || callback == nullptr) {

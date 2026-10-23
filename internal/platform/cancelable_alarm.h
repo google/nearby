@@ -21,10 +21,9 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/cancelable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/platform/cancelable.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
@@ -48,21 +47,27 @@ class CancelableAlarm {
       cancelable_ = scheduled_executor_->Schedule(std::move(runnable), delay_);
     }
   }
-  ~CancelableAlarm() = default;
+  ~CancelableAlarm() { Cancel(); }
 
   bool Cancel() ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
-    return cancelable_.Cancel();
+    Cancelable cancelable;
+    {
+      absl::MutexLock lock(mutex_);
+      cancelled_ = true;
+      cancelable = std::move(cancelable_);
+    }
+    return cancelable.Cancel();
   }
 
   bool IsValid() ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
-    return cancelable_.IsValid();
+    absl::MutexLock lock(mutex_);
+    return !cancelled_ && cancelable_.IsValid();
   }
 
  private:
   void Schedule() ABSL_LOCKS_EXCLUDED(mutex_) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
+    if (cancelled_) return;
     cancelable_ = scheduled_executor_->Schedule(
         [this]() {
           runnable_();
@@ -71,8 +76,9 @@ class CancelableAlarm {
         delay_);
   }
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   std::string name_;
+  bool cancelled_ ABSL_GUARDED_BY(mutex_) = false;
   Cancelable cancelable_ ABSL_GUARDED_BY(mutex_);
   ScheduledExecutor* scheduled_executor_;
   absl::Duration delay_;

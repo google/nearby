@@ -37,9 +37,9 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
@@ -47,7 +47,7 @@ template <typename T>
 struct BorrowableSharedData {
   explicit BorrowableSharedData(T resource) : resource(std::move(resource)) {}
 
-  Mutex mutex;
+  absl::Mutex mutex;
   T resource ABSL_GUARDED_BY(mutex);
   bool released ABSL_GUARDED_BY(mutex) = false;
 };
@@ -61,7 +61,7 @@ class Borrowed {
  public:
   Borrowed() = default;
   explicit Borrowed(std::shared_ptr<BorrowableSharedData<T>> data)
-      : data_(data), lock_(std::make_unique<MutexLock>(&data->mutex)) {
+      : data_(data), lock_(std::make_unique<absl::MutexLock>(data->mutex)) {
     if (data_->released) {
       // We have been handed a half-destroyed object. The owner has already
       // marked it as `released` but the shared_ptr was still valid. Let's
@@ -88,7 +88,7 @@ class Borrowed {
 
  private:
   std::shared_ptr<BorrowableSharedData<T>> data_;
-  std::unique_ptr<MutexLock> lock_;
+  std::unique_ptr<absl::MutexLock> lock_;
 };
 
 // A weak reference to an object that can be borrowed.
@@ -137,7 +137,7 @@ class Lender {
       return;
     }
     {
-      MutexLock lock(&shared_data_->mutex);
+      absl::MutexLock lock(shared_data_->mutex);
       // We can't destroy `shared_data_` while holding the mutex inside it.
       // Setting `released` fixes the race condition below.
       // Thread 1            | Thread 2

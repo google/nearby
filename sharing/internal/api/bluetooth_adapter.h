@@ -15,10 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_BLUETOOTH_ADAPTER_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_BLUETOOTH_ADAPTER_H_
 
-#include <array>
 #include <functional>
 #include <optional>
 #include <string>
+
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace sharing {
@@ -88,7 +89,7 @@ class BluetoothAdapter {
   virtual std::optional<std::string> GetAdapterId() const = 0;
 
   // The mac address of this adapter.
-  virtual std::optional<std::array<uint8_t, 6>> GetAddress() const = 0;
+  virtual MacAddress GetAddress() const = 0;
 
   // Adds and removes observers for events on this bluetooth adapter. If
   // monitoring multiple adapters, check the |adapter| parameter of observer

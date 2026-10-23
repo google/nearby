@@ -16,12 +16,12 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
@@ -106,21 +106,32 @@ void FakeNearbyShareCertificateStorage::GetPublicCertificate(
     std::function<
         void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
         callback) {
-  get_public_certificate_callback_ = std::move(callback);
+  get_public_certificate_callback_ = callback;
+  if (is_sync_mode_) {
+    for (const auto& cert : public_certificates_) {
+      if (cert.secret_id() == id) {
+        callback(true, std::make_unique<PublicCertificate>(cert));
+        return;
+      }
+    }
+    callback(false, nullptr);
+  }
 }
 
-std::optional<std::vector<NearbySharePrivateCertificate>>
-FakeNearbyShareCertificateStorage::GetPrivateCertificates() const {
+std::vector<NearbySharePrivateCertificate>
+FakeNearbyShareCertificateStorage::GetPrivateCertificates() {
+  absl::MutexLock lock(mutex_);
   return private_certificates_;
 }
 
-std::optional<absl::Time>
+absl::Time
 FakeNearbyShareCertificateStorage::NextPublicCertificateExpirationTime() const {
   return next_public_certificate_expiration_time_;
 }
 
 void FakeNearbyShareCertificateStorage::ReplacePrivateCertificates(
     absl::Span<const NearbySharePrivateCertificate> private_certificates) {
+  absl::MutexLock lock(mutex_);
   private_certificates_ = std::vector<NearbySharePrivateCertificate>(
       private_certificates.begin(), private_certificates.end());
 }
@@ -133,6 +144,19 @@ void FakeNearbyShareCertificateStorage::AddPublicCertificates(
                                      public_certificates.end()),
       callback);
   if (is_sync_mode_) {
+    for (const auto& cert : public_certificates) {
+      bool found = false;
+      for (auto& existing_cert : public_certificates_) {
+        if (existing_cert.secret_id() == cert.secret_id()) {
+          existing_cert = cert;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        public_certificates_.push_back(cert);
+      }
+    }
     callback(add_public_certificates_result_);
   }
 }
@@ -150,13 +174,19 @@ void FakeNearbyShareCertificateStorage::ClearPublicCertificates(
   clear_public_certificates_callbacks_.push_back(std::move(callback));
 }
 
+void FakeNearbyShareCertificateStorage::SetPublicCertificates(
+    absl::Span<const PublicCertificate> public_certificates) {
+  public_certificates_ = std::vector<PublicCertificate>(
+      public_certificates.begin(), public_certificates.end());
+}
+
 void FakeNearbyShareCertificateStorage::SetPublicCertificateIds(
     absl::Span<const absl::string_view> ids) {
   public_certificate_ids_ = std::vector<std::string>(ids.begin(), ids.end());
 }
 
 void FakeNearbyShareCertificateStorage::SetNextPublicCertificateExpirationTime(
-    std::optional<absl::Time> time) {
+    absl::Time time) {
   next_public_certificate_expiration_time_ = time;
 }
 

@@ -31,9 +31,6 @@ class FeatureFlags {
   struct Flags {
     bool enable_cancellation_flag = true;
     bool enable_async_bandwidth_upgrade = true;
-    // If a scheduled runnable is already running, Cancel() will synchronously
-    // wait for the task to complete.
-    bool cancel_waits_for_running_tasks = true;
     // Keep Alive frame interval and timeout in millis.
     std::int32_t keep_alive_interval_millis = 5000;
     std::int32_t keep_alive_timeout_millis = 30000;
@@ -75,14 +72,6 @@ class FeatureFlags {
     // auto-resume 5. non-distance-constraint-recovery 6. payload_ack
     std::int32_t min_nc_version_supports_safe_to_disconnect = 1;
     std::int32_t min_nc_version_supports_auto_reconnect = 3;
-    absl::Duration safe_to_disconnect_reconnect_retry_delay_millis =
-        absl::Milliseconds(4000);
-    absl::Duration safe_to_disconnect_reconnect_timeout_millis =
-        absl::Milliseconds(15000);
-    std::int32_t safe_to_disconnect_reconnect_retry_attempts = 3;
-    absl::Duration
-        safe_to_disconnect_reconnect_skip_duplicated_endpoint_duration =
-            absl::Milliseconds(2000);
     // Android code won't be able to launch "payload_received_ack" feature for
     // in near future, so change "payload_received_ack" version from "2" to "5"
     // after auto-reconnect and auto-resume.
@@ -118,6 +107,7 @@ class FeatureFlags {
     std::uint32_t connection_max_frame_length = 1048576;
     std::uint32_t blocking_queue_stream_queue_capacity = 10;
     bool support_web_rtc_non_cellular_medium = false;
+    std::uint32_t wifi_direct_default_port = 63034;
   };
 
   static const FeatureFlags& GetInstance() {
@@ -125,18 +115,18 @@ class FeatureFlags {
     return *instance;
   }
 
-  const Flags& GetFlags() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::ReaderMutexLock lock(&mutex_);
-    return flags_;
+  static FeatureFlags& GetMutableInstanceForTesting() {
+    return const_cast<FeatureFlags&>(GetInstance());
   }
 
-  static Flags& GetMutableFlagsForTesting() {
-    return const_cast<FeatureFlags&>(GetInstance()).flags_;
+  Flags GetFlags() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::ReaderMutexLock lock(mutex_);
+    return flags_;
   }
 
   // SetFlags for feature controlling
   void SetFlags(const Flags& flags) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     flags_ = flags;
   }
 

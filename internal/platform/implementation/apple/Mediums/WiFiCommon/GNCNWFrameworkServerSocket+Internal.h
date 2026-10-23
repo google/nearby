@@ -12,41 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <Foundation/Foundation.h>
-
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
+
+#import <Foundation/Foundation.h>
+#import <Network/Network.h>
+
+@protocol GNCNWConnection;
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface GNCNWFrameworkServerSocket (Internal)
 
-/**
- * Starts listening for inbound connections.
- *
- * Blocks execution until listening has started or failed.
- *
- * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
- * connections.
- * @param[out] error Error that will be populated on failure.
- * @return Returns YES when listening has successfully started.
- */
-- (BOOL)startListeningWithError:(NSError **_Nullable)error
-              includePeerToPeer:(BOOL)includePeerToPeer;
+// Properties for testing
+@property(nonatomic, readonly) NSMutableArray<nw_connection_t> *pendingConnections;
+@property(nonatomic, readonly) NSMutableArray<nw_connection_t> *readyConnections;
+
+// Properties for testing
+@property(nonatomic) nw_listener_state_t listenerState;
+@property(nonatomic, nullable) NSError *listenerError;
+@property(nonatomic, nullable) id<GNCNWListener> testingListener;
 
 /**
- * Starts listening for inbound connections with a PSK identity and shared secret.
+ * Starts listening for inbound connections with optional PSK identity and shared secret.
  *
  * Blocks execution until listening has started or failed.
  *
- * @param PSKIdentity The PSK identity to use for the connection.
- * @param PSKSharedSecret The PSK shared secret to use for the connection.
+ * @param PSKIdentity The optional PSK identity to use for the connection.
+ * @param PSKSharedSecret The optional PSK shared secret to use for the connection.
  * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
  * connections.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when listening has successfully started.
  */
-- (BOOL)startListeningWithPSKIdentity:(NSData *)PSKIdentify
-                      PSKSharedSecret:(NSData *)PSKSharedSecret
+- (BOOL)startListeningWithPSKIdentity:(nullable NSData *)PSKIdentify
+                      PSKSharedSecret:(nullable NSData *)PSKSharedSecret
                     includePeerToPeer:(BOOL)includePeerToPeer
                                 error:(NSError **_Nullable)error;
 
@@ -65,6 +64,39 @@ NS_ASSUME_NONNULL_BEGIN
  * Removes the Bonjour service advertisement.
  */
 - (void)stopAdvertising;
+
+/**
+ * Adds a fake connection to the server socket for testing.
+ *
+ * @param connection The fake connection to add.
+ */
+- (void)addFakeConnection:(id<GNCNWConnection>)connection;
+
+/**
+ * Handles a state change for a given connection.
+ *
+ * @param connection The connection that changed state.
+ * @param state The new state.
+ * @param error An error object if the state is `failed`, otherwise `nil`.
+ */
+- (void)handleConnectionStateChange:(nw_connection_t)connection
+                              state:(nw_connection_state_t)state
+                              error:(nullable nw_error_t)error;
+
+/**
+ * Handles a new incoming connection from the listener.
+ *
+ * @param connection The new connection object.
+ */
+- (void)handleNewConnection:(nw_connection_t)connection;
+
+/**
+ * Configures a connection's queue and state handler, then starts it.
+ * NOTE: This method should not be called directly except for testing purposes.
+ *
+ * @param connection The connection to configure and start.
+ */
+- (void)configureAndStartConnection:(nw_connection_t)connection;
 
 @end
 

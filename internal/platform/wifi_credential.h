@@ -16,9 +16,10 @@
 #define PLATFORM_BASE_WIFI_CREDENTIAL_H_
 
 #include <string>
+#include <utility>
+#include <vector>
 
-#include "absl/strings/str_format.h"
-#include "internal/platform/prng.h"
+#include "internal/platform/service_address.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -43,45 +44,23 @@ class HotspotCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
-  // Gets IP Address, which is in byte sequence, in network order. For example,
-  // for "192.168.1.1", it'll be byte(129)+byte(168)+byte(1)+byte(1). Now only
-  // ipv4 is supported.
-  std::string GetIPAddress() const { return ip_address_; }
-  void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
-
-  std::string GetGateway() const { return gateway_; }
-  void SetGateway(const std::string& gateway) { gateway_ = gateway; }
-
-  // Gets the Port number
-  int GetPort() const { return port_; }
-  // Set port_
-  void SetPort(const int port) { port_ = port; }
+  const std::vector<ServiceAddress>& GetAddressCandidates() const {
+    return address_candidates_;
+  }
+  void SetAddressCandidates(std::vector<ServiceAddress> address_candidates) {
+    address_candidates_ = std::move(address_candidates);
+  }
 
   // Gets the Frequency
   int GetFrequency() const { return frequency_; }
   // Set frequency_
   void SetFrequency(int frequency) { frequency_ = frequency; }
 
-  // Gets the Band
-  location::nearby::proto::connections::ConnectionBand GetBand() const {
-    return band_;
-  }
-
-  // Gets the Technology
-  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
-      const {
-    return technology_;
-  }
-
  private:
   std::string ssid_;
   std::string password_;
-  std::string ip_address_;
-  std::string gateway_ = "0.0.0.0";
-  int port_ = 0;
   int frequency_ = -1;
-  location::nearby::proto::connections::ConnectionBand band_;
-  location::nearby::proto::connections::ConnectionTechnology technology_;
+  std::vector<ServiceAddress> address_candidates_;
 };
 
 // Credentials for the currently-hosted WifiDirect GO (if any)
@@ -103,6 +82,16 @@ class WifiDirectCredentials {
 
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
+
+  // Get/Set Device Name.
+  std::string GetDeviceName() const { return device_name_; }
+  void SetDeviceName(const std::string& device_name) {
+    device_name_ = device_name;
+  }
+
+  // Get/Set Pin.
+  std::string GetPin() const { return pin_; }
+  void SetPin(const std::string& pin) { pin_ = pin; }
 
   // Gets IP Address, which is in byte sequence, in network order. For example,
   // for "192.168.1.1", it'll be byte(129)+byte(168)+byte(1)+byte(1). Now only
@@ -134,13 +123,27 @@ class WifiDirectCredentials {
     return technology_;
   }
 
+  // Get/Set Remote Device Name.
+  std::string GetRemoteDeviceName() const { return remote_device_name_; }
+  void SetRemoteDeviceName(const std::string& remote_device_name) {
+    remote_device_name_ = remote_device_name;
+  }
+
  private:
+  // There are 2 types of WifiDirectAuthType.
+  // 1. Without Service Discovery: the credentials are ssid/password.
+  // 2. With Service Discovery: the credentials are device_name/pin.
+  // Android supports type 1 and 2 in the future, but Windows only supports the
+  // second type.
   std::string ssid_;
   std::string password_;
+  std::string device_name_;
+  std::string pin_;
   std::string ip_address_;
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;
   int frequency_ = -1;
+  std::string remote_device_name_;
   location::nearby::proto::connections::ConnectionBand band_;
   location::nearby::proto::connections::ConnectionTechnology technology_;
 };

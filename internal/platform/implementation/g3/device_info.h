@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_G3_DEVICE_INFO_H_
 #define PLATFORM_IMPL_G3_DEVICE_INFO_H_
 
-#include <cstdlib>
 #include <functional>
 #include <optional>
 #include <string>
@@ -26,6 +25,8 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/g3/linux_path_util.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace g3 {
@@ -44,34 +45,24 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
-  std::optional<FilePath> GetDownloadPath() const override {
+  FilePath GetDownloadPath() const override {
     return Files::GetTemporaryDirectory();
   }
 
-  std::optional<FilePath> GetLocalAppDataPath() const override {
-    const char* home_dir = getenv("HOME");
-    if (home_dir == nullptr) {
-      return Files::GetTemporaryDirectory();
+  FilePath GetLocalAppDataPath(FilePath sub_path) const override {
+    if (MediumEnvironment::Instance()
+            .GetEnvironmentConfig()
+            .use_temporary_directory_for_app_path) {
+      return Files::GetTemporaryDirectory().append(sub_path);
     }
-    // Yhis matches the .NET LocalAppData directory on Linux.
-    return FilePath(home_dir)
-        .append(FilePath(".local"))
-        .append(FilePath("share"));
+    return GetAppDataPath().append(sub_path);
   }
 
-  std::optional<FilePath> GetCommonAppDataPath() const override {
+  FilePath GetTemporaryPath() const override {
     return Files::GetTemporaryDirectory();
   }
 
-  std::optional<FilePath> GetTemporaryPath() const override {
-    return Files::GetTemporaryDirectory();
-  }
-
-  std::optional<FilePath> GetLogPath() const override {
-    return Files::GetTemporaryDirectory();
-  }
-
-  std::optional<FilePath> GetCrashDumpPath() const override {
+  FilePath GetLogPath() const override {
     return Files::GetTemporaryDirectory();
   }
 

@@ -66,7 +66,6 @@ cc_library(
     ],
     copts = [
         "-DCRYPTO_IMPLEMENTATION",
-        "-Ithird_party",
     ],
     deps = [
         "@boringssl//:crypto",
@@ -99,9 +98,6 @@ cc_test(
     ],
     copts = [
         "-DUNIT_TEST",
-        "-Wno-inconsistent-missing-override",
-        "-Wno-non-virtual-dtor",
-        "-Ithird_party",
     ],
     deps = [
         ":crypto_cros",

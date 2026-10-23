@@ -23,6 +23,11 @@ MATCHER_P(HasStatus, status, "has status") {
   return arg.status() == status;
 }
 
+MATCHER_P(HasUsage, usage, "has usage") {
+  return arg.usage() == usage;
+}
+
+
 MATCHER(IsFinalStatus, "is final") {
   return arg.is_final_status();
 }

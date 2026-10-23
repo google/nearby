@@ -52,13 +52,13 @@ void SubmittableExecutor::Execute(Runnable&& runnable) {
 
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
 void SubmittableExecutor::Shutdown() {
-  if (!shut_down_) {
-    executor_->Shutdown();
-    shut_down_ = true;
+  if (shut_down_) {
+    LOG(ERROR) << "Error: " << __func__
+               << ": Attempt to Shutdown on a shutdown executor.";
+    return;
   }
-
-  LOG(ERROR) << "Error: " << __func__
-             << ": Attempt to Shutdown on a shutdown executor.";
+  executor_->Shutdown();
+  shut_down_ = true;
 }
 
 }  // namespace windows

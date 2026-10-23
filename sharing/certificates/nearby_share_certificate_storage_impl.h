@@ -19,13 +19,13 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
@@ -78,10 +78,8 @@ class NearbyShareCertificateStorageImpl : public NearbyShareCertificateStorage,
       std::function<void(
           bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
           callback) override;
-  std::optional<std::vector<NearbySharePrivateCertificate>>
-  GetPrivateCertificates() const override;
-  std::optional<absl::Time> NextPublicCertificateExpirationTime()
-      const override;
+  std::vector<NearbySharePrivateCertificate> GetPrivateCertificates() override;
+  absl::Time NextPublicCertificateExpirationTime() const override;
   void ReplacePrivateCertificates(
       absl::Span<const NearbySharePrivateCertificate> private_certificates)
       override;

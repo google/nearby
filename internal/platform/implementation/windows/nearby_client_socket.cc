@@ -22,33 +22,39 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
 
-NearbyClientSocket::NearbyClientSocket() {
+NearbyClientSocket::NearbyClientSocket()
+    : NearbyClientSocket(INVALID_SOCKET) {
+}
+
+NearbyClientSocket::NearbyClientSocket(SOCKET socket) : socket_(socket) {
   WSADATA wsa_data;
   int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
   if (result != 0) {
     LOG(WARNING) << "WSAStartup failed with error " << result;
   }
-
   is_socket_initiated_ = (result == 0);
 }
 
-NearbyClientSocket::NearbyClientSocket(SOCKET socket) : socket_(socket) {}
-
 NearbyClientSocket::~NearbyClientSocket() {
+  Close();
   if (is_socket_initiated_) {
     WSACleanup();
   }
 }
 
-bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
+bool NearbyClientSocket ::Connect(const SocketAddress& server_address,
+                                  absl::Duration timeout) {
   if (!is_socket_initiated_) {
     LOG(WARNING) << "Windows socket is not initiated.";
     return false;
@@ -58,24 +64,26 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
     LOG(ERROR) << "Socket is already connected.";
     return false;
   }
-
-  socket_ =
-      socket(/*af=*/AF_INET, /*type=*/SOCK_STREAM, /*protocol=*/IPPROTO_TCP);
+  socket_ = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
   if (socket_ == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to get socket with error " << WSAGetLastError();
     return false;
   }
-
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port);
-  serv_addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
+  // On Windows dual stack is not the default.
+  // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
+  DWORD v6_only = 0;
+  if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
+                  reinterpret_cast<const char*>(&v6_only),
+                  sizeof(v6_only)) == SOCKET_ERROR) {
+    LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
+                  << WSAGetLastError();
+  }
 
   BOOL flag = TRUE;
-  if (setsockopt(/*s=*/socket_, /*level=*/SOL_SOCKET, /*optname=*/SO_KEEPALIVE,
-                 /*optval=*/(const char*)&flag,
-                 /*optlen=*/sizeof(flag)) == SOCKET_ERROR) {
+  if (setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE,
+                 reinterpret_cast<const char*>(&flag),
+                 sizeof(flag)) == SOCKET_ERROR) {
     LOG(WARNING) << "Failed to set SO_KEEPALIVE with error "
                  << WSAGetLastError();
   }
@@ -84,37 +92,70 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
       static_cast<int>(NearbyFlags::GetInstance().GetInt64Flag(
           nearby::platform::config_package_nearby::nearby_platform_feature::
               kSocketSendBufferSize));
-  if (setsockopt(/*s=*/socket_, /*level=*/SOL_SOCKET, /*optname=*/SO_SNDBUF,
-                 /*optval=*/(char*)&send_buffer_size,
-                 /*optlen=*/sizeof(send_buffer_size)) == SOCKET_ERROR) {
+  if (setsockopt(socket_, SOL_SOCKET, SO_SNDBUF,
+                 reinterpret_cast<char*>(&send_buffer_size),
+                 sizeof(send_buffer_size)) == SOCKET_ERROR) {
     LOG(WARNING) << "Failed to set SO_SNDBUF with error " << WSAGetLastError();
   }
 
   flag = TRUE;
-  setsockopt(/*s=*/socket_, /*level=*/IPPROTO_TCP, /*optname=*/TCP_NODELAY,
-             /*optval=*/(char*)&flag, /*optlen=*/sizeof(flag));
+  setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag),
+             sizeof(flag));
 
-  if (connect(/*s=*/socket_, /*name=*/(struct sockaddr*)&serv_addr,
-              /*namelen=*/sizeof(serv_addr)) == SOCKET_ERROR) {
-    LOG(ERROR) << "Failed to connect socket with error: " << WSAGetLastError();
-    closesocket(socket_);
-    socket_ = INVALID_SOCKET;
-    return false;
+  bool has_timeout = (timeout != absl::InfiniteDuration());
+  if (has_timeout) {
+    unsigned long non_blocking = 1;  // NOLINT
+    if (ioctlsocket(socket_, FIONBIO, &non_blocking) == SOCKET_ERROR) {
+      LOG(WARNING) << "Failed to set socket to non-blocking, error: "
+                   << WSAGetLastError();
+      // turn off timeout if we can't set the socket to non-blocking.
+      has_timeout = false;
+    }
   }
-
-  sockaddr_in local_address;
-  int address_length = sizeof(local_address);
-  if (getsockname(/*s=*/socket_, /*name=*/(SOCKADDR*)&local_address,
-                  /*namelen=*/&address_length) != SOCKET_ERROR) {
-    // Extract the IP address and port
-    char local_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(local_address.sin_addr), local_ip, INET_ADDRSTRLEN);
-    int local_port = ntohs(local_address.sin_port);
-
-    LOG(INFO) << "Connected to " << ip_address << ":" << port << " from "
-              << local_ip << ":" << local_port;
+  SocketAddress dual_stack_address = server_address.ToMappedIPv6();
+  if (connect(socket_, dual_stack_address.address(),
+              sizeof(sockaddr_storage)) == SOCKET_ERROR) {
+    bool connected = false;
+    if (has_timeout && WSAGetLastError() == WSAEWOULDBLOCK) {
+      // Wait until timeout or socket is connected.
+      timeval tm = absl::ToTimeval(timeout);
+      fd_set set;
+      FD_ZERO(&set);
+      FD_SET(socket_, &set);
+      if (select(/*nfds=*/0, /*readfds=*/nullptr, &set, /*exceptfds=*/nullptr,
+                 &tm) > 0) {
+        int error = -1;
+        int size = sizeof(int);
+        getsockopt(socket_, SOL_SOCKET, SO_ERROR, (char*)&error,
+                  /*(socklen_t *)*/ &size);
+        connected = (error == 0);
+      }
+    }
+    if (!connected) {
+      LOG(ERROR) << "Failed to connect socket with error: "
+                 << WSAGetLastError();
+      closesocket(socket_);
+      socket_ = INVALID_SOCKET;
+      return false;
+    }
   }
-
+  if (has_timeout) {
+    unsigned long non_blocking = 0;  // NOLINT
+    if (ioctlsocket(socket_, FIONBIO, /*argp=*/&non_blocking) == SOCKET_ERROR) {
+      LOG(ERROR) << "Failed to set socket to blocking, error: "
+                 << WSAGetLastError();
+    }
+  }
+  LOG(INFO) << "Client socket connected successfully";
+  if (VLOG_IS_ON(1)) {
+    SocketAddress local_address;
+    int address_length = sizeof(sockaddr_storage);
+    if (getsockname(socket_, local_address.address(), &address_length) !=
+        SOCKET_ERROR) {
+      VLOG(1) << "Connected to " << server_address.ToString() << " from "
+              << local_address.ToString();
+    }
+  }
   return true;
 }
 
@@ -142,9 +183,11 @@ ExceptionOr<ByteArray> NearbyClientSocket::Read(std::int64_t size) {
       // Successfully read some bytes.
       total_bytes_read += bytes_read;
     } else if (bytes_read == 0) {
-      // The peer has performed a graceful shutdown.
-      LOG(INFO) << "Socket closed gracefully by peer before all data was read.";
-      return {Exception::kIo};
+      // The peer has performed a graceful shutdown.  Return any data already
+      // read.
+      buffer.resize(total_bytes_read);
+      LOG(INFO) << "Socket closed by peer, data size: " << buffer.size();
+      return ExceptionOr(ByteArray(std::move(buffer)));
     } else {  // bytes_read == SOCKET_ERROR
       if (WSAGetLastError() == WSAEINTR) {
         VLOG(1) << "Interrupted while reading from socket.";
@@ -175,7 +218,7 @@ ExceptionOr<size_t> NearbyClientSocket::Skip(size_t offset) {
   return {Exception::kIo};
 }
 
-Exception NearbyClientSocket::Write(const ByteArray& data) {
+Exception NearbyClientSocket::Write(absl::string_view data) {
   if (socket_ == INVALID_SOCKET) {
     LOG(WARNING) << "Trying to write to an invalid socket.";
     return {Exception::kIo};
@@ -202,8 +245,8 @@ Exception NearbyClientSocket::Flush() {
 
 Exception NearbyClientSocket::Close() {
   if (socket_ == INVALID_SOCKET) {
-    LOG(WARNING) << "Trying to close an invalid socket.";
-    return {Exception::kIo};
+    VLOG(1) << "Socket already closed.";
+    return {Exception::kSuccess};
   }
 
   shutdown(socket_, SD_BOTH);

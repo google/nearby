@@ -37,8 +37,6 @@ class Timer : public api::Timer {
 
   bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
-
  private:
   absl::Mutex mutex_;
   absl::CondVar condvar_ ABSL_GUARDED_BY(mutex_);

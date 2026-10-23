@@ -14,8 +14,9 @@
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCConnectionOptions+CppConversions.h"
 
+#include "absl/types/span.h"
 #include "connections/connection_options.h"
-#include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCSupportedMediums+CppConversions.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
@@ -40,8 +41,13 @@ using ::nearby::connections::ConnectionOptions;
   connection_options.keep_alive_interval_millis = self.keepAliveIntervalInSeconds * 1000;
   connection_options.keep_alive_timeout_millis = self.keepAliveTimeoutInSeconds * 1000;
 
-  connection_options.remote_bluetooth_mac_address = nearby::ByteArray(
-      (char *)[self.remoteBluetoothMACAddress bytes], [self.remoteBluetoothMACAddress length]);
+  nearby::MacAddress mac_address;
+  nearby::MacAddress::FromBytes(
+      absl::MakeConstSpan(
+          (const uint8_t*)[self.remoteBluetoothMACAddress bytes],
+          [self.remoteBluetoothMACAddress length]),
+      mac_address);
+  connection_options.remote_bluetooth_mac_address = mac_address;
 
   return connection_options;
 }

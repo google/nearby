@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/g3/preferences_repository.h"
 
 #include <fstream>
+#include <ios>
 
 #include "absl/synchronization/mutex.h"
 #include "nlohmann/json.hpp"
@@ -29,20 +30,15 @@ using json = nlohmann::json;
 }  // namespace
 
 json PreferencesRepository::LoadPreferences() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Emulate Windows implementation
   try {
-    // settings.json is used for testing, but we should look at having
-    // an implementation override for G3 in PreferencesManager to override
-    // the path for testing.
-    FilePath path =
-        Files::GetTemporaryDirectory().append(FilePath("settings.json"));
-    if (!Files::FileExists(path)) {
+    if (!Files::FileExists(file_path_)) {
       return value_;
     }
 
-    std::ifstream preferences_file(path.GetPath());
+    std::ifstream preferences_file(file_path_.GetPath());
     if (!preferences_file.good()) {
       return value_;
     }
@@ -62,8 +58,11 @@ json PreferencesRepository::LoadPreferences() {
 }
 
 bool PreferencesRepository::SavePreferences(json preferences) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   value_ = preferences;
+  std::ofstream preferences_file(file_path_.GetPath(), std::ios_base::trunc);
+  preferences_file << preferences;
+  preferences_file.close();
   return true;
 }
 

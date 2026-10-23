@@ -22,10 +22,10 @@
 #include <string>
 #include <vector>
 
+#include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"
@@ -35,6 +35,8 @@ namespace sharing {
 
 class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
  public:
+  using HANDLE = void*;
+
   explicit NearbyConnectionsServiceImpl(
       nearby::ConnectivityManager* connectivity_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);
@@ -87,6 +89,9 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
 
   void SetCustomSavePath(absl::string_view path,
                          std::function<void(Status status)> callback) override;
+
+  void OverrideSavePath(absl::string_view endpoint_id,
+                        absl::string_view path) override;
 
   std::string Dump() const override;
 

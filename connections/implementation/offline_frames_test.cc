@@ -17,6 +17,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -28,19 +29,24 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
+#include "internal/platform/service_address.h"
 
-namespace nearby {
-namespace connections {
-namespace parser {
+namespace nearby::connections::parser {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using Medium = ::location::nearby::proto::connections::Medium;
+using WifiDirectAuthType =
+    ::location::nearby::proto::connections::WifiDirectAuthType;
+using MediumMetadata = ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::MediumRole;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::Pointwise;
 
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};
@@ -48,7 +54,6 @@ constexpr int kNonce = 1234;
 constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr int kApFrequency = 2412;
-constexpr absl::string_view kIp4Bytes = {"8xqT"};
 constexpr std::array<Medium, 11> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
@@ -68,9 +73,9 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
 
     v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
     // OSS matchers don't like implicitly comparing string_views to strings.
-    sub_frame->set_endpoint_id(std::string(kEndpointId));
-    sub_frame->set_endpoint_name(std::string(kEndpointName));
-    sub_frame->set_endpoint_info(std::string(kEndpointName));
+    sub_frame->set_endpoint_id(kEndpointId);
+    sub_frame->set_endpoint_name(kEndpointName);
+    sub_frame->set_endpoint_info(kEndpointName);
     sub_frame->set_nonce(kNonce);
     sub_frame->set_keep_alive_interval_millis(kKeepAliveIntervalMillis);
     sub_frame->set_keep_alive_timeout_millis(kKeepAliveTimeoutMillis);
@@ -83,8 +88,7 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
       sub_frame->add_mediums(MediumToConnectionRequestMedium(medium));
     }
   }
-  auto serialized_bytes = ByteArray(tx_message.SerializeAsString());
-  auto ret_value = FromBytes(serialized_bytes);
+  auto ret_value = FromBytes(tx_message.SerializeAsString());
   ASSERT_TRUE(ret_value.ok());
   const auto& rx_message = ret_value.result();
   EXPECT_THAT(rx_message, EqualsProto(tx_message));
@@ -108,7 +112,6 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
         >
         mediums: MDNS
@@ -133,13 +136,12 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
                                  kKeepAliveTimeoutMillis};
-  ByteArray bytes = ForConnectionRequestConnections({}, connection_info);
-  auto response = FromBytes(bytes);
+  auto response =
+      FromBytes(ForConnectionRequestConnections({}, connection_info));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -163,7 +165,6 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
           medium_role: < support_wifi_hotspot_client: true >
         >
@@ -201,15 +202,13 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
                                  kKeepAliveTimeoutMillis,
                                  medium_role};
-  ByteArray bytes =
-      ForConnectionRequestConnections(connections_device, connection_info);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(
+      ForConnectionRequestConnections(connections_device, connection_info));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -229,7 +228,6 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
         >
         mediums: MDNS
@@ -259,7 +257,6 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
@@ -269,9 +266,75 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
   presence_device.set_endpoint_type(
       location::nearby::connections::PRESENCE_ENDPOINT);
   presence_device.set_device_name("TEST DEVICE");
-  ByteArray bytes =
-      ForConnectionRequestPresence(presence_device, connection_info);
-  auto response = FromBytes(bytes);
+  auto response =
+      FromBytes(ForConnectionRequestPresence(presence_device, connection_info));
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest,
+     ForConnectionRequestConnectionsPopulatesWifiDirectAuthTypes) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: CONNECTION_REQUEST
+      connection_request: <
+        endpoint_id: "ABC"
+        endpoint_name: "XYZ"
+        endpoint_info: "XYZ"
+        nonce: 1234
+        medium_metadata: <
+          supports_5_ghz: true
+          bssid: "FF:FF:FF:FF:FF:FF"
+          ap_frequency: 2412
+          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_DEVICE_NAME
+          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PASSWORD
+        >
+        mediums: MDNS
+        mediums: BLUETOOTH
+        mediums: WIFI_HOTSPOT
+        mediums: BLE
+        mediums: WIFI_LAN
+        mediums: WIFI_AWARE
+        mediums: NFC
+        mediums: WIFI_DIRECT
+        mediums: WEB_RTC
+        mediums: USB
+        mediums: AWDL
+        keep_alive_interval_millis: 1000
+        keep_alive_timeout_millis: 5000
+        connections_device {
+          endpoint_id: "ABC"
+          endpoint_type: CONNECTIONS_ENDPOINT
+          endpoint_info: "XYZ"
+        }
+      >
+    >)pb";
+
+  ConnectionInfo connection_info{std::string(kEndpointId),
+                                 ByteArray{std::string(kEndpointName)},
+                                 kNonce,
+                                 kSupports5ghz,
+                                 std::string(kBssid),
+                                 kApFrequency,
+                                 std::vector<Medium, std::allocator<Medium>>(
+                                     kMediums.begin(), kMediums.end()),
+                                 kKeepAliveIntervalMillis,
+                                 kKeepAliveTimeoutMillis};
+  connection_info.supported_wifi_direct_auth_types = {
+      WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME,
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD};
+
+  location::nearby::connections::ConnectionsDevice connections_device;
+  connections_device.set_endpoint_id("ABC");
+  connections_device.set_endpoint_type(
+      location::nearby::connections::CONNECTIONS_ENDPOINT);
+  connections_device.set_endpoint_info("XYZ");
+
+  auto response = FromBytes(
+      ForConnectionRequestConnections(connections_device, connection_info));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -287,8 +350,9 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        multiplex_socket_bitmask: 0x01
+        multiplex_socket_bitmask: 0
         safe_to_disconnect_version: 5
+        wifi_direct_device_name: "device_name"
       >
     >)pb";
 
@@ -298,9 +362,8 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
       config_package_nearby::nearby_connections_feature::
           kSafeToDisconnectVersion,
       5);
-  ByteArray bytes =
-      ForConnectionResponse(1, os_info, /*multiplex_socket_bitmask=*/0x01);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(
+      ForConnectionResponse(1, os_info, "device_name"));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -326,8 +389,7 @@ TEST(OfflineFramesTest, CanGenerateControlPayloadTransfer) {
         control_message: < event: PAYLOAD_CANCELED offset: 150 >
       >
     >)pb";
-  ByteArray bytes = ForControlPayloadTransfer(header, control);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForControlPayloadTransfer(header, control));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -354,8 +416,7 @@ TEST(OfflineFramesTest, CanGenerateDataPayloadTransfer) {
         payload_chunk: < flags: 1 offset: 150 body: "payload data" >
       >
     >)pb";
-  ByteArray bytes = ForDataPayloadTransfer(header, chunk);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForDataPayloadTransfer(header, chunk));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -372,8 +433,7 @@ TEST(OfflineFramesTest, CanGeneratePayloadAckPayloadTransfer) {
         payload_header: < id: 12345 total_size: -1 >
       >
     >)pb";
-  ByteArray bytes = ForPayloadAckPayloadTransfer(12345);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForPayloadAckPayloadTransfer(12345));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -395,15 +455,33 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             port: 1234
             gateway: "0.0.0.0"
             frequency: 2412
+            address_candidates: <
+              ip_address: "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1"
+              port: 1234
+            >
+            address_candidates: < ip_address: "\xc0\xa8\x00\x01" port: 5678 >
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      "ssid", "password", 1234, /*frequency=*/2412, "0.0.0.0", false);
-  auto response = FromBytes(bytes);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("ssid");
+  credentials.set_password("password");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("0.0.0.0");
+  auto* address_candidate = credentials.add_address_candidates();
+  address_candidate->set_ip_address(std::string(
+      "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 16));
+  address_candidate->set_port(1234);
+  address_candidate = credentials.add_address_candidates();
+  address_candidate->set_ip_address(std::string("\xc0\xa8\x00\x01", 4));
+  address_candidate->set_port(5678);
+  auto response =
+      FromBytes(ForBwuWifiHotspotPathAvailable(std::move(credentials), false));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -419,12 +497,27 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
         event_type: UPGRADE_PATH_AVAILABLE
         upgrade_path_info: <
           medium: WIFI_LAN
-          wifi_lan_socket: < ip_address: "\x01\x02\x03\x04" wifi_port: 1234 >
+          wifi_lan_socket: <
+            ip_address: "\x01\x02\x03\x04"
+            wifi_port: 1234
+            address_candidates: <
+              ip_address: "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53"
+              port: 1234
+            >
+            address_candidates: < ip_address: "\001\002\003\004" port: 1234 >
+          >
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiLanPathAvailable("\x01\x02\x03\x04", 1234);
+  std::string bytes = ForBwuWifiLanPathAvailable(
+      {ServiceAddress{
+           .address = {'\x2a', '\x00', '\x79', '\xe0', '\x2e', '\x87', '\x00',
+                       '\x06', '\xb7', '\x28', '\x67', '\x45', '\x7a', '\xdd',
+                       '\x01', '\x53'},
+           .port = 1234},
+       ServiceAddress{.address = {'\x01', '\x02', '\x03', '\x04'},
+                      .port = 1234}});
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
@@ -451,9 +544,8 @@ TEST(OfflineFramesTest, CanGenerateBwuAwdlPathAvailable) {
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuAwdlPathAvailable("service_name", "nearby_upgrade",
-                                            "password", true);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForBwuAwdlPathAvailable(
+      "service_name", "nearby_upgrade", "password", true));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -479,9 +571,9 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiAwarePathAvailable) {
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiAwarePathAvailable("service_id", "service_info",
-                                                 "password", false);
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(
+      ForBwuWifiAwarePathAvailable("service_id", "service_info", "password",
+                                   /*supports_disabling_encryption=*/false));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -498,20 +590,23 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
         upgrade_path_info: <
           medium: WIFI_DIRECT
           wifi_direct_credentials: <
-            ssid: "DIRECT-A0-0123456789AB"
-            password: "password"
+            ssid: ""
+            password: ""
             port: 1000
             frequency: 2412
             gateway: "192.168.1.1"
+            device_name: "NC-WifiDirectTest"
+            pin: "b592f7d3"
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiDirectPathAvailable(
-      "DIRECT-A0-0123456789AB", "password", 1000, 2412, false, "192.168.1.1");
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForBwuWifiDirectPathAvailable(
+      /*ssid=*/"", /*password=*/"", /*port=*/1000, /*frequency=*/2412,
+      /*supports_disabling_encryption=*/false, "192.168.1.1",
+      "NC-WifiDirectTest", "b592f7d3"));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -529,15 +624,16 @@ TEST(OfflineFramesTest, CanGenerateBwuBluetoothPathAvailable) {
           medium: BLUETOOTH
           bluetooth_credentials: <
             service_name: "service"
-            mac_address: "\x11\x22\x33\x44\x55\x66"
+            mac_address: "11:22:33:44:55:66"
           >
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes =
-      ForBwuBluetoothPathAvailable("service", "\x11\x22\x33\x44\x55\x66");
-  auto response = FromBytes(bytes);
+  MacAddress mac_address;
+  MacAddress::FromString("11:22:33:44:55:66", mac_address);
+  auto response =
+      FromBytes(ForBwuBluetoothPathAvailable("service", mac_address));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -551,8 +647,7 @@ TEST(OfflineFramesTest, CanGenerateBwuLastWrite) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: < event_type: LAST_WRITE_TO_PRIOR_CHANNEL >
     >)pb";
-  ByteArray bytes = ForBwuLastWrite();
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForBwuLastWrite());
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -566,8 +661,7 @@ TEST(OfflineFramesTest, CanGenerateBwuSafeToClose) {
       type: BANDWIDTH_UPGRADE_NEGOTIATION
       bandwidth_upgrade_negotiation: < event_type: SAFE_TO_CLOSE_PRIOR_CHANNEL >
     >)pb";
-  ByteArray bytes = ForBwuSafeToClose();
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForBwuSafeToClose());
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -584,12 +678,13 @@ TEST(OfflineFramesTest, CanGenerateBwuIntroduction) {
         client_introduction: <
           endpoint_id: "ABC"
           supports_disabling_encryption: false
+          last_endpoint_id: "DEF"
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuIntroduction(
-      std::string(kEndpointId), false /* supports_disabling_encryption */);
-  auto response = FromBytes(bytes);
+  auto response =
+      FromBytes(ForBwuIntroduction(std::string(kEndpointId), "DEF",
+                                   false /* supports_disabling_encryption */));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -603,8 +698,7 @@ TEST(OfflineFramesTest, CanGenerateKeepAlive) {
       type: KEEP_ALIVE
       keep_alive: <>
     >)pb";
-  ByteArray bytes = ForKeepAlive();
-  auto response = FromBytes(bytes);
+  auto response = FromBytes(ForKeepAlive());
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -621,39 +715,9 @@ TEST(OfflineFramesTest, CanGenerateDisconnection) {
         ack_safe_to_disconnect: true
       >
     >)pb";
-  ByteArray bytes = ForDisconnection(/* request_safe_to_disconnect */ true,
-                                     /* ack_safe_to_disconnect */ true);
-  auto response = FromBytes(bytes);
-  ASSERT_TRUE(response.ok());
-  OfflineFrame message = response.result();
-  EXPECT_THAT(message, EqualsProto(kExpected));
-}
-
-TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroduction) {
-  constexpr absl::string_view kExpected =
-      R"pb(
-    version: V1
-    v1: <
-      type: AUTO_RECONNECT
-      auto_reconnect: < event_type: CLIENT_INTRODUCTION endpoint_id: "ABC" >
-    >)pb";
-  ByteArray bytes = ForAutoReconnectIntroduction(std::string(kEndpointId));
-  auto response = FromBytes(bytes);
-  ASSERT_TRUE(response.ok());
-  OfflineFrame message = response.result();
-  EXPECT_THAT(message, EqualsProto(kExpected));
-}
-
-TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
-  constexpr absl::string_view kExpected =
-      R"pb(
-    version: V1
-    v1: <
-      type: AUTO_RECONNECT
-      auto_reconnect: < event_type: CLIENT_INTRODUCTION_ACK >
-    >)pb";
-  ByteArray bytes = ForAutoReconnectIntroductionAck();
-  auto response = FromBytes(bytes);
+  auto response =
+      FromBytes(ForDisconnection(/* request_safe_to_disconnect */ true,
+                                 /* ack_safe_to_disconnect */ true));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
@@ -668,9 +732,11 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
       bandwidth_upgrade_negotiation: <
         event_type: UPGRADE_PATH_REQUEST
         upgrade_path_info: <
+          medium: WIFI_HOTSPOT
           upgrade_path_request: <
             mediums: WIFI_HOTSPOT
             medium_meta_data: <
+              supports_5_ghz: true
               medium_role: < support_wifi_hotspot_client: true >
             >
           >
@@ -681,14 +747,56 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   mediums.push_back(Medium::WIFI_HOTSPOT);
   MediumRole medium_role;
   medium_role.set_support_wifi_hotspot_client(true);
-  ByteArray bytes = ForBwuPathRequest(mediums, medium_role);
-  auto response = FromBytes(bytes);
+  auto response =
+      FromBytes(ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role,
+                                  /*supports_5_ghz=*/true));
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
+TEST(OfflineFramesTest, WFDAuthTypeToMediumMetadataWFDAuthType) {
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD),
+            MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME),
+            MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME);
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN),
+            MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN);
+}
+
+TEST(OfflineFramesTest, MediumMetadataWFDAuthTypeToWFDAuthType) {
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_WITH_PASSWORD),
+            WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD);
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME),
+            WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME);
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN),
+            WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN);
+}
+
+TEST(OfflineFramesTest, MediumMetadataWFDAuthTypesToWFDAuthTypes) {
+  MediumMetadata medium_metadata;
+  medium_metadata.add_supported_wifi_direct_auth_types(
+      MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
+  medium_metadata.add_supported_wifi_direct_auth_types(
+      MediumMetadata::WIFI_DIRECT_WITH_DEVICE_NAME);
+
+  std::vector<WifiDirectAuthType> expected = {
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD,
+      WifiDirectAuthType::WIFI_DIRECT_WITH_DEVICE_NAME};
+
+  EXPECT_THAT(MediumMetadataWFDAuthTypesToWFDAuthTypes(medium_metadata),
+              Pointwise(testing::Eq(), expected));
+
+  MediumMetadata empty_medium_metadata;
+  EXPECT_TRUE(
+      MediumMetadataWFDAuthTypesToWFDAuthTypes(empty_medium_metadata).empty());
+}
+
 }  // namespace
-}  // namespace parser
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections::parser

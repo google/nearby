@@ -21,10 +21,10 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace network {
@@ -38,43 +38,43 @@ class HttpClient {
     ~CancellableRequest() = default;
 
     bool is_cancelled() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       return is_cancelled_;
     }
 
     void cancel() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_cancelled_ = true;
     }
 
     const HttpRequest& http_request() ABSL_LOCKS_EXCLUDED(mutex_) {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       return http_request_;
     }
 
    private:
-    Mutex mutex_;
+    absl::Mutex mutex_;
     bool is_cancelled_ ABSL_GUARDED_BY(mutex_) = false;
     HttpRequest http_request_ ABSL_GUARDED_BY(mutex_);
   };
 
   virtual ~HttpClient() = default;
 
-  // Starts HTTP request in asynchronization mode.
+  // Starts HTTP request in asynchronous mode.
   virtual void StartRequest(
-      const HttpRequest& request,
+      const HttpRequest& request, absl::Duration timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>
           callback) = 0;
 
-  // Starts cancellable request in asynchronization mode.
+  // Starts cancellable request in asynchronous mode.
   virtual void StartCancellableRequest(
-      std::unique_ptr<CancellableRequest> request,
+      std::unique_ptr<CancellableRequest> request, absl::Duration timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>
           callback) = 0;
 
-  // Gets HTTP response in synchronization mode.
+  // Gets HTTP response in synchronous mode.
   virtual absl::StatusOr<HttpResponse> GetResponse(
-      const HttpRequest& request) = 0;
+      const HttpRequest& request, absl::Duration timeout) = 0;
 
   // The error may be corrected if retried at a later time.
   static bool IsRetryableHttpError(absl::Status status) {

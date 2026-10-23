@@ -39,7 +39,6 @@ class Timer {
 
   // Stops timer. No timer signal is sent after the call.
   virtual bool Stop() = 0;
-  virtual bool FireNow() = 0;
 };
 
 }  // namespace api

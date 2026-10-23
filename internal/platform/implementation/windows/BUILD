@@ -12,16 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 licenses(["notice"])
 
 cc_library(
+    name = "device_paths",
+    srcs = [
+        "device_paths.cc",
+    ],
+    hdrs = [
+        "device_paths.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    linkopts = [
+        "ole32.lib",
+        "shell32.lib",
+    ],
+    tags = ["windows"],
+    visibility = [
+        "//location/nearby/apps/better_together/plugins/crashpad/windows:__pkg__",
+        "//location/nearby/apps/better_together/plugins/logging/windows:__pkg__",
+    ],
+    deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "types",
     srcs = [
         "device_info.cc",
+        "scheduled_executor.cc",
+        "session_manager.cc",
+        "submittable_executor.cc",
+        "task_scheduler.cc",
+        "thread_pool.cc",
         "timer.cc",
+        "utils.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
@@ -30,110 +63,46 @@ cc_library(
         "condition_variable.h",
         "device_info.h",
         "executor.h",
-        "future.h",
-        "listenable_future.h",
         "mutex.h",
-        "preferences_manager.h",
         "scheduled_executor.h",
-        "settable_future.h",
+        "session_manager.h",
         "submittable_executor.h",
         "task_scheduler.h",
+        "thread_pool.h",
         "timer.h",
         "utils.h",
     ],
-    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
-    visibility = [
-        "//sharing/internal/impl/windows:__pkg__",
+    defines = [
+        "_SILENCE_CLANG_COROUTINE_MESSAGE",
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
     ],
+    linkopts = [
+        "powrprof.lib",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
     deps = [
-        ":comm",
-        "//internal/base:bluetooth_address",
+        ":device_paths",
+        ":string_utils",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:logging",
-        "//internal/platform:uuid",
-        "//internal/platform/implementation:types",
-        "//internal/platform/implementation/windows:string_utils",
-        "//internal/platform/implementation/windows/generated:types",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",
-        "@nlohmann_json//:json",
-    ],
-)
-
-cc_library(
-    name = "comm",
-    hdrs = [
-        "ble.h",
-        "ble_gatt_client.h",
-        "ble_gatt_server.h",
-        "ble_medium.h",
-        "ble_peripheral.h",
-        "ble_socket.h",
-        "ble_v2.h",
-        "ble_v2_server_socket.h",
-        "ble_v2_socket.h",
-        "bluetooth_adapter.h",
-        "bluetooth_classic.h",
-        "bluetooth_classic_device.h",
-        "bluetooth_classic_medium.h",
-        "bluetooth_classic_server_socket.h",
-        "bluetooth_classic_socket.h",
-        "bluetooth_pairing.h",
-        "condition_variable.h",
-        "executor.h",
-        "file.h",
-        "file_path.h",
-        "http_loader.h",
-        "mutex.h",
-        "nearby_client_socket.h",
-        "nearby_server_socket.h",
-        "scheduled_executor.h",
-        "server_sync.h",
-        "session_manager.h",
-        "submittable_executor.h",
-        "thread_pool.h",
-        "webrtc.h",
-        "wifi.h",
-        "wifi_direct.h",
-        "wifi_hotspot.h",
-        "wifi_hotspot_native.h",
-        "wifi_intel.h",
-        "wifi_lan.h",
-        "wifi_lan_mdns.h",
-    ],
-    copts = ["-DNO_INTEL_PIE"],
-    visibility = ["//visibility:private"],
-    deps = [
-        "//connections/implementation/flags:connections_flags",
-        "//internal/flags:nearby_flags",
-        "//internal/platform:base",
+        "//internal/platform:mac_address",
+        "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:wifi_utils",
-        "//internal/platform/implementation/shared:count_down_latch",
-        "//internal/platform/implementation/windows/generated:types",
+        "//internal/platform/implementation:types",
+        "//third_party/WinRT:winrt",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -142,6 +111,7 @@ cc_library(
     srcs = [
         "crypto.cc",
     ],
+    tags = ["windows"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
@@ -159,6 +129,7 @@ cc_library(
     hdrs = [
         "string_utils.h",
     ],
+    tags = ["windows"],
     visibility = [
         "//:__subpackages__",
         "//location/nearby:__subpackages__",
@@ -171,15 +142,122 @@ cc_library(
 )
 
 cc_library(
+    name = "network_info",
+    srcs = [
+        "network_info.cc",
+    ],
+    hdrs = [
+        "network_info.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    defines = [
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "WINVER=_WIN32_WINNT_WIN10",
+    ],
+    tags = ["windows"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        ":socket_address",
+        ":string_utils",
+        ":wlan_client",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "scoped_wlan_memory",
+    hdrs = [
+        "scoped_wlan_memory.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    tags = ["windows"],
+    visibility = ["//location/nearby:__subpackages__"],
+)
+
+cc_library(
+    name = "wlan_client",
+    srcs = [
+        "wlan_client.cc",
+    ],
+    hdrs = [
+        "wlan_client.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    tags = ["windows"],
+    visibility = ["//location/nearby:__subpackages__"],
+    deps = [
+        ":scoped_wlan_memory",
+        "//internal/platform:logging",
+    ],
+)
+
+cc_library(
+    name = "registry_accessor",
+    hdrs = ["registry_accessor.h"],
+    tags = ["windows"],
+)
+
+cc_library(
+    name = "registry",
+    srcs = [
+        "registry.cc",
+    ],
+    hdrs = [
+        "registry.h",
+    ],
+    linkopts = [
+        "shlwapi.lib",
+    ],
+    tags = ["windows"],
+    visibility = [
+        "//internal/platform/implementation/windows:__subpackages__",
+        "//location/nearby:__subpackages__",
+        "//sharing/internal/impl/windows:__subpackages__",
+    ],
+    deps = [
+        ":registry_accessor",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "mock_registry_accessor",
+    testonly = True,
+    hdrs = ["mock_registry_accessor.h"],
+    tags = ["windows"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":registry_accessor",
+    ],
+)
+
+cc_library(
+    name = "webrtc_platform",
+    srcs = ["webrtc_platform.cc"],
+    tags = ["windows"],
+    deps = [
+        "//connections/implementation/mediums/webrtc:webrtc_medium_impl",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:webrtc_platform",
+    ],
+    alwayslink = True,
+)
+
+cc_library(
     name = "windows",
     srcs = [
+        "ble.cc",
         "ble_gatt_client.cc",
         "ble_gatt_server.cc",
-        "ble_medium.cc",
+        "ble_server_socket.cc",
         "ble_socket.cc",
-        "ble_v2.cc",
-        "ble_v2_server_socket.cc",
-        "ble_v2_socket.cc",
         "bluetooth_adapter.cc",
         "bluetooth_classic_device.cc",
         "bluetooth_classic_medium.cc",
@@ -188,6 +266,7 @@ cc_library(
         "bluetooth_pairing.cc",
         "executor.cc",
         "file.cc",
+        "file.h",
         "file_path.cc",
         "http_loader.cc",
         "nearby_client_socket.cc",
@@ -195,15 +274,7 @@ cc_library(
         "platform.cc",
         "preferences_manager.cc",
         "preferences_repository.cc",
-        "preferences_repository.h",
-        "scheduled_executor.cc",
-        "session_manager.cc",
-        "submittable_executor.cc",
         "system_clock.cc",
-        "task_scheduler.cc",
-        "thread_pool.cc",
-        "utils.cc",
-        "webrtc.cc",
         "wifi_direct_medium.cc",
         "wifi_direct_server_socket.cc",
         "wifi_direct_socket.cc",
@@ -218,36 +289,66 @@ cc_library(
         "wifi_lan_socket.cc",
         "wifi_medium.cc",
     ],
-    # This is the temporary solution to solve compilation error of Win32 WFDxxx() related API.
-    # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
+    hdrs = [
+        "ble.h",
+        "ble_gatt_client.h",
+        "ble_gatt_server.h",
+        "ble_server_socket.h",
+        "ble_socket.h",
+        "bluetooth_classic.h",
+        "bluetooth_classic_device.h",
+        "bluetooth_classic_medium.h",
+        "bluetooth_classic_server_socket.h",
+        "bluetooth_classic_socket.h",
+        "bluetooth_pairing.h",
+        "file_path.h",
+        "http_loader.h",
+        "nearby_client_socket.h",
+        "nearby_server_socket.h",
+        "preferences_manager.h",
+        "preferences_repository.h",
+        "wifi.h",
+        "wifi_direct.h",
+        "wifi_hotspot.h",
+        "wifi_hotspot_native.h",
+        "wifi_hotspot_server_socket.h",
+        "wifi_hotspot_socket.h",
+        "wifi_intel.h",
+        "wifi_lan.h",
+        "wifi_lan_mdns.h",
+    ],
     copts = [
         "-DNO_INTEL_PIE",
         "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
-        "-Wno-unused-variable",
-        "-Wno-unused-value",
     ],
-    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
+    linkopts = [
+        "iphlpapi.lib",
+    ],
+    tags = ["windows"],
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//connections:partners",
         "//internal/platform:__subpackages__",
         "//location/nearby:__subpackages__",
-        "//presence:__subpackages__",
         "//sharing:__subpackages__",
     ],
     deps = [
-        ":comm",
         ":crypto",  # build_cleaner: keep
+        ":device_paths",
+        ":network_info",
+        ":registry",
+        ":scoped_wlan_memory",
+        ":socket_address",
         ":string_utils",
         ":types",
-        "//connections/implementation/flags:connections_flags",
+        ":wlan_client",
         "//connections/implementation/mediums:utils",
-        "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
-        "//connections/implementation/mediums/ble_v2:bloom_filter",
-        "//internal/account",
+        "//connections/implementation/mediums/ble:ble_advertisement_header",
+        "//connections/implementation/mediums/ble:bloom_filter",
         "//internal/base:file_path",
         "//internal/base:files",
+        "//internal/base:masker",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -261,12 +362,10 @@ cc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation:wifi_utils",
         "//internal/platform/implementation/shared:count_down_latch",
-        "//internal/platform/implementation/windows/generated:types",
+        "//third_party/WinRT:winrt",
         "//third_party/intel/pie",
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
-        "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
@@ -278,24 +377,57 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
+        "@com_google_protobuf//:protobuf",
+        "@com_google_protobuf//json",
         "@nlohmann_json//:json",
     ],
 )
 
 cc_library(
-    name = "test_utils",
+    name = "socket_address",
     srcs = [
-        "test_utils.cc",
+        "socket_address.cc",
     ],
     hdrs = [
-        "test_data.h",
-        "test_utils.h",
+        "socket_address.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    defines = [
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "WINVER=_WIN32_WINNT_WIN10",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "test_data",
+    testonly = True,
+    hdrs = ["test_data.h"],
     visibility = ["//visibility:private"],
     deps = [
         "//internal/platform:base",
         "@nlohmann_json//:json",
     ],
+)
+
+proto_library(
+    name = "preferences_manager_test_proto",
+    testonly = True,
+    srcs = ["preferences_manager_test.proto"],
+    compatible_with = ["//buildenv/target:non_prod"],
+)
+
+cc_proto_library(
+    name = "preferences_manager_test_cc_proto",
+    testonly = True,
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [":preferences_manager_test_proto"],
 )
 
 cc_test(
@@ -305,8 +437,7 @@ cc_test(
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
         "ble_gatt_server_test.cc",
-        "ble_medium_test.cc",
-        "ble_v2_test.cc",
+        "ble_test.cc",
         "bluetooth_adapter_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
@@ -323,27 +454,35 @@ cc_test(
         "thread_pool_test.cc",
         "timer_test.cc",
         "utils_test.cc",
-        "webrtc_test.cc",
+        "wifi_direct_test.cc",
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     tags = ["nozapfhahn"],
     deps = [
-        ":comm",
-        ":crypto",
-        ":test_utils",
+        ":device_paths",
+        ":preferences_manager_test_cc_proto",
+        ":string_utils",
+        ":test_data",
         ":types",
         ":windows",
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
+        "//internal/platform:types",
+        "//internal/platform:uuid",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
-        "//internal/platform/implementation/windows/generated:types",
+        "//net/proto2/contrib/parse_proto:parse_text_proto",
+        "//third_party/WinRT:winrt",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
@@ -362,6 +501,142 @@ cc_test(
     ],
     deps = [
         ":string_utils",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "file_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "file_test.cc",
+    ],
+    tags = ["nozapfhahn"],
+    deps = [
+        ":windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "device_paths_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "device_paths_test.cc",
+    ],
+    deps = [
+        ":device_paths",
+        "//internal/base:file_path",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "network_info_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "network_info_test.cc",
+    ],
+    deps = [
+        ":network_info",
+        "//sharing/internal/impl/windows:platform_windows_libs",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "socket_address_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "socket_address_test.cc",
+    ],
+    deps = [
+        ":socket_address",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "scoped_wlan_memory_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "scoped_wlan_memory_test.cc",
+    ],
+    deps = [
+        ":scoped_wlan_memory",
+        "//sharing/internal/impl/windows:platform_windows_libs",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "wlan_client_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "wlan_client_test.cc",
+    ],
+    deps = [
+        ":wlan_client",
+        "//sharing/internal/impl/windows:platform_windows_libs",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "nearby_client_socket_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "nearby_client_socket_test.cc",
+    ],
+    deps = [
+        ":socket_address",
+        ":windows",
+        "//internal/platform:base",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "nearby_server_socket_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "nearby_server_socket_test.cc",
+    ],
+    deps = [
+        ":socket_address",
+        ":windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "registry_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "registry_test.cc",
+    ],
+    deps = [
+        ":mock_registry_accessor",
+        ":registry",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

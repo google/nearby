@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -28,83 +27,76 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/base/files.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/logging.h"
+#include "google/protobuf/json/json.h"
+#include "google/protobuf/message.h"
 
 namespace nearby::windows {
 namespace {
 using json = ::nlohmann::json;
 }  // namespace
 
-PreferencesManager::PreferencesManager(FilePath file_path) {
-  std::optional<FilePath> path =
-      nearby::api::ImplementationPlatform::CreateDeviceInfo()
-          ->GetLocalAppDataPath();
-  if (!path.has_value()) {
-    path = Files::GetTemporaryDirectory();
-  }
-
-  path->append(file_path);
-  preferences_repository_ = std::make_unique<PreferencesRepository>(*path);
+PreferencesManager::PreferencesManager(FilePath preferences_dir) {
+  preferences_repository_ =
+      std::make_unique<PreferencesRepository>(preferences_dir);
   value_ = preferences_repository_->LoadPreferences();
 }
 
 bool PreferencesManager::Set(absl::string_view key, const json& value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetValue(key, value);
 }
 
 bool PreferencesManager::SetBoolean(absl::string_view key, bool value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetValue(key, value);
 }
 
 bool PreferencesManager::SetInteger(absl::string_view key, int value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetValue(key, value);
 }
 
 bool PreferencesManager::SetInt64(absl::string_view key, int64_t value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetValue(key, value);
 }
 
 bool PreferencesManager::SetString(absl::string_view key,
                                    absl::string_view value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetValue(key, absl::StrCat(value));
 }
 
 bool PreferencesManager::SetBooleanArray(absl::string_view key,
                                          absl::Span<const bool> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetArrayValue(key, value);
 }
 
 bool PreferencesManager::SetIntegerArray(absl::string_view key,
                                          absl::Span<const int> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetArrayValue(key, value);
 }
 
 bool PreferencesManager::SetInt64Array(absl::string_view key,
                                        absl::Span<const int64_t> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetArrayValue(key, value);
 }
 
 bool PreferencesManager::SetStringArray(absl::string_view key,
                                         absl::Span<const std::string> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return SetArrayValue(key, value);
 }
 
 bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
   // Save time as nanos
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   int64_t tt = absl::ToUnixNanos(value);
   if (value_[absl::StrCat(key)] == tt) {
     return false;
@@ -114,64 +106,76 @@ bool PreferencesManager::SetTime(absl::string_view key, absl::Time value) {
   return Commit();
 }
 
+bool PreferencesManager::SetProtoMessage(absl::string_view key,
+  const google::protobuf::Message& value) {
+    std::string json_string;
+    if (!proto2::json::MessageToJsonString(value, &json_string).ok()) {
+      return false;
+    }
+    {
+      absl::MutexLock lock(mutex_);
+      return SetValue(key, json::parse(json_string));
+    }
+}
+
 // Get JSON value.
 json PreferencesManager::Get(absl::string_view key,
                              const json& default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetValue(key, default_value);
 }
 
 bool PreferencesManager::GetBoolean(absl::string_view key,
                                     bool default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetValue(key, default_value);
 }
 
 int PreferencesManager::GetInteger(absl::string_view key,
                                    int default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetValue(key, default_value);
 }
 
 int64_t PreferencesManager::GetInt64(absl::string_view key,
                                      int64_t default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetValue(key, default_value);
 }
 
 std::string PreferencesManager::GetString(
     absl::string_view key, const std::string& default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetValue(key, default_value);
 }
 
 std::vector<bool> PreferencesManager::GetBooleanArray(
     absl::string_view key, absl::Span<const bool> default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetArrayValue(key, default_value);
 }
 
 std::vector<int> PreferencesManager::GetIntegerArray(
     absl::string_view key, absl::Span<const int> default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetArrayValue(key, default_value);
 }
 
 std::vector<int64_t> PreferencesManager::GetInt64Array(
     absl::string_view key, absl::Span<const int64_t> default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetArrayValue(key, default_value);
 }
 
 std::vector<std::string> PreferencesManager::GetStringArray(
     absl::string_view key, absl::Span<const std::string> default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return GetArrayValue(key, default_value);
 }
 
 absl::Time PreferencesManager::GetTime(absl::string_view key,
                                        absl::Time default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto result = value_.find(absl::StrCat(key));
   if (result == value_.end()) {
     return default_value;
@@ -180,10 +184,34 @@ absl::Time PreferencesManager::GetTime(absl::string_view key,
   return absl::FromUnixNanos(result->get<int64_t>());
 }
 
+bool PreferencesManager::GetProtoMessage(absl::string_view key,
+  google::protobuf::Message* value) const {
+  absl::MutexLock lock(mutex_);
+  auto result = value_.find(absl::StrCat(key));
+  if (result == value_.end()) {
+    return false;
+  }
+  return proto2::json::JsonStringToMessage(result->dump(), value)
+      .ok();
+}
+
 // Removes preferences
 void PreferencesManager::Remove(absl::string_view key) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   value_.erase(absl::StrCat(key));
+}
+
+bool PreferencesManager::RemoveKeyPrefix(absl::string_view prefix) {
+  absl::MutexLock lock(mutex_);
+  auto it = value_.begin();
+  while (it != value_.end()) {
+    if (it.key().starts_with(prefix)) {
+      it = value_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  return true;
 }
 
 // Private methods

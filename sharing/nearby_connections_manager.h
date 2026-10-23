@@ -103,6 +103,7 @@ class NearbyConnectionsManager {
                                 PowerLevel power_level,
                                 proto::DataUsage data_usage,
                                 bool use_stable_endpoint_id,
+                                bool force_new_endpoint_id,
                                 ConnectionsCallback callback) = 0;
 
   // Stops advertising through Nearby Connections.
@@ -155,6 +156,9 @@ class NearbyConnectionsManager {
 
   // Sets a custom save path.
   virtual void SetCustomSavePath(absl::string_view custom_save_path) = 0;
+  // Overrides the save path for transfers from a specific endpoint.
+  virtual void OverrideSavePath(absl::string_view endpoint_id,
+                                const FilePath& custom_save_path) = 0;
 
   // Gets the file paths to delete and clear the hash set.
   virtual absl::flat_hash_set<FilePath>

@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
 
 cc_library(
@@ -27,24 +30,15 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
-        "//internal/platform:types",
-        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
-        "//proto/identity/v1:resources_cc_proto",
-        "//proto/identity/v1:rpcs_cc_proto",
-        "//sharing/common",
+        "//location/nearby/sharing/lib/account:account_manager",
         "//sharing/common:enum",
         "//sharing/internal/api:platform",
         "//sharing/internal/base:utf_utils",
-        "//sharing/internal/impl/common:nearby_identity_grpc_client",
         "//sharing/internal/public:logging",
-        "//sharing/internal/public:types",
+        "//sharing/internal/public:pref_names",
         "//sharing/proto:share_cc_proto",
-        "//util/hash:highway_fingerprint",
-        "@com_google_absl//absl/algorithm",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -62,9 +56,6 @@ cc_library(
     deps = [
         ":local_device_data",
         "//sharing/common:enum",
-        "//sharing/internal/api:platform",
-        "//sharing/internal/public:types",
-        "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -76,25 +67,15 @@ cc_test(
     ],
     deps = [
         ":local_device_data",
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
-        "//proto/identity/v1:resources_cc_proto",
-        "//proto/identity/v1:rpcs_cc_proto",
+        "//location/nearby/sharing/lib/account:account_manager",
+        "//location/nearby/sharing/lib/account:fake_account_manager",
         "//sharing/common",
         "//sharing/common:enum",
-        "//sharing/internal/api:mock_sharing_platform",
-        "//sharing/internal/public:logging",
         "//sharing/internal/test:nearby_test",
-        "//sharing/proto:share_cc_proto",
-        "//sharing/scheduling",
-        "//sharing/scheduling:test_support",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
         "@com_google_googletest//:gtest_main",
     ],
 )

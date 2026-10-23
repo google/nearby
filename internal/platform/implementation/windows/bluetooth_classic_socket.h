@@ -20,15 +20,16 @@
 #include <cstdint>
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Networking.Sockets.h"
+#include "winrt/Windows.Storage.Streams.h"
 
 namespace nearby {
 namespace windows {
@@ -92,7 +93,7 @@ class BluetoothSocket : public api::BluetoothSocket {
         ::winrt::Windows::Storage::Streams::IOutputStream stream);
     ~BluetoothOutputStream() override = default;
 
-    Exception Write(const ByteArray& data) override;
+    Exception Write(absl::string_view data) override;
     Exception Flush() override;
 
     Exception Close() override;
