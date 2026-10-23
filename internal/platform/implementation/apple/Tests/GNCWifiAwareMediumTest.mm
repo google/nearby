@@ -18,6 +18,7 @@
 #import <TargetConditionals.h>
 #import <XCTest/XCTest.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 
@@ -296,6 +297,109 @@ static const int kTestPort = 5678;
                    }];
             }];
   [self waitForExpectations:@[ readExpectation ] timeout:2.0];
+}
+
+- (void)testConnectionWrapperReadSpansChunksAndPreservesOrder {
+  XCTestExpectation* appendExpectation = [self expectationWithDescription:@"appends complete"];
+  XCTestExpectation* readExpectation = [self expectationWithDescription:@"reads complete"];
+
+  GNCWiFiAwareConnectionWrapper* wrapper =
+      [[GNCWiFiAwareConnectionWrapper alloc] initForTestingWithOnClose:^{
+      }];
+
+  NSData* chunk1 = [@"abc" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData* chunk2 = [@"defgh" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData* chunk3 = [@"ij" dataUsingEncoding:NSUTF8StringEncoding];
+  [wrapper appendIncomingData:chunk1
+            completionHandler:^{
+              [wrapper appendIncomingData:chunk2
+                        completionHandler:^{
+                          [wrapper appendIncomingData:chunk3
+                                    completionHandler:^{
+                                      [appendExpectation fulfill];
+                                    }];
+                        }];
+            }];
+  [self waitForExpectations:@[ appendExpectation ] timeout:2.0];
+
+  // A read smaller than the buffered data spans the first two chunks; the next read returns the
+  // remainder across the partially consumed chunk and the last chunk.
+  [wrapper readMaxLength:4
+       completionHandler:^(NSData* _Nullable first) {
+         XCTAssertEqualObjects(first, [@"abcd" dataUsingEncoding:NSUTF8StringEncoding]);
+         [wrapper readMaxLength:64
+              completionHandler:^(NSData* _Nullable second) {
+                XCTAssertEqualObjects(second, [@"efghij" dataUsingEncoding:NSUTF8StringEncoding]);
+                [readExpectation fulfill];
+              }];
+       }];
+  [self waitForExpectations:@[ readExpectation ] timeout:2.0];
+}
+
+- (void)testConnectionWrapperReceiveCapacityBlocksAtHighWaterMarkAndResumesAfterDrain {
+  XCTestExpectation* appendExpectation = [self expectationWithDescription:@"append completes"];
+  XCTestExpectation* capacityExpectation =
+      [self expectationWithDescription:@"receive capacity becomes available"];
+  XCTestExpectation* readExpectation = [self expectationWithDescription:@"drain read completes"];
+  auto capacityAvailable = std::make_shared<std::atomic<bool>>(false);
+
+  GNCWiFiAwareConnectionWrapper* wrapper =
+      [[GNCWiFiAwareConnectionWrapper alloc] initForTestingWithOnClose:^{
+      }];
+
+  // Fill the receive buffer to its 4 MB high-water mark.
+  NSData* bigChunk = [NSMutableData dataWithLength:4 * 1024 * 1024];
+  [wrapper appendIncomingData:bigChunk
+            completionHandler:^{
+              [wrapper waitForReceiveCapacityWithCompletionHandler:^(BOOL hasCapacity) {
+                XCTAssertTrue(hasCapacity);
+                capacityAvailable->store(true);
+                [capacityExpectation fulfill];
+              }];
+              [appendExpectation fulfill];
+            }];
+  [self waitForExpectations:@[ appendExpectation ] timeout:2.0];
+
+  // The receive pump must stay suspended while the consumer has not drained the buffer.
+  [NSThread sleepForTimeInterval:0.3];
+  XCTAssertFalse(capacityAvailable->load(),
+                 @"Receive pump must be throttled while the buffer is at the high-water mark");
+
+  // Draining below the 1 MB low-water mark resumes the receive pump.
+  const NSInteger drainLength = 3 * 1024 * 1024 + 512 * 1024;
+  [wrapper readMaxLength:drainLength
+       completionHandler:^(NSData* _Nullable data) {
+         XCTAssertEqual(data.length, (NSUInteger)drainLength);
+         [readExpectation fulfill];
+       }];
+  [self waitForExpectations:@[ readExpectation, capacityExpectation ] timeout:2.0];
+}
+
+- (void)testConnectionWrapperReceiveCapacityReturnsNoWhenClosed {
+  XCTestExpectation* appendExpectation = [self expectationWithDescription:@"append completes"];
+  XCTestExpectation* capacityExpectation =
+      [self expectationWithDescription:@"throttled receive pump is released on close"];
+
+  GNCWiFiAwareConnectionWrapper* wrapper =
+      [[GNCWiFiAwareConnectionWrapper alloc] initForTestingWithOnClose:^{
+      }];
+
+  NSData* bigChunk = [NSMutableData dataWithLength:4 * 1024 * 1024];
+  [wrapper appendIncomingData:bigChunk
+            completionHandler:^{
+              [wrapper waitForReceiveCapacityWithCompletionHandler:^(BOOL hasCapacity) {
+                XCTAssertFalse(hasCapacity);
+                [capacityExpectation fulfill];
+              }];
+              [appendExpectation fulfill];
+            }];
+  [self waitForExpectations:@[ appendExpectation ] timeout:2.0];
+
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(100 * NSEC_PER_MSEC)),
+                 dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+                   [wrapper signalClosedWithReason:@"test close"];
+                 });
+  [self waitForExpectations:@[ capacityExpectation ] timeout:2.0];
 }
 
 - (void)testAwareManagerGetLatestConnectionWrapperConsumesReference {
