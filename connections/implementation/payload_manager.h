@@ -25,11 +25,13 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/internal_payload.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "connections/payload.h"
 #include "connections/payload_type.h"
@@ -42,6 +44,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
 
@@ -78,6 +81,22 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void DisconnectFromEndpointManager();
 
   void SetCustomSavePath(ClientProxy* client, const std::string& path);
+
+  // Returns the one-line summary that is logged when a payload finishes
+  // successfully, similar to the "Received FILE ..." / "Sent FILE ..." logs on
+  // Android. Exposed for testing.
+  //
+  // `total_bytes` is the final size of the payload. `start_offset` is the
+  // number of bytes that had already been transferred when the transfer start
+  // was marked (see `PendingPayload::SetTransferStart()`); those bytes are
+  // excluded from the throughput. `duration` is the time between the transfer
+  // start and the handling of the last chunk on the transfer thread.
+  static std::string FormatTransferSummary(
+      bool is_incoming, absl::string_view endpoint_id,
+      const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
+          payload_header,
+      int64_t total_bytes, int64_t start_offset, absl::Duration duration,
+      location::nearby::proto::connections::Medium medium);
 
  private:
   // Information about an endpoint for a particular payload.
@@ -146,6 +165,26 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
     bool IsIncoming() const;
 
+    // Records the point at which the transfer of this payload actually
+    // started, used to compute the transfer duration and throughput that are
+    // logged once the payload completes.
+    //
+    // `start_time` is when the transfer started (e.g. when the payload
+    // executor begins sending an outgoing payload, rather than when it was
+    // queued; or when the first chunk of an incoming payload arrived).
+    // `start_offset` is the number of payload bytes that were already
+    // transferred at `start_time` and should therefore be excluded from the
+    // throughput computation (e.g. the resume offset of an outgoing payload,
+    // or the body of the first chunk of an incoming payload, which had
+    // already been received when the start time was stamped).
+    //
+    // If never called, the start time defaults to when this pending payload
+    // was created and the start offset defaults to 0.
+    void SetTransferStart(absl::Time start_time, int64_t start_offset)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    absl::Time GetTransferStartTime() const ABSL_LOCKS_EXCLUDED(mutex_);
+    int64_t GetTransferStartOffset() const ABSL_LOCKS_EXCLUDED(mutex_);
+
     // Gets the EndpointInfo objects for the endpoints (still) associated with
     // this payload.
     std::vector<const EndpointInfo*> GetEndpoints() const
@@ -192,6 +231,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
+    absl::Time transfer_start_time_ ABSL_GUARDED_BY(mutex_);
+    int64_t transfer_start_offset_ ABSL_GUARDED_BY(mutex_) = 0;
     int refcount_ = 0;
   };
 
