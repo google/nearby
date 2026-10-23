@@ -1482,15 +1482,6 @@ enum DeviceType {
   DCT = 3;
 }
 
-enum OsType {
-  UNKNOWN_OS_TYPE = 0;
-  ANDROID = 1;
-  CHROME_OS = 2;
-  WINDOWS = 3;
-  APPLE = 4;
-  LINUX = 100;  // g3 test environment
-}
-
 enum SupportedService {
   SUPPORTED_SERVICE_UNSPECIFIED = 0;
   SUPPORTED_SERVICE_SETTINGS_ESIM = 1;
