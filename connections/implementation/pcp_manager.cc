@@ -82,20 +82,24 @@ Status PcpManager::StartAdvertising(
     ClientProxy* client, const std::string& service_id,
     const AdvertisingOptions& advertising_options,
     const ConnectionRequestInfo& info) {
-  if (!SetCurrentPcpHandler(advertising_options.strategy)) {
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(advertising_options.strategy));
+  if (!handler) {
     return {Status::kError};
   }
 
   client->SetWebRtcNonCellular(GetWebRtcNonCellular(
       advertising_options.CompatibleOptions().allowed.GetMediums(true)));
 
-  return current_->StartAdvertising(client, service_id, advertising_options,
-                                    info);
+  return handler->StartAdvertising(client, service_id, advertising_options,
+                                   info);
 }
 
 void PcpManager::StopAdvertising(ClientProxy* client) {
-  if (current_) {
-    current_->StopAdvertising(client);
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(client->GetAdvertisingOptions().strategy));
+  if (handler) {
+    handler->StopAdvertising(client);
   }
 }
 
@@ -103,17 +107,21 @@ Status PcpManager::StartDiscovery(ClientProxy* client,
                                   const std::string& service_id,
                                   const DiscoveryOptions& discovery_options,
                                   DiscoveryListener listener) {
-  if (!SetCurrentPcpHandler(discovery_options.strategy)) {
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(discovery_options.strategy));
+  if (!handler) {
     return {Status::kError};
   }
 
-  return current_->StartDiscovery(client, service_id, discovery_options,
-                                  std::move(listener));
+  return handler->StartDiscovery(client, service_id, discovery_options,
+                                 std::move(listener));
 }
 
 void PcpManager::StopDiscovery(ClientProxy* client) {
-  if (current_) {
-    current_->StopDiscovery(client);
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(client->GetDiscoveryOptions().strategy));
+  if (handler) {
+    handler->StopDiscovery(client);
   }
 }
 
@@ -123,24 +131,29 @@ PcpManager::StartListeningForIncomingConnections(
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options) {
   if (shutdown_) return {{Status::kOutOfOrderApiCall}, {}};
-  if (!SetCurrentPcpHandler(options.strategy)) {
+  PcpHandler* handler = GetPcpHandler(StrategyToPcp(options.strategy));
+  if (!handler) {
     return {{Status::kError}, {}};
   }
-  return {current_->StartListeningForIncomingConnections(
+  return {handler->StartListeningForIncomingConnections(
       client, service_id, options, std::move(listener))};
 }
 
 void PcpManager::StopListeningForIncomingConnections(ClientProxy* client) {
-  if (current_) {
-    current_->StopListeningForIncomingConnections(client);
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(client->GetListeningOptions().strategy));
+  if (handler) {
+    handler->StopListeningForIncomingConnections(client);
   }
 }
 
 void PcpManager::InjectEndpoint(ClientProxy* client,
                                 const std::string& service_id,
                                 const OutOfBandConnectionMetadata& metadata) {
-  if (current_) {
-    current_->InjectEndpoint(client, service_id, metadata);
+  for (auto& item : handlers_) {
+    if (item.second) {
+      item.second->InjectEndpoint(client, service_id, metadata);
+    }
   }
 }
 
@@ -148,79 +161,83 @@ Status PcpManager::RequestConnection(
     ClientProxy* client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
-  }
-
   client->SetWebRtcNonCellular(
       GetWebRtcNonCellular(connection_options.GetMediums()));
 
-  return current_->RequestConnection(client, endpoint_id, info,
-                                     connection_options);
+  Status status = {Status::kEndpointUnknown};
+  for (auto& item : handlers_) {
+    if (item.second) {
+      status = item.second->RequestConnection(client, endpoint_id, info,
+                                              connection_options);
+      if (status.value != Status::kEndpointUnknown) {
+        return status;
+      }
+    }
+  }
+  return status;
 }
 
 Status PcpManager::RequestConnectionV3(
     ClientProxy* client, const NearbyDevice& remote_device,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
-  // TODO(b/300174495): Add test coverage for when |current_| is nullptr.
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
+  Status status = {Status::kEndpointUnknown};
+  for (auto& item : handlers_) {
+    if (item.second) {
+      status = item.second->RequestConnectionV3(client, remote_device, info,
+                                                connection_options);
+      if (status.value != Status::kEndpointUnknown) {
+        return status;
+      }
+    }
   }
-
-  return current_->RequestConnectionV3(client, remote_device, info,
-                                       connection_options);
+  return status;
 }
 
 Status PcpManager::AcceptConnection(ClientProxy* client,
                                     const std::string& endpoint_id,
                                     PayloadListener payload_listener) {
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
+  Strategy strategy = client->GetEndpointStrategy(endpoint_id);
+  PcpHandler* handler = GetPcpHandler(StrategyToPcp(strategy));
+  if (handler) {
+    return handler->AcceptConnection(client, endpoint_id,
+                                     std::move(payload_listener));
   }
-
-  return current_->AcceptConnection(client, endpoint_id,
-                                    std::move(payload_listener));
+  return {Status::kEndpointUnknown};
 }
 
 Status PcpManager::RejectConnection(ClientProxy* client,
                                     const std::string& endpoint_id) {
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
+  Strategy strategy = client->GetEndpointStrategy(endpoint_id);
+  PcpHandler* handler = GetPcpHandler(StrategyToPcp(strategy));
+  if (handler) {
+    return handler->RejectConnection(client, endpoint_id);
   }
-
-  return current_->RejectConnection(client, endpoint_id);
+  return {Status::kEndpointUnknown};
 }
 
 Status PcpManager::UpdateAdvertisingOptions(
     ClientProxy* client, absl::string_view service_id,
     const AdvertisingOptions& advertising_options) {
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(client->GetAdvertisingOptions().strategy));
+  if (handler) {
+    return handler->UpdateAdvertisingOptions(client, service_id,
+                                             advertising_options);
   }
-  return current_->UpdateAdvertisingOptions(client, service_id,
-                                            advertising_options);
+  return {Status::kOutOfOrderApiCall};
 }
 
 Status PcpManager::UpdateDiscoveryOptions(
     ClientProxy* client, absl::string_view service_id,
     const DiscoveryOptions& discovery_options) {
-  if (!current_) {
-    return {Status::kOutOfOrderApiCall};
+  PcpHandler* handler =
+      GetPcpHandler(StrategyToPcp(client->GetDiscoveryOptions().strategy));
+  if (handler) {
+    return handler->UpdateDiscoveryOptions(client, service_id,
+                                           discovery_options);
   }
-  return current_->UpdateDiscoveryOptions(client, service_id,
-                                          discovery_options);
-}
-
-bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
-  current_ = GetPcpHandler(StrategyToPcp(strategy));
-
-  if (!current_) {
-    LOG(ERROR) << "Failed to set current PCP handler: strategy="
-               << strategy.GetName();
-  }
-
-  return current_;
+  return {Status::kOutOfOrderApiCall};
 }
 
 PcpHandler* PcpManager::GetPcpHandler(Pcp pcp) const {
