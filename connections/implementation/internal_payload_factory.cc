@@ -334,6 +334,7 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
       if (is_closed_.Set(true)) {
         return {Exception::kIo};
       }
+      LOG(INFO) << "Payload receive completed: " << GetId();
       output_file_.SetLastModifiedTime(last_modified_time_);
       output_file_.Close();
       return {Exception::kSuccess};
@@ -367,6 +368,7 @@ class IncomingFileInternalPayload : public IncomingInternalPayload {
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kDeleteIncompleteIncomingFile)) {
+      LOG(INFO) << "Deleting incomplete incoming file payload: " << GetId();
       output_file_.Delete();
     } else {
       output_file_.Close();
@@ -480,17 +482,16 @@ ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
         return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
       return {std::make_unique<IncomingFileInternalPayload>(
-          Payload(payload_id, InputFile(payload_id)),
-          std::move(output_file), last_modified_time, total_size)};
-#else  // defined(NEARBY_CHROMIUM)
+          Payload(payload_id, InputFile(payload_id)), std::move(output_file),
+          last_modified_time, total_size)};
+#else   // defined(NEARBY_CHROMIUM)
       OutputFile output_file(file_path);
       if (!output_file.IsValid()) {
         LOG(ERROR) << "Output file payload path is not valid: " << file_path;
         return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
       return {std::make_unique<IncomingFileInternalPayload>(
-          Payload(payload_id, parent_folder, file_name,
-                  InputFile(file_path)),
+          Payload(payload_id, parent_folder, file_name, InputFile(file_path)),
           std::move(output_file), last_modified_time, total_size)};
 #endif  // defined(NEARBY_CHROMIUM)
     }

@@ -23,6 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
@@ -31,6 +32,7 @@
 #include "connections/status.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -172,6 +174,10 @@ class PayloadSimulationUser : public SimulationUser {
 class PayloadManagerTest
     : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+
   bool SetupConnection(PayloadSimulationUser& user_a,
                        PayloadSimulationUser& user_b) {
     user_a.StartAdvertising(std::string(kServiceId), &connection_latch_);
@@ -540,6 +546,10 @@ TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
 
 #if !defined(NEARBY_CHROMIUM)
 TEST_P(PayloadManagerTest, CancelIncompleteIncomingFilePayloadDeletesFile) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kDeleteIncompleteIncomingFile,
+      true);
   env_.Start();
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
@@ -568,6 +578,10 @@ TEST_P(PayloadManagerTest, CancelIncompleteIncomingFilePayloadDeletesFile) {
 }
 
 TEST_P(PayloadManagerTest, DuplicateIncomingPayloadIdFailsPayload) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kDeleteIncompleteIncomingFile,
+      true);
   env_.Start();
   PayloadSimulationUser user_a(kDeviceA, GetParam());
   PayloadSimulationUser user_b(kDeviceB, GetParam());
