@@ -87,6 +87,11 @@ static NSError *AlreadyScanningError() {
   NSMutableDictionary<NSUUID *, GNCOpenL2CAPStreamCompletionHandler>
       *_l2capStreamCompletionHandlers;
 
+  // The identifiers of peripherals that have an L2CAP channel opening or open. A GATT client
+  // disconnection must not cancel the peripheral connection for these peripherals, since doing so
+  // would also tear down the L2CAP channel sharing the same LE link.
+  NSMutableSet<NSUUID *> *_l2capPeripheralIdentifiers;
+
   // The block to call when the BLE connection times out.
   dispatch_block_t _connectionTimeoutBlock;
 }
@@ -123,6 +128,7 @@ static NSError *AlreadyScanningError() {
     _gattDisconnectionHandlers = [NSMutableDictionary dictionary];
     _scanningServiceUUIDs = [NSMutableArray array];
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
+    _l2capPeripheralIdentifiers = [NSMutableSet set];
     _l2capPSM = 0;
   }
   return self;
@@ -348,12 +354,16 @@ static NSError *AlreadyScanningError() {
       strongSelf->_l2capClient = [[GNCBLEL2CAPClient alloc]
           initWithRequestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
             dispatch_async(_queue, ^{
+              if (peripheral) {
+                [_l2capPeripheralIdentifiers removeObject:peripheral.identifier];
+              }
               [_centralManager cancelPeripheralConnection:remotePeripheral];
             });
           }];
     }
     strongSelf->_l2capStreamCompletionHandlers[remotePeripheral.identifier] = completionHandler;
     strongSelf->_l2capPSM = psm;
+    [strongSelf->_l2capPeripheralIdentifiers addObject:remotePeripheral.identifier];
     // There is a Core Bluetooth problem: Either -didConnectPeripheral or
     // -didFailToConnectPeripheral should be called at this point, but sometimes neither is
     // called.
@@ -362,6 +372,11 @@ static NSError *AlreadyScanningError() {
         withTimeout:kPeripheralConnectTimeout
         options:@{}
         timeoutCallback:^(NSError *error) {
+          __strong __typeof__(self) timeoutStrongSelf = weakSelf;
+          if (timeoutStrongSelf) {
+            [timeoutStrongSelf->_l2capPeripheralIdentifiers
+                removeObject:remotePeripheral.identifier];
+          }
           if (completionHandler) {
             completionHandler(nil, error);
           }
@@ -490,6 +505,8 @@ static NSError *AlreadyScanningError() {
               }
               dispatch_async(strongSelf->_queue, ^{
                 if (error) {
+                  [strongSelf->_l2capPeripheralIdentifiers
+                      removeObject:remotePeripheral.identifier];
                   handler(nil, error);
                 } else {
                   handler(stream, nil);
@@ -531,13 +548,19 @@ static NSError *AlreadyScanningError() {
       _gattConnectionCompletionHandlers[peripheral.identifier];
   _gattConnectionCompletionHandlers[peripheral.identifier] = nil;
   if (handler) {
-    GNCBLEGATTClient *client =
-        [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral
-                         requestDisconnectionHandler:^(id<GNCPeripheral> peripheral) {
-                           dispatch_async(_queue, ^{
-                             [_centralManager cancelPeripheralConnection:peripheral];
-                           });
-                         }];
+    GNCBLEGATTClient *client = [[GNCBLEGATTClient alloc]
+                 initWithPeripheral:peripheral
+        requestDisconnectionHandler:^(id<GNCPeripheral> peripheral) {
+          dispatch_async(_queue, ^{
+            // Don't tear down the LE link if an L2CAP channel is using it.
+            if ([_l2capPeripheralIdentifiers containsObject:peripheral.identifier]) {
+              GNCLoggerInfo(@"Skip canceling peripheral connection on GATT "
+                            @"disconnect since an L2CAP channel is active.");
+              return;
+            }
+            [_centralManager cancelPeripheralConnection:peripheral];
+          });
+        }];
     handler(client, nil);
   }
 }
@@ -548,6 +571,7 @@ static NSError *AlreadyScanningError() {
   dispatch_assert_queue(_queue);
   [self cancelConnectionTimeout];
   if (_l2capPSM > 0) {
+    [_l2capPeripheralIdentifiers removeObject:peripheral.identifier];
     GNCOpenL2CAPStreamCompletionHandler l2capStreamCompletionhandler =
         _l2capStreamCompletionHandlers[peripheral.identifier];
     _l2capStreamCompletionHandlers[peripheral.identifier] = nil;
@@ -568,6 +592,9 @@ static NSError *AlreadyScanningError() {
     didDisconnectPeripheral:(id<GNCPeripheral>)peripheral
                       error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
+
+  // The LE link is gone, so any L2CAP channel on it is gone too.
+  [_l2capPeripheralIdentifiers removeObject:peripheral.identifier];
 
   GNCGATTDisconnectionHandler handler = _gattDisconnectionHandlers[peripheral.identifier];
   _gattDisconnectionHandlers[peripheral.identifier] = nil;

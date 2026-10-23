@@ -584,6 +584,59 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
   }
 }
 
+- (void)testGATTDisconnectDoesNotCancelPeripheralConnectionWhenL2CAPChannelIsOpen {
+  for (NSNumber *enabled in @[ @NO, @YES ]) {
+    nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        nearby::connections::config_package_nearby::nearby_connections_feature::
+            kEnableSharedPeripheralManager,
+        enabled.boolValue);
+    GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+    GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+    GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                      peripheralManager:fakePeripheralManager
+                                                                  queue:dispatch_get_main_queue()];
+    GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+
+    // Open an L2CAP channel on the peripheral.
+    XCTestExpectation *l2capExpectation =
+        [[XCTestExpectation alloc] initWithDescription:@"Open L2CAP channel."];
+    GNCBLEL2CAPClient *l2capClient =
+        [[GNCBLEL2CAPClient alloc] initWithQueue:nil
+                     requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
+                     }];
+    [medium setL2CAPClient:l2capClient];
+    [medium
+        openL2CAPChannelWithPSM:123
+                     peripheral:peripheral
+              completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                XCTAssertNil(error);
+                [l2capExpectation fulfill];
+              }];
+    [self waitForExpectations:@[ l2capExpectation ] timeout:3];
+
+    // Connect a GATT client to the same peripheral, then disconnect it. The LE link must stay up
+    // because the L2CAP channel is still using it.
+    XCTestExpectation *gattDisconnectedExpectation =
+        [[XCTestExpectation alloc] initWithDescription:@"GATT client disconnected."];
+    XCTestExpectation *linkDisconnectedExpectation =
+        [[XCTestExpectation alloc] initWithDescription:@"Peripheral link disconnected."];
+    linkDisconnectedExpectation.inverted = YES;
+    [medium connectToGATTServerForPeripheral:peripheral
+        disconnectionHandler:^() {
+          [linkDisconnectedExpectation fulfill];
+        }
+        completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
+          XCTAssertNotNil(client);
+          XCTAssertNil(error);
+          [client disconnect];
+          [gattDisconnectedExpectation fulfill];
+        }];
+
+    [self waitForExpectations:@[ gattDisconnectedExpectation, linkDisconnectedExpectation ]
+                      timeout:1];
+  }
+}
+
 - (void)testRetrievePeripheralWithIdentifier_exists {
   for (NSNumber *enabled in @[ @NO, @YES ]) {
     nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
