@@ -204,10 +204,10 @@ ServiceAddress SocketAddress::ToServiceAddress(uint16_t port) const {
   }
   if (family() == AF_INET) {
     return ServiceAddress{
-        .address = {ipv4_address()->sin_addr.S_un.S_un_b.s_b1,
-                    ipv4_address()->sin_addr.S_un.S_un_b.s_b2,
-                    ipv4_address()->sin_addr.S_un.S_un_b.s_b3,
-                    ipv4_address()->sin_addr.S_un.S_un_b.s_b4},
+        .address = {static_cast<char>(ipv4_address()->sin_addr.S_un.S_un_b.s_b1),
+                    static_cast<char>(ipv4_address()->sin_addr.S_un.S_un_b.s_b2),
+                    static_cast<char>(ipv4_address()->sin_addr.S_un.S_un_b.s_b3),
+                    static_cast<char>(ipv4_address()->sin_addr.S_un.S_un_b.s_b4)},
         .port = port,
     };
   }

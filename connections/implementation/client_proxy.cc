@@ -837,6 +837,16 @@ BooleanMediumSelector ClientProxy::GetUpgradeMediums(
   return {};
 }
 
+void ClientProxy::SetUpgradeMediums(const std::string& endpoint_id,
+                                    const BooleanMediumSelector& mediums) {
+  MutexLock lock(&mutex_);
+
+  ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    item->first.connection_options.allowed = mediums;
+  }
+}
+
 bool ClientProxy::Is5GHzSupported(const std::string& endpoint_id) const {
   MutexLock lock(&mutex_);
 

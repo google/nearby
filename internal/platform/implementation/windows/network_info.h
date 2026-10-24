@@ -51,6 +51,8 @@ class NetworkInfo {
     NET_LUID luid;
     std::vector<SocketAddress> ipv4_addresses;
     std::vector<SocketAddress> ipv6_addresses;
+    // False for virtual adapters such as Hyper-V/WSL vEthernet and VPNs.
+    bool is_hardware = false;
   };
 
   // Returns the singleton instance of this class.

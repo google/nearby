@@ -56,3 +56,4 @@ Cargo.lock
 
 # Bazel
 bazel-*
+user.bazelrc

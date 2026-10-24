@@ -200,6 +200,9 @@ class ClientProxy final {
   Medium GetConnectedMedium(const std::string& endpoint_id) const;
   // Returns all mediums eligible for upgrade.
   BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
+  // Replaces the mediums eligible for upgrade.
+  void SetUpgradeMediums(const std::string& endpoint_id,
+                         const BooleanMediumSelector& mediums);
   // Returns if this endpoint support 5G for WIFI.
   bool Is5GHzSupported(const std::string& endpoint_id) const;
   // Returns BSSID for this endpoint.

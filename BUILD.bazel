@@ -27,3 +27,12 @@ config_setting(
     name = "webrtc_enabled",
     flag_values = {":enable_webrtc": "True"},
 )
+
+platform(
+    name = "windows_arm64_clang_cl",
+    constraint_values = [
+        "@platforms//cpu:arm64",
+        "@platforms//os:windows",
+        "@rules_cc//cc/private/toolchain:clang-cl",
+    ],
+)

@@ -166,6 +166,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
           frame,
       const std::string& endpoint_id);
 
+  // Processes a BandwidthUpgradeRetryFrame: the remote endpoint lists the
+  // mediums it can upgrade to now, so the pending upgrade is dropped and
+  // restarted with the best medium from that list.
+  void OnBwuRetryFrame(
+      ClientProxy* client,
+      const location::nearby::connections::BandwidthUpgradeRetryFrame& frame,
+      const std::string& endpoint_id);
+
   // Called to revert any state changed in the course of setting up the upgraded
   // medium for an endpoint.
   void RevertBwuMediumForEndpoint(const std::string& service_id,

@@ -1,0 +1,16 @@
+--- a/cc/private/toolchain/windows_cc_configure.bzl
++++ b/cc/private/toolchain/windows_cc_configure.bzl
+@@ -617,10 +617,11 @@
+     result = repository_ctx.execute([clang_cl, "-v"])
+     first_line = result.stderr.strip().splitlines()[0].strip()
+ 
+-    # The first line of stderr should look like "[vendor ]clang version X.X.X"
++    # The first line of stderr should look like
++    # "[vendor ]clang version X.X.X[ (repository revision)]"
+     if result.return_code != 0 or first_line.find("clang version ") == -1:
+         auto_configure_fail("Failed to get clang version by running \"%s -v\"" % clang_cl)
+-    return first_line.split(" ")[-1]
++    return first_line.split("clang version ")[1].split(" ")[0]
+ 
+ def _get_clang_dir(repository_ctx, llvm_path, clang_version):
+     """Get the clang installation directory."""
