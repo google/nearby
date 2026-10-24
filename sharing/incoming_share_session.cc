@@ -243,8 +243,7 @@ IncomingShareSession::ProcessIntroduction(
 
   // Log analytics event of receiving introduction.
   analytics_recorder().NewReceiveIntroduction(
-      session_id(), share_target(),
-      /*referrer_package=*/std::nullopt, os_type(),
+      session_id(), share_target(), os_type(),
       IntroductionUseCaseToLoggingUseCase(introduction_frame.use_case()),
       nearby::sharing::cpp::common::GetPowerStatus());
 

@@ -16,8 +16,6 @@
 #define THIRD_PARTY_NEARBY_SHARING_ANALYTICS_ANALYTICS_RECORDER_H_
 
 #include <cstdint>
-#include <optional>
-#include <string>
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -47,8 +45,7 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::EstablishConnectionStatus
           connection_status,
       const ShareTarget& share_target, int transfer_position,
-      int concurrent_connections, int64_t duration_millis,
-      std::optional<std::string> referrer_package) = 0;
+      int concurrent_connections, int64_t duration_millis) = 0;
 
   virtual void NewAcceptAgreements() = 0;
 
@@ -70,16 +67,14 @@ class AnalyticsRecorder {
   virtual void NewAdvertiseDevicePresenceStart(
       int64_t session_id, nearby::sharing::proto::DeviceVisibility visibility,
       location::nearby::proto::sharing::SessionStatus status,
-      nearby::sharing::proto::DataUsage data_usage,
-      std::optional<std::string> referrer_package) = 0;
+      nearby::sharing::proto::DataUsage data_usage) = 0;
 
   virtual void NewDescribeAttachments(
       const AttachmentContainer& attachments) = 0;
 
   virtual void NewDiscoverShareTarget(
       const ShareTarget& share_target, int64_t session_id,
-      int64_t latency_since_scanning_start_millis, int64_t flow_id,
-      std::optional<std::string> referrer_package,
+      int64_t latency_since_scanning_start_millis,
       int64_t latency_since_send_surface_registered_millis) = 0;
 
   virtual void NewEnableNearbySharing(
@@ -95,8 +90,8 @@ class AnalyticsRecorder {
 
   virtual void NewReceiveAttachmentsEnd(
       int64_t session_id, int64_t received_bytes,
-      location::nearby::proto::sharing::AttachmentTransmissionStatus status,
-      std::optional<std::string> referrer_package) = 0;
+      location::nearby::proto::sharing::AttachmentTransmissionStatus
+          status) = 0;
 
   virtual void NewReceiveAttachmentsStart(
       int64_t session_id, const AttachmentContainer& attachments) = 0;
@@ -110,7 +105,6 @@ class AnalyticsRecorder {
 
   virtual void NewReceiveIntroduction(
       int64_t session_id, const ShareTarget& share_target,
-      std::optional<std::string> referrer_package,
       location::nearby::proto::sharing::OSType share_target_os_type,
       location::nearby::proto::sharing::SharingUseCase sharing_use_case,
       location::nearby::proto::sharing::PowerStatus power_status) = 0;
@@ -128,14 +122,13 @@ class AnalyticsRecorder {
   virtual void NewScanForShareTargetsStart(
       int64_t session_id,
       location::nearby::proto::sharing::SessionStatus status,
-      AnalyticsInformation analytics_information, int64_t flow_id,
-      std::optional<std::string> referrer_package) = 0;
+      AnalyticsInformation analytics_information) = 0;
 
   virtual void NewSendAttachmentsEnd(
       int64_t session_id, int64_t sent_bytes, const ShareTarget& share_target,
       location::nearby::proto::sharing::AttachmentTransmissionStatus status,
       int transfer_position, int concurrent_connections,
-      int64_t duration_millis, std::optional<std::string> referrer_package,
+      int64_t duration_millis,
       location::nearby::proto::sharing::ConnectionLayerStatus
           connection_layer_status,
       location::nearby::proto::sharing::OSType share_target_os_type) = 0;

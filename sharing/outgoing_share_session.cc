@@ -408,7 +408,6 @@ void OutgoingShareSession::SendAttachmentsCompleted(
       /*transfer_position=*/1,
       /*concurrent_connections=*/1,
       absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
-      /*referrer_package=*/std::nullopt,
       ConvertToConnectionLayerStatus(connection_layer_status_), os_type());
 }
 
@@ -581,8 +580,7 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
         share_target(),
         /*transfer_position=*/1,
         /*concurrent_connections=*/1,
-        absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
-        std::nullopt);
+        absl::ToInt64Milliseconds(clock().Now() - connection_start_time_));
     LOG(WARNING) << "Failed to initiate connection to share target "
                  << share_target().id;
     if (connection_layer_status_ == Status::kTimeout) {
@@ -604,8 +602,7 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
       share_target(),
       /*transfer_position=*/1,
       /*concurrent_connections=*/1,
-      absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)),
-      /*referrer_package=*/std::nullopt);
+      absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)));
   return true;
 }
 

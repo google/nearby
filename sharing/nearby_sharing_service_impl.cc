@@ -1768,7 +1768,6 @@ void NearbySharingServiceImpl::LogShareTargetDiscovered(
       share_target, scanning_session_id_,
       absl::ToInt64Milliseconds(context_->GetClock()->Now() -
                                 scanning_start_timestamp_),
-      /*flow_id=*/1, /*referrer_package=*/std::nullopt,
       share_foreground_send_surface_start_timestamp_ == absl::InfinitePast()
           ? -1
           : absl::ToInt64Milliseconds(
@@ -2147,7 +2146,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
             advertising_session_id_, visibility,
             status == Status::kSuccess ? SessionStatus::SUCCEEDED_SESSION_STATUS
                                        : SessionStatus::FAILED_SESSION_STATUS,
-            data_usage, std::nullopt);
+            data_usage);
 
         OnStartAdvertisingResult(
             visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE, status);
@@ -2227,8 +2226,7 @@ void NearbySharingServiceImpl::StartScanning() {
             scanning_session_id_,
             status == Status::kSuccess ? SessionStatus::SUCCEEDED_SESSION_STATUS
                                        : SessionStatus::FAILED_SESSION_STATUS,
-            analytics_information,
-            /*flow_id=*/1, /*referrer_package=*/std::nullopt);
+            analytics_information);
         OnStartDiscoveryResult(status);
       });
 
@@ -2435,8 +2433,7 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
 
     analytics_recorder_.NewReceiveAttachmentsEnd(
         session.session_id(), received_bytes,
-        ShareSession::ConvertToTransmissionStatus(metadata.status()),
-        /* referrer_package=*/std::nullopt);
+        ShareSession::ConvertToTransmissionStatus(metadata.status()));
 
     OnTransferComplete();
     if (metadata.status() != TransferMetadata::Status::kComplete) {
