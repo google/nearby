@@ -528,6 +528,10 @@ TEST_F(InternalPayloadFactoryTest,
 
 TEST_F(InternalPayloadFactoryTest,
        IncomingFilePayloadExceedingTotalSizeIsRejected) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kDeleteIncompleteIncomingFile,
+      true);
   PayloadTransferFrame frame;
   std::string path = ::testing::TempDir();
   frame.set_packet_type(PayloadTransferFrame::DATA);

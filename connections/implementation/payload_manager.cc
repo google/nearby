@@ -869,13 +869,13 @@ void PayloadManager::HandleIncomingPayloadErrorOnStatusUpdateThread(
   }
 
   // Unless we never started tracking this payload (meaning we
-  // failed to even create the InternalPayload), notify the client
-  // (and close it).
+  // failed to even create the InternalPayload), close it and notify the
+  // client.
+  DestroyPendingPayload(payload_header.id());
   PayloadProgressInfo update{payload_header.id(),
                              PayloadStatusToTransferUpdateStatus(status),
                              payload_header.total_size(), offset_bytes};
   NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
-  DestroyPendingPayload(payload_header.id());
 
   // Analyze
   client->GetAnalyticsRecorder().OnIncomingPayloadDone(

@@ -34,7 +34,7 @@ constexpr auto kBlePeripheralLostTimeoutMillis =
 // When true, delete incomplete incoming file payloads on Close() instead of
 // closing and retaining the partial file.
 constexpr auto kDeleteIncompleteIncomingFile =
-    flags::Flag<bool>(kConfigPackage, "45864313", true);
+    flags::Flag<bool>(kConfigPackage, "45864313", false);
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);
