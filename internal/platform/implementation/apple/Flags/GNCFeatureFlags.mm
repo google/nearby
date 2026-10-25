@@ -64,4 +64,10 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware);
 }
 
++ (BOOL)synchronizeNWFrameworkSocketWriteTimeoutEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout);
+}
+
 @end
