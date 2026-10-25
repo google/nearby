@@ -31,6 +31,10 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+// Restricts connection attempt deduplication to UPGRADE attempts and marks
+// failed INITIAL outgoing connection requests as NOT_SENT.
+constexpr auto kDeduplicateOnlyUpgradeConnectionAttempts =
+    flags::Flag<bool>(kConfigPackage, "45868932", true);
 // When true, delete incomplete incoming file payloads on Close() instead of
 // closing and retaining the partial file.
 constexpr auto kDeleteIncompleteIncomingFile =
