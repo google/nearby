@@ -2200,7 +2200,6 @@ void NearbySharingServiceImpl::StartScanning() {
   }
 
   scanning_start_timestamp_ = context_->GetClock()->Now();
-  share_foreground_send_surface_start_timestamp_ = absl::InfinitePast();
   is_scanning_ = true;
   InvalidateAdvertisingState();
 
@@ -2245,6 +2244,7 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::StopScanning() {
 
   nearby_connections_manager_->StopDiscovery();
   is_scanning_ = false;
+  share_foreground_send_surface_start_timestamp_ = absl::InfinitePast();
 
   certificate_download_during_discovery_timer_.reset();
   discovered_advertisements_to_retry_map_.clear();

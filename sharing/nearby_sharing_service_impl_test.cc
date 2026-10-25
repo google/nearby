@@ -456,7 +456,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetScreenLocked(false);
     SetLanConnected(true);
     analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorderImpl>(
-        /*vendor_id=*/0, /*event_logger=*/nullptr);
+        /*vendor_id=*/0, /*event_logger=*/&mock_event_logger_);
 
     service_ = CreateService(std::move(fake_task_runner));
   }
@@ -1285,6 +1285,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<NearbyConnectionImpl> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
+  NiceMock<nearby::analytics::MockEventLogger> mock_event_logger_;
   std::unique_ptr<analytics::AnalyticsRecorderImpl> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
@@ -5442,6 +5443,38 @@ TEST_F(NearbySharingServiceImplTest,
   expected_binding.set_source_device_type(
       sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       DiscoverShareTargetLogsLatencySinceForegroundSendSurfaceRegistered) {
+  int64_t logged_latency_ms = -999;
+  using ::nearby::sharing::analytics::proto::SharingLog;
+  ON_CALL(mock_event_logger_,
+          Log(testing::Matcher<const SharingLog&>(testing::_)))
+      .WillByDefault([&](const SharingLog& log) {
+            if (log.event_type() ==
+                location::nearby::proto::sharing::EventType::
+                    DISCOVER_SHARE_TARGET) {
+              logged_latency_ms = log.discover_share_target()
+                                      .latency_since_activity_start_millis();
+            }
+          });
+
+  SetLanConnected(true);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
+                                SendSurfaceState::kForeground),
+            NearbySharingService::StatusCodes::kOk);
+  ScopedSendSurface s(service_.get(), &transfer_callback);
+
+  FastForward(absl::Milliseconds(250));
+  EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(testing::_));
+  FindEndpoint(kEndpointId);
+  ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                           /*success=*/true);
+
+  EXPECT_EQ(logged_latency_ms, 250);
 }
 
 }  // namespace NearbySharingServiceUnitTests
