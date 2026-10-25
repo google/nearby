@@ -131,7 +131,7 @@ IncomingShareSession::ProcessIntroduction(
       introduction_frame.file_metadata_size(),
       introduction_frame.wifi_credentials_metadata_size());
   for (const auto& file : introduction_frame.file_metadata()) {
-    if (file.size() <= 0) {
+    if (file.size() < 0) {
       LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     }
