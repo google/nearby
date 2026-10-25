@@ -1353,7 +1353,12 @@ void ClientProxy::ResetLocalEndpointId() {
 
 void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
-  if (connections_.empty() && !IsAdvertising()) {
+  bool is_discovering =
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPreventPrematureSessionCompletion) &&
+      IsDiscovering();
+  if (connections_.empty() && !IsAdvertising() && !is_discovering) {
     if (!local_endpoint_id_.empty()) {
       last_local_endpoint_id_ = local_endpoint_id_;
     }
