@@ -81,6 +81,9 @@ AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
       return AttachmentTransmissionStatus::
           COMPLETE_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kFailed:
+    case TransferMetadata::Status::kMediaUnavailable:
+    case TransferMetadata::Status::kDeviceAuthenticationFailed:
+    case TransferMetadata::Status::kIncompletePayloads:
       return AttachmentTransmissionStatus::
           FAILED_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kRejected:
@@ -92,18 +95,12 @@ AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
     case TransferMetadata::Status::kTimedOut:
       return AttachmentTransmissionStatus::
           TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kMediaUnavailable:
-      return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
     case TransferMetadata::Status::kNotEnoughSpace:
       return AttachmentTransmissionStatus::
           NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kUnsupportedAttachmentType:
       return AttachmentTransmissionStatus::
           UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kDeviceAuthenticationFailed:
-      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
-    case TransferMetadata::Status::kIncompletePayloads:
-      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
     default:
       return AttachmentTransmissionStatus::
           UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
