@@ -54,6 +54,10 @@ constexpr auto kEnableBleMediumInjection =
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
+// Categorizes DCT operation result codes (5000..5061) as CATEGORY_DCT_ERROR in
+// AnalyticsRecorderImpl.
+constexpr auto kEnableDctErrorResultCategory =
+    flags::Flag<bool>(kConfigPackage, "45868931", true);
 // Disable/Enable dynamic role switch in Nearby Connections SDK.
 // Prototype only. Defaulted to true so that the Wi-Fi Aware
 // R4 role switch (Android is always the publisher, Apple is always the
