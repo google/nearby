@@ -2173,11 +2173,13 @@ void NearbySharingServiceImpl::StopAdvertising() {
     return;
   }
 
-  nearby_connections_manager_->StopAdvertising([this](Status status) {
-    // Log analytics event of advertising end.
-    analytics_recorder_.NewAdvertiseDevicePresenceEnd(advertising_session_id_);
-    OnStopAdvertisingResult(status);
-  });
+  const int64_t session_id = advertising_session_id_;
+  nearby_connections_manager_->StopAdvertising(
+      [this, session_id](Status status) {
+        // Log analytics event of advertising end.
+        analytics_recorder_.NewAdvertiseDevicePresenceEnd(session_id);
+        OnStopAdvertisingResult(status);
+      });
 
   VLOG(1) << __func__ << ": Stop advertising requested";
 

@@ -456,7 +456,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetScreenLocked(false);
     SetLanConnected(true);
     analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorderImpl>(
-        /*vendor_id=*/0, /*event_logger=*/nullptr);
+        /*vendor_id=*/0, /*event_logger=*/&mock_event_logger_);
 
     service_ = CreateService(std::move(fake_task_runner));
   }
@@ -1285,6 +1285,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<NearbyConnectionImpl> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
+  NiceMock<nearby::analytics::MockEventLogger> mock_event_logger_;
   std::unique_ptr<analytics::AnalyticsRecorderImpl> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
@@ -5442,6 +5443,49 @@ TEST_F(NearbySharingServiceImplTest,
   expected_binding.set_source_device_type(
       sync::SyncBinding::SOURCE_DEVICE_TYPE_PHONE);
   EXPECT_THAT(binding->sync_bindings(0), EqualsProto(expected_binding));
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       StopAdvertisingLogsOriginalAdvertisingSessionIdOnRestart) {
+  std::vector<int64_t> advertise_start_session_ids;
+  std::vector<int64_t> advertise_end_session_ids;
+  using ::nearby::sharing::analytics::proto::SharingLog;
+  ON_CALL(mock_event_logger_,
+          Log(testing::Matcher<const SharingLog&>(testing::_)))
+      .WillByDefault([&](const SharingLog& log) {
+            if (log.event_type() ==
+                location::nearby::proto::sharing::EventType::
+                    ADVERTISE_DEVICE_PRESENCE_START) {
+              advertise_start_session_ids.push_back(
+                  log.advertise_device_presence_start().session_id());
+            } else if (log.event_type() ==
+                       location::nearby::proto::sharing::EventType::
+                           ADVERTISE_DEVICE_PRESENCE_END) {
+              advertise_end_session_ids.push_back(
+                  log.advertise_device_presence_end().session_id());
+            }
+          });
+
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+  NiceMock<MockTransferUpdateCallback> callback;
+  SetUpForegroundReceiveSurface(callback);
+  ScopedReceiveSurface r(service_.get(), &callback);
+  ASSERT_EQ(advertise_start_session_ids.size(), 1u);
+
+  // Defer the StopAdvertising callback while starting a new advertising cycle
+  // that generates a new advertising_session_id_.
+  auto stop_advertising_callback =
+      fake_nearby_connections_manager_->GetStopAdvertisingCallback();
+  SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
+  ASSERT_EQ(advertise_start_session_ids.size(), 2u);
+  ASSERT_NE(advertise_start_session_ids[0], advertise_start_session_ids[1]);
+  ASSERT_TRUE(advertise_end_session_ids.empty());
+
+  stop_advertising_callback(ConnectionsStatus::kSuccess);
+  FlushTesting();
+
+  ASSERT_EQ(advertise_end_session_ids.size(), 1u);
+  EXPECT_EQ(advertise_end_session_ids[0], advertise_start_session_ids[0]);
 }
 
 }  // namespace NearbySharingServiceUnitTests
