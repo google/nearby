@@ -31,6 +31,10 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+// Synchronize GNCNWFrameworkSocket close with active read and write
+// operations.
+constexpr auto kCloseNwFrameworkSocketSafely =
+    flags::Flag<bool>(kConfigPackage, "45868912", true);
 // When true, delete incomplete incoming file payloads on Close() instead of
 // closing and retaining the partial file.
 constexpr auto kDeleteIncompleteIncomingFile =
