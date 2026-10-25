@@ -117,6 +117,10 @@ constexpr auto kMediumMaxAllowedReadBytes =
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);
+// Moves and resets finished advertising and discovery phases in
+// AnalyticsRecorderImpl so subsequent sessions do not emit duplicate phases.
+constexpr auto kResetFinishedAnalyticsPhases =
+    flags::Flag<bool>(kConfigPackage, "45868901", true);
 // Set the safe-to-disconnect version.
 // 0. Disabled all. 1. safe-to-disconnect 2. reserved 3.
 // auto-reconnect(deprecated)
