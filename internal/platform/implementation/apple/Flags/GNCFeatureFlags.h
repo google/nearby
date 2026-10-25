@@ -41,4 +41,7 @@
 /** Checks whether Wi-Fi Aware is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL wifiAwareEnabled;
 
+/** Checks whether GNCNWFrameworkSocket read NSCondition waits are guarded with a predicate. */
+@property(nonatomic, class, readonly) BOOL guardNWFrameworkSocketReadConditionEnabled;
+
 @end
