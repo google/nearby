@@ -393,5 +393,67 @@ TEST_F(IncomingFramesReaderTest, SkipInvalidFrame) {
   ReleaseFrameReader();
 }
 
+TEST_F(IncomingFramesReaderTest,
+       CancelFrameNotCachedDuringPairedKeyEncryptionRead) {
+  absl::Notification notification;
+  frames_reader()->ReadFrame(
+      service::proto::V1Frame::PAIRED_KEY_ENCRYPTION,
+      [&](bool is_timeout, std::optional<V1Frame> frame) {
+        EXPECT_FALSE(is_timeout);
+        ASSERT_TRUE(frame.has_value());
+        EXPECT_EQ(frame->type(), service::proto::V1Frame::CANCEL);
+        notification.Notify();
+      },
+      kTimeout);
+
+  std::optional<std::vector<uint8_t>> cancel_frame = GetCancelFrame();
+  ASSERT_TRUE(cancel_frame.has_value());
+  connection().WriteMessage(*cancel_frame);
+
+  Sync();
+  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(100)));
+  ReleaseFrameReader();
+}
+
+TEST_F(IncomingFramesReaderTest,
+       CachedCancelFramePoppedDuringPairedKeyResultRead) {
+  std::optional<std::vector<uint8_t>> cancel_frame = GetCancelFrame();
+  ASSERT_TRUE(cancel_frame.has_value());
+  connection().WriteMessage(*cancel_frame);
+
+  std::optional<std::vector<uint8_t>> introduction_frame =
+      GetIntroductionFrame();
+  ASSERT_TRUE(introduction_frame.has_value());
+  connection().WriteMessage(*introduction_frame);
+
+  absl::Notification intro_notification;
+  frames_reader()->ReadFrame(
+      service::proto::V1Frame::INTRODUCTION,
+      [&](bool is_timeout, std::optional<V1Frame> frame) {
+        EXPECT_FALSE(is_timeout);
+        ASSERT_TRUE(frame.has_value());
+        EXPECT_EQ(frame->type(), service::proto::V1Frame::INTRODUCTION);
+        intro_notification.Notify();
+      },
+      kTimeout);
+  EXPECT_TRUE(intro_notification.WaitForNotificationWithTimeout(kTimeout));
+
+  absl::Notification cancel_notification;
+  frames_reader()->ReadFrame(
+      service::proto::V1Frame::PAIRED_KEY_RESULT,
+      [&](bool is_timeout, std::optional<V1Frame> frame) {
+        EXPECT_FALSE(is_timeout);
+        ASSERT_TRUE(frame.has_value());
+        EXPECT_EQ(frame->type(), service::proto::V1Frame::CANCEL);
+        cancel_notification.Notify();
+      },
+      kTimeout);
+  Sync();
+  EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(100)));
+  ReleaseFrameReader();
+}
+
 }  // namespace
 }  // namespace nearby::sharing

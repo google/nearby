@@ -2653,7 +2653,10 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
     return;
   }
   if (!session->ProcessKeyVerificationResult(result, share_target_os_type)) {
-    session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    session->Abort(result == PairedKeyVerificationRunner::
+                                 PairedKeyVerificationResult::kCancelled
+                       ? TransferMetadata::Status::kCancelled
+                       : TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
   LOG(INFO) << "Waiting for introduction from " << share_target_id;
@@ -2674,7 +2677,10 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
   }
 
   if (!session->ProcessKeyVerificationResult(result, share_target_os_type)) {
-    session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    session->Abort(result == PairedKeyVerificationRunner::
+                                 PairedKeyVerificationResult::kCancelled
+                       ? TransferMetadata::Status::kCancelled
+                       : TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
   if (session->is_transfer_session()) {

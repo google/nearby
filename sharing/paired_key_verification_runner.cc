@@ -85,8 +85,8 @@ std::vector<uint8_t> PadPrefix(char prefix, std::vector<uint8_t> bytes) {
 std::ostream& operator<<(
     std::ostream& out,
     const PairedKeyVerificationRunner::PairedKeyVerificationResult& obj) {
-  out << static_cast<std::underlying_type<
-      PairedKeyVerificationRunner::PairedKeyVerificationResult>::type>(obj);
+  out << static_cast<std::underlying_type_t<
+      PairedKeyVerificationRunner::PairedKeyVerificationResult>>(obj);
   return out;
 }
 
@@ -138,6 +138,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
   if (!frame.has_value()) {
     LOG(WARNING) << __func__ << ": Failed to read remote paired key encryption";
     std::move(callback_)(PairedKeyVerificationResult::kFail,
+                         OSType::UNKNOWN_OS_TYPE);
+    return;
+  }
+  if (frame->type() == V1Frame::CANCEL) {
+    LOG(INFO) << __func__
+              << ": Remote peer cancelled during paired key encryption read.";
+    std::move(callback_)(PairedKeyVerificationResult::kCancelled,
                          OSType::UNKNOWN_OS_TYPE);
     return;
   }
@@ -196,6 +203,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyResultFrame(
                          OSType::UNKNOWN_OS_TYPE);
     return;
   }
+  if (frame->type() == V1Frame::CANCEL) {
+    LOG(INFO) << __func__
+              << ": Remote peer cancelled during paired key result read.";
+    std::move(callback_)(PairedKeyVerificationResult::kCancelled,
+                         OSType::UNKNOWN_OS_TYPE);
+    return;
+  }
 
   PairedKeyVerificationResult remote_result =
       Convert(frame->paired_key_result().status());
@@ -231,6 +245,7 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
       break;
 
     case PairedKeyVerificationResult::kFail:
+    case PairedKeyVerificationResult::kCancelled:
       result_frame->set_status(PairedKeyResultFrame::FAIL);
       break;
   }
@@ -385,6 +400,7 @@ void PairedKeyVerificationRunner::ApplyResult(
       // Success does not change final result.
       break;
     case PairedKeyVerificationResult::kFail:
+    case PairedKeyVerificationResult::kCancelled:
       // If new result is kFail, then the whole transaction failed.
       verification_result_ = PairedKeyVerificationResult::kFail;
       break;

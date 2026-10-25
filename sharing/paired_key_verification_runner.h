@@ -45,6 +45,8 @@ class PairedKeyVerificationRunner
     kFail,
     // Unable to verify. Occurs when missing proper certificates.
     kUnable,
+    // Remote peer cancelled during verification.
+    kCancelled,
   };
 
   struct VisibilityHistory {
