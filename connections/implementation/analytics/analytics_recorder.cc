@@ -67,7 +67,9 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
     int try_count, const std::string& network_operator,
     const std::string& country_code, bool is_tdls_used,
     bool wifi_hotspot_enabled, int max_wifi_tx_speed, int max_wifi_rx_speed,
-    int channel_width, OperationResultCode operation_result_code) {
+    int channel_width, OperationResultCode operation_result_code,
+    int send_buffer_size, int receive_buffer_size, int connected_ap_frequency,
+    bool is_mcc_mode) {
   auto params = std::make_unique<ConnectionAttemptMetadataParams>();
   params->technology = technology;
   params->band = band;
@@ -81,6 +83,10 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
   params->max_wifi_rx_speed = max_wifi_rx_speed;
   params->channel_width = channel_width;
   params->operation_result_code = operation_result_code;
+  params->send_buffer_size = send_buffer_size;
+  params->receive_buffer_size = receive_buffer_size;
+  params->connected_ap_frequency = connected_ap_frequency;
+  params->is_mcc_mode = is_mcc_mode;
   return params;
 }
 

@@ -40,6 +40,10 @@ struct ConnectionAttemptMetadataParams {
   location::nearby::proto::connections::OperationResultCode
       operation_result_code = location::nearby::proto::connections::
           OperationResultCode::DETAIL_UNKNOWN;
+  int send_buffer_size = 0;
+  int receive_buffer_size = 0;
+  int connected_ap_frequency = 0;
+  bool is_mcc_mode = false;
 };
 
 }  // namespace nearby
