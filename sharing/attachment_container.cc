@@ -64,22 +64,31 @@ AttachmentContainer::Builder::SetDestinationDirectory(
   return *this;
 }
 
+AttachmentContainer::Builder&
+AttachmentContainer::Builder::SetRequiredPackage(
+    std::optional<std::string> required_package) {
+  required_package_ = std::move(required_package);
+  return *this;
+}
+
 std::unique_ptr<AttachmentContainer> AttachmentContainer::Builder::Build() {
   return absl::WrapUnique(new AttachmentContainer(
       std::move(text_attachments_), std::move(file_attachments_),
       std::move(wifi_credentials_attachments_),
-      std::move(destination_directory_)));
+      std::move(destination_directory_), std::move(required_package_)));
 }
 
 AttachmentContainer::AttachmentContainer(
     std::vector<TextAttachment> text_attachments,
     std::vector<FileAttachment> file_attachments,
     std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
-    FilePath destination_directory)
+    FilePath destination_directory,
+    std::optional<std::string> required_package)
     : text_attachments_(std::move(text_attachments)),
       file_attachments_(std::move(file_attachments)),
       wifi_credentials_attachments_(std::move(wifi_credentials_attachments)),
-      destination_directory_(std::move(destination_directory)) {
+      destination_directory_(std::move(destination_directory)),
+      required_package_(std::move(required_package)) {
   BuildIndex();
 }
 
@@ -89,6 +98,7 @@ AttachmentContainer::AttachmentContainer(AttachmentContainer&& other) {
   wifi_credentials_attachments_ =
       std::move(other.wifi_credentials_attachments_);
   destination_directory_ = std::move(other.destination_directory_);
+  required_package_ = std::move(other.required_package_);
   BuildIndex();
 }
 
@@ -99,6 +109,7 @@ AttachmentContainer& AttachmentContainer::operator=(
   wifi_credentials_attachments_ =
       std::move(other.wifi_credentials_attachments_);
   destination_directory_ = std::move(other.destination_directory_);
+  required_package_ = std::move(other.required_package_);
   BuildIndex();
   return *this;
 }

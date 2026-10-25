@@ -126,6 +126,9 @@ IncomingShareSession::ProcessIntroduction(
   }
   AttachmentContainer::Builder builder;
   builder.SetDestinationDirectory(destination_directory);
+  if (introduction_frame.has_required_package()) {
+    builder.SetRequiredPackage(introduction_frame.required_package());
+  }
   builder.ReserveAttachmentsCount(
       introduction_frame.text_metadata_size() + app_file_count,
       introduction_frame.file_metadata_size(),

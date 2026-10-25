@@ -1104,5 +1104,43 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
   EXPECT_THAT(binding_response.cert_ids(), IsEmpty());
 }
 
+TEST_F(OutgoingShareSessionTest, SendIntroductionPropagatesRequiredPackage) {
+  auto container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .SetRequiredPackage("com.example.companion")
+          .Build();
+  EXPECT_THAT(InitSendAttachments(std::move(container)), IsTrue());
+  session_.set_session_id(1234);
+  NearbyConnectionImpl connection(device_info_);
+  ConnectionSuccess(&connection);
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::SEND_INTRODUCTION),
+                         ProtoField<"send_introduction", "session_id">(1234),
+                         ProtoField<"event_metadata", "use_case">(
+                             SharingUseCase::USE_CASE_NEARBY_SHARE))))));
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frame_data = std::move(payload->content.bytes_payload.bytes);
+      });
+
+  EXPECT_THAT(session_.SendIntroduction([]() {}), IsTrue());
+
+  Frame frame;
+  ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
+              IsTrue());
+  ASSERT_THAT(frame.version(), Eq(Frame::V1));
+  ASSERT_THAT(frame.v1().type(), Eq(V1Frame::INTRODUCTION));
+  EXPECT_THAT(frame.v1().introduction().has_required_package(), IsTrue());
+  EXPECT_THAT(frame.v1().introduction().required_package(),
+              Eq("com.example.companion"));
+}
+
 }  // namespace
 }  // namespace nearby::sharing

@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 #include "absl/container/flat_hash_map.h"
@@ -52,6 +54,7 @@ class AttachmentContainer {
     // `destination_directory` is the root destination directory for all file
     // attachments in this container.
     Builder& SetDestinationDirectory(FilePath destination_directory);
+    Builder& SetRequiredPackage(std::optional<std::string> required_package);
 
     bool Empty() const {
       return text_attachments_.empty() && file_attachments_.empty() &&
@@ -65,6 +68,7 @@ class AttachmentContainer {
     std::vector<FileAttachment> file_attachments_;
     std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
     FilePath destination_directory_;
+    std::optional<std::string> required_package_;
   };
 
   AttachmentContainer() = default;
@@ -129,12 +133,17 @@ class AttachmentContainer {
   // Not set for outgoing transfers.
   FilePath GetDestinationDirectory() const { return destination_directory_; }
 
+  const std::optional<std::string>& GetRequiredPackage() const {
+    return required_package_;
+  }
+
  private:
   AttachmentContainer(
       std::vector<TextAttachment> text_attachments,
       std::vector<FileAttachment> file_attachments,
       std::vector<WifiCredentialsAttachment> wifi_credentials_attachments,
-      FilePath destination_directory);
+      FilePath destination_directory,
+      std::optional<std::string> required_package);
   // Build id to attachment index.
   void BuildIndex();
 
@@ -143,6 +152,7 @@ class AttachmentContainer {
   std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
   absl::flat_hash_map<int64_t, const Attachment*> attachment_id_map_;
   FilePath destination_directory_;
+  std::optional<std::string> required_package_;
 };
 
 }  // namespace nearby::sharing

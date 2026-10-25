@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -217,6 +218,24 @@ TEST_F(AttachmentContainerTest, GetStorageSize) {
   int64_t storage_size = container->GetStorageSize();
 
   EXPECT_THAT(storage_size, Eq(file1_.size()));
+}
+
+TEST_F(AttachmentContainerTest, RequiredPackageDefaultAndSet) {
+  std::unique_ptr<AttachmentContainer> default_container =
+      AttachmentContainer::Builder().AddTextAttachment(text1_).Build();
+  EXPECT_THAT(default_container->GetRequiredPackage(), Eq(std::nullopt));
+
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddTextAttachment(text1_)
+          .SetRequiredPackage("com.example.required")
+          .Build();
+  EXPECT_THAT(container->GetRequiredPackage(),
+              Eq(std::optional<std::string>("com.example.required")));
+
+  AttachmentContainer moved_container(std::move(*container));
+  EXPECT_THAT(moved_container.GetRequiredPackage(),
+              Eq(std::optional<std::string>("com.example.required")));
 }
 
 }  // namespace
