@@ -146,6 +146,12 @@ class OutgoingShareSession : public ShareSession {
     advanced_protection_enabled_ = advanced_protection_enabled;
   }
 
+  void SetTransferAnalyticsCounts(int transfer_position,
+                                  int concurrent_connections) {
+    transfer_position_ = transfer_position;
+    concurrent_connections_ = concurrent_connections;
+  }
+
   // Returns true if the session is connected or in the process of connecting.
   bool IsActive() const {
     return IsConnected() || is_connecting_;
@@ -212,6 +218,8 @@ class OutgoingShareSession : public ShareSession {
   // Timeout waiting for remote disconnect in order to complete transfer.
   std::unique_ptr<ThreadTimer> disconnection_timeout_;
   bool advanced_protection_enabled_ = false;
+  int transfer_position_ = 1;
+  int concurrent_connections_ = 1;
   bool is_connecting_ = false;
   // Session can be for transfer or pairing.
   bool is_transfer_session_ = false;

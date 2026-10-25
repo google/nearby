@@ -97,6 +97,8 @@ class OutgoingTargetsManager {
 
   std::vector<std::string> GetBindingIds(int64_t share_target_id);
 
+  int GetActiveSessionCount() const;
+
  private:
   // If an existing target matching either endpoint_id or share_target.device_id
   // is found, the existing share target id is returned.

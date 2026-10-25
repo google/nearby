@@ -1104,5 +1104,60 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
   EXPECT_THAT(binding_response.cert_ids(), IsEmpty());
 }
 
+TEST_F(OutgoingShareSessionTest,
+       SetTransferAnalyticsCountsPropagatesToSessionEvents) {
+  session_.SetTransferAnalyticsCounts(/*transfer_position=*/2,
+                                      /*concurrent_connections=*/3);
+  auto container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build();
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::SENDING_EVENT),
+           HasEventType(EventType::SEND_START),
+           ProtoField<"send_start", "transfer_position">(2),
+           ProtoField<"send_start", "concurrent_connections">(3))))));
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const SharingLog&>(
+                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
+                         HasEventType(EventType::DESCRIBE_ATTACHMENTS))))));
+  EXPECT_THAT(session_.InitiateSendAttachments(std::move(container)), IsTrue());
+  session_.set_session_id(1234);
+
+  std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
+  NearbyConnectionImpl connection(device_info_);
+  connections_manager_.set_nearby_connection(&connection);
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, AllOf(HasStatus(TransferMetadata::Status::kConnecting),
+                            Not(IsFinalStatus()))));
+  session_.Connect(
+      endpoint_info, nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      /*disable_wifi_hotspot=*/false,
+      [](absl::string_view, NearbyConnection*, Status) {});
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::SENDING_EVENT),
+           HasEventType(EventType::ESTABLISH_CONNECTION),
+           ProtoField<"establish_connection", "session_id">(1234),
+           ProtoField<"establish_connection", "transfer_position">(2),
+           ProtoField<"establish_connection", "concurrent_connections">(3))))));
+  EXPECT_THAT(session_.OnConnectResult(&connection, Status::kSuccess),
+              IsTrue());
+
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(AllOf(
+          (HasCategory(EventCategory::SENDING_EVENT),
+           HasEventType(EventType::SEND_INTRODUCTION),
+           ProtoField<"send_introduction", "session_id">(1234),
+           ProtoField<"send_introduction", "transfer_position">(2),
+           ProtoField<"send_introduction", "concurrent_connections">(3))))));
+  EXPECT_THAT(session_.SendIntroduction([]() {}), IsTrue());
+}
+
 }  // namespace
 }  // namespace nearby::sharing

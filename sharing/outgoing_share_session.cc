@@ -165,10 +165,8 @@ bool OutgoingShareSession::InitiateSendAttachments(
   set_session_id(analytics_recorder().GenerateNextId());
 
   // Log analytics event of sending start.
-  analytics_recorder().NewSendStart(session_id(),
-                                    /*transfer_position=*/1,
-                                    /*concurrent_connections=*/1,
-                                    share_target());
+  analytics_recorder().NewSendStart(session_id(), transfer_position_,
+                                    concurrent_connections_, share_target());
   text_payloads_.clear();
   wifi_credentials_payloads_.clear();
   file_payloads_.clear();
@@ -374,9 +372,8 @@ void OutgoingShareSession::SendPayloads(
 
   // Log analytics event of sending attachment start.
   analytics_recorder().NewSendAttachmentsStart(
-      session_id(), attachment_container(),
-      /*transfer_position=*/1,
-      /*concurrent_connections=*/1, advanced_protection_enabled_);
+      session_id(), attachment_container(), transfer_position_,
+      concurrent_connections_, advanced_protection_enabled_);
   VLOG(1) << "The connection was accepted. Payloads are now being sent.";
   InitializePayloadTracker(std::move(payload_transder_update_callback));
   SendNextPayload();
@@ -404,9 +401,8 @@ void OutgoingShareSession::SendAttachmentsCompleted(
 
   analytics_recorder().NewSendAttachmentsEnd(
       session_id(), sent_bytes, share_target(),
-      ConvertToTransmissionStatus(metadata.status()),
-      /*transfer_position=*/1,
-      /*concurrent_connections=*/1,
+      ConvertToTransmissionStatus(metadata.status()), transfer_position_,
+      concurrent_connections_,
       absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
       ConvertToConnectionLayerStatus(connection_layer_status_), os_type());
 }
@@ -427,9 +423,8 @@ bool OutgoingShareSession::SendIntroduction(
   WriteFrame(frame);
   // Log analytics event of sending introduction.
   analytics_recorder().NewSendIntroduction(
-      session_id(), share_target(),
-      /*transfer_position=*/1,
-      /*concurrent_connections=*/1, os_type(),
+      session_id(), share_target(), transfer_position_, concurrent_connections_,
+      os_type(),
       IntroductionUseCaseToLoggingUseCase(introduction_frame->use_case()),
       nearby::sharing::cpp::common::GetPowerStatus());
   VLOG(1) << "Successfully wrote the introduction frame";
@@ -577,9 +572,7 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
   if (connection == nullptr) {
     analytics_recorder().NewEstablishConnection(
         session_id(), EstablishConnectionStatus::CONNECTION_STATUS_FAILURE,
-        share_target(),
-        /*transfer_position=*/1,
-        /*concurrent_connections=*/1,
+        share_target(), transfer_position_, concurrent_connections_,
         absl::ToInt64Milliseconds(clock().Now() - connection_start_time_));
     LOG(WARNING) << "Failed to initiate connection to share target "
                  << share_target().id;
@@ -599,9 +592,7 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
   // Log analytics event of establishing connection.
   analytics_recorder().NewEstablishConnection(
       session_id(), EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS,
-      share_target(),
-      /*transfer_position=*/1,
-      /*concurrent_connections=*/1,
+      share_target(), transfer_position_, concurrent_connections_,
       absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)));
   return true;
 }
