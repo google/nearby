@@ -116,7 +116,10 @@ class ClientProxy final {
       absl::Span<location::nearby::proto::connections::Medium> mediums,
       const std::vector<analytics::OperationResultWithMedium>&
           operation_result_with_medium,
-      const AdvertisingOptions& advertising_options = AdvertisingOptions{});
+      const AdvertisingOptions& advertising_options = AdvertisingOptions{},
+      std::optional<bool> is_extended_advertisement_supported = std::nullopt,
+      std::optional<int> connected_ap_frequency = std::nullopt,
+      std::optional<bool> is_nfc_available = std::nullopt);
   // Marks this client as not advertising.
   void StoppedAdvertising();
   bool IsAdvertising() const;
@@ -140,7 +143,10 @@ class ClientProxy final {
       absl::Span<location::nearby::proto::connections::Medium> mediums,
       const std::vector<analytics::OperationResultWithMedium>&
           operation_result_with_medium,
-      const DiscoveryOptions& discovery_options = DiscoveryOptions{});
+      const DiscoveryOptions& discovery_options = DiscoveryOptions{},
+      std::optional<bool> is_extended_advertisement_supported = std::nullopt,
+      std::optional<int> connected_ap_frequency = std::nullopt,
+      std::optional<bool> is_nfc_available = std::nullopt);
   // Marks this client as not discovering at all.
   void StoppedDiscovery();
   bool IsDiscoveringServiceId(const std::string& service_id) const;

@@ -114,6 +114,11 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// When true, only populate AdvertisingMetadata and DiscoveryMetadata capability
+// fields when measured, rather than defaulting unmeasured capabilities to
+// false/0.
+constexpr auto kOmitUnmeasuredAdvDisCapabilities =
+    flags::Flag<bool>(kConfigPackage, "45868908", true);
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);

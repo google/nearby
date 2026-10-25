@@ -34,6 +34,8 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/advertising_metadata_params.h"
+#include "connections/implementation/analytics/discovery_metadata_params.h"
 #include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
@@ -138,7 +140,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client1_.reset();
     client2_.reset();
     env_.Stop();
-    NearbyFlags::GetInstance().ResetOverridedValues();
+    NearbyFlags::GetInstance().ResetOverridedValues();  // NOTYPO
   }
 
   bool ShouldEnterStableEndpointIdMode(
@@ -1453,7 +1455,7 @@ TEST_F(ClientProxyTest, UncancelCancellationFlags) {
   EXPECT_TRUE(
       client1()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
 
-  // On subsequent calls to add a new cancellation flag, expect an the flag to
+  // On subsequent calls to add a new cancellation flag, expect the flag to
   // be uncancelled.
   client1()->AddCancellationFlag(advertising_endpoint.id);
   flag = client1()->GetCancellationFlag(advertising_endpoint.id);
@@ -1937,6 +1939,85 @@ TEST_F(ClientProxyTest, OnSessionComplete_SavesToLastLocalEndpointId) {
   client1()->StoppedAdvertising();
   EXPECT_FALSE(client1()->IsAdvertising());
   EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
+}
+
+TEST_F(ClientProxyTest,
+       StartedAdvertisingAndDiscoveryForwardsMeasuredCapabilities) {
+  std::optional<bool> captured_adv_ext_ble;
+  std::optional<int> captured_adv_freq;
+  std::optional<bool> captured_adv_nfc;
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _))
+      .WillOnce([&](Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    AdvertisingMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_adv_ext_ble = params->is_extended_advertisement_supported;
+        captured_adv_freq = params->connected_ap_frequency;
+        captured_adv_nfc = params->is_nfc_available;
+      });
+  client1()->StartedAdvertising(
+      service_id_, strategy_, advertising_connection_listener_,
+      absl::MakeSpan(mediums_), /*operation_result_with_medium=*/{},
+      AdvertisingOptions{}, /*is_extended_advertisement_supported=*/true,
+      /*connected_ap_frequency=*/5180, /*is_nfc_available=*/std::nullopt);
+  EXPECT_EQ(captured_adv_ext_ble, std::optional<bool>(true));
+  EXPECT_EQ(captured_adv_freq, std::optional<int>(5180));
+  EXPECT_EQ(captured_adv_nfc, std::nullopt);
+
+  std::optional<bool> captured_disc_ext_ble;
+  std::optional<int> captured_disc_freq;
+  std::optional<bool> captured_disc_nfc;
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartDiscovery(strategy_, mediums_, _))
+      .WillOnce([&](Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    DiscoveryMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_disc_ext_ble = params->is_extended_advertisement_supported;
+        captured_disc_freq = params->connected_ap_frequency;
+        captured_disc_nfc = params->is_nfc_available;
+      });
+  client1()->StartedDiscovery(
+      service_id_, strategy_, GetDiscoveryListener(), absl::MakeSpan(mediums_),
+      /*operation_result_with_medium=*/{}, DiscoveryOptions{},
+      /*is_extended_advertisement_supported=*/false,
+      /*connected_ap_frequency=*/2412, /*is_nfc_available=*/std::nullopt);
+  EXPECT_EQ(captured_disc_ext_ble, std::optional<bool>(false));
+  EXPECT_EQ(captured_disc_freq, std::optional<int>(2412));
+  EXPECT_EQ(captured_disc_nfc, std::nullopt);
+}
+
+TEST_F(ClientProxyTest,
+       StartedAdvertisingAndDiscoveryUsesDefaultCapabilitiesWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kOmitUnmeasuredAdvDisCapabilities,
+      false);
+  std::optional<bool> captured_adv_ext_ble;
+  std::optional<int> captured_adv_freq;
+  std::optional<bool> captured_adv_nfc;
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartAdvertising(strategy_, mediums_, _))
+      .WillOnce([&](Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    AdvertisingMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_adv_ext_ble = params->is_extended_advertisement_supported;
+        captured_adv_freq = params->connected_ap_frequency;
+        captured_adv_nfc = params->is_nfc_available;
+      });
+  client1()->StartedAdvertising(
+      service_id_, strategy_, advertising_connection_listener_,
+      absl::MakeSpan(mediums_), /*operation_result_with_medium=*/{},
+      AdvertisingOptions{}, /*is_extended_advertisement_supported=*/true,
+      /*connected_ap_frequency=*/5180, /*is_nfc_available=*/std::nullopt);
+  EXPECT_EQ(captured_adv_ext_ble, std::optional<bool>(false));
+  EXPECT_EQ(captured_adv_freq, std::optional<int>(0));
+  EXPECT_EQ(captured_adv_nfc, std::optional<bool>(false));
 }
 
 }  // namespace

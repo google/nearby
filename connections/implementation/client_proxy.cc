@@ -439,7 +439,10 @@ void ClientProxy::StartedAdvertising(
     absl::Span<location::nearby::proto::connections::Medium> mediums,
     const std::vector<analytics::OperationResultWithMedium>&
         operation_result_with_mediums,
-    const AdvertisingOptions& advertising_options) {
+    const AdvertisingOptions& advertising_options,
+    std::optional<bool> is_extended_advertisement_supported,
+    std::optional<int> connected_ap_frequency,
+    std::optional<bool> is_nfc_available) {
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [StartedAdvertising]: client=" << GetClientId();
 
@@ -457,10 +460,20 @@ void ClientProxy::StartedAdvertising(
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
   std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
-  advertising_metadata_params =
-      AnalyticsRecorder::BuildAdvertisingMetadataParams();
-  advertising_metadata_params->operation_result_with_mediums =
-      operation_result_with_mediums;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kOmitUnmeasuredAdvDisCapabilities)) {
+    advertising_metadata_params =
+        AnalyticsRecorder::BuildAdvertisingMetadataParams(
+            is_extended_advertisement_supported, connected_ap_frequency,
+            is_nfc_available, operation_result_with_mediums);
+  } else {
+    advertising_metadata_params =
+        AnalyticsRecorder::BuildAdvertisingMetadataParams(
+            /*is_extended_advertisement_supported=*/false,
+            /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
+            operation_result_with_mediums);
+  }
   analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
                                           advertising_metadata_params.get());
 }
@@ -578,7 +591,10 @@ void ClientProxy::StartedDiscovery(
     absl::Span<location::nearby::proto::connections::Medium> mediums,
     const std::vector<analytics::OperationResultWithMedium>&
         operation_result_with_mediums,
-    const DiscoveryOptions& discovery_options) {
+    const DiscoveryOptions& discovery_options,
+    std::optional<bool> is_extended_advertisement_supported,
+    std::optional<int> connected_ap_frequency,
+    std::optional<bool> is_nfc_available) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, std::move(listener)};
   discovery_options_ = discovery_options;
@@ -586,9 +602,18 @@ void ClientProxy::StartedDiscovery(
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
   std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
-  discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams();
-  discovery_metadata_params->operation_result_with_mediums =
-      operation_result_with_mediums;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kOmitUnmeasuredAdvDisCapabilities)) {
+    discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams(
+        is_extended_advertisement_supported, connected_ap_frequency,
+        is_nfc_available, operation_result_with_mediums);
+  } else {
+    discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams(
+        /*is_extended_advertisement_supported=*/false,
+        /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
+        operation_result_with_mediums);
+  }
   analytics_recorder_->OnStartDiscovery(strategy, medium_vector,
                                         discovery_metadata_params.get());
 }

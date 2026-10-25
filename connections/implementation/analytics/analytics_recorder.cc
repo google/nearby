@@ -15,6 +15,7 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,8 +34,9 @@ using ::location::nearby::proto::connections::OperationResultCode;
 
 std::unique_ptr<AdvertisingMetadataParams>
 AnalyticsRecorder::BuildAdvertisingMetadataParams(
-    bool is_extended_advertisement_supported, int connected_ap_frequency,
-    bool is_nfc_available,
+    std::optional<bool> is_extended_advertisement_supported,
+    std::optional<int> connected_ap_frequency,
+    std::optional<bool> is_nfc_available,
     const std::vector<OperationResultWithMedium>&
         operation_result_with_mediums) {
   auto params = std::make_unique<AdvertisingMetadataParams>();
@@ -48,8 +50,9 @@ AnalyticsRecorder::BuildAdvertisingMetadataParams(
 
 std::unique_ptr<DiscoveryMetadataParams>
 AnalyticsRecorder::BuildDiscoveryMetadataParams(
-    bool is_extended_advertisement_supported, int connected_ap_frequency,
-    bool is_nfc_available,
+    std::optional<bool> is_extended_advertisement_supported,
+    std::optional<int> connected_ap_frequency,
+    std::optional<bool> is_nfc_available,
     const std::vector<OperationResultWithMedium>&
         operation_result_with_mediums) {
   auto params = std::make_unique<DiscoveryMetadataParams>();
