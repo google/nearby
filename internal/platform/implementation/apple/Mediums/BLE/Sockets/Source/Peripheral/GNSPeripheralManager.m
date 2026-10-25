@@ -415,8 +415,10 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   GNCLoggerInfo(@"Peripheral manager state updated: %@",
                 CBManagerStateString(_cbPeripheralManager.state));
   switch (_cbPeripheralManager.state) {
-    case CBManagerStatePoweredOn:
     case CBManagerStatePoweredOff:
+      [self removeAllBleServices];
+      break;
+    case CBManagerStatePoweredOn:
       // As instructed by Apple engineers:
       // * BLE services should be added on power or on power off.
       // * BLE advertisment should be started on power on.
