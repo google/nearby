@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
@@ -232,8 +233,7 @@ int PayloadManager::SendPayloadLoop(
   // availableEndpointIds is re-synced and found to be empty at that point.
   if (failed_endpoint_ids.size() < available_endpoint_ids.size()) {
     for (const auto& endpoint_id : available_endpoint_ids) {
-      if (std::find(failed_endpoint_ids.begin(), failed_endpoint_ids.end(),
-                    endpoint_id) == failed_endpoint_ids.end()) {
+      if (!absl::c_linear_search(failed_endpoint_ids, endpoint_id)) {
         if (!WaitForReceivedAck(client, endpoint_id, pending_payload,
                                 payload_header, next_chunk_offset,
                                 is_last_chunk)) {
@@ -869,13 +869,13 @@ void PayloadManager::HandleIncomingPayloadErrorOnStatusUpdateThread(
   }
 
   // Unless we never started tracking this payload (meaning we
-  // failed to even create the InternalPayload), notify the client
-  // (and close it).
+  // failed to even create the InternalPayload), close it and notify the
+  // client.
+  DestroyPendingPayload(payload_header.id());
   PayloadProgressInfo update{payload_header.id(),
                              PayloadStatusToTransferUpdateStatus(status),
                              payload_header.total_size(), offset_bytes};
   NotifyClientOfIncomingPayloadProgressInfo(client, endpoint_id, update);
-  DestroyPendingPayload(payload_header.id());
 
   // Analyze
   client->GetAnalyticsRecorder().OnIncomingPayloadDone(
@@ -1287,10 +1287,10 @@ void PayloadManager::ProcessDataPacket(
       LOG(WARNING) << "ProcessDataPacket: [duplicate] endpoint_id="
                    << from_endpoint_id << "; payload_id=" << payload_id
                    << ", aborting receipt.";
-      HandleIncomingPayloadError(
-          to_client, from_endpoint_id, payload_header, payload_chunk.offset(),
-          PayloadStatus::LOCAL_ERROR,
-          OperationResultCode::IO_FILE_OPENING_ERROR);
+      HandleIncomingPayloadError(to_client, from_endpoint_id, payload_header,
+                                 payload_chunk.offset(),
+                                 PayloadStatus::LOCAL_ERROR,
+                                 OperationResultCode::IO_FILE_OPENING_ERROR);
       return;
     }
     RunOnStatusUpdateThread(
@@ -1719,7 +1719,6 @@ void PayloadManager::PendingPayloads::StartTrackingPayload(
   // If the |payload_id| is being re-used, always prefer the newer payload.
   Remove(pending_payloads_.find(payload_id));
   VLOG(1) << "StartTrackingPayload: " << pending_payload->ToString();
-  pending_payload->IncRefCount();
   pending_payloads_[payload_id] = std::move(pending_payload);
 }
 
@@ -1731,22 +1730,12 @@ void PayloadManager::PendingPayloads::StopTrackingPayload(
 }
 
 void PayloadManager::PendingPayloads::Remove(
-    absl::flat_hash_map<Payload::Id, std::unique_ptr<PendingPayload>>::iterator
+    absl::flat_hash_map<Payload::Id, std::shared_ptr<PendingPayload>>::iterator
         it) {
   if (it != pending_payloads_.end()) {
+    VLOG(1) << "Removing payload: " << it->second->ToString();
     it->second->Close();
-    int refcount = it->second->DecRefCount();
-    if (refcount == 0) {
-      // Nobody is using the payload, we can remove it.
-      VLOG(1) << "Erase payload " << it->second->ToString();
-      pending_payloads_.erase(it);
-    } else {
-      // Someone is still using the payload. Move it to the garbage bin. The
-      // payload will be removed when they release it.
-      VLOG(1) << "Bin payload " << it->second->ToString();
-      payload_garbage_bin_.push_back(
-          std::move(pending_payloads_.extract(it).mapped()));
-    }
+    pending_payloads_.erase(it);
   }
 }
 
@@ -1756,13 +1745,9 @@ PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
 
   auto item = pending_payloads_.find(payload_id);
   if (item == pending_payloads_.end()) {
-    return PendingPayloadHandle();
+    return nullptr;
   }
-  PendingPayload* payload = item->second.get();
-  payload->IncRefCount();
-  return PendingPayloadHandle(
-      payload, absl::bind_front(&PendingPayloads::Release,
-                                const_cast<PendingPayloads*>(this)));
+  return item->second;
 }
 
 void PayloadManager::PendingPayloads::StopTrackingAllPayloads() {
@@ -1779,39 +1764,6 @@ void PayloadManager::PendingPayloads::ForEachPayload(
 
   for (const auto& item : pending_payloads_) {
     callback(item.second.get());
-  }
-}
-
-void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
-  // Called when `PendingPayloadHandle` is destroyed.
-  absl::MutexLock lock(mutex_);
-  VLOG(1) << __func__ << " " << payload->ToString();
-  auto it = pending_payloads_.find(payload->GetId());
-  if (it != pending_payloads_.end() && it->second.get() == payload) {
-    // The payload is still tracked.
-    payload->DecRefCount();
-    return;
-  }
-  auto bin_it =
-      std::find_if(payload_garbage_bin_.begin(), payload_garbage_bin_.end(),
-                   [payload](auto& item) { return item.get() == payload; });
-  if (bin_it != payload_garbage_bin_.end()) {
-    int refcount = payload->DecRefCount();
-    if (refcount == 0) {
-      // The payload is not tracked and it was the last reference.
-      payload_garbage_bin_.erase(bin_it);
-    }
-  }
-}
-
-PayloadManager::PendingPayloadHandle::PendingPayloadHandle(
-    PendingPayload* payload,
-    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback)
-    : payload_(payload), destroy_callback_(std::move(destroy_callback)) {}
-
-PayloadManager::PendingPayloadHandle::~PendingPayloadHandle() {
-  if (destroy_callback_) {
-    std::move(destroy_callback_)(payload_);
   }
 }
 
