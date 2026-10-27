@@ -45,7 +45,8 @@ class AnalyticsRecorder {
       location::nearby::proto::sharing::EstablishConnectionStatus
           connection_status,
       const ShareTarget& share_target, int transfer_position,
-      int concurrent_connections, int64_t duration_millis) = 0;
+      int concurrent_connections, int64_t duration_millis,
+      location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
   virtual void NewAcceptAgreements() = 0;
 
@@ -141,13 +142,9 @@ class AnalyticsRecorder {
 
   virtual void NewSendFastInitialization() = 0;
 
-  virtual void NewSendStart(int64_t session_id, int transfer_position,
-                            int concurrent_connections,
-                            const ShareTarget& share_target) = 0;
-
-  virtual void NewSendIntroduction(
-      ShareTargetType target_type, int64_t session_id,
-      location::nearby::proto::sharing::DeviceRelationship relationship,
+  virtual void NewSendStart(
+      int64_t session_id, int transfer_position, int concurrent_connections,
+      const ShareTarget& share_target,
       location::nearby::proto::sharing::OSType share_target_os_type) = 0;
 
   virtual void NewSendIntroduction(

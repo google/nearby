@@ -168,7 +168,7 @@ bool OutgoingShareSession::InitiateSendAttachments(
   analytics_recorder().NewSendStart(session_id(),
                                     /*transfer_position=*/1,
                                     /*concurrent_connections=*/1,
-                                    share_target());
+                                    share_target(), os_type());
   text_payloads_.clear();
   wifi_credentials_payloads_.clear();
   file_payloads_.clear();
@@ -580,7 +580,8 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
         share_target(),
         /*transfer_position=*/1,
         /*concurrent_connections=*/1,
-        absl::ToInt64Milliseconds(clock().Now() - connection_start_time_));
+        absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
+        os_type());
     LOG(WARNING) << "Failed to initiate connection to share target "
                  << share_target().id;
     if (connection_layer_status_ == Status::kTimeout) {
@@ -602,7 +603,8 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
       share_target(),
       /*transfer_position=*/1,
       /*concurrent_connections=*/1,
-      absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)));
+      absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)),
+      os_type());
   return true;
 }
 
