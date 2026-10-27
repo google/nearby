@@ -29,22 +29,19 @@
 namespace nearby {
 namespace connections {
 
-// Defines the operations layered atop a Payload, for use inside the
+constexpr int kPayloadIndeterminateSize = -1;
+
+// Defines the operations layered atop an incoming Payload, for use inside the
 // OfflineServiceController.
-//
-// There will be an extension of this abstract base class per type of
-// Payload.
 //
 // Implementations are thread-compatible (go/thread-compatible), except that
 // Close() may be called from another thread.
-class InternalPayload {
+class IncomingInternalPayload {
  public:
-  static constexpr int kIndeterminateSize = -1;
+  explicit IncomingInternalPayload(Payload payload);
+  virtual ~IncomingInternalPayload() = default;
 
-  explicit InternalPayload(Payload payload);
-  virtual ~InternalPayload() = default;
-
-  Payload::Id GetId() const;
+  Payload::Id GetId() const { return payload_id_; }
 
   // Returns the PayloadType of the Payload to which this object is bound.
   //
@@ -69,21 +66,6 @@ class InternalPayload {
   // to call from another thread.
   virtual void Close() {}
 
- protected:
-  Payload payload_;
-  // We're caching the payload ID here because the backing payload will be
-  // released to another owner during the lifetime of an incoming
-  // InternalPayload.
-  const Payload::Id payload_id_;
-};
-
-// Defines the operations layered atop an incoming Payload, for use inside the
-// OfflineServiceController.
-class IncomingInternalPayload : public InternalPayload {
- public:
-  using InternalPayload::InternalPayload;
-  ~IncomingInternalPayload() override = default;
-
   Payload ReleasePayload();
 
   // Adds the next chunk that comprises the Payload to which this object is
@@ -94,14 +76,49 @@ class IncomingInternalPayload : public InternalPayload {
   //
   // `chunk` is the next chunk. An empty chunk signals the end of the payload.
   virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
+
+ protected:
+  Payload payload_;
+  // We're caching the payload ID here because the backing payload will be
+  // released to another owner during the lifetime of an incoming
+  // IncomingInternalPayload.
+  const Payload::Id payload_id_;
 };
 
 // Defines the operations layered atop an outgoing Payload, for use inside the
 // OfflineServiceController.
-class OutgoingInternalPayload : public InternalPayload {
+//
+// Implementations are thread-compatible (go/thread-compatible), except that
+// Close() may be called from another thread.
+class OutgoingInternalPayload {
  public:
-  using InternalPayload::InternalPayload;
-  ~OutgoingInternalPayload() override = default;
+  explicit OutgoingInternalPayload(Payload payload);
+  virtual ~OutgoingInternalPayload() = default;
+
+  Payload::Id GetId() const { return payload_.GetId(); }
+
+  // Returns the PayloadType of the Payload to which this object is bound.
+  //
+  // Note that this is supposed to return the type from the OfflineFrame
+  // proto rather than what is already available via
+  // Payload::getType().
+  //
+  // @return The PayloadType.
+  virtual location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+      PayloadType
+      GetType() const = 0;
+
+  // Deduces the total size of the Payload to which this object is bound.
+  //
+  // @return The total size, or -1 if it cannot be deduced (for example, when
+  // dealing with streaming data).
+  virtual std::int64_t GetTotalSize() const = 0;
+
+  // Cleans up any resources used by this Payload. Called when we're stopping
+  // early, e.g. after being cancelled or having no more recipients left.
+  // Implementations must be idempotent (safe to call multiple times) and safe
+  // to call from another thread.
+  virtual void Close() {}
 
   const std::string& GetParentFolder() const {
     return payload_.GetParentFolder();
@@ -130,6 +147,9 @@ class OutgoingInternalPayload : public InternalPayload {
   //
   // @return the offset really skipped
   virtual ExceptionOr<size_t> SkipToOffset(size_t offset) = 0;
+
+ protected:
+  Payload payload_;
 };
 
 }  // namespace connections

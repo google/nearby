@@ -80,8 +80,7 @@ TEST_F(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
   ASSERT_NE(internal_payload, nullptr);
   EXPECT_EQ(internal_payload->GetType(),
             PayloadTransferFrame::PayloadHeader::STREAM);
-  EXPECT_EQ(internal_payload->GetTotalSize(),
-            InternalPayload::kIndeterminateSize);
+  EXPECT_EQ(internal_payload->GetTotalSize(), kPayloadIndeterminateSize);
   ASSERT_TRUE(output->Write(kText).Ok());
   ASSERT_TRUE(output->Close().Ok());
   EXPECT_EQ(internal_payload->DetachNextChunk(512), ByteArray(kText));

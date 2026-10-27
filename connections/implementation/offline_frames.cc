@@ -250,7 +250,7 @@ std::string ForPayloadAckPayloadTransfer(std::int64_t payload_id) {
 
   PayloadTransferFrame::PayloadHeader header;
   header.set_id(payload_id);
-  header.set_total_size(InternalPayload::kIndeterminateSize);
+  header.set_total_size(kPayloadIndeterminateSize);
   *sub_frame->mutable_payload_header() = header;
 
   return frame.SerializeAsString();

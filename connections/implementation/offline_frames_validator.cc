@@ -123,7 +123,7 @@ Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
     LOG(ERROR) << "Invalid payload chunk offset";
     return {Exception::kInvalidProtocolBuffer};
   }
-  if (totalSize != InternalPayload::kIndeterminateSize &&
+  if (totalSize != kPayloadIndeterminateSize &&
       totalSize < payload_chunk.offset()) {
     LOG(ERROR) << "Payload chunk offset > totalSize";
     return {Exception::kInvalidProtocolBuffer};
@@ -140,7 +140,7 @@ Exception EnsureValidPayloadTransferControlFrame(
     LOG(ERROR) << "Invalid control message offset";
     return {Exception::kInvalidProtocolBuffer};
   }
-  if (totalSize != InternalPayload::kIndeterminateSize &&
+  if (totalSize != kPayloadIndeterminateSize &&
       totalSize < control_message.offset()) {
     LOG(ERROR) << "Control message offset > totalSize";
     return {Exception::kInvalidProtocolBuffer};
@@ -188,8 +188,7 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
   }
   if (!frame.payload_header().has_total_size() ||
       (frame.payload_header().total_size() < 0 &&
-       frame.payload_header().total_size() !=
-           InternalPayload::kIndeterminateSize)) {
+       frame.payload_header().total_size() != kPayloadIndeterminateSize)) {
     LOG(ERROR) << "Invalid payload header size";
     return {Exception::kInvalidProtocolBuffer};
   }

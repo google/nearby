@@ -22,14 +22,15 @@ namespace connections {
 
 // The definition is necessary before C++17.
 
-InternalPayload::InternalPayload(Payload payload)
+IncomingInternalPayload::IncomingInternalPayload(Payload payload)
     : payload_(std::move(payload)), payload_id_(payload_.GetId()) {}
-
-Payload::Id InternalPayload::GetId() const { return payload_id_; }
 
 Payload IncomingInternalPayload::ReleasePayload() {
   return std::move(payload_);
 }
+
+OutgoingInternalPayload::OutgoingInternalPayload(Payload payload)
+    : payload_(std::move(payload)) {}
 
 }  // namespace connections
 }  // namespace nearby

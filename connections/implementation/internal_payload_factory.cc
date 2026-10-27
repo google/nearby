@@ -143,7 +143,7 @@ class OutgoingStreamInternalPayload : public OutgoingInternalPayload {
   }
 
   std::int64_t GetTotalSize() const override {
-    return InternalPayload::kIndeterminateSize;
+    return kPayloadIndeterminateSize;
   }
 
   ByteArray DetachNextChunk(int chunk_size) override {
@@ -211,7 +211,7 @@ class IncomingStreamInternalPayload : public IncomingInternalPayload {
   }
 
   std::int64_t GetTotalSize() const override {
-    return InternalPayload::kIndeterminateSize;
+    return kPayloadIndeterminateSize;
   }
 
   Exception AttachNextChunk(absl::string_view chunk) override {

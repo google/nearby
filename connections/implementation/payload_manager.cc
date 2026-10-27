@@ -764,9 +764,8 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
     payload_header.set_last_modified_timestamp_millis(
         absl::ToUnixMillis(outgoing_payload.GetLastModifiedTime()));
   }
-  payload_header.set_total_size(payload_size ==
-                                        InternalPayload::kIndeterminateSize
-                                    ? InternalPayload::kIndeterminateSize
+  payload_header.set_total_size(payload_size == kPayloadIndeterminateSize
+                                    ? kPayloadIndeterminateSize
                                     : payload_size - offset);
   return payload_header;
 }
