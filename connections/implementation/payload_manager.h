@@ -113,38 +113,16 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Tracks state for an InternalPayload and the endpoints associated with it.
   class PendingPayload {
    public:
-    PendingPayload(
-        std::unique_ptr<IncomingInternalPayload> incoming_payload,
-        const std::vector<std::string>& endpoint_ids,
-        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
-    PendingPayload(
-        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
-        const std::vector<std::string>& endpoint_ids,
-        absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback);
-    PendingPayload(PendingPayload&&) = default;
-    PendingPayload& operator=(PendingPayload&&) = default;
+    explicit PendingPayload(const std::vector<std::string>& endpoint_ids);
 
-    ~PendingPayload() {
-      Close();
-      if (destroy_callback_) {
-        std::move(destroy_callback_)(this);
-      }
-    }
+    virtual ~PendingPayload() = default;
 
-    Payload::Id GetId() const;
-
-    InternalPayload* GetInternalPayload() const;
-    IncomingInternalPayload* GetIncomingInternalPayload() const {
-      return incoming_payload_.get();
-    }
-    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
-      return outgoing_payload_.get();
-    }
+    virtual Payload::Id GetId() const = 0;
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceledAndClose();
     void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
-    bool IsIncoming() const;
+    virtual bool IsIncoming() const = 0;
 
     // Gets the EndpointInfo objects for the endpoints (still) associated with
     // this payload.
@@ -172,7 +150,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     // Closes the underlying payload.
     // Close is called when a pending payload does not have associated
     // endpoints.
-    void Close();
+    virtual void Close() = 0;
 
     std::string ToString() const;
 
@@ -182,39 +160,94 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     mutable absl::Mutex mutex_;
     AtomicBoolean is_locally_canceled_{false};
-    const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
-    const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
-    absl::AnyInvocable<void(PendingPayload*) &&> destroy_callback_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
   };
 
+  class IncomingPendingPayload : public PendingPayload {
+   public:
+    IncomingPendingPayload(
+        std::unique_ptr<IncomingInternalPayload> incoming_payload,
+        const std::vector<std::string>& endpoint_ids);
+    IncomingPendingPayload(IncomingPendingPayload&&) = default;
+    IncomingPendingPayload& operator=(IncomingPendingPayload&&) = default;
+
+    ~IncomingPendingPayload() override { Close(); }
+
+    Payload::Id GetId() const override { return incoming_payload_->GetId(); }
+    IncomingInternalPayload* GetIncomingInternalPayload() const {
+      return incoming_payload_.get();
+    }
+    bool IsIncoming() const override { return true; }
+    void Close() override {
+      if (incoming_payload_ != nullptr) {
+        incoming_payload_->Close();
+      }
+    }
+
+   private:
+    const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
+  };
+
+  class OutgoingPendingPayload : public PendingPayload {
+   public:
+    OutgoingPendingPayload(
+        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
+        const std::vector<std::string>& endpoint_ids,
+        absl::AnyInvocable<void() &&> destroy_callback);
+    OutgoingPendingPayload(OutgoingPendingPayload&&) = default;
+    OutgoingPendingPayload& operator=(OutgoingPendingPayload&&) = default;
+
+    ~OutgoingPendingPayload() override {
+      Close();
+      if (destroy_callback_) {
+        std::move(destroy_callback_)();
+      }
+    }
+
+    Payload::Id GetId() const override { return outgoing_payload_->GetId(); }
+    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
+      return outgoing_payload_.get();
+    }
+    bool IsIncoming() const override { return false; }
+    void Close() override {
+      if (outgoing_payload_ != nullptr) {
+        outgoing_payload_->Close();
+      }
+    }
+
+   private:
+    const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
+    absl::AnyInvocable<void() &&> destroy_callback_;
+  };
+
   // Tracks and manages PendingPayload objects in a synchronized manner.
+  template <typename T>
   class PendingPayloads {
    public:
     PendingPayloads() = default;
     ~PendingPayloads() = default;
 
     void StartTrackingPayload(Payload::Id payload_id,
-                              std::unique_ptr<PendingPayload> pending_payload)
+                              std::unique_ptr<T> pending_payload)
         ABSL_LOCKS_EXCLUDED(mutex_);
     void StopTrackingPayload(Payload::Id payload_id)
         ABSL_LOCKS_EXCLUDED(mutex_);
     void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
-    std::shared_ptr<PendingPayload> GetPayload(Payload::Id payload_id) const
+    std::shared_ptr<T> GetPayload(Payload::Id payload_id) const
         ABSL_LOCKS_EXCLUDED(mutex_);
     // Calls `callback` for each tracked payload. The callback must not call
     // other `PendingPayloads` methods.
-    void ForEachPayload(absl::AnyInvocable<void(PendingPayload*)> callback)
+    void ForEachPayload(absl::AnyInvocable<void(T*)> callback)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
-    void Remove(absl::flat_hash_map<
-                Payload::Id, std::shared_ptr<PendingPayload>>::iterator it)
-        ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+    void Remove(
+        typename absl::flat_hash_map<Payload::Id, std::shared_ptr<T>>::iterator
+            it) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
     mutable absl::Mutex mutex_;
-    absl::flat_hash_map<Payload::Id, std::shared_ptr<PendingPayload>>
-        pending_payloads_ ABSL_GUARDED_BY(mutex_);
+    absl::flat_hash_map<Payload::Id, std::shared_ptr<T>> pending_payloads_
+        ABSL_GUARDED_BY(mutex_);
   };
 
   using Endpoints = std::vector<const EndpointInfo*>;
@@ -224,12 +257,13 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Returns a pair of lists, with the first being the list of still-available
   // endpoint ids, and the second for unavailable endpoints.
   static std::pair<std::vector<std::string>, Endpoints>
-  GetAvailableAndUnavailableEndpoints(const PendingPayload& pending_payload);
+  GetAvailableAndUnavailableEndpoints(
+      const OutgoingPendingPayload& pending_payload);
 
   // Returns the number of bytes sent.  0 bytes sent indicates end of payload.
   // Returns -1 on error.
   int SendPayloadLoop(
-      ClientProxy* client, PendingPayload& pending_payload,
+      ClientProxy* client, OutgoingPendingPayload& pending_payload,
       location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
       int64_t next_chunk_offset, size_t resume_offset, int index);
@@ -269,7 +303,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Creates an incoming payload and returns a handle to it.
   // If `save_path` is empty, the payload will be saved to the default save
   // path set in `SetCustomSavePath()`.
-  ErrorOr<std::shared_ptr<PendingPayload>> CreateIncomingPayload(
+  ErrorOr<std::shared_ptr<IncomingPendingPayload>> CreateIncomingPayload(
       const location::nearby::connections::PayloadTransferFrame& frame,
       const std::string& endpoint_id, const std::string& save_path)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -297,19 +331,20 @@ class PayloadManager : public EndpointManager::FrameProcessor {
           EventType event_type);
 
   void SendPayloadReceivedAck(ClientProxy* client,
-                              PendingPayload& pending_payload,
+                              IncomingPendingPayload& pending_payload,
                               const std::string& endpoint_id,
                               bool is_last_chunk);
 
   bool WaitForReceivedAck(
       ClientProxy* client, const std::string& endpoint_id,
-      PendingPayload& pending_payload,
+      OutgoingPendingPayload& pending_payload,
       const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
           payload_header,
       int64_t payload_chunk_offset, bool is_last_chunk);
-  bool IsPayloadReceivedAckEnabled(ClientProxy* client,
-                                   const std::string& endpoint_id,
-                                   PendingPayload& pending_payload);
+  bool IsPayloadReceivedAckEnabled(
+      ClientProxy* client, const std::string& endpoint_id,
+      location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+          PayloadType payload_type);
 
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.
@@ -377,10 +412,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   void RunOnStatusUpdateThread(const std::string& name,
                                absl::AnyInvocable<void()> runnable);
   bool NotifyShutdown() ABSL_LOCKS_EXCLUDED(mutex_);
-  void DestroyPendingPayload(Payload::Id payload_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  std::shared_ptr<PendingPayload> GetPayload(Payload::Id payload_id) const
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::shared_ptr<IncomingPendingPayload> GetIncomingPayload(
+      Payload::Id payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
+  std::shared_ptr<OutgoingPendingPayload> GetOutgoingPayload(
+      Payload::Id payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
   void RecordPayloadStartedAnalytics(
@@ -398,7 +433,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       location::nearby::connections::PayloadTransferFrame::PayloadHeader::
           PayloadType type);
 
-  void OnPendingPayloadDestroy(const PendingPayload* payload);
   mutable absl::Mutex mutex_;
   std::string custom_save_path_;
   AtomicBoolean shutdown_{false};
@@ -409,7 +443,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   SingleThreadExecutor stream_payload_executor_;
   SingleThreadExecutor payload_status_update_executor_;
   SingleThreadExecutor send_payload_ack_executor_;
-  PendingPayloads pending_payloads_;
+  PendingPayloads<IncomingPendingPayload> incoming_pending_payloads_;
+  PendingPayloads<OutgoingPendingPayload> outgoing_pending_payloads_;
   EndpointManager* endpoint_manager_;
 
   // When callback processing cannot keep the speed of callback update, the
