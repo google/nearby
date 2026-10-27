@@ -2844,59 +2844,6 @@ bool DeviceType_Parse(::absl::string_view name, DeviceType* PROTOBUF_NONNULL val
   }
   return success;
 }
-PROTOBUF_CONSTINIT const uint32_t OsType_internal_data_[] = {
-    327680u, 65536u, 100u, };
-static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
-    OsType_strings[6] = {};
-
-static const char OsType_names[] = {
-    "ANDROID"
-    "APPLE"
-    "CHROME_OS"
-    "LINUX"
-    "UNKNOWN_OS_TYPE"
-    "WINDOWS"
-};
-
-static const ::google::protobuf::internal::EnumEntry OsType_entries[] = {
-    {{&OsType_names[0], 7}, 1},
-    {{&OsType_names[7], 5}, 4},
-    {{&OsType_names[12], 9}, 2},
-    {{&OsType_names[21], 5}, 100},
-    {{&OsType_names[26], 15}, 0},
-    {{&OsType_names[41], 7}, 3},
-};
-
-static const int OsType_entries_by_number[] = {
-    4,  // 0 -> UNKNOWN_OS_TYPE
-    0,  // 1 -> ANDROID
-    2,  // 2 -> CHROME_OS
-    5,  // 3 -> WINDOWS
-    1,  // 4 -> APPLE
-    3,  // 100 -> LINUX
-};
-
-const ::std::string& OsType_Name(OsType value) {
-  static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
-      OsType_entries, OsType_entries_by_number, 6,
-      OsType_strings);
-  (void)kDummy;
-
-  int idx = ::google::protobuf::internal::LookUpEnumName(OsType_entries,
-                                  OsType_entries_by_number,
-                                  6, value);
-  return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : OsType_strings[idx].get();
-}
-
-bool OsType_Parse(::absl::string_view name, OsType* PROTOBUF_NONNULL value) {
-  int int_value;
-  bool success = ::google::protobuf::internal::LookUpEnumValue(
-      OsType_entries, 6, name, &int_value);
-  if (success) {
-    *value = static_cast<OsType>(int_value);
-  }
-  return success;
-}
 PROTOBUF_CONSTINIT const uint32_t SupportedService_internal_data_[] = {
     262144u, 0u, };
 static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
@@ -2991,6 +2938,59 @@ bool DctPayloadType_Parse(::absl::string_view name, DctPayloadType* PROTOBUF_NON
       DctPayloadType_entries, 5, name, &int_value);
   if (success) {
     *value = static_cast<DctPayloadType>(int_value);
+  }
+  return success;
+}
+PROTOBUF_CONSTINIT const uint32_t OsType_internal_data_[] = {
+    327680u, 65536u, 100u, };
+static ::google::protobuf::internal::ExplicitlyConstructed<::std::string>
+    OsType_strings[6] = {};
+
+static const char OsType_names[] = {
+    "ANDROID"
+    "APPLE"
+    "CHROME_OS"
+    "LINUX"
+    "UNKNOWN_OS_TYPE"
+    "WINDOWS"
+};
+
+static const ::google::protobuf::internal::EnumEntry OsType_entries[] = {
+    {{&OsType_names[0], 7}, 1},
+    {{&OsType_names[7], 5}, 4},
+    {{&OsType_names[12], 9}, 2},
+    {{&OsType_names[21], 5}, 100},
+    {{&OsType_names[26], 15}, 0},
+    {{&OsType_names[41], 7}, 3},
+};
+
+static const int OsType_entries_by_number[] = {
+    4,  // 0 -> UNKNOWN_OS_TYPE
+    0,  // 1 -> ANDROID
+    2,  // 2 -> CHROME_OS
+    5,  // 3 -> WINDOWS
+    1,  // 4 -> APPLE
+    3,  // 100 -> LINUX
+};
+
+const ::std::string& OsType_Name(OsType value) {
+  static const bool kDummy = ::google::protobuf::internal::InitializeEnumStrings(
+      OsType_entries, OsType_entries_by_number, 6,
+      OsType_strings);
+  (void)kDummy;
+
+  int idx = ::google::protobuf::internal::LookUpEnumName(OsType_entries,
+                                  OsType_entries_by_number,
+                                  6, value);
+  return idx == -1 ? ::google::protobuf::internal::GetEmptyString() : OsType_strings[idx].get();
+}
+
+bool OsType_Parse(::absl::string_view name, OsType* PROTOBUF_NONNULL value) {
+  int int_value;
+  bool success = ::google::protobuf::internal::LookUpEnumValue(
+      OsType_entries, 6, name, &int_value);
+  if (success) {
+    *value = static_cast<OsType>(int_value);
   }
   return success;
 }

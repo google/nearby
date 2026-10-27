@@ -1414,34 +1414,6 @@ const ::std::string& DeviceType_Name(T value) {
 }
 bool DeviceType_Parse(
     ::absl::string_view name, DeviceType* PROTOBUF_NONNULL value);
-enum OsType : int {
-  UNKNOWN_OS_TYPE = 0,
-  ANDROID = 1,
-  CHROME_OS = 2,
-  WINDOWS = 3,
-  APPLE = 4,
-  LINUX = 100,
-};
-
-extern const uint32_t OsType_internal_data_[];
-inline constexpr OsType OsType_MIN =
-    static_cast<OsType>(0);
-inline constexpr OsType OsType_MAX =
-    static_cast<OsType>(100);
-inline bool OsType_IsValid(int value) {
-  return ::google::protobuf::internal::ValidateEnum(value, OsType_internal_data_);
-}
-inline constexpr int OsType_ARRAYSIZE = 100 + 1;
-const ::std::string& OsType_Name(OsType value);
-template <typename T>
-const ::std::string& OsType_Name(T value) {
-  static_assert(::std::is_same<T, OsType>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to OsType_Name().");
-  return OsType_Name(static_cast<OsType>(value));
-}
-bool OsType_Parse(
-    ::absl::string_view name, OsType* PROTOBUF_NONNULL value);
 enum SupportedService : int {
   SUPPORTED_SERVICE_UNSPECIFIED = 0,
   SUPPORTED_SERVICE_SETTINGS_ESIM = 1,
@@ -1495,6 +1467,34 @@ const ::std::string& DctPayloadType_Name(T value) {
 }
 bool DctPayloadType_Parse(
     ::absl::string_view name, DctPayloadType* PROTOBUF_NONNULL value);
+enum OsType : int {
+  UNKNOWN_OS_TYPE = 0,
+  ANDROID = 1,
+  CHROME_OS = 2,
+  WINDOWS = 3,
+  APPLE = 4,
+  LINUX = 100,
+};
+
+extern const uint32_t OsType_internal_data_[];
+inline constexpr OsType OsType_MIN =
+    static_cast<OsType>(0);
+inline constexpr OsType OsType_MAX =
+    static_cast<OsType>(100);
+inline bool OsType_IsValid(int value) {
+  return ::google::protobuf::internal::ValidateEnum(value, OsType_internal_data_);
+}
+inline constexpr int OsType_ARRAYSIZE = 100 + 1;
+const ::std::string& OsType_Name(OsType value);
+template <typename T>
+const ::std::string& OsType_Name(T value) {
+  static_assert(::std::is_same<T, OsType>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to OsType_Name().");
+  return OsType_Name(static_cast<OsType>(value));
+}
+bool OsType_Parse(
+    ::absl::string_view name, OsType* PROTOBUF_NONNULL value);
 
 // ===================================================================
 
@@ -1579,11 +1579,11 @@ struct is_proto_enum<::location::nearby::proto::connections::StopDiscoveringReas
 template <>
 struct is_proto_enum<::location::nearby::proto::connections::DeviceType> : std::true_type {};
 template <>
-struct is_proto_enum<::location::nearby::proto::connections::OsType> : std::true_type {};
-template <>
 struct is_proto_enum<::location::nearby::proto::connections::SupportedService> : std::true_type {};
 template <>
 struct is_proto_enum<::location::nearby::proto::connections::DctPayloadType> : std::true_type {};
+template <>
+struct is_proto_enum<::location::nearby::proto::connections::OsType> : std::true_type {};
 
 }  // namespace protobuf
 }  // namespace google
