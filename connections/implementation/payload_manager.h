@@ -189,8 +189,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         ABSL_GUARDED_BY(mutex_);
   };
 
-  using PendingPayloadHandle = std::shared_ptr<PendingPayload>;
-
   // Tracks and manages PendingPayload objects in a synchronized manner.
   class PendingPayloads {
    public:
@@ -203,7 +201,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void StopTrackingPayload(Payload::Id payload_id)
         ABSL_LOCKS_EXCLUDED(mutex_);
     void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
-    PendingPayloadHandle GetPayload(Payload::Id payload_id) const
+    std::shared_ptr<PendingPayload> GetPayload(Payload::Id payload_id) const
         ABSL_LOCKS_EXCLUDED(mutex_);
     // Calls `callback` for each tracked payload. The callback must not call
     // other `PendingPayloads` methods.
@@ -271,7 +269,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // Creates an incoming payload and returns a handle to it.
   // If `save_path` is empty, the payload will be saved to the default save
   // path set in `SetCustomSavePath()`.
-  ErrorOr<PendingPayloadHandle> CreateIncomingPayload(
+  ErrorOr<std::shared_ptr<PendingPayload>> CreateIncomingPayload(
       const location::nearby::connections::PayloadTransferFrame& frame,
       const std::string& endpoint_id, const std::string& save_path)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -381,7 +379,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   bool NotifyShutdown() ABSL_LOCKS_EXCLUDED(mutex_);
   void DestroyPendingPayload(Payload::Id payload_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  PendingPayloadHandle GetPayload(Payload::Id payload_id) const
+  std::shared_ptr<PendingPayload> GetPayload(Payload::Id payload_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
   void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 

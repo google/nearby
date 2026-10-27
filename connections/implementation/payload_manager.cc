@@ -439,7 +439,7 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                      payload_type, resume_offset,
                                      payload_total_size]() {
     if (shutdown_.Get()) return;
-    PendingPayloadHandle pending_payload = GetPayload(payload_id);
+    std::shared_ptr<PendingPayload> pending_payload = GetPayload(payload_id);
     if (!pending_payload) {
       RecordInvalidPayloadAnalytics(
           client, endpoint_ids, payload_id, payload_type, resume_offset,
@@ -490,14 +490,14 @@ void PayloadManager::SendPayload(ClientProxy* client,
           << "; payload_id=" << payload_id << ", payload_type=" << payload_type;
 }
 
-PayloadManager::PendingPayloadHandle PayloadManager::GetPayload(
+std::shared_ptr<PayloadManager::PendingPayload> PayloadManager::GetPayload(
     Payload::Id payload_id) const {
   return pending_payloads_.GetPayload(payload_id);
 }
 
 Status PayloadManager::CancelPayload(ClientProxy* client,
                                      Payload::Id payload_id) {
-  PendingPayloadHandle canceled_payload = GetPayload(payload_id);
+  std::shared_ptr<PendingPayload> canceled_payload = GetPayload(payload_id);
   if (!canceled_payload) {
     VLOG(1) << "Client requested cancel for unknown payload_id=" << payload_id
             << ", ignoring.";
@@ -529,7 +529,7 @@ void PayloadManager::OnIncomingFrame(OfflineFrame& offline_frame,
   // to prevent unauthorized transfer.
   if (!to_client->IsConnectedToEndpoint(from_endpoint_id)) {
     if (frame.packet_type() == PayloadTransferFrame::DATA) {
-      PendingPayloadHandle pending_payload =
+      std::shared_ptr<PendingPayload> pending_payload =
           pending_payloads_.GetPayload(frame.payload_header().id());
       bool is_last = IsLastChunk(frame.payload_chunk());
       // If payload need to be ack'd receiving, then send back the ACK frame.
@@ -745,7 +745,7 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
   return payload_chunk;
 }
 
-ErrorOr<PayloadManager::PendingPayloadHandle>
+ErrorOr<std::shared_ptr<PayloadManager::PendingPayload>>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                       const std::string& endpoint_id,
                                       const std::string& save_path) {
@@ -787,7 +787,8 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
        num_bytes_successfully_transferred, status,
        operation_result_code]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         // Make sure we're still tracking this payload.
-        PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+        std::shared_ptr<PendingPayload> pending_payload =
+            GetPayload(payload_header.id());
         if (!pending_payload) {
           return;
         }
@@ -863,7 +864,8 @@ void PayloadManager::HandleIncomingPayloadErrorOnStatusUpdateThread(
     int64_t offset_bytes, PayloadStatus status,
     OperationResultCode operation_result_code) {
   // Make sure we're still tracking this payload.
-  PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+  std::shared_ptr<PendingPayload> pending_payload =
+      GetPayload(payload_header.id());
   if (!pending_payload) {
     return;
   }
@@ -931,7 +933,7 @@ bool PayloadManager::WaitForReceivedAck(
              "PAYLOAD_RECEIVED_ACK frame from: "
           << endpoint_id;
   while (true) {
-    PendingPayloadHandle latest_pending_payload =
+    std::shared_ptr<PendingPayload> latest_pending_payload =
         GetPayload(payload_header.id());
     // Make sure we're still tracking this payload and its associated endpoint.
     if (!latest_pending_payload) {
@@ -1119,7 +1121,8 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
           }
         }
 
-        PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+        std::shared_ptr<PendingPayload> pending_payload =
+            GetPayload(payload_header.id());
         if (!pending_payload || !pending_payload->GetEndpoint(endpoint_id)) {
           VLOG(1) << "HandleSuccessfulOutgoingChunk: endpoint not found: "
                      "endpoint_id="
@@ -1213,7 +1216,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
           }
         }
 
-        PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+        std::shared_ptr<PendingPayload> pending_payload =
+            GetPayload(payload_header.id());
         if (!pending_payload || shutdown_.Get()) {
           return;
         }
@@ -1281,7 +1285,7 @@ void PayloadManager::ProcessDataPacket(
     return;
   }
   Payload::Id payload_id = payload_header.id();
-  PendingPayloadHandle pending_payload;
+  std::shared_ptr<PendingPayload> pending_payload;
   if (payload_chunk.offset() == 0) {
     if (GetPayload(payload_id)) {
       LOG(WARNING) << "ProcessDataPacket: [duplicate] endpoint_id="
@@ -1304,7 +1308,7 @@ void PayloadManager::ProcessDataPacket(
               payload_header.total_size());
         });
 
-    ErrorOr<PendingPayloadHandle> result =
+    ErrorOr<std::shared_ptr<PendingPayload>> result =
         CreateIncomingPayload(payload_transfer_frame, from_endpoint_id,
                               to_client->GetSavePath(from_endpoint_id));
     if (result.has_error()) {
@@ -1411,7 +1415,8 @@ void PayloadManager::ProcessControlPacket(
       payload_transfer_frame.payload_header();
   const PayloadTransferFrame::ControlMessage& control_message =
       payload_transfer_frame.control_message();
-  PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+  std::shared_ptr<PendingPayload> pending_payload =
+      GetPayload(payload_header.id());
   if (!pending_payload) {
     VLOG(1) << "Got ControlMessage for unknown payload_id="
             << payload_header.id() << ", ignoring: " << control_message.event();
@@ -1466,7 +1471,8 @@ void PayloadManager::ProcessPayloadAckPacket(
     const std::string& from_endpoint_id,
     PayloadTransferFrame& payload_transfer_frame) {
   auto payload_header = payload_transfer_frame.payload_header();
-  PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
+  std::shared_ptr<PendingPayload> pending_payload =
+      GetPayload(payload_header.id());
   if (!pending_payload) {
     VLOG(1) << "[safe-to-disconnect][PAYLOAD_RECEIVED_ACK] "
                "short-circuiting got payload "
@@ -1739,7 +1745,7 @@ void PayloadManager::PendingPayloads::Remove(
   }
 }
 
-PayloadManager::PendingPayloadHandle
+std::shared_ptr<PayloadManager::PendingPayload>
 PayloadManager::PendingPayloads::GetPayload(Payload::Id payload_id) const {
   absl::MutexLock lock(mutex_);
 
