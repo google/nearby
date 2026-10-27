@@ -50,11 +50,6 @@ constexpr auto kEnableRetryResumeTransfer =
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
-// Set the logging level in Nearby Sharing SDK. The default logging level is
-// WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
-// 2, FATAL: 3,  negative values are -(verbosity level).
-constexpr auto kLoggingLevel =
-    flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
@@ -122,7 +117,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
 inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
   return {
       {45632386, kDelayEndpointLossMs},
-      {45401358, kLoggingLevel},
       {45658774, kDiscoveryCacheLostExpiryMs},
       {45663103, kUnregisterTargetDiscoveryCacheLostExpiryMs},
       {45831999, kBackupReminderIntervalDays},
