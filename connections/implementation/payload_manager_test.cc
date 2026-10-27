@@ -23,6 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
@@ -163,6 +164,14 @@ class PayloadSimulationUser : public SimulationUser {
 
   bool IsConnected() const {
     return client_.IsConnectedToEndpoint(discovered_.endpoint_id);
+  }
+
+  void DisconnectEndpoint(
+      DisconnectionReason reason = DisconnectionReason::REMOTE_DISCONNECTION) {
+    CountDownLatch barrier(1);
+    pm_.OnEndpointDisconnect(&client_, std::string(kServiceId),
+                             discovered_.endpoint_id, barrier, reason);
+    EXPECT_TRUE(barrier.Await(kDefaultTimeout).result());
   }
 
  protected:
@@ -608,6 +617,43 @@ TEST_P(PayloadManagerTest, DuplicateIncomingPayloadIdFailsPayload) {
   env_.Stop();
 }
 #endif  // !defined(NEARBY_CHROMIUM)
+
+TEST_P(PayloadManagerTest,
+       EndpointDisconnectDuringIncomingPayloadFailsAtLastChunkOffset) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  std::string temp_dir = ::testing::TempDir();
+  user_a.SetCustomSavePath(temp_dir);
+  user_a.ExpectPayload(payload_latch_);
+
+  constexpr Payload::Id kPayloadId = 98767;
+  constexpr absl::string_view kFileName = "disconnect_mid_transfer.txt";
+  const int64_t kTotalSize = kMessage.size() * 3;
+
+  user_a.ReceiveFileChunk(kPayloadId, kFileName, kTotalSize,
+                          /*offset=*/0, kMessage, /*flags=*/0);
+  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+
+  const int64_t kSecondChunkOffset = kMessage.size();
+  user_a.ReceiveFileChunk(kPayloadId, kFileName, kTotalSize,
+                          /*offset=*/kSecondChunkOffset, kMessage, /*flags=*/0);
+
+  user_a.DisconnectEndpoint();
+
+  EXPECT_TRUE(user_a.WaitForProgress(
+      [&](const PayloadProgressInfo& info) {
+        return info.status == PayloadProgressInfo::Status::kFailure &&
+               info.bytes_transferred == kSecondChunkOffset;
+      },
+      kProgressTimeout));
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
                          ::testing::ValuesIn(kTestCases));

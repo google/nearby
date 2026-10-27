@@ -610,6 +610,7 @@ cc_test(
         "payload_manager_test.cc",
     ],
     deps = [
+        ":endpoint_channel",
         ":internal",
         ":internal_test",
         ":offline_frames",

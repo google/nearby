@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_PAYLOAD_MANAGER_H_
 #define CORE_INTERNAL_PAYLOAD_MANAGER_H_
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -25,6 +26,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
@@ -34,7 +36,6 @@
 #include "connections/payload.h"
 #include "connections/payload_type.h"
 #include "connections/status.h"
-#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
@@ -110,19 +111,85 @@ class PayloadManager : public EndpointManager::FrameProcessor {
         false;
   };
 
-  // Tracks state for an InternalPayload and the endpoints associated with it.
+  // Tracks state for an InternalPayload.
   class PendingPayload {
    public:
-    explicit PendingPayload(const std::vector<std::string>& endpoint_ids);
-
+    PendingPayload() = default;
     virtual ~PendingPayload() = default;
 
     virtual Payload::Id GetId() const = 0;
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceledAndClose();
+
+    // Closes the underlying payload.
+    // Close is called when a pending payload does not have associated
+    // endpoints.
+    virtual void Close() = 0;
+
+   private:
+    std::atomic<bool> is_locally_canceled_{false};
+  };
+
+  class IncomingPendingPayload : public PendingPayload {
+   public:
+    IncomingPendingPayload(
+        std::unique_ptr<IncomingInternalPayload> incoming_payload,
+        absl::string_view endpoint_id);
+    IncomingPendingPayload(IncomingPendingPayload&&) = default;
+    IncomingPendingPayload& operator=(IncomingPendingPayload&&) = default;
+
+    ~IncomingPendingPayload() override { Close(); }
+
+    Payload::Id GetId() const override { return incoming_payload_->GetId(); }
+    IncomingInternalPayload* GetIncomingInternalPayload() const {
+      return incoming_payload_.get();
+    }
+    void Close() override {
+      if (incoming_payload_ != nullptr) {
+        incoming_payload_->Close();
+      }
+    }
+
+    const std::string& GetEndpointId() const { return endpoint_id_; }
+    int64_t GetOffset() const { return offset_; }
+    void SetOffset(int64_t offset) { offset_ = offset; }
+    std::string ToString() const;
+
+   private:
+    const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
+    const std::string endpoint_id_;
+    std::atomic<int64_t> offset_{0};
+  };
+
+  class OutgoingPendingPayload : public PendingPayload {
+   public:
+    OutgoingPendingPayload(
+        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
+        const std::vector<std::string>& endpoint_ids,
+        absl::AnyInvocable<void() &&> destroy_callback);
+    OutgoingPendingPayload(OutgoingPendingPayload&&) = default;
+    OutgoingPendingPayload& operator=(OutgoingPendingPayload&&) = default;
+
+    ~OutgoingPendingPayload() override {
+      Close();
+      if (destroy_callback_) {
+        std::move(destroy_callback_)();
+      }
+    }
+
+    Payload::Id GetId() const override { return outgoing_payload_->GetId(); }
+    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
+      return outgoing_payload_.get();
+    }
+    void Close() override {
+      if (outgoing_payload_ != nullptr) {
+        outgoing_payload_->Close();
+      }
+    }
+    std::string ToString() const;
+
     void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
-    virtual bool IsIncoming() const = 0;
 
     // Gets the EndpointInfo objects for the endpoints (still) associated with
     // this payload.
@@ -147,77 +214,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     void SetOffsetForEndpoint(const std::string& endpoint_id, int64_t offset)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
-    // Closes the underlying payload.
-    // Close is called when a pending payload does not have associated
-    // endpoints.
-    virtual void Close() = 0;
-
-    std::string ToString() const;
-
    private:
-    void InitEndpoints(const std::vector<std::string>& endpoint_ids)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-
     mutable absl::Mutex mutex_;
-    AtomicBoolean is_locally_canceled_{false};
+    const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
     absl::flat_hash_map<std::string, EndpointInfo> endpoints_
         ABSL_GUARDED_BY(mutex_);
-  };
-
-  class IncomingPendingPayload : public PendingPayload {
-   public:
-    IncomingPendingPayload(
-        std::unique_ptr<IncomingInternalPayload> incoming_payload,
-        const std::vector<std::string>& endpoint_ids);
-    IncomingPendingPayload(IncomingPendingPayload&&) = default;
-    IncomingPendingPayload& operator=(IncomingPendingPayload&&) = default;
-
-    ~IncomingPendingPayload() override { Close(); }
-
-    Payload::Id GetId() const override { return incoming_payload_->GetId(); }
-    IncomingInternalPayload* GetIncomingInternalPayload() const {
-      return incoming_payload_.get();
-    }
-    bool IsIncoming() const override { return true; }
-    void Close() override {
-      if (incoming_payload_ != nullptr) {
-        incoming_payload_->Close();
-      }
-    }
-
-   private:
-    const std::unique_ptr<IncomingInternalPayload> incoming_payload_;
-  };
-
-  class OutgoingPendingPayload : public PendingPayload {
-   public:
-    OutgoingPendingPayload(
-        std::unique_ptr<OutgoingInternalPayload> outgoing_payload,
-        const std::vector<std::string>& endpoint_ids,
-        absl::AnyInvocable<void() &&> destroy_callback);
-    OutgoingPendingPayload(OutgoingPendingPayload&&) = default;
-    OutgoingPendingPayload& operator=(OutgoingPendingPayload&&) = default;
-
-    ~OutgoingPendingPayload() override {
-      Close();
-      if (destroy_callback_) {
-        std::move(destroy_callback_)();
-      }
-    }
-
-    Payload::Id GetId() const override { return outgoing_payload_->GetId(); }
-    OutgoingInternalPayload* GetOutgoingInternalPayload() const {
-      return outgoing_payload_.get();
-    }
-    bool IsIncoming() const override { return false; }
-    void Close() override {
-      if (outgoing_payload_ != nullptr) {
-        outgoing_payload_->Close();
-      }
-    }
-
-   private:
-    const std::unique_ptr<OutgoingInternalPayload> outgoing_payload_;
     absl::AnyInvocable<void() &&> destroy_callback_;
   };
 
@@ -435,7 +436,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   mutable absl::Mutex mutex_;
   std::string custom_save_path_;
-  AtomicBoolean shutdown_{false};
+  std::atomic<bool> shutdown_{false};
   std::unique_ptr<CountDownLatch> shutdown_barrier_;
   int send_payload_count_ = 0;
   SingleThreadExecutor bytes_payload_executor_;
