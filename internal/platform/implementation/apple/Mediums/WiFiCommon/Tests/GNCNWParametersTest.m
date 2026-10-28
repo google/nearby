@@ -19,8 +19,8 @@
 #import <XCTest/XCTest.h>
 
 // Declare the C function here to make it visible for testing.
-FOUNDATION_EXPORT BOOL GNCConfigureTLSOptions(sec_protocol_options_t _Nullable options, NSData *PSK,
-                                              NSData *identity);
+FOUNDATION_EXPORT BOOL GNCConfigureTLS12PSKOptions(sec_protocol_options_t _Nullable options,
+                                                   NSData *PSK, NSData *identity);
 
 @interface GNCNWParametersTest : XCTestCase
 @end
@@ -32,29 +32,47 @@ FOUNDATION_EXPORT BOOL GNCConfigureTLSOptions(sec_protocol_options_t _Nullable o
   XCTAssertTrue(nw_parameters_get_include_peer_to_peer(params));
 }
 
-- (void)testConfigureTLSOptionsWithNilOptions {
-  BOOL result = GNCConfigureTLSOptions(nil, [@"12345678" dataUsingEncoding:NSUTF8StringEncoding],
-                                        [@"nearby" dataUsingEncoding:NSUTF8StringEncoding]);
+- (void)testConfigureTLS12PSKOptionsWithNilOptions {
+  BOOL result =
+      GNCConfigureTLS12PSKOptions(nil, [@"12345678" dataUsingEncoding:NSUTF8StringEncoding],
+                                  [@"nearby" dataUsingEncoding:NSUTF8StringEncoding]);
   XCTAssertFalse(result);
 }
 
-- (void)testTLSParametersWithEmptyPSK {
+- (void)testTLS12PSKParametersWithEmptyPSK {
   nw_parameters_t params =
-      GNCBuildTLSParameters([@"" dataUsingEncoding:NSUTF8StringEncoding],
-                            [@"nearby" dataUsingEncoding:NSUTF8StringEncoding], YES);
+      GNCBuildTLS12PSKParameters([@"" dataUsingEncoding:NSUTF8StringEncoding],
+                                 [@"nearby" dataUsingEncoding:NSUTF8StringEncoding], YES);
   XCTAssertNil(params);
 }
 
-- (void)testTLSParameters {
+- (void)testTLS12PSKParameters {
   nw_parameters_t params =
-      GNCBuildTLSParameters([@"12345678" dataUsingEncoding:NSUTF8StringEncoding],
-                            [@"nearby" dataUsingEncoding:NSUTF8StringEncoding], YES);
+      GNCBuildTLS12PSKParameters([@"12345678" dataUsingEncoding:NSUTF8StringEncoding],
+                                 [@"nearby" dataUsingEncoding:NSUTF8StringEncoding], YES);
   XCTAssertNotNil(params);
   nw_protocol_stack_t protocol_stack = nw_parameters_copy_default_protocol_stack(params);
   nw_protocol_options_t options = nw_protocol_stack_copy_transport_protocol(protocol_stack);
   sec_protocol_options_t sec_protocol_options = nw_tls_copy_sec_protocol_options(options);
   XCTAssertNotNil(sec_protocol_options);
   XCTAssertTrue(nw_parameters_get_include_peer_to_peer(params));
+}
+
+- (void)testTLSParametersForRole_clientAndServer {
+  NSData *psk = [@"12345678" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *identity = [@"nearby" dataUsingEncoding:NSUTF8StringEncoding];
+
+  nw_parameters_t clientParams = GNCBuildTLSParametersForRole(psk, identity, YES, GNCTLSRoleClient);
+  XCTAssertNotNil(clientParams);
+  XCTAssertTrue(nw_parameters_get_include_peer_to_peer(clientParams));
+
+  nw_parameters_t serverParams = GNCBuildTLSParametersForRole(psk, identity, YES, GNCTLSRoleServer);
+  XCTAssertNotNil(serverParams);
+  XCTAssertTrue(nw_parameters_get_include_peer_to_peer(serverParams));
+
+  nw_parameters_t defaultParams = GNCBuildTLSParameters(psk, identity, YES);
+  XCTAssertNotNil(defaultParams);
+  XCTAssertTrue(nw_parameters_get_include_peer_to_peer(defaultParams));
 }
 
 @end

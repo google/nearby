@@ -17,13 +17,21 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// Role of the local endpoint in a Nearby TLS handshake.
+typedef NS_ENUM(NSInteger, GNCTLSRole) {
+  /// The local endpoint initiates the outbound TLS connection (`ClientHello`).
+  GNCTLSRoleClient,
+  /// The local endpoint accepts the inbound TLS connection (`ServerHello`).
+  GNCTLSRoleServer,
+};
+
 /// Builds a non-TLS `nw_parameters_t` for the given parameters.
 ///
 /// @param includePeerToPeer Whether to include peer-to-peer (P2P) parameters.
 FOUNDATION_EXPORT
 nw_parameters_t _Nullable GNCBuildNonTLSParameters(BOOL includePeerToPeer) NS_RETURNS_RETAINED;
 
-/// Builds a TLS `nw_parameters_t` for the given parameters.
+/// Builds a TLS `nw_parameters_t` for the given parameters using the default client role.
 ///
 /// @param PSK The PSK to use for the TLS parameters.
 /// @param identity The identity to use for the TLS parameters.
@@ -31,5 +39,25 @@ nw_parameters_t _Nullable GNCBuildNonTLSParameters(BOOL includePeerToPeer) NS_RE
 FOUNDATION_EXPORT
 nw_parameters_t _Nullable GNCBuildTLSParameters(NSData *PSK, NSData *identity,
                                                 BOOL includePeerToPeer) NS_RETURNS_RETAINED;
+
+/// Builds a TLS `nw_parameters_t` for the given parameters and explicit role.
+///
+/// @param PSK The PSK to use for the TLS parameters.
+/// @param identity The identity to use for the TLS parameters.
+/// @param includePeerToPeer Whether to include peer-to-peer (P2P) parameters.
+/// @param role Whether the local endpoint is the TLS client (initiator) or server (responder).
+FOUNDATION_EXPORT
+nw_parameters_t _Nullable GNCBuildTLSParametersForRole(NSData *PSK, NSData *identity,
+                                                       BOOL includePeerToPeer,
+                                                       GNCTLSRole role) NS_RETURNS_RETAINED;
+
+/// Builds a legacy TLS 1.2 PSK (`TLS_PSK_WITH_AES_128_GCM_SHA256`) `nw_parameters_t`.
+///
+/// @param PSK The PSK shared secret to use for the TLS parameters.
+/// @param identity The PSK identity to use for the TLS parameters.
+/// @param includePeerToPeer Whether to include peer-to-peer (P2P) parameters.
+FOUNDATION_EXPORT
+nw_parameters_t _Nullable GNCBuildTLS12PSKParameters(NSData *PSK, NSData *identity,
+                                                     BOOL includePeerToPeer) NS_RETURNS_RETAINED;
 
 NS_ASSUME_NONNULL_END
