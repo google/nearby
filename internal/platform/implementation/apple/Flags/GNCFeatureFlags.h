@@ -41,4 +41,7 @@
 /** Checks whether Wi-Fi Aware is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL wifiAwareEnabled;
 
+/** Checks whether AWDL is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL awdlEnabled;
+
 @end
