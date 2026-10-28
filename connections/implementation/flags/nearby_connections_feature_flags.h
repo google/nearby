@@ -34,17 +34,17 @@ constexpr auto kBlePeripheralLostTimeoutMillis =
 // When true, delete incomplete incoming file payloads on Close() instead of
 // closing and retaining the partial file.
 constexpr auto kDeleteIncompleteIncomingFile =
-    flags::Flag<bool>(kConfigPackage, "45864313", true);
-// Enable/Disable AWDL in Nearby connections SDK.
-constexpr auto kEnableAwdl =
-    flags::Flag<bool>(kConfigPackage, "45690762", false);
+    flags::Flag<bool>(kConfigPackage, "45864313", false);
 // Enable/Disable Wi-Fi Aware as a PCP medium (advertising, discovery and
 // listening for incoming connections). When false, WIFI_AWARE_R4 requested via
 // AdvertisingOptions/DiscoveryOptions/ConnectionListeningOptions is ignored by
 // the PCP handler; Wi-Fi Aware stays available as a bandwidth upgrade medium
-// under kEnableWifiAware.
+// under enable_wifi_aware.
 constexpr auto kEnableAwarePcp =
     flags::Flag<bool>(kConfigPackage, "45856767", false);
+// Enable/Disable AWDL in Nearby connections SDK.
+constexpr auto kEnableAwdl =
+    flags::Flag<bool>(kConfigPackage, "45690762", false);
 // Disable/Enable BLE L2CAP in Nearby Connections SDK.
 constexpr auto kEnableBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45685706", false);
@@ -55,12 +55,8 @@ constexpr auto kEnableBleMediumInjection =
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
 // Disable/Enable dynamic role switch in Nearby Connections SDK.
-// Prototype only. Defaulted to true so that the Wi-Fi Aware
-// R4 role switch (Android is always the publisher, Apple is always the
-// subscriber) is reachable without a Phenotype push. Revert to false before
-// this leaves the prototype branch.
 constexpr auto kEnableDynamicRoleSwitch =
-    flags::Flag<bool>(kConfigPackage, "45696452", true);
+    flags::Flag<bool>(kConfigPackage, "45696452", false);
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
@@ -70,9 +66,6 @@ constexpr auto kEnableMultiplexBluetooth =
 // Enable/Disable preferences for Nearby Connections.
 constexpr auto kEnableNearbyConnectionsPreferences =
     flags::Flag<bool>(kConfigPackage, "45732423", false);
-// Enable/Disable payload-received-ack feature.
-constexpr auto kEnablePayloadReceivedAck =
-    flags::Flag<bool>(kConfigPackage, "45425840", false);
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
@@ -92,14 +85,12 @@ constexpr auto kEnableWifiAware =
 // Enable/Disable Wi-Fi Direct in Nearby connections SDK.
 constexpr auto kEnableWifiDirect =
     flags::Flag<bool>(kConfigPackage, "45741157", false);
-// Enable/Disable WIFI_LAN as a supported connection/bandwidth upgrade medium.
-// Should be defaulted to false so that Wi-Fi Aware is selected instead of
-// WIFI_LAN when both devices share a Wi-Fi network.
-constexpr auto kEnableWifiLanUpgrade =
-    flags::Flag<bool>(kConfigPackage, "45852183", true);
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
+// Enable/Disable WIFI_LAN as a supported connection/bandwidth upgrade medium.
+constexpr auto kEnableWifiLanUpgrade =
+    flags::Flag<bool>(kConfigPackage, "45852183", true);
 // Enforces frame filtering on unconfirmed endpoints in EndpointManager and
 // BaseEndpointChannel so application payloads and upgrade requests are blocked
 // before connection acceptance.

@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,10 +40,8 @@
 #include "connections/status.h"
 #include "internal/platform/atomic_reference.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
@@ -116,17 +115,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     static Status ControlMessageEventToEndpointInfoStatus(
         location::nearby::connections::PayloadTransferFrame::ControlMessage::
             EventType event);
-    void MarkReceivedAckFromEndpoint();
-    bool IsEndpointAvailable(ClientProxy* clientProxy,
-                             EndpointInfo::Status status);
 
     std::string id;
     AtomicReference<Status> status{Status::kUnknown};
     int64_t offset = 0;
-    mutable Mutex payload_received_ack_mutex;
-    ConditionVariable payload_received_ack_cond{&payload_received_ack_mutex};
-    bool is_payload_received_ack ABSL_GUARDED_BY(payload_received_ack_mutex) =
-        false;
   };
 
   // Tracks state for an InternalPayload.
@@ -134,8 +126,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
    public:
     PendingPayload();
     virtual ~PendingPayload() = default;
-
-    virtual Payload::Id GetId() const = 0;
 
     bool IsLocallyCanceled() const;
     void MarkLocallyCanceledAndClose();
@@ -182,7 +172,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
     ~IncomingPendingPayload() override { Close(); }
 
-    Payload::Id GetId() const override { return incoming_payload_->GetId(); }
+    Payload::Id GetId() const { return incoming_payload_->GetId(); }
     IncomingInternalPayload* GetIncomingInternalPayload() const {
       return incoming_payload_.get();
     }
@@ -219,7 +209,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       }
     }
 
-    Payload::Id GetId() const override { return outgoing_payload_->GetId(); }
+    Payload::Id GetId() const { return outgoing_payload_->GetId(); }
     OutgoingInternalPayload* GetOutgoingInternalPayload() const {
       return outgoing_payload_.get();
     }
@@ -230,15 +220,15 @@ class PayloadManager : public EndpointManager::FrameProcessor {
     }
     std::string ToString() const;
 
-    void MarkReceivedAckFromEndpoint(const std::string& from_endpoint_id);
+    // Returns a list of endpoint ids and their status.
+    std::vector<std::pair<std::string, EndpointInfo::Status>>
+    GetEndpointStatuses() const;
 
-    // Gets the EndpointInfo objects for the endpoints (still) associated with
-    // this payload.
-    std::vector<const EndpointInfo*> GetEndpoints() const
-        ABSL_LOCKS_EXCLUDED(mutex_);
-    // Returns the EndpointInfo for a given endpoint ID. Returns null if the
-    // endpoint is not associated with this payload.
-    EndpointInfo* GetEndpoint(const std::string& endpoint_id)
+    bool IsEndpointsEmpty() const ABSL_LOCKS_EXCLUDED(mutex_);
+
+    bool HasEndpoint(absl::string_view endpoint_id) ABSL_LOCKS_EXCLUDED(mutex_);
+
+    std::optional<EndpointInfo> RemoveEndpoint(absl::string_view endpoint_id)
         ABSL_LOCKS_EXCLUDED(mutex_);
 
     // Removes the given endpoints, e.g. on error.
@@ -294,13 +284,16 @@ class PayloadManager : public EndpointManager::FrameProcessor {
 
   using Endpoints = std::vector<const EndpointInfo*>;
   static std::string ToString(EndpointInfo::Status status);
-
-  // Splits the endpoints for this payload by availability.
-  // Returns a pair of lists, with the first being the list of still-available
-  // endpoint ids, and the second for unavailable endpoints.
-  static std::pair<std::vector<std::string>, Endpoints>
-  GetAvailableAndUnavailableEndpoints(
-      const OutgoingPendingPayload& pending_payload);
+  // Converts the status of an endpoint that's been set out-of-band via a
+  // remote ControlMessage to the PayloadStatus for handling of that
+  // endpoint-payload pair.
+  static location::nearby::proto::connections::PayloadStatus
+  EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status);
+  static location::nearby::proto::connections::OperationResultCode
+  EndpointInfoStatusToOperationResultCode(EndpointInfo::Status status);
+  static bool IsEndpointAvailable(ClientProxy* clientProxy,
+                                  absl::string_view endpoint_id,
+                                  EndpointInfo::Status status);
 
   // Returns the number of bytes sent.  0 bytes sent indicates end of payload.
   // Returns -1 on error.
@@ -317,14 +310,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
-
-  // Converts the status of an endpoint that's been set out-of-band via a
-  // remote ControlMessage to the PayloadStatus for handling of that
-  // endpoint-payload pair.
-  static location::nearby::proto::connections::PayloadStatus
-  EndpointInfoStatusToPayloadStatus(EndpointInfo::Status status);
-  static location::nearby::proto::connections::OperationResultCode
-  EndpointInfoStatusToOperationResultCode(EndpointInfo::Status status);
 
   int GetOptimalChunkSize(const std::vector<std::string>& endpoint_ids);
 
@@ -371,22 +356,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       int64_t num_bytes_successfully_transferred,
       location::nearby::connections::PayloadTransferFrame::ControlMessage::
           EventType event_type);
-
-  void SendPayloadReceivedAck(ClientProxy* client,
-                              IncomingPendingPayload& pending_payload,
-                              const std::string& endpoint_id,
-                              bool is_last_chunk);
-
-  bool WaitForReceivedAck(
-      ClientProxy* client, const std::string& endpoint_id,
-      OutgoingPendingPayload& pending_payload,
-      const location::nearby::connections::PayloadTransferFrame::PayloadHeader&
-          payload_header,
-      int64_t payload_chunk_offset, bool is_last_chunk);
-  bool IsPayloadReceivedAckEnabled(
-      ClientProxy* client, const std::string& endpoint_id,
-      location::nearby::connections::PayloadTransferFrame::PayloadHeader::
-          PayloadType payload_type);
 
   // Handles a finished outgoing payload for the given endpointIds. All
   // statuses except for SUCCESS are handled here.
@@ -439,10 +408,6 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                             const std::string& from_endpoint_id,
                             location::nearby::connections::PayloadTransferFrame&
                                 payload_transfer_frame);
-  void ProcessPayloadAckPacket(
-      const std::string& from_endpoint_id,
-      location::nearby::connections::PayloadTransferFrame&
-          payload_transfer_frame);
 
   void NotifyClientOfIncomingPayloadProgressInfo(
       ClientProxy* client, const std::string& endpoint_id,

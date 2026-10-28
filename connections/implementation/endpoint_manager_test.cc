@@ -43,7 +43,6 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/test/fake_single_thread_executor.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
 namespace {
@@ -79,16 +78,12 @@ class MockFrameProcessor : public EndpointManager::FrameProcessor {
 
 class SetSafeToDisconnect {
  public:
-  SetSafeToDisconnect(bool safe_to_disconnect, bool payload_received_ack,
+  SetSafeToDisconnect(bool safe_to_disconnect,
                       std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         safe_to_disconnect);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnablePayloadReceivedAck,
-        payload_received_ack);
     NearbyFlags::GetInstance().OverrideInt64FlagValue(
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
@@ -130,7 +125,7 @@ class EndpointManagerTest : public ::testing::Test {
       EXPECT_TRUE(done->Await(absl::Milliseconds(1000)).result());
     }
   }
-  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
+  SetSafeToDisconnect set_safe_to_disconnect_{true, 5};
   std::unique_ptr<ClientProxy> client_ = std::make_unique<ClientProxy>();
   ConnectionOptions connection_options_{
       .keep_alive_interval_millis = 5000,
@@ -555,8 +550,7 @@ TEST_F(EndpointManagerTest, ProcessDisconnectionFrameDuringDestruction) {
   CountDownLatch write_latch(1);
   CountDownLatch read_exit_latch(1);
   auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, GetType())
-      .WillRepeatedly(Return(""));
+  EXPECT_CALL(*endpoint_channel, GetType()).WillRepeatedly(Return(""));
   EXPECT_CALL(*endpoint_channel, GetMedium())
       .WillRepeatedly(Return(Medium::BLE));
   EXPECT_CALL(*endpoint_channel, GetLastReadTimestamp())
@@ -588,7 +582,7 @@ TEST_F(EndpointManagerTest, ProcessDisconnectionFrameDuringDestruction) {
           });
   EXPECT_CALL(*endpoint_channel, Close(_)).WillRepeatedly(Return());
 
-  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 5};
+  SetSafeToDisconnect set_safe_to_disconnect_{true, 5};
 
   fake_serial_executor->SetRunExecutablesImmediately(
       /*run_executables_immediately=*/true);

@@ -16,24 +16,40 @@
 #define CORE_INTERNAL_SIMULATION_USER_H_
 
 #include <stdbool.h>
+
 #include <cstdint>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/pcp_manager.h"
-#include "connections/v3/connections_device.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/payload.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/device.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
+#include "internal/platform/mutex.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -47,16 +63,11 @@ namespace connections {
 class SetSafeToDisconnect {
  public:
   explicit SetSafeToDisconnect(bool safe_to_disconnect,
-                               bool payload_received_ack,
                                std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         safe_to_disconnect);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnablePayloadReceivedAck,
-        payload_received_ack);
     NearbyFlags::GetInstance().OverrideInt64FlagValue(
         config_package_nearby::nearby_connections_feature::
             kSafeToDisconnectVersion,
@@ -75,10 +86,10 @@ class SimulationUser {
     void Clear() { endpoint_id.clear(); }
   };
 
-  SimulationUser(const std::string& device_name,
-                 BooleanMediumSelector allowed = BooleanMediumSelector(),
-                 SetSafeToDisconnect set_safe_to_disconnect =
-                     SetSafeToDisconnect(true, true, 5))
+  explicit SimulationUser(
+      const std::string& device_name,
+      BooleanMediumSelector allowed = BooleanMediumSelector(),
+      SetSafeToDisconnect set_safe_to_disconnect = SetSafeToDisconnect(true, 5))
       : info_{ByteArray{device_name}},
         advertising_options_{
             {
