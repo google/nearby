@@ -53,6 +53,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
 
@@ -111,7 +112,52 @@ PayloadProgressInfo::Status PayloadStatusToTransferUpdateStatus(
   }
 }
 
+// Logs a one-line summary when a payload finishes successfully. `end_time` is
+// when the last chunk was handled on the transfer thread, so the duration is
+// not skewed by the status update thread's queueing delay. See
+// `PayloadManager::FormatTransferSummary()` for the other parameters.
+void LogPayloadTransferSummary(
+    bool is_incoming, absl::string_view endpoint_id,
+    const PayloadTransferFrame::PayloadHeader& payload_header,
+    int64_t total_bytes, absl::Time start_time, int64_t start_offset,
+    absl::Time end_time, Medium medium) {
+  LOG(INFO) << PayloadManager::FormatTransferSummary(
+      is_incoming, endpoint_id, payload_header, total_bytes, start_offset,
+      end_time - start_time, medium);
+}
+
 }  // namespace
+
+std::string PayloadManager::FormatTransferSummary(
+    bool is_incoming, absl::string_view endpoint_id,
+    const PayloadTransferFrame::PayloadHeader& payload_header,
+    int64_t total_bytes, int64_t start_offset, absl::Duration duration,
+    Medium medium) {
+  int64_t duration_ms =
+      std::max<int64_t>(absl::ToInt64Milliseconds(duration), 0);
+  int64_t measured_bytes = total_bytes - start_offset;
+  // Throughput can't be meaningfully computed if none of the payload bytes
+  // were transferred within the measured window (e.g. a single-chunk incoming
+  // payload, whose only data chunk arrived before the start time was stamped).
+  std::string throughput = "N/A";
+  if (duration_ms > 0 && measured_bytes > 0) {
+    int64_t throughput_kbps = (measured_bytes * 1000 / 1024) / duration_ms;
+    // Show MB/s (with one decimal) for faster transfers, KB/s otherwise.
+    throughput =
+        throughput_kbps >= 1024
+            ? absl::StrCat(throughput_kbps / 1024, ".",
+                           (throughput_kbps % 1024) * 10 / 1024, " MB/s")
+            : absl::StrCat(throughput_kbps, " KB/s");
+  }
+  return absl::StrCat(is_incoming ? "Received " : "Sent ",
+                      PayloadTransferFrame::PayloadHeader::PayloadType_Name(
+                          payload_header.type()),
+                      " payload: payload_id=", payload_header.id(),
+                      ", endpoint_id=", endpoint_id, ", medium=",
+                      location::nearby::proto::connections::Medium_Name(medium),
+                      ", size=", total_bytes, " bytes, duration=", duration_ms,
+                      " ms, throughput=", throughput);
+}
 
 int PayloadManager::SendPayloadLoop(
     ClientProxy* client, OutgoingPendingPayload& pending_payload,
@@ -466,6 +512,14 @@ void PayloadManager::SendPayload(ClientProxy* client,
     OutgoingInternalPayload* outgoing_payload =
         pending_payload->GetOutgoingInternalPayload();
     if (!outgoing_payload) return;
+
+    // Payloads of the same type are sent sequentially on this executor, so a
+    // payload may have been waiting in the queue for a while. Mark the
+    // transfer start now so the logged duration/throughput only covers the
+    // actual transfer, not the queueing delay. Bytes before `resume_offset`
+    // are not sent and are therefore excluded from the throughput.
+    pending_payload->SetTransferStart(SystemClock::ElapsedRealtime(),
+                                      resume_offset);
 
     RecordPayloadStartedAnalytics(client, endpoint_ids, payload_id,
                                   payload_type, resume_offset,
@@ -1105,11 +1159,14 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     absl::MutexLock lock(chunk_update_mutex_);
     ++outgoing_chunk_update_count_;
   }
+  // Capture the time the chunk was actually sent, before the update gets
+  // queued on the status update thread.
+  absl::Time chunk_sent_time = SystemClock::ElapsedRealtime();
   RunOnStatusUpdateThread(
       "outgoing-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
-       payload_chunk_offset,
-       payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+       payload_chunk_offset, payload_chunk_body_size,
+       chunk_sent_time]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         // Make sure we're still tracking this payload and its associated
         // endpoint.
         bool is_last_chunk =
@@ -1169,6 +1226,12 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
         client->OnPayloadProgress(endpoint_id, update);
 
         if (is_last_chunk) {
+          LogPayloadTransferSummary(
+              /*is_incoming=*/false, endpoint_id, payload_header,
+              payload_chunk_offset + pending_payload->GetTransferStartOffset(),
+              pending_payload->GetTransferStartTime(),
+              pending_payload->GetTransferStartOffset(), chunk_sent_time,
+              client->GetConnectedMedium(endpoint_id));
           client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
               endpoint_id, payload_header.id(), PayloadStatus::SUCCESS,
               OperationResultCode::DETAIL_SUCCESS);
@@ -1196,11 +1259,14 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     absl::MutexLock lock(chunk_update_mutex_);
     ++incoming_chunk_update_count_;
   }
+  // Capture the time the chunk was actually received, before the update gets
+  // queued on the status update thread.
+  absl::Time chunk_received_time = SystemClock::ElapsedRealtime();
   RunOnStatusUpdateThread(
       "incoming-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
-       payload_chunk_offset,
-       payload_chunk_body_size]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
+       payload_chunk_offset, payload_chunk_body_size,
+       chunk_received_time]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
         // Make sure we're still tracking this payload.
         bool is_last_chunk =
             (payload_chunk_flags &
@@ -1274,6 +1340,11 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
 
         // Analyze the success.
         if (is_last_chunk) {
+          LogPayloadTransferSummary(
+              /*is_incoming=*/true, endpoint_id, payload_header,
+              payload_chunk_offset, pending_payload->GetTransferStartTime(),
+              pending_payload->GetTransferStartOffset(), chunk_received_time,
+              client->GetConnectedMedium(endpoint_id));
           incoming_pending_payloads_.StopTrackingPayload(payload_header.id());
           client->GetAnalyticsRecorder().OnIncomingPayloadDone(
               endpoint_id, payload_header.id(), PayloadStatus::SUCCESS,
@@ -1309,6 +1380,7 @@ void PayloadManager::ProcessDataPacket(
   Payload::Id payload_id = payload_header.id();
   std::shared_ptr<IncomingPendingPayload> pending_payload;
   if (payload_chunk.offset() == 0) {
+    absl::Time first_chunk_arrival_time = SystemClock::ElapsedRealtime();
     if (GetIncomingPayload(payload_id)) {
       LOG(WARNING) << "ProcessDataPacket: [duplicate] endpoint_id="
                    << from_endpoint_id << "; payload_id=" << payload_id
@@ -1358,6 +1430,12 @@ void PayloadManager::ProcessDataPacket(
       return;
     }
     pending_payload = std::move(result.value());
+
+    // The body of this first chunk has already been fully received over the
+    // medium at this point, so exclude it from the measured throughput; only
+    // the bytes received after this point are counted against the duration.
+    pending_payload->SetTransferStart(first_chunk_arrival_time,
+                                      payload_chunk.body().size());
     // Also, let the client know of this new incoming payload.
     RunOnStatusUpdateThread(
         "process-data-packet",
@@ -1596,6 +1674,9 @@ bool PayloadManager::EndpointInfo::IsEndpointAvailable(
 
 //////////////////////////////// PendingPayload ////////////////////////////////
 
+PayloadManager::PendingPayload::PendingPayload()
+    : transfer_start_time_(SystemClock::ElapsedRealtime()) {}
+
 PayloadManager::IncomingPendingPayload::IncomingPendingPayload(
     std::unique_ptr<IncomingInternalPayload> incoming_payload,
     absl::string_view endpoint_id)
@@ -1619,6 +1700,23 @@ PayloadManager::OutgoingPendingPayload::OutgoingPendingPayload(
 
     endpoints_.emplace(id, std::move(endpoint_info));
   }
+}
+
+void PayloadManager::PendingPayload::SetTransferStart(absl::Time start_time,
+                                                      int64_t start_offset) {
+  absl::MutexLock lock(mutex_);
+  transfer_start_time_ = start_time;
+  transfer_start_offset_ = start_offset;
+}
+
+absl::Time PayloadManager::PendingPayload::GetTransferStartTime() const {
+  absl::MutexLock lock(mutex_);
+  return transfer_start_time_;
+}
+
+int64_t PayloadManager::PendingPayload::GetTransferStartOffset() const {
+  absl::MutexLock lock(mutex_);
+  return transfer_start_offset_;
 }
 
 bool PayloadManager::PendingPayload::IsLocallyCanceled() const {

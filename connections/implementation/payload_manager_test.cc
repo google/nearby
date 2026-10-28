@@ -19,6 +19,8 @@
 #include <string>
 #include <utility>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -48,6 +50,8 @@ namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::Medium;
+using ::testing::AllOf;
+using ::testing::HasSubstr;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -653,6 +657,76 @@ TEST_P(PayloadManagerTest,
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
+}
+
+PayloadTransferFrame::PayloadHeader MakePayloadHeader(
+    Payload::Id id, PayloadTransferFrame::PayloadHeader::PayloadType type) {
+  PayloadTransferFrame::PayloadHeader header;
+  header.set_id(id);
+  header.set_type(type);
+  return header;
+}
+
+TEST(PayloadManagerTransferSummaryTest, FormatsIncomingSummary) {
+  EXPECT_EQ(PayloadManager::FormatTransferSummary(
+                /*is_incoming=*/true, "ABCD",
+                MakePayloadHeader(1234,
+                                  PayloadTransferFrame::PayloadHeader::FILE),
+                /*total_bytes=*/10 * 1024, /*start_offset=*/0,
+                absl::Seconds(1), Medium::WIFI_LAN),
+            "Received FILE payload: payload_id=1234, endpoint_id=ABCD, "
+            "medium=WIFI_LAN, size=10240 bytes, duration=1000 ms, "
+            "throughput=10 KB/s");
+}
+
+TEST(PayloadManagerTransferSummaryTest, FormatsOutgoingSummaryInMbps) {
+  EXPECT_EQ(PayloadManager::FormatTransferSummary(
+                /*is_incoming=*/false, "ABCD",
+                MakePayloadHeader(1234,
+                                  PayloadTransferFrame::PayloadHeader::BYTES),
+                /*total_bytes=*/3 * 1024 * 1024 / 2, /*start_offset=*/0,
+                absl::Seconds(1), Medium::BLUETOOTH),
+            "Sent BYTES payload: payload_id=1234, endpoint_id=ABCD, "
+            "medium=BLUETOOTH, size=1572864 bytes, duration=1000 ms, "
+            "throughput=1.5 MB/s");
+}
+
+TEST(PayloadManagerTransferSummaryTest, ExcludesStartOffsetFromThroughput) {
+  // Only the 10 KiB transferred after the start offset count towards the
+  // throughput, but the full payload size is still reported.
+  EXPECT_THAT(PayloadManager::FormatTransferSummary(
+                  /*is_incoming=*/false, "ABCD",
+                  MakePayloadHeader(
+                      1234, PayloadTransferFrame::PayloadHeader::FILE),
+                  /*total_bytes=*/30 * 1024, /*start_offset=*/20 * 1024,
+                  absl::Seconds(1), Medium::WIFI_LAN),
+              AllOf(HasSubstr("size=30720 bytes"),
+                    HasSubstr("throughput=10 KB/s")));
+}
+
+TEST(PayloadManagerTransferSummaryTest,
+     ThroughputIsNotAvailableWhenNoBytesTransferredAfterStart) {
+  // E.g. a single-chunk incoming payload, whose only data chunk had already
+  // been received when the transfer start was marked.
+  EXPECT_THAT(PayloadManager::FormatTransferSummary(
+                  /*is_incoming=*/true, "ABCD",
+                  MakePayloadHeader(
+                      1234, PayloadTransferFrame::PayloadHeader::BYTES),
+                  /*total_bytes=*/100, /*start_offset=*/100,
+                  absl::Milliseconds(200), Medium::WIFI_LAN),
+              AllOf(HasSubstr("size=100 bytes"), HasSubstr("duration=200 ms"),
+                    HasSubstr("throughput=N/A")));
+}
+
+TEST(PayloadManagerTransferSummaryTest,
+     ThroughputIsNotAvailableWhenDurationIsZero) {
+  EXPECT_THAT(PayloadManager::FormatTransferSummary(
+                  /*is_incoming=*/false, "ABCD",
+                  MakePayloadHeader(
+                      1234, PayloadTransferFrame::PayloadHeader::BYTES),
+                  /*total_bytes=*/100, /*start_offset=*/0, absl::ZeroDuration(),
+                  Medium::WIFI_LAN),
+              AllOf(HasSubstr("duration=0 ms"), HasSubstr("throughput=N/A")));
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPayloadManagerTest, PayloadManagerTest,
