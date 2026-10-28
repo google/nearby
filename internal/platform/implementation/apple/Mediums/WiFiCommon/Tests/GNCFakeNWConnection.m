@@ -48,12 +48,21 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)start {
+  if (self.startHandler) {
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+      self.startHandler(self);
+    });
+    return;
+  }
   // Simulate immediate transition to ready or failed.
   if (self.stateChangedHandler) {
     nw_connection_state_t state =
-        self.simulateStartFailure ? nw_connection_state_failed : nw_connection_state_ready;
+        self.simulatedState != nw_connection_state_invalid
+            ? self.simulatedState
+            : (self.simulateStartFailure ? nw_connection_state_failed : nw_connection_state_ready);
+    nw_error_t error = self.simulatedError;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
-      self.stateChangedHandler(state, nil);
+      self.stateChangedHandler(state, error);
     });
   }
 }

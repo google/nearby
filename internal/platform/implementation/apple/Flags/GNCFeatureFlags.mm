@@ -32,14 +32,12 @@
 
 + (BOOL)bleL2capEnabled {
   return nearby::NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleL2cap);
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap);
 }
 
 + (BOOL)refactorBleL2capEnabled {
   return nearby::NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kRefactorBleL2cap);
+      nearby::connections::config_package_nearby::nearby_connections_feature::kRefactorBleL2cap);
 }
 
 + (BOOL)sharedPeripheralManagerEnabled {
@@ -62,6 +60,11 @@
 + (BOOL)wifiAwareEnabled {
   return nearby::NearbyFlags::GetInstance().GetBoolFlag(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableWifiAware);
+}
+
++ (BOOL)awdlEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableAwdl);
 }
 
 @end
