@@ -1500,6 +1500,16 @@ enum DctPayloadType {
   // A one-way message payload.
   DCT_PAYLOAD_TYPE_ONE_WAY_MESSAGE = 4;
 }
+
+// Device capability for OS information.
+enum OsType {
+  UNKNOWN_OS_TYPE = 0;
+  ANDROID = 1;
+  CHROME_OS = 2;
+  WINDOWS = 3;
+  APPLE = 4;
+  LINUX = 100;  // g3 test environment
+}
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
