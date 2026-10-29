@@ -365,6 +365,123 @@
   [self checkAdvertisementData:nil];
 }
 
+- (void)testAddServiceWhileBluetoothUnknownAddsWhenPoweredOn {
+  [_peripheralManager start];
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStateUnknown;
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FEF3"];
+  GNSFakePeripheralServiceManager *serviceManager =
+      [[GNSFakePeripheralServiceManager alloc] initWithServiceUUID:serviceUUID];
+  XCTestExpectation *addServiceExp = [self expectationWithDescription:@"add service"];
+  [_peripheralManager addPeripheralServiceManager:serviceManager
+                        bleServiceAddedCompletion:^(NSError *error) {
+                          XCTAssertNil(error);
+                          [addServiceExp fulfill];
+                        }];
+
+  // Flush the main queue so the async block in `addPeripheralServiceManager:` executes while state
+  // is still `CBPeripheralManagerStateUnknown`.
+  XCTestExpectation *queueFlushExp = [self expectationWithDescription:@"flush main queue"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [queueFlushExp fulfill];
+  });
+  [self waitForExpectations:@[ queueFlushExp ] timeout:1.0];
+
+  // Service should not be added to CoreBluetooth while in `CBPeripheralManagerStateUnknown`.
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 0);
+  XCTAssertEqual(serviceManager.cbServiceState, GNSBluetoothServiceStateNotAdded);
+
+  // Once Bluetooth transitions to `CBPeripheralManagerStatePoweredOn`, the pending service should
+  // be added and `bleServiceAddedCompletion` should be invoked.
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStatePoweredOn;
+  [_peripheralManager peripheralManagerDidUpdateState:(CBPeripheralManager *)_peripheralManager
+                                                          .fakeCBPeripheralManager];
+  [self waitForExpectations:@[ addServiceExp ] timeout:1.0];
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 1);
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.services.count, 1);
+}
+
+- (void)testAddServiceWhileBluetoothPoweredOffAddsImmediately {
+  [_peripheralManager start];
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStatePoweredOff;
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FEF3"];
+  GNSFakePeripheralServiceManager *serviceManager =
+      [[GNSFakePeripheralServiceManager alloc] initWithServiceUUID:serviceUUID];
+  XCTestExpectation *addServiceExp = [self expectationWithDescription:@"add service"];
+  [_peripheralManager addPeripheralServiceManager:serviceManager
+                        bleServiceAddedCompletion:^(NSError *error) {
+                          XCTAssertNil(error);
+                          [addServiceExp fulfill];
+                        }];
+
+  [self waitForExpectations:@[ addServiceExp ] timeout:1.0];
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 1);
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.services.count, 1);
+}
+
+- (void)testAddServiceWhileBluetoothResettingAddsWhenPoweredOn {
+  [_peripheralManager start];
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStateResetting;
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FEF3"];
+  GNSFakePeripheralServiceManager *serviceManager =
+      [[GNSFakePeripheralServiceManager alloc] initWithServiceUUID:serviceUUID];
+  XCTestExpectation *addServiceExp = [self expectationWithDescription:@"add service"];
+  [_peripheralManager addPeripheralServiceManager:serviceManager
+                        bleServiceAddedCompletion:^(NSError *error) {
+                          XCTAssertNil(error);
+                          [addServiceExp fulfill];
+                        }];
+
+  // Flush the main queue so the async block in `addPeripheralServiceManager:` executes while state
+  // is still `CBPeripheralManagerStateResetting`.
+  XCTestExpectation *queueFlushExp = [self expectationWithDescription:@"flush main queue"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [queueFlushExp fulfill];
+  });
+  [self waitForExpectations:@[ queueFlushExp ] timeout:1.0];
+
+  // Service should not be added to CoreBluetooth while in `CBPeripheralManagerStateResetting`.
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 0);
+  XCTAssertEqual(serviceManager.cbServiceState, GNSBluetoothServiceStateNotAdded);
+
+  // Once Bluetooth transitions to `CBPeripheralManagerStatePoweredOn`, the pending service should
+  // be added and `bleServiceAddedCompletion` should be invoked.
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStatePoweredOn;
+  [_peripheralManager peripheralManagerDidUpdateState:(CBPeripheralManager *)_peripheralManager
+                                                          .fakeCBPeripheralManager];
+  [self waitForExpectations:@[ addServiceExp ] timeout:1.0];
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 1);
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.services.count, 1);
+}
+
+- (void)testAddServiceWhileInBTCrashLoopDoesNotAddImmediately {
+  [_peripheralManager start];
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStateResetting;
+  for (int i = 0; i < 6; i++) {
+    [_peripheralManager peripheralManagerDidUpdateState:(CBPeripheralManager *)_peripheralManager
+                                                            .fakeCBPeripheralManager];
+  }
+  _peripheralManager.fakeCBPeripheralManager.state = CBPeripheralManagerStatePoweredOff;
+
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"FEF3"];
+  GNSFakePeripheralServiceManager *serviceManager =
+      [[GNSFakePeripheralServiceManager alloc] initWithServiceUUID:serviceUUID];
+  [_peripheralManager addPeripheralServiceManager:serviceManager
+                        bleServiceAddedCompletion:^(NSError *error){
+                        }];
+
+  XCTestExpectation *queueFlushExp = [self expectationWithDescription:@"flush main queue"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [queueFlushExp fulfill];
+  });
+  [self waitForExpectations:@[ queueFlushExp ] timeout:1.0];
+
+  XCTAssertEqual(_peripheralManager.fakeCBPeripheralManager.addServiceCount, 0);
+  XCTAssertEqual(serviceManager.cbServiceState, GNSBluetoothServiceStateNotAdded);
+}
+
 #pragma mark - Subscribe/unsubscribe characteristics
 
 - (void)testSubscribeUnsubscribe {

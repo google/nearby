@@ -115,7 +115,9 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     [self->_peripheralServiceManagers setObject:peripheralServiceManager
                                          forKey:peripheralServiceManager.serviceUUID];
     [peripheralServiceManager addedToPeripheralManager:self bleServiceAddedCompletion:completion];
-    if (self->_started) {
+    CBManagerState cbState = self->_cbPeripheralManager.state;
+    if (self->_started && ![self isBTCrashLoop] &&
+        (cbState == CBManagerStatePoweredOn || cbState == CBManagerStatePoweredOff)) {
       [self addBleServiceForServiceManager:peripheralServiceManager];
     }
     // Update all advertised services to make sure that the right services are advertised in case
