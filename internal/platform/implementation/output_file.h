@@ -16,6 +16,7 @@
 #define PLATFORM_API_OUTPUT_FILE_H_
 
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/output_stream.h"
 
@@ -32,6 +33,7 @@ class OutputFile : public OutputStream {
 
   OutputFile() = default;
   ~OutputFile() override = default;
+  virtual FilePath GetFilePath() const = 0;
   virtual void SetLastModifiedTime(absl::Time last_modified_time) = 0;
 
   // Sets the origin metadata for the file as externally downloaded so any

@@ -87,8 +87,6 @@ class OutputFile final {
 
   bool IsValid() const;
 
-  std::string GetFilePath() const { return file_path_; }
-
   // Writes all data from string_view object to the underlying stream.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Write(absl::string_view data);
@@ -110,7 +108,6 @@ class OutputFile final {
 
  private:
   std::unique_ptr<api::OutputFile> impl_;
-  const std::string file_path_;
 };
 
 }  // namespace nearby

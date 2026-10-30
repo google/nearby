@@ -15,46 +15,66 @@
 #include "internal/platform/implementation/shared/file.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <fstream>
 #include <ios>
 #include <memory>
 #include <string>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/input_file.h"
+#include "internal/platform/implementation/output_file.h"
 
-namespace nearby {
-namespace shared {
+namespace nearby::shared {
 
-// InputFile
-std::unique_ptr<IOFile> IOFile::CreateInputFile(
-    const absl::string_view file_path) {
-  auto file = absl::WrapUnique(new IOFile(file_path));
-  file->OpenForRead();
-  return file;
-}
+namespace {
+class InputFileImpl : public api::InputFile {
+ public:
+  explicit InputFileImpl(absl::string_view file_path) : path_(file_path) {
+    file_ =
+        std::fstream(path_, std::ios::binary | std::ios::in | std::ios::ate);
+    total_size_ = Files::GetFileSize(FilePath(path_)).value_or(0);
+    file_.seekg(0);
+  }
 
-void IOFile::OpenForRead() {
-  file_ = std::fstream(path_, std::ios::binary | std::ios::in | std::ios::ate);
-  total_size_ = Files::GetFileSize(FilePath(path_)).value_or(0);
-  file_.seekg(0);
-}
+  ExceptionOr<ByteArray> Read(std::int64_t size) override;
+  Exception Close() override;
 
-std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
-  auto file = absl::WrapUnique(new IOFile(path));
-  file->OpenForWrite();
-  return file;
-}
+  std::string GetFilePath() const override { return path_; };
+  std::int64_t GetTotalSize() const override { return total_size_; };
+  absl::Time GetLastModifiedTime() const override { return absl::Now(); };
 
-void IOFile::OpenForWrite() {
-  file_.open(path_, std::ios::binary | std::ios::out);
-}
+ private:
+  const std::string path_;
+  std::fstream file_;
+  std::int64_t total_size_ = 0;
+};
 
-ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
+class OutputFileImpl : public api::OutputFile {
+ public:
+  explicit OutputFileImpl(absl::string_view file_path) : path_(file_path) {
+    file_.open(path_.ToString(), std::ios::binary | std::ios::out);
+  }
+
+  FilePath GetFilePath() const override { return path_; };
+  void SetLastModifiedTime(absl::Time last_modified_time) override {};
+  Exception Write(absl::string_view data) override;
+  Exception Flush() override;
+  Exception Close() override;
+
+ private:
+  const nearby::FilePath path_;
+  std::fstream file_;
+};
+
+ExceptionOr<ByteArray> InputFileImpl::Read(std::int64_t size) {
   if (!file_.is_open()) {
     return ExceptionOr<ByteArray>{Exception::kIo};
   }
@@ -78,14 +98,14 @@ ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
   return ExceptionOr<ByteArray>(ByteArray(read_bytes.get(), num_bytes_read));
 }
 
-Exception IOFile::Close() {
+Exception InputFileImpl::Close() {
   if (file_.is_open()) {
     file_.close();
   }
   return {Exception::kSuccess};
 }
 
-Exception IOFile::Write(absl::string_view data) {
+Exception OutputFileImpl::Write(absl::string_view data) {
   if (!file_.is_open()) {
     return {Exception::kIo};
   }
@@ -95,18 +115,37 @@ Exception IOFile::Write(absl::string_view data) {
   }
 
   file_.write(data.data(), data.size());
+  return {file_.good() ? Exception::kSuccess : Exception::kIo};
+}
+
+Exception OutputFileImpl::Flush() {
+  if (!file_.is_open()) {
+    return {Exception::kIo};
+  }
   file_.flush();
   return {file_.good() ? Exception::kSuccess : Exception::kIo};
 }
 
-absl::Time IOFile::GetLastModifiedTime() const {
-  // TODO(ftsui): Implement this method.
-  return absl::Now();
+Exception OutputFileImpl::Close() {
+  if (!file_.is_open()) {
+    return {Exception::kSuccess};
+  }
+  // Only report failures from this call (final flush or OS close). An earlier
+  // write error has already been returned by Write().
+  const bool was_good = file_.good();
+  file_.close();
+  return {was_good && file_.fail() ? Exception::kIo : Exception::kSuccess};
+}
+}  // namespace
+
+std::unique_ptr<api::InputFile> IOFile::CreateInputFile(
+    const absl::string_view file_path) {
+  return std::make_unique<InputFileImpl>(file_path);
 }
 
-void IOFile::SetLastModifiedTime(absl::Time last_modified_time) {
-  // TODO(ftsui): Implement this method.
+std::unique_ptr<api::OutputFile> IOFile::CreateOutputFile(
+    const absl::string_view path) {
+  return std::make_unique<OutputFileImpl>(path);
 }
 
-}  // namespace shared
-}  // namespace nearby
+}  // namespace nearby::shared

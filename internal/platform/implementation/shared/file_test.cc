@@ -22,6 +22,7 @@
 #include "file/util/temp_path.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
@@ -123,20 +124,26 @@ TEST_F(FileTest, IOFile_NonExistentPathOutput) {
   EXPECT_TRUE(io_file->Write(bytes).Raised(Exception::kIo));
 }
 
+TEST_F(FileTest, IOFile_GetFilePathOutput) {
+  auto io_file = shared::IOFile::CreateOutputFile(path_);
+  EXPECT_EQ(io_file->GetFilePath(), FilePath(path_));
+}
+
 TEST_F(FileTest, IOFile_Write) {
   auto io_file_output = shared::IOFile::CreateOutputFile(path_);
   absl::string_view bytes1("a");
   absl::string_view bytes2("bc");
   EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
+  EXPECT_EQ(io_file_output->Flush(), Exception{Exception::kSuccess});
   auto io_file_input =
-      shared::IOFile::CreateInputFile(io_file_output->GetFilePath());
+      shared::IOFile::CreateInputFile(io_file_output->GetFilePath().ToString());
   AssertEquals(io_file_input->Read(kMaxSize), "abc");
 }
 
 TEST_F(FileTest, IOFile_CloseOutput) {
   auto io_file = shared::IOFile::CreateOutputFile(path_);
-  io_file->Close();
+  EXPECT_EQ(io_file->Close(), Exception{Exception::kSuccess});
   absl::string_view bytes("a");
   EXPECT_EQ(io_file->Write(bytes), Exception{Exception::kIo});
 }

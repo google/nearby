@@ -33,6 +33,7 @@ class OutputFile final : public api::OutputFile {
 
   Exception Close() override;
 
+  nearby::FilePath GetFilePath() const override { return path_; }
   Exception Write(absl::string_view data) override;
   void SetLastModifiedTime(absl::Time last_modified_time) override;
   bool SetOriginMetadata() override;

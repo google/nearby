@@ -92,6 +92,7 @@ cc_test(
     deps = [
         ":file",
         "//file/util:temp_path",
+        "//internal/base:file_path",
         "//internal/platform:base",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",

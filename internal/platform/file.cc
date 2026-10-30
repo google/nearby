@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <utility>
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
@@ -71,8 +70,7 @@ Exception InputFile::Close() { return impl_->Close(); }
 InputStream& InputFile::GetInputStream() { return *impl_; }
 
 OutputFile::OutputFile(std::string file_path)
-    : impl_(Platform::CreateOutputFile(file_path)),
-      file_path_(std::move(file_path)) {}
+    : impl_(Platform::CreateOutputFile(file_path)) {}
 #if defined(NEARBY_CHROMIUM)
 OutputFile::OutputFile(PayloadId id) : impl_(Platform::CreateOutputFile(id)) {}
 #endif  // defined(NEARBY_CHROMIUM)
@@ -102,12 +100,13 @@ bool OutputFile::Delete() {
   if (impl_ == nullptr) {
     return false;
   }
+  FilePath file_path = impl_->GetFilePath();
   impl_->Close();
   impl_.reset();
-  if (file_path_.empty()) {
+  if (file_path.IsEmpty()) {
     return false;
   }
-  return Files::RemoveFile(FilePath(file_path_));
+  return Files::RemoveFile(file_path);
 }
 
 void OutputFile::SetLastModifiedTime(absl::Time last_modified_time) {

@@ -15,47 +15,22 @@
 #ifndef PLATFORM_IMPL_SHARED_FILE_H_
 #define PLATFORM_IMPL_SHARED_FILE_H_
 
-#include <cstdint>
-#include <fstream>
 #include <memory>
-#include <string>
 
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
 
 namespace nearby {
 namespace shared {
 
-class IOFile final : public api::InputFile, public api::OutputFile {
+class IOFile final {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path);
+  static std::unique_ptr<api::InputFile> CreateInputFile(
+      absl::string_view file_path);
 
-  static std::unique_ptr<IOFile> CreateOutputFile(absl::string_view path);
-
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
-
-  std::string GetFilePath() const override { return path_; }
-
-  std::int64_t GetTotalSize() const override { return total_size_; }
-  Exception Close() override;
-
-  Exception Write(absl::string_view data) override;
-
-  absl::Time GetLastModifiedTime() const override;
-  void SetLastModifiedTime(absl::Time last_modified_time) override;
-
- private:
-  explicit IOFile(absl::string_view file_path) : path_(file_path) {}
-  void OpenForRead();
-  void OpenForWrite();
-
-  const std::string path_;
-  std::fstream file_;
-  std::int64_t total_size_ = 0;
+  static std::unique_ptr<api::OutputFile> CreateOutputFile(
+      absl::string_view path);
 };
 
 }  // namespace shared
