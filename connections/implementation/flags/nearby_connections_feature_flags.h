@@ -109,6 +109,10 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// When true, LogicalConnection records EstablishedConnections in chronological
+// order instead of dropping repeated visits to an earlier Medium.
+constexpr auto kRecordChronologicalPhysicalConnections =
+    flags::Flag<bool>(kConfigPackage, "45868909", true);
 // Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
 constexpr auto kRefactorBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45737079", false);
