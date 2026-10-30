@@ -401,13 +401,16 @@ void OutgoingShareSession::SendAttachmentsCompleted(
   }
   int64_t sent_bytes = attachment_container().GetTotalAttachmentsSize() *
                        metadata.progress() / 100;
+  int64_t duration_millis =
+      connection_start_time_ == absl::UnixEpoch()
+          ? 0
+          : absl::ToInt64Milliseconds(clock().Now() - connection_start_time_);
 
   analytics_recorder().NewSendAttachmentsEnd(
       session_id(), sent_bytes, share_target(),
       ConvertToTransmissionStatus(metadata.status()),
       /*transfer_position=*/1,
-      /*concurrent_connections=*/1,
-      absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
+      /*concurrent_connections=*/1, duration_millis,
       ConvertToConnectionLayerStatus(connection_layer_status_), os_type());
 }
 

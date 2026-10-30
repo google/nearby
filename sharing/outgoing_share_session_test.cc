@@ -1104,5 +1104,23 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
   EXPECT_THAT(binding_response.cert_ids(), IsEmpty());
 }
 
+TEST_F(OutgoingShareSessionTest,
+       SendAttachmentsCompletedBeforeConnectLogsZeroDuration) {
+  session_.set_session_id(1234);
+  fake_clock_.FastForward(absl::Hours(24 * 365 * 50));
+
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const SharingLog&>(
+          AllOf(HasEventType(EventType::SEND_ATTACHMENTS_END),
+                ProtoField<"send_attachments_end", "duration_millis">(0)))));
+
+  TransferMetadata failed_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kFailed)
+          .build();
+  session_.SendAttachmentsCompleted(failed_metadata);
+}
+
 }  // namespace
 }  // namespace nearby::sharing
