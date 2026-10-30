@@ -1556,9 +1556,14 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
   int update_index =
       client->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
   Status status = {Status::kSuccess};
-  WebRtcState web_rtc_state = webrtc_medium_.IsAvailable()
-                                  ? WebRtcState::kConnectable
-                                  : WebRtcState::kUndefined;
+  WebRtcState web_rtc_state =
+      webrtc_medium_.IsAvailable()
+          ? WebRtcState::kConnectable
+          : (NearbyFlags::GetInstance().GetBoolFlag(
+                 config_package_nearby::nearby_connections_feature::
+                     kFixWifiLanServiceInfoSerialization)
+                 ? WebRtcState::kUnconnectable
+                 : WebRtcState::kUndefined);
   // ble
   auto new_mediums = advertising_options.allowed;
   auto old_mediums = old_options.allowed;

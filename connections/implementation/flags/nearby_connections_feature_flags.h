@@ -99,6 +99,10 @@ constexpr auto kFilterUnconfirmedEndpointFrames =
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);
+// When true, initializes WebRtcState to kUnconnectable when WebRTC is
+// unavailable in UpdateAdvertisingOptionsImpl (b/574971059).
+constexpr auto kFixWifiLanServiceInfoSerialization =
+    flags::Flag<bool>(kConfigPackage, "45871083", true);
 // Default max transmit packet size for medium.
 constexpr auto kMediumDefaultMaxTransmitPacketSize =
     flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);

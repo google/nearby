@@ -18,6 +18,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -1872,6 +1873,132 @@ TEST_F(P2pClusterPcpHandlerTest, BleConnect_L2cap_NoRefactor) {
       false);
 
   RunCanConnectHelper({.ble = true});
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       UpdateAdvertisingOptionsWifiLanSetsUnconnectableWebRtc) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixWifiLanServiceInfoSerialization,
+      true);
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  Mediums mediums_b;
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  AdvertisingOptions initial_options{
+      {Strategy::kP2pCluster,
+       BooleanMediumSelector{.ble = true, .wifi_lan = false}},
+  };
+  ASSERT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, initial_options,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  ASSERT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
+
+  AdvertisingOptions updated_options{
+      {Strategy::kP2pCluster,
+       BooleanMediumSelector{.ble = true, .wifi_lan = true}},
+  };
+  ASSERT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
+                                               updated_options),
+            Status{Status::kSuccess});
+  ASSERT_TRUE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
+
+  absl::Notification discover_notification;
+  DiscoveryOptions wifi_lan_discovery_options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}}};
+  ASSERT_EQ(handler_b.StartDiscovery(
+                &client_b_, service_id_, wifi_lan_discovery_options,
+                {.endpoint_found_cb =
+                     [&discover_notification](const std::string& endpoint_id,
+                                              const ByteArray& endpoint_info,
+                                              const std::string& service_id) {
+                       discover_notification.Notify();
+                     }}),
+            Status{Status::kSuccess});
+  EXPECT_TRUE(
+      discover_notification.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  handler_b.StopDiscovery(&client_b_);
+  handler_a.StopAdvertising(&client_a_);
+  bwu_b.Shutdown();
+  bwu_a.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       UpdateAdvertisingOptionsWifiLanFailsToDiscoverWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixWifiLanServiceInfoSerialization,
+      false);
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  Mediums mediums_b;
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  AdvertisingOptions initial_options{
+      {Strategy::kP2pCluster,
+       BooleanMediumSelector{.ble = true, .wifi_lan = false}},
+  };
+  ASSERT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, initial_options,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+
+  AdvertisingOptions updated_options{
+      {Strategy::kP2pCluster,
+       BooleanMediumSelector{.ble = true, .wifi_lan = true}},
+  };
+  ASSERT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
+                                               updated_options),
+            Status{Status::kSuccess});
+
+  absl::Notification discover_notification;
+  DiscoveryOptions wifi_lan_discovery_options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{.wifi_lan = true}}};
+  ASSERT_EQ(handler_b.StartDiscovery(
+                &client_b_, service_id_, wifi_lan_discovery_options,
+                {.endpoint_found_cb =
+                     [&discover_notification](const std::string& endpoint_id,
+                                              const ByteArray& endpoint_info,
+                                              const std::string& service_id) {
+                       discover_notification.Notify();
+                     }}),
+            Status{Status::kSuccess});
+  EXPECT_FALSE(discover_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(300)));
+
+  handler_b.StopDiscovery(&client_b_);
+  handler_a.StopAdvertising(&client_a_);
+  bwu_b.Shutdown();
+  bwu_a.Shutdown();
+  env_.Stop();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixWifiLanServiceInfoSerialization,
+      true);
 }
 
 }  // namespace
