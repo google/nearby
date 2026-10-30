@@ -304,7 +304,8 @@ class BasePcpHandler : public PcpHandler,
       ClientProxy* client, const ByteArray& remote_endpoint_info,
       std::unique_ptr<EndpointChannel> endpoint_channel,
       location::nearby::proto::connections::Medium medium,
-      NearbyDevice::Type listening_device_type);  // throws Exception::IO
+      NearbyDevice::Type listening_device_type)
+      RUN_ON_PCP_HANDLER_THREAD();  // throws Exception::IO
 
   virtual bool HasOutgoingConnections(ClientProxy* client) const;
   virtual bool HasIncomingConnections(ClientProxy* client) const;

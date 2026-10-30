@@ -27,6 +27,7 @@
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
@@ -199,6 +200,8 @@ class MockPcpHandler : public BasePcpHandler {
                  BwuManager* bwu)
       : BasePcpHandler(m, em, ecm, bwu, Pcp::kP2pCluster) {}
 
+  ~MockPcpHandler() override { Shutdown(); }
+
   // Expose protected inner types of a base type for mocking.
   using BasePcpHandler::ConnectImplResult;
   using BasePcpHandler::DiscoveredEndpoint;
@@ -338,9 +341,21 @@ class MockPcpHandler : public BasePcpHandler {
       std::unique_ptr<EndpointChannel> endpoint_channel,
       location::nearby::proto::connections::Medium medium,
       NearbyDevice::Type listening_device_type) {
-    return BasePcpHandler::OnIncomingConnection(client, remote_endpoint_info,
-                                                std::move(endpoint_channel),
-                                                medium, listening_device_type);
+    absl::Notification done;
+    Exception result{Exception::kFailed};
+    RunOnPcpHandlerThread(
+        "OnIncomingConnection",
+        [this, client, remote_endpoint_info,
+         endpoint_channel = std::move(endpoint_channel), medium,
+         listening_device_type, &result,
+         &done]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+          result = BasePcpHandler::OnIncomingConnection(
+              client, remote_endpoint_info, std::move(endpoint_channel), medium,
+              listening_device_type);
+          done.Notify();
+        });
+    done.WaitForNotification();
+    return result;
   }
 
   bool NeedsToTurnOffAdvertisingMedium(
