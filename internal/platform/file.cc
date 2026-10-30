@@ -117,4 +117,11 @@ void OutputFile::SetLastModifiedTime(absl::Time last_modified_time) {
   impl_->SetLastModifiedTime(last_modified_time);
 }
 
+bool OutputFile::SetOriginMetadata() {
+  if (impl_ == nullptr) {
+    return false;
+  }
+  return impl_->SetOriginMetadata();
+}
+
 }  // namespace nearby

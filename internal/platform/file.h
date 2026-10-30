@@ -103,6 +103,11 @@ class OutputFile final {
 
   void SetLastModifiedTime(absl::Time last_modified_time);
 
+  // Sets the origin metadata for the file as externally downloaded so any
+  // security policies can be applied.
+  // Returns true if the origin metadata was set successfully.
+  bool SetOriginMetadata();
+
  private:
   std::unique_ptr<api::OutputFile> impl_;
   const std::string file_path_;

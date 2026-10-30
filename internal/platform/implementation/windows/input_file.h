@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_WINDOWS_FILE_H_
-#define PLATFORM_IMPL_WINDOWS_FILE_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_INPUT_FILE_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_INPUT_FILE_H_
 
 #include <windows.h>
 
-#include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
@@ -27,19 +25,14 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
-#include "internal/platform/implementation/output_file.h"
 
 namespace nearby::windows {
 
-class IOFile final : public api::InputFile, public api::OutputFile {
+class InputFile final : public api::InputFile {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path);
+  explicit InputFile(absl::string_view file_path);
 
-  static std::unique_ptr<IOFile> CreateOutputFile(absl::string_view path);
-
-  ~IOFile() override {
-    Close();
-  }
+  ~InputFile() override { Close(); }
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
 
@@ -48,15 +41,9 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   std::int64_t GetTotalSize() const override { return total_size_; }
   Exception Close() override;
 
-  Exception Write(absl::string_view data) override;
   absl::Time GetLastModifiedTime() const override;
-  void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
-  explicit IOFile(absl::string_view file_path) : path_(file_path) {}
-  void OpenForRead();
-  void OpenForWrite();
-
   const std::string path_;
   HANDLE file_ = INVALID_HANDLE_VALUE;
   std::string buffer_;
@@ -65,4 +52,4 @@ class IOFile final : public api::InputFile, public api::OutputFile {
 
 }  // namespace nearby::windows
 
-#endif  // PLATFORM_IMPL_WINDOWS_FILE_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_INPUT_FILE_H_

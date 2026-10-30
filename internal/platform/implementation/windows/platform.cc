@@ -66,10 +66,11 @@
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/device_info.h"
 #include "internal/platform/implementation/windows/device_paths.h"
-#include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/file_path.h"
 #include "internal/platform/implementation/windows/http_loader.h"
+#include "internal/platform/implementation/windows/input_file.h"
 #include "internal/platform/implementation/windows/mutex.h"
+#include "internal/platform/implementation/windows/output_file.h"
 #include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/string_utils.h"
@@ -134,7 +135,7 @@ ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     const std::string& file_path) {
-  return windows::IOFile::CreateInputFile(file_path);
+  return std::make_unique<windows::InputFile>(file_path);
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
@@ -148,7 +149,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
       return nullptr;
     }
   }
-  return windows::IOFile::CreateOutputFile(file_path);
+  return std::make_unique<windows::OutputFile>(file_path);
 }
 
 std::unique_ptr<SubmittableExecutor>

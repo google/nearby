@@ -27,6 +27,12 @@ namespace api {
 // An InputFile represents a readable file on the system.
 class InputFile : public InputStream {
  public:
+  InputFile(InputFile&& other) = delete;
+  InputFile& operator=(InputFile&& other) = delete;
+  InputFile(const InputFile&) = delete;
+  InputFile& operator=(const InputFile&) = delete;
+
+  InputFile() = default;
   ~InputFile() override = default;
   virtual std::string GetFilePath() const = 0;
   virtual std::int64_t GetTotalSize() const = 0;

@@ -265,12 +265,12 @@ cc_library(
         "bluetooth_classic_socket.cc",
         "bluetooth_pairing.cc",
         "executor.cc",
-        "file.cc",
-        "file.h",
         "file_path.cc",
         "http_loader.cc",
+        "input_file.cc",
         "nearby_client_socket.cc",
         "nearby_server_socket.cc",
+        "output_file.cc",
         "platform.cc",
         "preferences_manager.cc",
         "preferences_repository.cc",
@@ -303,8 +303,10 @@ cc_library(
         "bluetooth_pairing.h",
         "file_path.h",
         "http_loader.h",
+        "input_file.h",
         "nearby_client_socket.h",
         "nearby_server_socket.h",
+        "output_file.h",
         "preferences_manager.h",
         "preferences_repository.h",
         "wifi.h",
@@ -368,7 +370,6 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -507,16 +508,39 @@ cc_test(
 )
 
 cc_test(
-    name = "file_test",
+    name = "input_file_test",
     size = "small",
     timeout = "short",
     srcs = [
-        "file_test.cc",
+        "input_file_test.cc",
     ],
-    tags = ["nozapfhahn"],
+    tags = ["windows"],
     deps = [
         ":windows",
+        "//internal/platform:base",
+        "//internal/platform:logging",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "output_file_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "output_file_test.cc",
+    ],
+    tags = ["windows"],
+    deps = [
+        ":windows",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )
