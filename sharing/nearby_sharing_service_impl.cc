@@ -346,7 +346,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   if (account_manager_.GetCurrentAccount().has_value()) {
     certificate_manager_->StartScheduledTasks();
   }
-  update_file_paths_in_progress_ = false;
 
   SetupBluetoothAdapter();
 }
@@ -3035,8 +3034,7 @@ void NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates(
     return;
   }
   std::optional<TransferMetadata> metadata =
-      incoming_session->ProcessPayloadTransferUpdates(
-          update_file_paths_in_progress_);
+      incoming_session->ProcessPayloadTransferUpdates();
   if (!metadata.has_value()) {
     return;
   }
@@ -3441,13 +3439,6 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
         LOG(INFO) << "Completed to run delayed task " << task_name
                   << " on API thread.";
       });
-}
-
-void NearbySharingServiceImpl::UpdateFilePathsInProgress(
-    bool update_file_paths) {
-  update_file_paths_in_progress_ = update_file_paths;
-  VLOG(1) << __func__
-          << ": Update file paths in progress: " << update_file_paths;
 }
 
 void NearbySharingServiceImpl::UpdateBackupSavePath(

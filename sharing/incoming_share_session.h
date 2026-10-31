@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_SESSION_H_
 #define THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_SESSION_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -22,6 +23,7 @@
 #include <vector>
 
 #include "location/nearby/sharing/lib/sync/sync_manager.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
@@ -95,13 +97,10 @@ class IncomingShareSession : public ShareSession {
   void SendFailureResponse(TransferMetadata::Status status);
 
   // Process payload transfer updates.
-  // The `update_file_paths_in_progress` flag determines if the payload paths
-  // should be updated in the attachments on each update notification.
   // If queued PayloadTransferUpdates results in a change in the transfer
   // metadata, the latest TransferMetadata is returned. Otherwise, nullopt is
   // returned.
-  std::optional<TransferMetadata> ProcessPayloadTransferUpdates(
-      bool update_file_paths_in_progress);
+  std::optional<TransferMetadata> ProcessPayloadTransferUpdates();
 
   // Pushes a payload transfer update to the queue.  For testing only.
   void PushPayloadTransferUpdateForTest(
@@ -120,8 +119,8 @@ class IncomingShareSession : public ShareSession {
     kSync,
   };
 
-  // Update file attachment paths with payload paths.
-  bool UpdateFilePayloadPaths();
+  // Update file attachment path with payload path for `payload_id`.
+  void UpdateFilePayloadPath(int64_t payload_id);
 
   // Copy payload contents from the NearbyConnection to the Attachment.
   bool UpdatePayloadContents();
@@ -141,6 +140,9 @@ class IncomingShareSession : public ShareSession {
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
 
   SessionPhase session_phase_ = SessionPhase::kUninitialized;
+  // Maps payload_id to the index of the FileAttachment in AttachmentContainer.
+  absl::flat_hash_map<int64_t, int> payload_to_file_index_map_;
+  std::optional<int64_t> last_payload_id_;
 };
 
 }  // namespace nearby::sharing
