@@ -1080,6 +1080,10 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   session_.ReadyForTransfer(
       []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
+  // Even before ProcessPayloadTransferUpdates is called, GetPayloadFilePaths
+  // should fall back to querying incoming payloads from connections_manager_.
+  EXPECT_THAT(session_.GetPayloadFilePaths(),
+              UnorderedElementsAre(file1_path, file2_path));
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
           payload_id1, PayloadStatus::kSuccess, 100, 100));

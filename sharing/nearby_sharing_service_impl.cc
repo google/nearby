@@ -3100,7 +3100,6 @@ void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
 void NearbySharingServiceImpl::RemoveIncomingPayloads(
     const IncomingShareSession& session) {
   LOG(INFO) << __func__ << ": Cleaning up payloads due to transfer failure";
-  nearby_connections_manager_->ClearIncomingPayloads();
   std::vector<FilePath> files_for_deletion;
   auto file_paths_to_delete =
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
@@ -3110,6 +3109,7 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
     files_for_deletion.push_back(*it);
   }
   std::vector<FilePath> payload_file_path = session.GetPayloadFilePaths();
+  nearby_connections_manager_->ClearIncomingPayloads();
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),
                             payload_file_path.end());
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
