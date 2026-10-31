@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/windows/file_path.h"
+#include "internal/platform/implementation/windows/get_custom_save_path.h"
 
 // clang-format off
 #include <windows.h>
@@ -20,9 +20,8 @@
 #include <shlobj.h>
 // clang-format on
 
-#include <algorithm>
 #include <fstream>
-#include <sstream>
+#include <initializer_list>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -50,24 +49,24 @@ const absl::string_view kSecondIterationFileName("increment_file_test (2).txt");
 class FilePathTests : public testing::Test {};
 
 TEST_F(FilePathTests, GetCustomSavePathUnchanged) {
-  nearby::FilePath path("C:/test_parent_folder/test_file_name.name");
+  FilePath path("C:/test_parent_folder/test_file_name.name");
 
-  nearby::FilePath actual(FilePath::GetCustomSavePath(path));
+  FilePath actual(GetCustomSavePath(path));
 
   EXPECT_EQ(actual, path);
 }
 
 TEST_F(FilePathTests, GetCustomSavePathIllegalPathComponentReturnsUnderbar) {
   for (auto illegal_path_name : kIllegalPathNames) {
-    nearby::FilePath parent_folder("C:\\TEMP");
+    FilePath parent_folder("C:\\TEMP");
 
-    nearby::FilePath expected(parent_folder);
-    expected.append(nearby::FilePath(absl::StrCat("_", illegal_path_name))
-                        .append(nearby::FilePath(kFileName)));
+    FilePath expected(parent_folder);
+    expected.append(FilePath(absl::StrCat("_", illegal_path_name))
+                        .append(FilePath(kFileName)));
 
-    nearby::FilePath actual(FilePath::GetCustomSavePath(
-        parent_folder.append(nearby::FilePath(illegal_path_name))
-            .append(nearby::FilePath(kFileName))));
+    FilePath actual(
+        GetCustomSavePath(parent_folder.append(FilePath(illegal_path_name))
+                              .append(FilePath(kFileName))));
 
     EXPECT_EQ(actual, expected);
   }
@@ -76,43 +75,51 @@ TEST_F(FilePathTests, GetCustomSavePathIllegalPathComponentReturnsUnderbar) {
 TEST_F(FilePathTests,
        GetCustomSavePathIllegalPathComponentLowerCaseReturnsUnderbar) {
   for (auto illegal_path_name : kIllegalPathNames) {
-    nearby::FilePath parent_folder("C:\\TEMP");
+    FilePath parent_folder("C:\\TEMP");
 
-    nearby::FilePath expected(parent_folder);
-    expected.append(nearby::FilePath(absl::StrCat("_", absl::AsciiStrToLower(
-                                                           illegal_path_name)))
-                        .append(nearby::FilePath(kFileName)));
+    FilePath expected(parent_folder);
+    expected.append(
+        FilePath(absl::StrCat("_", absl::AsciiStrToLower(illegal_path_name)))
+            .append(FilePath(kFileName)));
 
-    nearby::FilePath actual(FilePath::GetCustomSavePath(
-        parent_folder
-            .append(nearby::FilePath(absl::AsciiStrToLower(illegal_path_name)))
-            .append(nearby::FilePath(kFileName))));
+    FilePath actual(GetCustomSavePath(
+        parent_folder.append(FilePath(absl::AsciiStrToLower(illegal_path_name)))
+            .append(FilePath(kFileName))));
 
     EXPECT_EQ(actual, expected);
   }
 }
 
+TEST_F(FilePathTests, GetCustomSavePathDotPathComponentReturnsUnderbar) {
+  FilePath path("C:/test_parent_folder/./test_file_name.name");
+
+  FilePath actual(GetCustomSavePath(path));
+
+  EXPECT_EQ(actual, FilePath("C:/test_parent_folder/_/test_file_name.name"));
+}
+
 TEST_F(FilePathTests, GetCustomSavePathIllegalCharactersReturnsUnderbar) {
   // char illegal_character_sequence[]{ 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x05,
   // 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0 };
-  for (auto illegal_character :
-       {"\x1", "\x1f", "?", "*", "<", ">", "|", ":", "\""}) {
-    nearby::FilePath illegal_character_sequence(
+  for (absl::string_view illegal_character :
+       std::initializer_list<absl::string_view>{absl::string_view("\0", 1),
+                                                "\x1", "\x1f", "?", "*", "<",
+                                                ">", "|", ":", "\""}) {
+    FilePath illegal_character_sequence(
         absl::StrCat("C:/Test", illegal_character, "Test"));
 
-    nearby::FilePath actual(
-        FilePath::GetCustomSavePath(illegal_character_sequence));
+    FilePath actual(GetCustomSavePath(illegal_character_sequence));
 
-    EXPECT_EQ(actual, nearby::FilePath("C:/Test_Test"));
+    EXPECT_EQ(actual, FilePath("C:/Test_Test"));
   }
 }
 
 TEST_F(FilePathTests, GetCustomSavePathFileExistsReturnsIncrementedName) {
-  nearby::FilePath temp_path = Files::GetTemporaryDirectory();
-  nearby::FilePath file_name = temp_path;
-  file_name.append(nearby::FilePath(kFileName));
-  nearby::FilePath renamed_file_name = temp_path;
-  renamed_file_name.append(nearby::FilePath(kFirstIterationFileName));
+  FilePath temp_path = Files::GetTemporaryDirectory();
+  FilePath file_name = temp_path;
+  file_name.append(FilePath(kFileName));
+  FilePath renamed_file_name = temp_path;
+  renamed_file_name.append(FilePath(kFirstIterationFileName));
   Files::RemoveFile(renamed_file_name);
   std::wofstream output_file;
   output_file.open(file_name.GetPath(),
@@ -120,20 +127,20 @@ TEST_F(FilePathTests, GetCustomSavePathFileExistsReturnsIncrementedName) {
   ASSERT_TRUE(output_file.rdstate() == std::ofstream::goodbit);
   output_file.close();
 
-  nearby::FilePath actual(FilePath::GetCustomSavePath(file_name));
+  FilePath actual(GetCustomSavePath(file_name));
 
   EXPECT_EQ(actual, renamed_file_name);
 }
 
 TEST_F(FilePathTests,
        GetCustomSavePathMultipleFilesExistReturnsNextIncremented) {
-  nearby::FilePath temp_path = Files::GetTemporaryDirectory();
-  nearby::FilePath file_name = temp_path;
-  file_name.append(nearby::FilePath(kFileName));
-  nearby::FilePath renamed_file_name1 = temp_path;
-  renamed_file_name1.append(nearby::FilePath(kFirstIterationFileName));
-  nearby::FilePath renamed_file_name2 = temp_path;
-  renamed_file_name2.append(nearby::FilePath(kSecondIterationFileName));
+  FilePath temp_path = Files::GetTemporaryDirectory();
+  FilePath file_name = temp_path;
+  file_name.append(FilePath(kFileName));
+  FilePath renamed_file_name1 = temp_path;
+  renamed_file_name1.append(FilePath(kFirstIterationFileName));
+  FilePath renamed_file_name2 = temp_path;
+  renamed_file_name2.append(FilePath(kSecondIterationFileName));
   Files::RemoveFile(renamed_file_name2);
   std::wofstream output_file;
   output_file.open(file_name.GetPath(),
@@ -146,7 +153,7 @@ TEST_F(FilePathTests,
   ASSERT_TRUE(output_file1.rdstate() == std::ofstream::goodbit);
   output_file1.close();
 
-  nearby::FilePath actual(FilePath::GetCustomSavePath(file_name));
+  FilePath actual(GetCustomSavePath(file_name));
 
   EXPECT_EQ(actual, renamed_file_name2);
 }

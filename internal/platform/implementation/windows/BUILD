@@ -45,21 +45,43 @@ cc_library(
 )
 
 cc_library(
+    name = "utils",
+    srcs = [
+        "utils.cc",
+    ],
+    hdrs = [
+        "utils.h",
+    ],
+    defines = [
+        "_SILENCE_CLANG_COROUTINE_MESSAGE",
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":string_utils",
+        "//internal/platform:logging",
+        "//internal/platform:uuid",
+        "//third_party/WinRT:winrt",
+    ],
+)
+
+cc_library(
     name = "types",
     srcs = [
         "device_info.cc",
+        "executor.cc",
         "scheduled_executor.cc",
         "session_manager.cc",
         "submittable_executor.cc",
+        "system_clock.cc",
         "task_scheduler.cc",
         "thread_pool.cc",
         "timer.cc",
-        "utils.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
         "atomic_reference.h",
-        "bluetooth_adapter.h",
         "condition_variable.h",
         "device_info.h",
         "executor.h",
@@ -70,7 +92,6 @@ cc_library(
         "task_scheduler.h",
         "thread_pool.h",
         "timer.h",
-        "utils.h",
     ],
     defines = [
         "_SILENCE_CLANG_COROUTINE_MESSAGE",
@@ -84,17 +105,15 @@ cc_library(
     deps = [
         ":device_paths",
         ":string_utils",
+        ":utils",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:logging",
-        "//internal/platform:mac_address",
         "//internal/platform:types",
-        "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:types",
-        "//third_party/WinRT:winrt",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -251,43 +270,37 @@ cc_library(
 )
 
 cc_library(
-    name = "windows",
+    name = "bluetooth_adapter",
+    srcs = [
+        "bluetooth_adapter.cc",
+    ],
+    hdrs = [
+        "bluetooth_adapter.h",
+    ],
+    defines = [
+        "_SILENCE_CLANG_COROUTINE_MESSAGE",
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform:mac_address",
+        "//internal/platform/implementation:comm",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "ble",
     srcs = [
         "ble.cc",
         "ble_gatt_client.cc",
         "ble_gatt_server.cc",
         "ble_server_socket.cc",
         "ble_socket.cc",
-        "bluetooth_adapter.cc",
-        "bluetooth_classic_device.cc",
-        "bluetooth_classic_medium.cc",
-        "bluetooth_classic_server_socket.cc",
-        "bluetooth_classic_socket.cc",
-        "bluetooth_pairing.cc",
-        "executor.cc",
-        "file_path.cc",
-        "http_loader.cc",
-        "input_file.cc",
-        "nearby_client_socket.cc",
-        "nearby_server_socket.cc",
-        "output_file.cc",
-        "platform.cc",
-        "preferences_manager.cc",
-        "preferences_repository.cc",
-        "system_clock.cc",
-        "wifi_direct_medium.cc",
-        "wifi_direct_server_socket.cc",
-        "wifi_direct_socket.cc",
-        "wifi_hotspot_medium.cc",
-        "wifi_hotspot_native.cc",
-        "wifi_hotspot_server_socket.cc",
-        "wifi_hotspot_socket.cc",
-        "wifi_intel.cc",
-        "wifi_lan_mdns.cc",
-        "wifi_lan_medium.cc",
-        "wifi_lan_server_socket.cc",
-        "wifi_lan_socket.cc",
-        "wifi_medium.cc",
     ],
     hdrs = [
         "ble.h",
@@ -295,37 +308,421 @@ cc_library(
         "ble_gatt_server.h",
         "ble_server_socket.h",
         "ble_socket.h",
+    ],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":bluetooth_adapter",
+        ":utils",
+        "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums/ble:ble_advertisement_header",
+        "//connections/implementation/mediums/ble:bloom_filter",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform:mac_address",
+        "//internal/platform:uuid",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "bluetooth_classic",
+    srcs = [
+        "bluetooth_classic_device.cc",
+        "bluetooth_classic_medium.cc",
+        "bluetooth_classic_server_socket.cc",
+        "bluetooth_classic_socket.cc",
+        "bluetooth_pairing.cc",
+    ],
+    hdrs = [
         "bluetooth_classic.h",
         "bluetooth_classic_device.h",
         "bluetooth_classic_medium.h",
         "bluetooth_classic_server_socket.h",
         "bluetooth_classic_socket.h",
         "bluetooth_pairing.h",
-        "file_path.h",
+    ],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":bluetooth_adapter",
+        ":utils",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform:mac_address",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "get_custom_save_path",
+    srcs = [
+        "get_custom_save_path.cc",
+    ],
+    hdrs = [
+        "get_custom_save_path.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":string_utils",
+        ":utils",
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "http_loader",
+    srcs = [
+        "http_loader.cc",
+    ],
+    hdrs = [
         "http_loader.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/platform:logging",
+        "//internal/platform/implementation:comm",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "input_file",
+    srcs = [
+        "input_file.cc",
+    ],
+    hdrs = [
         "input_file.h",
-        "nearby_client_socket.h",
-        "nearby_server_socket.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":string_utils",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "output_file",
+    srcs = [
+        "output_file.cc",
+    ],
+    hdrs = [
         "output_file.h",
-        "preferences_manager.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "nearby_client_socket",
+    srcs = [
+        "nearby_client_socket.cc",
+    ],
+    hdrs = [
+        "nearby_client_socket.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":socket_address",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform/flags:platform_flags",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "nearby_server_socket",
+    srcs = [
+        "nearby_server_socket.cc",
+    ],
+    hdrs = [
+        "nearby_server_socket.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nearby_client_socket",
+        ":socket_address",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "preferences_repository",
+    srcs = [
+        "preferences_repository.cc",
+    ],
+    hdrs = [
         "preferences_repository.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "preferences_manager",
+    srcs = [
+        "preferences_manager.cc",
+    ],
+    hdrs = [
+        "preferences_manager.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":preferences_repository",
+        "//internal/base:file_path",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+        "@com_google_protobuf//:protobuf",
+        "@com_google_protobuf//json",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "wifi_medium",
+    srcs = [
+        "wifi_medium.cc",
+    ],
+    hdrs = [
         "wifi.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":scoped_wlan_memory",
+        ":wlan_client",
+        "//internal/platform:logging",
+        "//internal/platform/implementation:comm",
+    ],
+)
+
+cc_library(
+    name = "wifi_intel",
+    srcs = [
+        "wifi_intel.cc",
+    ],
+    hdrs = [
+        "wifi_intel.h",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/platform:logging",
+        "//third_party/intel/pie",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "wifi_direct",
+    srcs = [
+        "wifi_direct_medium.cc",
+        "wifi_direct_server_socket.cc",
+        "wifi_direct_socket.cc",
+    ],
+    hdrs = [
         "wifi_direct.h",
+    ],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nearby_client_socket",
+        ":nearby_server_socket",
+        ":network_info",
+        ":socket_address",
+        ":types",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "wifi_hotspot",
+    srcs = [
+        "wifi_hotspot_medium.cc",
+        "wifi_hotspot_native.cc",
+        "wifi_hotspot_server_socket.cc",
+        "wifi_hotspot_socket.cc",
+    ],
+    hdrs = [
         "wifi_hotspot.h",
         "wifi_hotspot_native.h",
         "wifi_hotspot_server_socket.h",
         "wifi_hotspot_socket.h",
-        "wifi_intel.h",
-        "wifi_lan.h",
-        "wifi_lan_mdns.h",
     ],
-    copts = [
-        "-DNO_INTEL_PIE",
-        "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
-    ],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
     linkopts = [
         "iphlpapi.lib",
     ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nearby_client_socket",
+        ":nearby_server_socket",
+        ":network_info",
+        ":socket_address",
+        ":string_utils",
+        ":types",
+        ":utils",
+        ":wifi_intel",
+        ":wlan_client",
+        "//internal/base:masker",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation:wifi_utils",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "wifi_lan",
+    srcs = [
+        "wifi_lan_mdns.cc",
+        "wifi_lan_medium.cc",
+        "wifi_lan_server_socket.cc",
+        "wifi_lan_socket.cc",
+    ],
+    hdrs = [
+        "wifi_lan.h",
+        "wifi_lan_mdns.h",
+    ],
+    copts = ["-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10"],
+    linkopts = [
+        "iphlpapi.lib",
+    ],
+    tags = ["windows"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nearby_client_socket",
+        ":nearby_server_socket",
+        ":network_info",
+        ":registry",
+        ":socket_address",
+        ":string_utils",
+        ":types",
+        ":utils",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:logging",
+        "//internal/platform/flags:platform_flags",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
+        "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "windows",
+    srcs = [
+        "platform.cc",
+    ],
+    copts = ["-DNO_INTEL_PIE"],
     tags = ["windows"],
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
@@ -336,52 +733,37 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":ble",
+        ":bluetooth_adapter",
+        ":bluetooth_classic",
         ":crypto",  # build_cleaner: keep
         ":device_paths",
-        ":network_info",
-        ":registry",
-        ":scoped_wlan_memory",
-        ":socket_address",
+        ":get_custom_save_path",
+        ":http_loader",
+        ":input_file",
+        ":output_file",
+        ":preferences_manager",
         ":string_utils",
         ":types",
-        ":wlan_client",
-        "//connections/implementation/mediums:utils",
-        "//connections/implementation/mediums/ble:ble_advertisement_header",
-        "//connections/implementation/mediums/ble:bloom_filter",
+        ":wifi_direct",
+        ":wifi_hotspot",
+        ":wifi_lan",
+        ":wifi_medium",
         "//internal/base:file_path",
         "//internal/base:files",
-        "//internal/base:masker",
-        "//internal/flags:nearby_flags",
         "//internal/platform:base",
-        "//internal/platform:cancellation_flag",
         "//internal/platform:logging",
-        "//internal/platform:mac_address",
         "//internal/platform:types",
-        "//internal/platform:uuid",
-        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation:wifi_utils",
         "//internal/platform/implementation/shared:count_down_latch",
-        "//third_party/WinRT:winrt",
-        "//third_party/intel/pie",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
-        "@com_google_absl//absl/types:span",
-        "@com_google_protobuf//:protobuf",
-        "@com_google_protobuf//json",
-        "@nlohmann_json//:json",
+        "@com_google_absl//absl/strings:string_view",
     ],
+    alwayslink = True,
 )
 
 cc_library(
@@ -444,9 +826,7 @@ cc_test(
         "crypto_test.cc",
         "device_info_test.cc",
         "executor_test.cc",
-        "file_path_test.cc",
         "http_loader_test.cc",
-        "platform_test.cc",
         "preferences_manager_test.cc",
         "preferences_repository_test.cc",
         "scheduled_executor_test.cc",
@@ -459,15 +839,22 @@ cc_test(
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",
     ],
-    copts = ["-DCORE_ADAPTER_DLL"],
     tags = ["nozapfhahn"],
     deps = [
-        ":device_paths",
+        ":ble",
+        ":bluetooth_adapter",
+        ":crypto",
+        ":http_loader",
+        ":preferences_manager",
         ":preferences_manager_test_cc_proto",
+        ":preferences_repository",
         ":string_utils",
         ":test_data",
         ":types",
-        ":windows",
+        ":utils",
+        ":wifi_direct",
+        ":wifi_hotspot",
+        ":wifi_medium",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
@@ -478,7 +865,6 @@ cc_test(
         "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/shared:count_down_latch",
         "//net/proto2/contrib/parse_proto:parse_text_proto",
@@ -490,6 +876,44 @@ cc_test(
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_test(
+    name = "get_custom_save_path_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "get_custom_save_path_test.cc",
+    ],
+    tags = ["windows"],
+    deps = [
+        ":get_custom_save_path",
+        "//internal/base:file_path",
+        "//internal/base:files",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "platform_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "platform_test.cc",
+    ],
+    tags = ["windows"],
+    deps = [
+        ":device_paths",
+        ":get_custom_save_path",
+        ":windows",
+        "//internal/base:file_path",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -516,7 +940,9 @@ cc_test(
     ],
     tags = ["windows"],
     deps = [
-        ":windows",
+        ":input_file",
+        ":output_file",
+        ":string_utils",
         "//internal/platform:base",
         "//internal/platform:logging",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -535,7 +961,9 @@ cc_test(
     ],
     tags = ["windows"],
     deps = [
-        ":windows",
+        ":input_file",
+        ":output_file",
+        ":string_utils",
         "//internal/platform:base",
         "//internal/platform:logging",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -627,8 +1055,8 @@ cc_test(
         "nearby_client_socket_test.cc",
     ],
     deps = [
+        ":nearby_client_socket",
         ":socket_address",
-        ":windows",
         "//internal/platform:base",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
@@ -644,8 +1072,8 @@ cc_test(
         "nearby_server_socket_test.cc",
     ],
     deps = [
+        ":nearby_server_socket",
         ":socket_address",
-        ":windows",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

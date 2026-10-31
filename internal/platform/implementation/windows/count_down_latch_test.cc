@@ -16,8 +16,9 @@
 
 #include <Windows.h>
 
+#include <memory>
+
 #include "gtest/gtest.h"
-#include "internal/platform/implementation/platform.h"
 
 class CountDownLatchTests : public testing::Test {
  public:
@@ -59,7 +60,7 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
   LONG volatile count = 0;
 
   std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
-      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+      std::make_unique<nearby::shared::CountDownLatch>(3);
 
   HANDLE hThreads[3];
   DWORD dwThreadID;
@@ -94,7 +95,7 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
 TEST_F(CountDownLatchTests, CountDownLatchAwaitTimeoutTimesOut) {
   // Arrange
   std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
-      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+      std::make_unique<nearby::shared::CountDownLatch>(3);
 
   // Act
   nearby::ExceptionOr<bool> result =
@@ -115,7 +116,7 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitNoTimeoutSucceeds) {
   LONG volatile count = 0;
 
   std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
-      nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
+      std::make_unique<nearby::shared::CountDownLatch>(3);
 
   TestData testData{countDownLatch, count};
 
@@ -153,7 +154,7 @@ TEST_F(CountDownLatchTests, CountDownLatchCountDownBeforeAwaitSucceeds) {
   // Arrange
   LONG volatile count = 0;
   std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
-      nearby::api::ImplementationPlatform::CreateCountDownLatch(1);
+      std::make_unique<nearby::shared::CountDownLatch>(1);
 
   HANDLE hThread;
   DWORD dwThreadID;

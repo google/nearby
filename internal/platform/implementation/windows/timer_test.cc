@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/timer.h"
+#include "internal/platform/implementation/windows/timer.h"
 
 #include <memory>
 
 #include "gtest/gtest.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
+#include "internal/platform/implementation/timer.h"
 
 namespace nearby {
 namespace windows {
@@ -29,8 +28,7 @@ namespace {
 TEST(TimerTest, TestCreateTimer) {
   int count = 0;
 
-  std::unique_ptr<nearby::api::Timer> timer =
-      nearby::api::ImplementationPlatform::CreateTimer();
+  std::unique_ptr<nearby::api::Timer> timer = std::make_unique<Timer>();
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_FALSE(timer->Create(-100, 0, [&]() { ++count; }));
@@ -39,10 +37,9 @@ TEST(TimerTest, TestCreateTimer) {
 
 // This test case cannot run on Google3
 TEST(TimerTest, TestRepeatTimer) {
-  CountDownLatch latch(3);
+  shared::CountDownLatch latch(3);
   int count = 0;
-  std::unique_ptr<nearby::api::Timer> timer =
-      nearby::api::ImplementationPlatform::CreateTimer();
+  std::unique_ptr<nearby::api::Timer> timer = std::make_unique<Timer>();
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_TRUE(timer->Create(300, 300, [&]() {

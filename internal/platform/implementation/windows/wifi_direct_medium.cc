@@ -25,12 +25,12 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
@@ -771,7 +771,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
               {this, &WifiDirectMedium::Watcher_DeviceEnumerationCompleted});
       device_watcher_stopped_event_token_ = device_watcher_.Stopped(
           {this, &WifiDirectMedium::Watcher_DeviceStopped});
-      connection_latch_ = std::make_unique<CountDownLatch>(1);
+      connection_latch_ = std::make_unique<absl::Notification>();
       device_watcher_.Start();
       medium_status_ |= kMediumStatusConnecting;
     } catch (const std::exception& exception) {
@@ -792,7 +792,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
 
   LOG(INFO) << "Started to discover and wait " << kConnectTimeout
             << " for connection.";
-  connection_latch_->Await(kConnectTimeout);
+  connection_latch_->WaitForNotificationWithTimeout(kConnectTimeout);
   {
     absl::MutexLock lock(mutex_);
     if (IsConnected()) {
@@ -945,8 +945,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     if (!is_paired) {
       LOG(INFO) << "GC paired failed!";
       absl::MutexLock lock(mutex_);
-      if (connection_latch_) {
-        connection_latch_->CountDown();
+      if (connection_latch_ && !connection_latch_->HasBeenNotified()) {
+        connection_latch_->Notify();
       }
       return fire_and_forget();
     }
@@ -970,8 +970,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
               LOG(INFO) << "GC: Local IP: " << ip_address_local_
                         << ", Remote IP: " << ip_address_remote_;
               medium_status_ |= kMediumStatusConnected;
-              if (connection_latch_) {
-                connection_latch_->CountDown();
+              if (connection_latch_ && !connection_latch_->HasBeenNotified()) {
+                connection_latch_->Notify();
               }
             } else {
               LOG(WARNING) << "GC: No connection endpoint pairs found.";
@@ -996,21 +996,21 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
   } catch (const std::exception& exception) {
     LOG(ERROR) << __func__ << " failed. Exception: " << exception.what();
     absl::MutexLock lock(mutex_);
-    if (connection_latch_) {
-      connection_latch_->CountDown();
+    if (connection_latch_ && !connection_latch_->HasBeenNotified()) {
+      connection_latch_->Notify();
     }
   } catch (const winrt::hresult_error& error) {
     LOG(ERROR) << __func__ << " failed. WinRT exception: " << error.code()
                << ": " << winrt::to_string(error.message());
     absl::MutexLock lock(mutex_);
-    if (connection_latch_) {
-      connection_latch_->CountDown();
+    if (connection_latch_ && !connection_latch_->HasBeenNotified()) {
+      connection_latch_->Notify();
     }
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
     absl::MutexLock lock(mutex_);
-    if (connection_latch_) {
-      connection_latch_->CountDown();
+    if (connection_latch_ && !connection_latch_->HasBeenNotified()) {
+      connection_latch_->Notify();
     }
   }
   return fire_and_forget();

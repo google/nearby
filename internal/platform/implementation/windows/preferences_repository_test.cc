@@ -22,8 +22,7 @@
 #include "nlohmann/json_fwd.hpp"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
-#include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/windows/device_info.h"
 
 namespace nearby {
 namespace windows {
@@ -44,8 +43,7 @@ TEST(PreferencesRepository, LoadWithBadPath) {
 
 TEST(PreferencesRepository, RecoverFromBadPreferences) {
   std::optional<FilePath> app_data_path =
-      api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath(
-          FilePath());
+      DeviceInfo().GetLocalAppDataPath(FilePath());
   ASSERT_TRUE(app_data_path.has_value());
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));
@@ -64,8 +62,7 @@ TEST(PreferencesRepository, RecoverFromBadPreferences) {
 
 TEST(PreferencesRepository, SaveAndLoadPreferences) {
   std::optional<FilePath> app_data_path =
-      api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath(
-          FilePath());
+      DeviceInfo().GetLocalAppDataPath(FilePath());
   ASSERT_TRUE(app_data_path.has_value());
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));
@@ -88,8 +85,7 @@ TEST(PreferencesRepository, SaveAndLoadPreferences) {
 
 TEST(PreferencesRepository, LoadFromBackup) {
   std::optional<FilePath> app_data_path =
-      api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath(
-          FilePath());
+      DeviceInfo().GetLocalAppDataPath(FilePath());
   ASSERT_TRUE(app_data_path.has_value());
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));
@@ -126,8 +122,7 @@ TEST(PreferencesRepository, LoadFromBackup) {
 
 TEST(PreferencesRepository, RecoverFromCorruption) {
   std::optional<FilePath> app_data_path =
-      api::ImplementationPlatform::CreateDeviceInfo()->GetLocalAppDataPath(
-          FilePath());
+      DeviceInfo().GetLocalAppDataPath(FilePath());
   ASSERT_TRUE(app_data_path.has_value());
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));

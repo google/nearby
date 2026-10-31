@@ -12,22 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_
-#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_GET_CUSTOM_SAVE_PATH_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_GET_CUSTOM_SAVE_PATH_H_
 
 #include "internal/base/file_path.h"
 
 namespace nearby::windows {
 
-class FilePath {
- public:
-  // If the file already exists we add " (x)", where x is an incrementing
-  // number, starting at 1, using the next non-existing number, to the file
-  // name, just before the first dot, or at the end if no dot. The absolute path
-  // is returned.
-  static nearby::FilePath GetCustomSavePath(nearby::FilePath path);
-};
+// If the file already exists we add " (x)", where x is an incrementing
+// number, starting at 1, using the next non-existing number, to the file
+// name, just before the first dot, or at the end if no dot. The absolute path
+// is returned.
+FilePath GetCustomSavePath(const FilePath& path);
 
 }  // namespace nearby::windows
 
-#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_FILE_PATH_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_GET_CUSTOM_SAVE_PATH_H_

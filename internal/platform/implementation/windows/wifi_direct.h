@@ -31,9 +31,9 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
@@ -326,7 +326,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   void CleanUpDeviceWatcherLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::unique_ptr<CountDownLatch> connection_latch_;
+  std::unique_ptr<absl::Notification> connection_latch_;
   mutable absl::Mutex mutex_;
 
   absl::flat_hash_map<winrt::hstring,

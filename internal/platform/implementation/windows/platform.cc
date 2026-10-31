@@ -66,7 +66,7 @@
 #include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/device_info.h"
 #include "internal/platform/implementation/windows/device_paths.h"
-#include "internal/platform/implementation/windows/file_path.h"
+#include "internal/platform/implementation/windows/get_custom_save_path.h"
 #include "internal/platform/implementation/windows/http_loader.h"
 #include "internal/platform/implementation/windows/input_file.h"
 #include "internal/platform/implementation/windows/mutex.h"
@@ -101,7 +101,7 @@ std::string ImplementationPlatform::GetCustomSavePath(
     path.append(file_path);
   }
 
-  return windows::FilePath::GetCustomSavePath(path).ToString();
+  return windows::GetCustomSavePath(path).ToString();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }

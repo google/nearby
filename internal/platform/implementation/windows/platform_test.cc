@@ -23,7 +23,7 @@
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/windows/device_paths.h"
-#include "internal/platform/implementation/windows/file_path.h"
+#include "internal/platform/implementation/windows/get_custom_save_path.h"
 
 namespace nearby::api {
 namespace {
@@ -47,8 +47,7 @@ TEST(PlatformTest, GetCustomSavePathWithEmptySavePathUsesDownloadsPath) {
   FilePath downloads_path = nearby::platform::windows::GetDownloadsPath();
   downloads_path.append(FilePath("sub_dir"));
   downloads_path.append(FilePath("file.txt"));
-  std::string expected =
-      windows::FilePath::GetCustomSavePath(downloads_path).ToString();
+  std::string expected = windows::GetCustomSavePath(downloads_path).ToString();
 
   std::string actual =
       ImplementationPlatform::GetCustomSavePath("", "sub_dir", "file.txt");
@@ -76,8 +75,7 @@ TEST(PlatformTest, GetCustomSavePathWithEmptyParentFolderAndFileName) {
 
 TEST(PlatformTest, GetCustomSavePathWithAllEmptyUsesDownloadsPath) {
   FilePath downloads_path = nearby::platform::windows::GetDownloadsPath();
-  std::string expected =
-      windows::FilePath::GetCustomSavePath(downloads_path).ToString();
+  std::string expected = windows::GetCustomSavePath(downloads_path).ToString();
 
   std::string actual = ImplementationPlatform::GetCustomSavePath("", "", "");
   EXPECT_EQ(actual, expected);

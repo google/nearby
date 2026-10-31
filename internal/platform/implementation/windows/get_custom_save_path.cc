@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/windows/file_path.h"
+#include "internal/platform/implementation/windows/get_custom_save_path.h"
 
 // clang-format off
 #include <windows.h>
@@ -149,7 +149,7 @@ void SanitizePath(std::wstring& path) {
 
 }  // namespace
 
-nearby::FilePath FilePath::GetCustomSavePath(nearby::FilePath path) {
+FilePath GetCustomSavePath(const FilePath& path) {
   std::wstring sanitized_path(path.ToWideString());
 
   // Replace any \\ with /
@@ -159,7 +159,7 @@ nearby::FilePath FilePath::GetCustomSavePath(nearby::FilePath path) {
   // Remove any /..'s
   SanitizePath(sanitized_path);
 
-  return Files::CreateUniqueFileName(nearby::FilePath(sanitized_path));
+  return Files::CreateUniqueFileName(FilePath(sanitized_path));
 }
 
 }  // namespace nearby::windows
