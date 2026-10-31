@@ -690,7 +690,7 @@ TEST_F(IncomingShareSessionTest,
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata,
@@ -794,7 +794,7 @@ TEST_F(IncomingShareSessionTest,
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata,
@@ -896,7 +896,7 @@ TEST_F(IncomingShareSessionTest,
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata,
@@ -999,7 +999,7 @@ TEST_F(IncomingShareSessionTest,
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata,
@@ -1080,6 +1080,10 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   session_.ReadyForTransfer(
       []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {});
   session_.AcceptTransfer([]() {});
+  // Even before ProcessPayloadTransferUpdates is called, GetPayloadFilePaths
+  // should fall back to querying incoming payloads from connections_manager_.
+  EXPECT_THAT(session_.GetPayloadFilePaths(),
+              UnorderedElementsAre(file1_path, file2_path));
   session_.PushPayloadTransferUpdateForTest(
       std::make_unique<PayloadTransferUpdate>(
           payload_id1, PayloadStatus::kSuccess, 100, 100));
@@ -1087,7 +1091,7 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
       std::make_unique<PayloadTransferUpdate>(
           payload_id2, PayloadStatus::kSuccess, 100, 100));
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
@@ -1160,7 +1164,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   EXPECT_CALL(transfer_metadata_callback_, Call(_, _)).Times(0);
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
@@ -1244,7 +1248,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
           payload_id1_, PayloadStatus::kCanceled, 100, 100));
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kCancelled));
@@ -1253,7 +1257,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
       Eq(file1_path));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path));
+      Eq(std::nullopt));
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
       IsTrue());
@@ -1290,10 +1294,16 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
           payload_id1_, PayloadStatus::kFailure, 100, 100));
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kFailed));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(file1_path));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
@@ -1343,10 +1353,36 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
           payload_id1_, PayloadStatus::kInProgress, 10, 100));
 
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kInProgress));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(file1_path));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(std::nullopt));
+
+  // Subsequent updates for the first payload and then the second payload should
+  // update the second file attachment's path once its transfer starts.
+  session_.PushPayloadTransferUpdateForTest(
+      std::make_unique<PayloadTransferUpdate>(
+          payload_id1_, PayloadStatus::kInProgress, 100, 100));
+  session_.PushPayloadTransferUpdateForTest(
+      std::make_unique<PayloadTransferUpdate>(
+          payload_id2_, PayloadStatus::kInProgress, 200, 50));
+
+  metadata = session_.ProcessPayloadTransferUpdates();
+
+  EXPECT_THAT(metadata.has_value(), IsTrue());
+  EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kInProgress));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[0].file_path(),
+      Eq(file1_path));
+  EXPECT_THAT(
+      session_.attachment_container().GetFileAttachments()[1].file_path(),
+      Eq(file2_path));
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
       IsTrue());
@@ -1447,7 +1483,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
       std::make_unique<PayloadTransferUpdate>(
           payload_id1_, PayloadStatus::kInProgress, 10, 100));
   std::optional<TransferMetadata> metadata =
-      session_.ProcessPayloadTransferUpdates(false);
+      session_.ProcessPayloadTransferUpdates();
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kInProgress));
   clock_.FastForward(absl::Seconds(60));

@@ -2976,6 +2976,8 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
   int64_t share_target_id = SetUpIncomingConnection(callback);
   ScopedReceiveSurface r(service_.get(), &callback);
   AcceptConnection(callback, share_target_id, kEndpointId);
+  fake_nearby_connections_manager_->SetIncomingPayload(
+      kFilePayloadId, GetFilePayload(kFilePayloadId));
 
   absl::Notification failure_notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2988,7 +2990,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
         ASSERT_TRUE(container.HasAttachments());
         EXPECT_EQ(container.GetFileAttachments().size(), 1u);
         const FileAttachment& file = container.GetFileAttachments()[0];
-        EXPECT_FALSE(file.file_path());
+        EXPECT_TRUE(file.file_path());
         failure_notification.Notify();
       });
 
@@ -3022,6 +3024,8 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
   int64_t share_target_id = SetUpIncomingConnection(callback);
   ScopedReceiveSurface r(service_.get(), &callback);
   AcceptConnection(callback, share_target_id, kEndpointId);
+  fake_nearby_connections_manager_->SetIncomingPayload(
+      kFilePayloadId, GetFilePayload(kFilePayloadId));
 
   absl::Notification failure_notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -3034,7 +3038,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
         ASSERT_TRUE(container.HasAttachments());
         EXPECT_EQ(container.GetFileAttachments().size(), 1u);
         const FileAttachment& file = container.GetFileAttachments()[0];
-        EXPECT_FALSE(file.file_path());
+        EXPECT_TRUE(file.file_path());
         failure_notification.Notify();
       });
 

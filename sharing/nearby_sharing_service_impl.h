@@ -186,8 +186,6 @@ class NearbySharingServiceImpl
 
   std::string Dump() const override;
 
-  void UpdateFilePathsInProgress(bool update) override;
-
  private:
   // Internal implementation of methods to avoid using recursive mutex.
   StatusCodes InternalUnregisterSendSurface(
@@ -540,9 +538,6 @@ class NearbySharingServiceImpl
 
   // Used to track the time of screen unlock.
   absl::Time screen_unlock_time_;
-
-  // Whether to update the file paths in transfer progress.
-  bool update_file_paths_in_progress_ = false;
 
   // Used to track the time when share sheet activity starts
   absl::Time share_foreground_send_surface_start_timestamp_;
