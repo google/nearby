@@ -181,7 +181,7 @@ class ShareSession {
   }
   void WriteFrame(const nearby::sharing::service::proto::Frame& frame);
 
-  NearbyConnectionsManager& connections_manager() {
+  NearbyConnectionsManager& connections_manager() const {
     return connections_manager_;
   }
   void set_endpoint_id(absl::string_view endpoint_id) {

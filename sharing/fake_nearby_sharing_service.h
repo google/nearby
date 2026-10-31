@@ -134,7 +134,6 @@ class FakeNearbySharingService : public NearbySharingService {
   void SetVisibility(
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override {}
-  void UpdateFilePathsInProgress(bool update_file_paths) override {}
 
   NearbyShareSettings* GetSettings() override;
   NearbyShareCertificateManager* GetCertificateManager() override;

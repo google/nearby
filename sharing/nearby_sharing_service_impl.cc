@@ -346,7 +346,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   if (account_manager_.GetCurrentAccount().has_value()) {
     certificate_manager_->StartScheduledTasks();
   }
-  update_file_paths_in_progress_ = false;
 
   SetupBluetoothAdapter();
 }
@@ -3035,8 +3034,7 @@ void NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates(
     return;
   }
   std::optional<TransferMetadata> metadata =
-      incoming_session->ProcessPayloadTransferUpdates(
-          update_file_paths_in_progress_);
+      incoming_session->ProcessPayloadTransferUpdates();
   if (!metadata.has_value()) {
     return;
   }
@@ -3146,7 +3144,6 @@ void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
 void NearbySharingServiceImpl::RemoveIncomingPayloads(
     const IncomingShareSession& session) {
   LOG(INFO) << __func__ << ": Cleaning up payloads due to transfer failure";
-  nearby_connections_manager_->ClearIncomingPayloads();
   std::vector<FilePath> files_for_deletion;
   auto file_paths_to_delete =
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
@@ -3156,6 +3153,7 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
     files_for_deletion.push_back(*it);
   }
   std::vector<FilePath> payload_file_path = session.GetPayloadFilePaths();
+  nearby_connections_manager_->ClearIncomingPayloads();
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),
                             payload_file_path.end());
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
@@ -3441,13 +3439,6 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
         LOG(INFO) << "Completed to run delayed task " << task_name
                   << " on API thread.";
       });
-}
-
-void NearbySharingServiceImpl::UpdateFilePathsInProgress(
-    bool update_file_paths) {
-  update_file_paths_in_progress_ = update_file_paths;
-  VLOG(1) << __func__
-          << ": Update file paths in progress: " << update_file_paths;
 }
 
 void NearbySharingServiceImpl::UpdateBackupSavePath(
