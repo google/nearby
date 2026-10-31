@@ -17,7 +17,6 @@
 
 #include <functional>
 #include <memory>
-#include <vector>
 
 #include "location/nearby/sharing/lib/account/account_manager.h"
 #include "gmock/gmock.h"
@@ -74,8 +73,6 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(std::unique_ptr<PublicCertificateDatabase>,
               CreatePublicCertificateDatabase, (const FilePath& database_path),
               (override));
-  MOCK_METHOD(bool, UpdateFileOriginMetadata,
-              (std::vector<FilePath> & file_paths), (override));
 };
 
 }  // namespace nearby::sharing::api

@@ -41,7 +41,6 @@ cc_library(
     deps = [
         "//internal/base:file_path",
         "//internal/platform:mac_address",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//location/nearby/sharing/lib/account:account_manager",
         "//location/nearby/sharing/lib/sync:sync_binding_prefs_cc_proto",
@@ -72,7 +71,6 @@ cc_library(
         ":platform",
         "//internal/base:file_path",
         "//internal/platform:mac_address",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//location/nearby/sharing/lib/account:account_manager",
         "@com_google_absl//absl/functional:any_invocable",

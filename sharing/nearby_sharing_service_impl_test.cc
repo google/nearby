@@ -410,8 +410,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         .WillByDefault(ReturnRef(preference_manager_));
     ON_CALL(mock_sharing_platform_, GetAccountManager)
         .WillByDefault(ReturnRef(fake_account_manager_));
-    ON_CALL(mock_sharing_platform_, UpdateFileOriginMetadata)
-        .WillByDefault(Return(true));
     auto mock_app_info = std::make_unique<StrictMock<MockAppInfo>>();
     mock_app_info_ = mock_app_info.get();
     EXPECT_CALL(mock_sharing_platform_, CreateAppInfo())

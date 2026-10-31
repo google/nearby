@@ -46,11 +46,10 @@ bool CreateFile(FilePath& file_path) {
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
-  MockSharingPlatform mock_platform;
   FakeClock clock;
   auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
   FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(mock_platform, std::move(task_runner));
+  NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));
@@ -63,11 +62,10 @@ TEST(NearbyFileHandler, DeleteAFileFromDisk) {
 }
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
-  MockSharingPlatform mock_platform;
   FakeClock clock;
   auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
   FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(mock_platform, std::move(task_runner));
+  NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   FilePath test_file2 = Files::GetTemporaryDirectory().append(
@@ -89,12 +87,11 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
 }
 
 TEST(NearbyFileHandler, TestCallback) {
-  MockSharingPlatform mock_platform;
   std::atomic_bool received_callback = false;
   FakeClock clock;
   auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
   FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(mock_platform, std::move(task_runner));
+  NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));

@@ -66,11 +66,6 @@ class SharingPlatform {
   virtual nearby::api::DeviceInfo& GetDeviceInfo() = 0;
   virtual std::unique_ptr<PublicCertificateDatabase>
   CreatePublicCertificateDatabase(const FilePath& database_path) = 0;
-
-  // On platforms where it is supported, tag the transferred files as
-  // originating from an untrusted source.
-  // Returns true on success.
-  virtual bool UpdateFileOriginMetadata(std::vector<FilePath>& file_paths) = 0;
 };
 }  // namespace nearby::sharing::api
 

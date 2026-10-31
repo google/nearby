@@ -490,6 +490,7 @@ ErrorOr<std::unique_ptr<IncomingInternalPayload>> CreateIncomingInternalPayload(
         LOG(ERROR) << "Output file payload path is not valid: " << file_path;
         return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
       }
+      output_file.SetOriginMetadata();
       return {std::make_unique<IncomingFileInternalPayload>(
           Payload(payload_id, parent_folder, file_name, InputFile(file_path)),
           std::move(output_file), last_modified_time, total_size)};
