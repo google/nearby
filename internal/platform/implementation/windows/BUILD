@@ -822,6 +822,7 @@ cc_test(
         "ble_gatt_server_test.cc",
         "ble_test.cc",
         "bluetooth_adapter_test.cc",
+        "bluetooth_classic_medium_test.cc",
         "count_down_latch_test.cc",
         "crypto_test.cc",
         "device_info_test.cc",
@@ -843,6 +844,7 @@ cc_test(
     deps = [
         ":ble",
         ":bluetooth_adapter",
+        ":bluetooth_classic",
         ":crypto",
         ":http_loader",
         ":preferences_manager",

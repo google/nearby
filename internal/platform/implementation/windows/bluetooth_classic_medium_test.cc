@@ -17,35 +17,29 @@
 #include <synchapi.h>
 #include <windows.h>
 
+#include <map>
+#include <memory>
 #include <string>
 
+#include "gtest/gtest.h"
 #include "absl/strings/str_format.h"
-#include "internal/platform/implementation/bluetooth_adapter.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.Rfcomm.h"
+#include "internal/platform/mac_address.h"
 
-#include "gtest/gtest.h"
+namespace nearby::windows {
+namespace {
 
-// TODO(jfcarroll): Find a way to mock winrt components in order to properly
-// unit test this. Once that's done, unit tests can be written, in a later C/L.
-//
-// CAUTION: THIS IS NOT A REAL TEST, THIS EXERCISES THE SCANNER, IT MAY NOT
-// STOP/HANG AND IS INTENDED SOLELY FOR DEBUG AND DEMONSTRATION PURPOSES. DO NOT
-// ATTEMPT TO BUILD AND RUN THIS TEST ON GOOGLE3 YOU HAVE BEEN WARNED
-
-using ::nearby::windows::BluetoothDevice;
-
-typedef std::map<const std::string, nearby::api::BluetoothDevice*> DeviceMap;
+using DeviceMap = std::map<const std::string, api::BluetoothDevice*>;
 
 class BluetoothClassicMediumTests : public testing::Test {
  protected:
-  static void device_discovered_cb(nearby::api::BluetoothDevice& device) {
-    const std::string address = device.GetMacAddress();
+  static void device_discovered_cb(api::BluetoothDevice& device) {
+    const std::string address = device.GetMacAddress().ToString();
 
-    std::map<std::string, nearby::api::BluetoothDevice*>::const_iterator it =
-        deviceList.find(address);
+    auto it = deviceList.find(address);
 
     std::string buffer =
         absl::StrFormat("processing device %s : ", address.c_str());
@@ -56,14 +50,14 @@ class BluetoothClassicMediumTests : public testing::Test {
       buffer = absl::StrFormat("adding device %s\n", address.c_str());
 
       OutputDebugStringA(buffer.c_str());
-      deviceList[device.GetMacAddress()] = &device;
+      deviceList[address] = &device;
     }
   }
 
-  static void device_name_changed_cb(nearby::api::BluetoothDevice& device) {}
+  static void device_name_changed_cb(api::BluetoothDevice& device) {}
 
-  static void device_lost_cb(nearby::api::BluetoothDevice& device) {
-    deviceList.erase(device.GetMacAddress());
+  static void device_lost_cb(api::BluetoothDevice& device) {
+    deviceList.erase(device.GetMacAddress().ToString());
   }
 
   int callcount = 0;
@@ -72,7 +66,7 @@ class BluetoothClassicMediumTests : public testing::Test {
 
 #ifdef TESTING_LOCALLY
 TEST_F(BluetoothClassicMediumTests, ManualTest) {
-  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
+  BluetoothAdapter bluetoothAdapter;
 
   std::string bluetoothAdapterName = bluetoothAdapter.GetName();
   bluetoothAdapter.SetName("BluetoothTestName");
@@ -80,16 +74,14 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
   bluetoothAdapter.SetName("");
   bluetoothAdapterName = bluetoothAdapter.GetName();
 
-  std::unique_ptr<nearby::windows::BluetoothClassicMedium> bcm =
-      std::make_unique<nearby::windows::BluetoothClassicMedium>(
-          bluetoothAdapter);
+  auto bcm = std::make_unique<BluetoothClassicMedium>(bluetoothAdapter);
 
   bluetoothAdapter.SetScanMode(
-      nearby::windows::BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+      BluetoothAdapter::ScanMode::kConnectableDiscoverable);
 
   auto mode = bluetoothAdapter.GetScanMode();
 
-  bcm->StartDiscovery(nearby::api::BluetoothClassicMedium::DiscoveryCallback{
+  bcm->StartDiscovery(api::BluetoothClassicMedium::DiscoveryCallback{
       .device_discovered_cb = device_discovered_cb,
       .device_name_changed_cb = device_name_changed_cb,
       .device_lost_cb = device_lost_cb,
@@ -102,80 +94,72 @@ TEST_F(BluetoothClassicMediumTests, ManualTest) {
       winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId::SerialPort()
           .AsString());
 
-  nearby::CancellationFlag cancellationFlag;
-  bcm->ConnectToService(*currentDevice,
-                        //  "a82efa21-ae5c-3dde-9bbc-f16da7b16c5a",
-                        "00001101-0000-1000-8000-00805F9B34FB",
+  CancellationFlag cancellationFlag;
+  bcm->ConnectToService(*currentDevice, "00001101-0000-1000-8000-00805F9B34FB",
                         &cancellationFlag);
 
   EXPECT_EQ(1, 1);
   EXPECT_TRUE(true);
 }
 #endif
+
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullUuid) {
-  // Arrange
-  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
+  BluetoothAdapter bluetoothAdapter;
+  BluetoothClassicMedium bluetoothClassicMedium(bluetoothAdapter);
+  MacAddress mac_address;
+  ASSERT_TRUE(MacAddress::FromString("1D:EA:DB:EE:B9:00", mac_address));
+  BluetoothDevice bluetoothDevice("device_id", "device_name", mac_address);
+  CancellationFlag cancellationFlag;
 
-  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
-      bluetoothClassicMedium =
-          std::make_unique<nearby::windows::BluetoothClassicMedium>(
-              bluetoothAdapter);
-
-  nearby::windows::BluetoothDevice bluetoothDevice =
-      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
-  nearby::CancellationFlag cancellationFlag;
-
-  auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
-
-  // Act
-  auto asyncResult = bluetoothClassicMediumImpl->ConnectToService(
+  auto asyncResult = bluetoothClassicMedium.ConnectToService(
       bluetoothDevice, std::string(), &cancellationFlag);
 
-  // Assert
-  EXPECT_TRUE(asyncResult.get() == nullptr);
+  EXPECT_EQ(asyncResult, nullptr);
 }
 
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceNullCancellationFlag) {
-  // Arrange
-  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
+  BluetoothAdapter bluetoothAdapter;
+  BluetoothClassicMedium bluetoothClassicMedium(bluetoothAdapter);
+  MacAddress mac_address;
+  ASSERT_TRUE(MacAddress::FromString("1D:EA:DB:EE:B9:00", mac_address));
+  BluetoothDevice bluetoothDevice("device_id", "device_name", mac_address);
 
-  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
-      bluetoothClassicMedium =
-          std::make_unique<nearby::windows::BluetoothClassicMedium>(
-              bluetoothAdapter);
+  auto asyncResult = bluetoothClassicMedium.ConnectToService(
+      bluetoothDevice, "00001101-0000-1000-8000-00805F9B34FB", nullptr);
 
-  nearby::windows::BluetoothDevice bluetoothDevice =
-      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
-
-  auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
-
-  // Act
-  auto asyncResult = bluetoothClassicMediumImpl->ConnectToService(
-      bluetoothDevice, std::string("test service"), nullptr);
-
-  // Assert
-  EXPECT_TRUE(asyncResult.get() == nullptr);
+  EXPECT_EQ(asyncResult, nullptr);
 }
 
 TEST_F(BluetoothClassicMediumTests, ConnectToServiceWithInvalidServiceUuid) {
-  // Arrange
-  auto bluetoothAdapter = nearby::windows::BluetoothAdapter();
+  BluetoothAdapter bluetoothAdapter;
+  BluetoothClassicMedium bluetoothClassicMedium(bluetoothAdapter);
+  MacAddress mac_address;
+  ASSERT_TRUE(MacAddress::FromString("1D:EA:DB:EE:B9:00", mac_address));
+  BluetoothDevice bluetoothDevice("device_id", "device_name", mac_address);
+  CancellationFlag cancellationFlag;
 
-  std::unique_ptr<nearby::windows::BluetoothClassicMedium>
-      bluetoothClassicMedium =
-          std::make_unique<nearby::windows::BluetoothClassicMedium>(
-              bluetoothAdapter);
+  auto asyncResult = bluetoothClassicMedium.ConnectToService(
+      bluetoothDevice, "test service", &cancellationFlag);
 
-  nearby::windows::BluetoothDevice bluetoothDevice =
-      nearby::windows::BluetoothDevice(std::string("1D:EA:DB:EE:B9:00"));
-  nearby::CancellationFlag cancellationFlag;
-
-  auto bluetoothClassicMediumImpl = bluetoothClassicMedium.get();
-
-  // Act
-  auto asyncResult = bluetoothClassicMediumImpl->ConnectToService(
-      bluetoothDevice, std::string("test service"), &cancellationFlag);
-
-  // Assert
-  EXPECT_TRUE(asyncResult.get() == nullptr);
+  EXPECT_EQ(asyncResult, nullptr);
 }
+
+TEST_F(BluetoothClassicMediumTests, ListenForServiceEmptyUuid) {
+  BluetoothAdapter bluetoothAdapter;
+  BluetoothClassicMedium bluetoothClassicMedium(bluetoothAdapter);
+
+  EXPECT_EQ(bluetoothClassicMedium.ListenForService("test_service", ""),
+            nullptr);
+}
+
+TEST_F(BluetoothClassicMediumTests, ListenForServiceEmptyServiceName) {
+  BluetoothAdapter bluetoothAdapter;
+  BluetoothClassicMedium bluetoothClassicMedium(bluetoothAdapter);
+
+  EXPECT_EQ(bluetoothClassicMedium.ListenForService(
+                "", "00001101-0000-1000-8000-00805F9B34FB"),
+            nullptr);
+}
+
+}  // namespace
+}  // namespace nearby::windows
