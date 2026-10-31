@@ -219,7 +219,6 @@ class NearbySharingService {
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) = 0;
 
   virtual std::string Dump() const = 0;
-  virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;
