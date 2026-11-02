@@ -20,8 +20,15 @@ import XCTest
 // This is mainly useful for catching copybara issues or for when source files are added to the
 // project, but the `Package.swift` is not updated.
 class BuildTests: XCTestCase {
+  private var initialWifiAwareEnabled: Bool = false
+
+  override func setUp() {
+    super.setUp()
+    initialWifiAwareEnabled = GNCFlags.wifiAwareEnabled
+  }
+
   override func tearDown() {
-    GNCFlags.wifiAwareEnabled = false
+    GNCFlags.wifiAwareEnabled = initialWifiAwareEnabled
     super.tearDown()
   }
 
@@ -30,10 +37,11 @@ class BuildTests: XCTestCase {
   }
 
   func testWifiAwareFlag() {
-    XCTAssertFalse(GNCFlags.wifiAwareEnabled)
-    GNCFlags.wifiAwareEnabled = true
-    XCTAssertTrue(GNCFlags.wifiAwareEnabled)
+    // Explicitly set and test both states without assuming the initial value.
     GNCFlags.wifiAwareEnabled = false
     XCTAssertFalse(GNCFlags.wifiAwareEnabled)
+
+    GNCFlags.wifiAwareEnabled = true
+    XCTAssertTrue(GNCFlags.wifiAwareEnabled)
   }
 }
