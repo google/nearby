@@ -173,7 +173,9 @@ class AnalyticsRecorder {
       location::nearby::proto::connections::Medium to_medium,
       location::nearby::proto::connections::ConnectionAttemptDirection
           direction,
-      const std::string& connection_token) = 0;
+      const std::string& connection_token,
+      location::nearby::proto::connections::SessionRole connection_role,
+      bool is_role_switched) = 0;
   virtual void UpdateBwUpgradeNetworkInfo(const std::string& endpoint_id,
                                           int num_interfaces,
                                           int num_ipv6_only_interfaces) = 0;
