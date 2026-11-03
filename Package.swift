@@ -297,6 +297,9 @@ let package = Package(
         "ukey2",
         "protobuf",
         .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
+        .product(
+          name: "openssl_grpc", package: "boringssl-SwiftPM",
+          moduleAliases: ["NearbySSL": "openssl_grpc"]),
       ],
       path: ".",
       exclude: [

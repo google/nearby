@@ -17,6 +17,7 @@
 #import <Network/Network.h>
 #import <XCTest/XCTest.h>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResultImpl.h"
@@ -36,6 +37,8 @@
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
 // Extern C functions for testing.
+typedef nw_error_domain_t (^GNCNWErrorGetDomainHandler)(nw_error_t error);
+extern void GNCSetNWErrorGetDomainOverrideForTesting(GNCNWErrorGetDomainHandler _Nullable handler);
 extern BOOL GNCHasLoopbackInterface(nw_browse_result_t browseResult);
 extern NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(
     nw_browse_result_t browseResult);
@@ -45,6 +48,16 @@ static NSString *const kServiceName = @"TestService";
 static NSString *const kServiceType = @"_test._tcp";
 static NSString *const kHostAddress = @"127.0.0.1";
 
+@interface GNCNWFramework (Testing)
+- (nullable GNCNWFrameworkSocket *)internalConnectToEndpoint:(nw_endpoint_t)endpoint
+                                                 PSKIdentity:(nullable NSData *)PSKIdentity
+                                             PSKSharedSecret:(nullable NSData *)PSKSharedSecret
+                                                cancelSource:
+                                                    (nullable dispatch_source_t)cancelSource
+                                                       queue:(nullable dispatch_queue_t)queue
+                                                       error:(NSError **_Nullable)error;
+@end
+
 @interface GNCNWFrameworkTest : XCTestCase
 @end
 
@@ -52,6 +65,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
   id _mockBrowseResultImpl;
   id _mockBrowserImpl;
   id _mockConnectionImpl;
+  id _mockFeatureFlags;
 }
 
 - (void)setUp {
@@ -60,6 +74,13 @@ static NSString *const kHostAddress = @"127.0.0.1";
   _mockBrowseResultImpl = OCMClassMock([GNCNWBrowseResultImpl class]);
   _mockBrowserImpl = OCMClassMock([GNCNWBrowserImpl class]);
   _mockConnectionImpl = OCMClassMock([GNCNWConnectionImpl class]);
+}
+
+- (void)tearDown {
+  GNCSetNWErrorGetDomainOverrideForTesting(nil);
+  [_mockFeatureFlags stopMocking];
+  _mockFeatureFlags = nil;
+  [super tearDown];
 }
 
 - (void)testGNCNWFrameworkCanBeInstantiated {
@@ -117,8 +138,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
       .andReturn(YES);
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                                         error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
   XCTAssertTrue([framework isListeningForAnyService]);
@@ -143,8 +163,7 @@ static NSString *const kHostAddress = @"127.0.0.1";
       });
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort
-                                                                         error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:kPort error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
   XCTAssertFalse([framework isListeningForAnyService]);
@@ -765,6 +784,206 @@ static NSString *const kHostAddress = @"127.0.0.1";
 
   XCTAssertNil(socket);
   XCTAssertNil(error);
+}
+
+- (void)
+    testConnectToServiceNameWithPSK_tlsErrorInWaitingState_failsImmediatelyAndCancelsConnection API_AVAILABLE(
+        ios(13.0)) {
+  GNCSetNWErrorGetDomainOverrideForTesting(^nw_error_domain_t(nw_error_t error) {
+    return nw_error_domain_tls;
+  });
+
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  fakeConnection.simulatedState = nw_connection_state_waiting;
+  fakeConnection.simulatedError = (nw_error_t)kCFNull;
+
+  OCMStub([_mockConnectionImpl alloc]).andReturn(fakeConnection);
+
+  NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [framework connectToServiceName:kServiceName
+                                                     serviceType:kServiceType
+                                                     PSKIdentity:pskIdentity
+                                                 PSKSharedSecret:pskSharedSecret
+                                                           error:&error];
+
+  XCTAssertNil(socket);
+  XCTAssertTrue(fakeConnection.cancelCalled);
+}
+
+- (void)testConnectToServiceNameWithPSK_awdlEnabled_fallsBackToTLS12PSKOnFirstFailure API_AVAILABLE(
+    ios(13.0)) {
+  _mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([_mockFeatureFlags awdlEnabled]).andReturn(YES);
+
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWConnection *firstAttemptConnection = [[GNCFakeNWConnection alloc] init];
+  firstAttemptConnection.simulateStartFailure = YES;
+  GNCFakeNWConnection *fallbackConnection = [[GNCFakeNWConnection alloc] init];
+  fallbackConnection.simulateStartFailure = NO;
+
+  __block NSUInteger allocCount = 0;
+  OCMStub([_mockConnectionImpl alloc]).andDo(^(NSInvocation *invocation) {
+    allocCount++;
+    id conn = (allocCount == 1) ? firstAttemptConnection : fallbackConnection;
+    [invocation setReturnValue:&conn];
+  });
+
+  NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [framework connectToServiceName:kServiceName
+                                                     serviceType:kServiceType
+                                                     PSKIdentity:pskIdentity
+                                                 PSKSharedSecret:pskSharedSecret
+                                                           error:&error];
+
+  XCTAssertNotNil(socket);
+  XCTAssertNil(error);
+  XCTAssertEqual(allocCount, 2u);
+  XCTAssertTrue(firstAttemptConnection.cancelCalled);
+}
+
+- (void)testConnectToServiceNameWithPSK_awdlEnabled_failsWhenBothTLS13AndFallbackFail API_AVAILABLE(
+    ios(13.0)) {
+  _mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([_mockFeatureFlags awdlEnabled]).andReturn(YES);
+
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  GNCFakeNWConnection *firstAttemptConnection = [[GNCFakeNWConnection alloc] init];
+  firstAttemptConnection.simulateStartFailure = YES;
+  GNCFakeNWConnection *fallbackConnection = [[GNCFakeNWConnection alloc] init];
+  fallbackConnection.simulateStartFailure = YES;
+
+  __block NSUInteger allocCount = 0;
+  OCMStub([_mockConnectionImpl alloc]).andDo(^(NSInvocation *invocation) {
+    allocCount++;
+    id conn = (allocCount == 1) ? firstAttemptConnection : fallbackConnection;
+    [invocation setReturnValue:&conn];
+  });
+
+  NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [framework connectToServiceName:kServiceName
+                                                     serviceType:kServiceType
+                                                     PSKIdentity:pskIdentity
+                                                 PSKSharedSecret:pskSharedSecret
+                                                           error:&error];
+
+  XCTAssertNil(socket);
+  XCTAssertNil(error);
+  XCTAssertEqual(allocCount, 2u);
+  XCTAssertTrue(firstAttemptConnection.cancelCalled);
+  XCTAssertTrue(fallbackConnection.cancelCalled);
+}
+
+- (void)testInternalConnectToEndpoint_awdlEnabled_doesNotFallbackWhenCancelled API_AVAILABLE(
+    ios(13.0)) {
+  _mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([_mockFeatureFlags awdlEnabled]).andReturn(YES);
+
+  GNCNWFramework *framework = [[GNCNWFramework alloc] init];
+  dispatch_queue_t queue = dispatch_queue_create("com.test.cancel", DISPATCH_QUEUE_SERIAL);
+  dispatch_source_t cancelSource =
+      dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, queue);
+  dispatch_resume(cancelSource);
+
+  GNCFakeNWConnection *firstAttemptConnection = [[GNCFakeNWConnection alloc] init];
+  firstAttemptConnection.startHandler = ^(GNCFakeNWConnection *conn) {
+    dispatch_source_cancel(cancelSource);
+    if (conn.stateChangedHandler) {
+      conn.stateChangedHandler(nw_connection_state_failed, nil);
+    }
+  };
+
+  __block NSUInteger allocCount = 0;
+  OCMStub([_mockConnectionImpl alloc]).andDo(^(NSInvocation *invocation) {
+    allocCount++;
+    id conn = firstAttemptConnection;
+    [invocation setReturnValue:&conn];
+  });
+
+  NSData *pskIdentity = [@"testIdentity" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *pskSharedSecret = [@"testSharedSecret" dataUsingEncoding:NSUTF8StringEncoding];
+  nw_endpoint_t endpoint = nw_endpoint_create_host("127.0.0.1", "1234");
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [framework internalConnectToEndpoint:endpoint
+                                                          PSKIdentity:pskIdentity
+                                                      PSKSharedSecret:pskSharedSecret
+                                                         cancelSource:cancelSource
+                                                                queue:queue
+                                                                error:&error];
+
+  XCTAssertNil(socket);
+  XCTAssertEqual(allocCount, 1u);
+  XCTAssertTrue(firstAttemptConnection.cancelCalled);
+}
+
+- (void)testEndToEndFrameworkFallbackWithLegacyTLS12PSKPeer API_AVAILABLE(ios(13.0)) {
+  [_mockConnectionImpl stopMocking];
+
+  NSData *psk = [@"0123456789ABCDEF0123456789ABCDEF" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *identity = [@"AwdlUpgradeMedium" dataUsingEncoding:NSUTF8StringEncoding];
+
+  GNCNWFrameworkServerSocket *legacyServer =
+      [[GNCNWFrameworkServerSocket alloc] initWithPort:0];  // NOLINT(modernize-use-nullptr)
+  id mockLegacyFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([mockLegacyFlags awdlEnabled]).andReturn(NO);
+  NSError *listenError = nil;
+  XCTAssertTrue([legacyServer startListeningWithPSKIdentity:identity
+                                            PSKSharedSecret:psk
+                                          includePeerToPeer:NO
+                                                      error:&listenError]);
+  XCTAssertNil(listenError);
+  [mockLegacyFlags stopMocking];
+
+  XCTestExpectation *serverAccepted = [self expectationWithDescription:@"legacy server accepted"];
+  __block GNCNWFrameworkSocket *acceptedSocket = nil;
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    NSError *acceptError = nil;
+    acceptedSocket = [legacyServer acceptWithError:&acceptError];
+    XCTAssertNil(acceptError);
+    [serverAccepted fulfill];
+  });
+
+  _mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([_mockFeatureFlags awdlEnabled]).andReturn(YES);
+  GNCNWFramework *modernClientFramework = [[GNCNWFramework alloc] initWithPeerToPeer:NO];
+  NSString *portString = [NSString stringWithFormat:@"%ld", (long)legacyServer.port];
+  nw_endpoint_t endpoint = nw_endpoint_create_host("127.0.0.1", portString.UTF8String);
+  NSError *connectError = nil;
+  GNCNWFrameworkSocket *clientSocket =
+      [modernClientFramework internalConnectToEndpoint:endpoint
+                                           PSKIdentity:identity
+                                       PSKSharedSecret:psk
+                                          cancelSource:nil
+                                                 queue:nil
+                                                 error:&connectError];
+
+  XCTAssertNotNil(clientSocket);
+  XCTAssertNil(connectError);
+  [self waitForExpectations:@[ serverAccepted ] timeout:5.0];
+  XCTAssertNotNil(acceptedSocket);
+
+  NSError *ioError = nil;
+  XCTAssertTrue([clientSocket write:[@"ping" dataUsingEncoding:NSUTF8StringEncoding]
+                              error:&ioError]);
+  XCTAssertNil(ioError);
+  NSData *readData = [acceptedSocket readMaxLength:4 error:&ioError];
+  XCTAssertNil(ioError);
+  XCTAssertEqualObjects([[NSString alloc] initWithData:readData encoding:NSUTF8StringEncoding],
+                        @"ping");
+
+  [clientSocket close];
+  [acceptedSocket close];
+  [legacyServer close];
 }
 
 - (void)testConnectToHostSuccess API_AVAILABLE(ios(13.0)) {

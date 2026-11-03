@@ -30,6 +30,15 @@ NS_ASSUME_NONNULL_BEGIN
 /** Whether cancel has been called on the fake connection. */
 @property(nonatomic) BOOL cancelCalled;
 
+/** Property to simulate a specific state on start. */
+@property(nonatomic) nw_connection_state_t simulatedState;
+
+/** Property to simulate an error on start. */
+@property(nonatomic, nullable) nw_error_t simulatedError;
+
+/** Optional custom block invoked when start is called. */
+@property(nonatomic, copy, nullable) void (^startHandler)(GNCFakeNWConnection *connection);
+
 /** Property to simulate start failure. */
 @property(nonatomic) BOOL simulateStartFailure;
 

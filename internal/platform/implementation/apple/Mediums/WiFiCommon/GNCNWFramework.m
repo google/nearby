@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
@@ -32,6 +33,29 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
 
 NS_ASSUME_NONNULL_BEGIN
+
+/// Block type used to query the error domain of an `nw_error_t` in tests.
+typedef nw_error_domain_t (^GNCNWErrorGetDomainHandler)(nw_error_t error);
+
+/// Optional test override for `nw_error_get_error_domain` because `nw_error_t` is opaque and
+/// cannot be instantiated with `nw_error_domain_tls` in unit tests.
+static GNCNWErrorGetDomainHandler _Nullable gNWErrorGetDomainOverride = nil;
+
+/// Returns YES if `error` belongs to `nw_error_domain_tls`.
+static BOOL GNCNWErrorIsTLSError(nw_error_t _Nullable error) {
+  if (error == nil) {
+    return NO;
+  }
+  if (gNWErrorGetDomainOverride != nil) {
+    return gNWErrorGetDomainOverride(error) == nw_error_domain_tls;
+  }
+  return nw_error_get_error_domain(error) == nw_error_domain_tls;
+}
+
+/// Sets a test-only override for extracting `nw_error_domain_t` from an `nw_error_t`.
+void GNCSetNWErrorGetDomainOverrideForTesting(GNCNWErrorGetDomainHandler _Nullable handler) {
+  gNWErrorGetDomainOverride = handler;
+}
 
 // An arbitrary timeout that should be pretty lenient.
 NSTimeInterval const GNCConnectionTimeoutInSeconds = 4;
@@ -408,29 +432,68 @@ static BOOL GNCExtractServiceFromBrowseResult(
                                                     (nullable dispatch_source_t)cancelSource
                                                        queue:(nullable dispatch_queue_t)queue
                                                        error:(NSError **)error {
+  BOOL hasPSK = (PSKIdentity != nil && PSKSharedSecret != nil);
+  BOOL awdlEnabled = GNCFeatureFlags.awdlEnabled;
+  nw_parameters_t parameters =
+      hasPSK
+          ? GNCBuildTLSParametersForRole(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentity,
+                                         /*includePeerToPeer=*/_includePeerToPeer, GNCTLSRoleClient)
+          : GNCBuildNonTLSParameters(/*includePeerToPeer=*/_includePeerToPeer);
+  NSError *firstAttemptError = nil;
+  GNCNWFrameworkSocket *socket = [self connectToEndpoint:endpoint
+                                          withParameters:parameters
+                                            cancelSource:cancelSource
+                                                   queue:queue
+                                                   error:&firstAttemptError];
+  if (socket != nil || !hasPSK || !awdlEnabled ||
+      (cancelSource != nil && dispatch_source_testcancel(cancelSource) != 0)) {
+    if (error != nil) {
+      *error = firstAttemptError;
+    }
+    return socket;
+  }
+
+  GNCLoggerInfo(
+      @"[GNCNWFramework] TLS 1.3 mTLS handshake failed (%@); falling back to legacy TLS 1.2 PSK.",
+      firstAttemptError);
+  nw_parameters_t fallbackParameters =
+      GNCBuildTLS12PSKParameters(PSKSharedSecret, PSKIdentity, _includePeerToPeer);
+  return [self connectToEndpoint:endpoint
+                  withParameters:fallbackParameters
+                    cancelSource:cancelSource
+                           queue:queue
+                           error:error];
+}
+
+/// Establishes a single `GNCNWConnection` to `endpoint` using `parameters`, blocking until the
+/// connection reaches `nw_connection_state_ready`, fails, or times out.
+- (nullable GNCNWFrameworkSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
+                                      withParameters:(nullable nw_parameters_t)parameters
+                                        cancelSource:(nullable dispatch_source_t)cancelSource
+                                               queue:(nullable dispatch_queue_t)queue
+                                               error:(NSError **)error {
+  if (!parameters) {
+    GNCLoggerError(@"[GNCNWFramework] Failed to create NW parameters.");
+    return nil;
+  }
+
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
 
   __block nw_connection_state_t blockResult = nw_connection_state_invalid;
   __block NSError *blockError = nil;
 
-  nw_parameters_t parameters =
-      (PSKIdentity == nil || PSKSharedSecret == nil)
-          ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/_includePeerToPeer)
-          : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentity,
-                                  /*includePeerToPeer=*/_includePeerToPeer);
-  if (!parameters) {
-    GNCLoggerError(@"[GNCNWFramework] Failed to create NW parameters.");
-    return nil;
-  }
-
   id<GNCNWConnection> connectionWrapper = [[GNCNWConnectionImpl alloc] init];
   [connectionWrapper createConnectionWithEndpoint:endpoint parameters:parameters];
   [connectionWrapper setQueue:queue ?: _dispatchQueue];
   [connectionWrapper setStateChangedHandler:^(nw_connection_state_t state, nw_error_t error) {
     [condition lock];
-    // Ignore the preparing state and waiting state, because it is not a final state.
-    if ((state != nw_connection_state_preparing) && (state != nw_connection_state_waiting)) {
+    // Ignore the preparing state and waiting state (unless waiting is due to a TLS handshake
+    // failure), because it is not a final state.
+    BOOL isTLSHandshakeFailure =
+        (state == nw_connection_state_waiting && error != nil && GNCNWErrorIsTLSError(error));
+    if ((state != nw_connection_state_preparing) &&
+        (state != nw_connection_state_waiting || isTLSHandshakeFailure)) {
       blockResult = state;
       if (error != nil) {
         blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
@@ -474,6 +537,9 @@ static BOOL GNCExtractServiceFromBrowseResult(
     case nw_connection_state_waiting:
     case nw_connection_state_preparing:
     case nw_connection_state_failed:
+      [connectionWrapper setStateChangedHandler:nil];
+      [connectionWrapper cancel];
+      return nil;
     case nw_connection_state_cancelled:
       return nil;
     case nw_connection_state_ready: {
