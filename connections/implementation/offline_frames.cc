@@ -22,7 +22,6 @@
 #include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
-#include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames_validator.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"

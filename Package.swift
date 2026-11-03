@@ -379,6 +379,8 @@ let package = Package(
         "connections/implementation/injected_bluetooth_device_store_test.cc",
         "connections/implementation/internal_payload_factory_test.cc",
         "connections/implementation/client_proxy_test.cc",
+        "connections/implementation/incoming_payload_manager_test.cc",
+        "connections/implementation/outgoing_payload_manager_test.cc",
         "connections/implementation/payload_manager_test.cc",
         "connections/implementation/offline_frames_validator_test.cc",
         "connections/implementation/service_controller_router_test.cc",

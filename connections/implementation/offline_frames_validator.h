@@ -15,8 +15,7 @@
 #ifndef CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
 #define CORE_INTERNAL_OFFLINE_FRAMES_VALIDATOR_H_
 
-#include <string>
-#include <vector>
+#include <cstddef>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -26,9 +25,12 @@ namespace nearby {
 namespace connections {
 namespace parser {
 
-constexpr absl::string_view kIllegalFileNamePatterns[] = {":", "/", "\\"};
+inline constexpr int kPayloadIndeterminateSize = -1;
 
-constexpr absl::string_view kIllegalParentFolderPatterns[] = {":", ".."};
+inline constexpr absl::string_view kIllegalFileNamePatterns[] = {
+    ":", "/", "\\"};
+
+inline constexpr absl::string_view kIllegalParentFolderPatterns[] = {":", ".."};
 
 const size_t kIllegalFileNamePatternsSize =
     sizeof(kIllegalFileNamePatterns) / sizeof(*kIllegalFileNamePatterns);
