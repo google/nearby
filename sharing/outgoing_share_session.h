@@ -105,7 +105,6 @@ class OutgoingShareSession : public ShareSession {
           frame_read_callback,
       std::function<void()> payload_transder_update_callback);
   // Send the next payload to NearbyConnectionManager.
-  // Used only if enable_transfer_cancellation_optimization is true.
   void SendNextPayload();
 
   // Called when all payloads have been sent.
