@@ -84,6 +84,11 @@ IncomingShareSession::~IncomingShareSession() = default;
 
 void IncomingShareSession::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
+  if (metadata.is_final_status() &&
+      metadata.status() != TransferMetadata::Status::kComplete &&
+      metadata.status() != TransferMetadata::Status::kIncompletePayloads) {
+    ProcessPayloadTransferUpdates();
+  }
   transfer_update_callback_(*this, metadata);
 }
 
@@ -341,28 +346,31 @@ bool IncomingShareSession::AcceptTransfer(
   return true;
 }
 
-void IncomingShareSession::UpdateFilePayloadPath(int64_t payload_id) {
+bool IncomingShareSession::UpdateFilePayloadPath(int64_t payload_id) {
   const auto it = payload_to_file_index_map_.find(payload_id);
-  if (it == payload_to_file_index_map_.end()) {
-    return;
+  if (it == payload_to_file_index_map_.end() ||
+      it->second >=
+          mutable_attachment_container().GetFileAttachments().size()) {
+    return false;
   }
   FileAttachment& file =
       mutable_attachment_container().GetMutableFileAttachment(it->second);
   // Skip file if it already has file_path set.
   if (file.file_path().has_value()) {
-    return;
+    return true;
   }
 
   const Payload* incoming_payload =
       connections_manager().GetIncomingPayload(payload_id);
   if (!incoming_payload || !incoming_payload->content.is_file()) {
     VLOG(1) << "No payload found for file attachment: " << file.id();
-    return;
+    return false;
   }
 
   FilePath file_path = incoming_payload->content.file_payload.file_path;
   VLOG(1) << __func__ << ": Updated file_path=" << file_path.ToString();
   file.set_file_path(file_path);
+  return true;
 }
 
 bool IncomingShareSession::UpdatePayloadContents() {
@@ -516,6 +524,9 @@ void IncomingShareSession::SendFailureResponse(
 
 std::optional<TransferMetadata>
 IncomingShareSession::ProcessPayloadTransferUpdates() {
+  if (payload_updates_queue() == nullptr) {
+    return std::nullopt;
+  }
   std::queue<std::unique_ptr<PayloadTransferUpdate>> updates =
       payload_updates_queue()->ReadAll();
   VLOG(1) << "Processing " << updates.size() << " PayloadTransferUpdates";
@@ -529,9 +540,9 @@ IncomingShareSession::ProcessPayloadTransferUpdates() {
   // If there is a batch of updates in the queue, only return the latest
   // TransferMetadata.
   for (; !updates.empty(); updates.pop()) {
-    if (updates.front()->payload_id != last_payload_id_) {
+    if (updates.front()->payload_id != last_payload_id_ &&
+        UpdateFilePayloadPath(updates.front()->payload_id)) {
       last_payload_id_ = updates.front()->payload_id;
-      UpdateFilePayloadPath(*last_payload_id_);
     }
     metadata_builder =
         get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));

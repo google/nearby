@@ -3846,6 +3846,8 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   AcceptConnection(transfer_callback, target_id, kEndpointId);
   ASSERT_TRUE(ExpectPairedKeyEncryptionFrame());
   ASSERT_TRUE(ExpectPairedKeyResultFrame());
+  fake_nearby_connections_manager_->SetIncomingPayload(
+      kFilePayloadId, GetFilePayload(kFilePayloadId));
 
   absl::Notification notification;
   EXPECT_CALL(transfer_callback,
@@ -3856,6 +3858,8 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
         EXPECT_EQ(share_target.id, target_id);
         EXPECT_EQ(metadata.usage(), ShareSessionUsage::kSharing);
         EXPECT_EQ(metadata.status(), TransferMetadata::Status::kCancelled);
+        ASSERT_EQ(container.GetFileAttachments().size(), 1u);
+        EXPECT_TRUE(container.GetFileAttachments()[0].file_path().has_value());
       });
   EXPECT_FALSE(
       fake_nearby_connections_manager_->WasPayloadCanceled(kFilePayloadId));
@@ -3868,6 +3872,7 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_TRUE(
       fake_nearby_connections_manager_->WasPayloadCanceled(kFilePayloadId));
+  EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // After the TransferMetadata::Status::kCancelled update, we expect other
   // classes to unregister the receive surface.
@@ -3886,6 +3891,7 @@ TEST_F(NearbySharingServiceImplTest, CancelReceiverInitiator) {
   EXPECT_FALSE(
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
           .has_value());
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
 TEST_F(NearbySharingServiceImplTest, CancelReceiverNoninitiator) {

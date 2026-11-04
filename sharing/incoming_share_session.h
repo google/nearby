@@ -120,7 +120,9 @@ class IncomingShareSession : public ShareSession {
   };
 
   // Update file attachment path with payload path for `payload_id`.
-  void UpdateFilePayloadPath(int64_t payload_id);
+  // Returns true if the file path is already set, updated, or `payload_id` is
+  // not a file attachment.
+  bool UpdateFilePayloadPath(int64_t payload_id);
 
   // Copy payload contents from the NearbyConnection to the Attachment.
   bool UpdatePayloadContents();

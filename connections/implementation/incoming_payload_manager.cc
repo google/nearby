@@ -23,6 +23,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -105,9 +106,11 @@ void IncomingPayloadManager::SetCustomSavePath(ClientProxy* client,
 }
 
 bool IncomingPayloadManager::CancelPayload(Payload::Id payload_id) {
-  if (std::shared_ptr<IncomingPendingPayload> canceled_incoming_payload =
-          GetIncomingPayload(payload_id)) {
-    canceled_incoming_payload->MarkLocallyCanceledAndClose();
+  absl::MutexLock lock(mutex_);
+  removed_payload_ids_.insert(payload_id);
+  auto item = pending_payloads_.find(payload_id);
+  if (item != pending_payloads_.end()) {
+    item->second->MarkLocallyCanceledAndClose();
     VLOG(1) << "Cancelling incoming payload_id=" << payload_id
             << " at request of client.";
     return true;
@@ -116,50 +119,98 @@ bool IncomingPayloadManager::CancelPayload(Payload::Id payload_id) {
 }
 
 void IncomingPayloadManager::CancelAllPayloads() {
-  incoming_pending_payloads_.ForEachPayload(
-      [&](IncomingPendingPayload* pending) {
-        pending->MarkLocallyCanceledAndClose();
-      });
+  absl::MutexLock lock(mutex_);
+  for (const auto& [payload_id, pending_payload] : pending_payloads_) {
+    removed_payload_ids_.insert(payload_id);
+    pending_payload->MarkLocallyCanceledAndClose();
+  }
 }
 
 void IncomingPayloadManager::StopTrackingAllPayloads() {
-  incoming_pending_payloads_.StopTrackingAllPayloads();
+  absl::MutexLock lock(mutex_);
+  for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
+    Remove(it++);
+  }
+  removed_payload_ids_.clear();
 }
 
 void IncomingPayloadManager::OnEndpointDisconnect(
     ClientProxy* client, const std::string& endpoint_id,
     PayloadStatus payload_status, OperationResultCode operation_result_code) {
-  std::vector<Payload::Id> finished_incoming_payloads;
-  incoming_pending_payloads_.ForEachPayload(
-      [&](IncomingPendingPayload* pending_payload) {
-        if (pending_payload->GetEndpointId() != endpoint_id) return;
-        int64_t endpoint_offset = pending_payload->GetOffset();
-
-        int64_t payload_total_size =
-            pending_payload->GetIncomingInternalPayload()->GetTotalSize();
-
-        pending_payload->Close();
-        finished_incoming_payloads.push_back(pending_payload->GetId());
-        // Create the payload transfer update.
-        PayloadProgressInfo update{pending_payload->GetId(),
-                                   PayloadProgressInfo::Status::kFailure,
-                                   payload_total_size, endpoint_offset};
-
-        // Send a client notification of a payload transfer failure.
-        client->OnPayloadProgress(endpoint_id, update);
-
-        client->GetAnalyticsRecorder().OnIncomingPayloadDone(
-            endpoint_id, pending_payload->GetId(), payload_status,
-            operation_result_code);
-      });
-  for (Payload::Id payload_id : finished_incoming_payloads) {
-    incoming_pending_payloads_.StopTrackingPayload(payload_id);
+  std::vector<std::shared_ptr<IncomingPendingPayload>> finished_payloads;
+  {
+    absl::MutexLock lock(mutex_);
+    for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
+      if (it->second->GetEndpointId() != endpoint_id) {
+        ++it;
+        continue;
+      }
+      finished_payloads.push_back(it->second);
+      Remove(it++);
+    }
+    removed_payload_ids_.clear();
   }
+  for (const auto& pending_payload : finished_payloads) {
+    int64_t endpoint_offset = pending_payload->GetOffset();
+    int64_t payload_total_size =
+        pending_payload->GetIncomingInternalPayload()->GetTotalSize();
+
+    // Create the payload transfer update.
+    PayloadProgressInfo update{pending_payload->GetId(),
+                               PayloadProgressInfo::Status::kFailure,
+                               payload_total_size, endpoint_offset};
+
+    // Send a client notification of a payload transfer failure.
+    client->OnPayloadProgress(endpoint_id, update);
+
+    client->GetAnalyticsRecorder().OnIncomingPayloadDone(
+        endpoint_id, pending_payload->GetId(), payload_status,
+        operation_result_code);
+  }
+}
+
+void IncomingPayloadManager::StartTrackingPayload(
+    Payload::Id payload_id,
+    std::unique_ptr<IncomingPendingPayload> pending_payload) {
+  absl::MutexLock lock(mutex_);
+
+  // If the |payload_id| is being re-used, always prefer the newer payload.
+  Remove(pending_payloads_.find(payload_id));
+  VLOG(1) << "StartTrackingPayload: " << pending_payload->ToString();
+  pending_payloads_[payload_id] = std::move(pending_payload);
+}
+
+void IncomingPayloadManager::StopTrackingPayload(Payload::Id payload_id) {
+  absl::MutexLock lock(mutex_);
+  VLOG(1) << "StopTrackingPayload " << payload_id;
+  Remove(pending_payloads_.find(payload_id));
+}
+
+void IncomingPayloadManager::Remove(
+    absl::flat_hash_map<Payload::Id,
+                        std::shared_ptr<IncomingPendingPayload>>::iterator it) {
+  if (it != pending_payloads_.end()) {
+    VLOG(1) << "Removing payload: " << it->second->ToString();
+    removed_payload_ids_.insert(it->first);
+    it->second->Close();
+    pending_payloads_.erase(it);
+  }
+}
+
+bool IncomingPayloadManager::IsPayloadRemoved(Payload::Id payload_id) const {
+  absl::MutexLock lock(mutex_);
+  return removed_payload_ids_.contains(payload_id);
 }
 
 std::shared_ptr<IncomingPayloadManager::IncomingPendingPayload>
 IncomingPayloadManager::GetIncomingPayload(Payload::Id payload_id) const {
-  return incoming_pending_payloads_.GetPayload(payload_id);
+  absl::MutexLock lock(mutex_);
+
+  auto item = pending_payloads_.find(payload_id);
+  if (item == pending_payloads_.end()) {
+    return nullptr;
+  }
+  return item->second;
 }
 
 ErrorOr<std::shared_ptr<IncomingPayloadManager::IncomingPendingPayload>>
@@ -176,9 +227,9 @@ IncomingPayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
       std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
   VLOG(1) << "CreateIncomingPayload: payload_id=" << payload_id;
-  incoming_pending_payloads_.StartTrackingPayload(
-      payload_id, std::make_unique<IncomingPendingPayload>(
-                      std::move(internal_payload), endpoint_id));
+  StartTrackingPayload(payload_id,
+                       std::make_unique<IncomingPendingPayload>(
+                           std::move(internal_payload), endpoint_id));
   return {GetIncomingPayload(payload_id)};
 }
 
@@ -231,7 +282,7 @@ void IncomingPayloadManager::HandleIncomingPayloadErrorOnStatusUpdateThread(
   // Unless we never started tracking this payload (meaning we
   // failed to even create the InternalPayload), close it and notify the
   // client.
-  incoming_pending_payloads_.StopTrackingPayload(payload_header.id());
+  StopTrackingPayload(payload_header.id());
   PayloadProgressInfo update{payload_header.id(),
                              PayloadStatusToTransferUpdateStatus(status),
                              payload_header.total_size(), offset_bytes};
@@ -342,8 +393,7 @@ void IncomingPayloadManager::HandleSuccessfulIncomingChunk(
                   payload_chunk_offset, pending_payload->GetTransferStartTime(),
                   pending_payload->GetTransferStartOffset(),
                   chunk_received_time, client->GetConnectedMedium(endpoint_id));
-              incoming_pending_payloads_.StopTrackingPayload(
-                  payload_header.id());
+              StopTrackingPayload(payload_header.id());
               client->GetAnalyticsRecorder().OnIncomingPayloadDone(
                   endpoint_id, payload_header.id(), PayloadStatus::SUCCESS,
                   OperationResultCode::DETAIL_SUCCESS);
@@ -388,6 +438,16 @@ void IncomingPayloadManager::ProcessDataPacket(
                                  payload_chunk.offset(),
                                  PayloadStatus::LOCAL_ERROR,
                                  OperationResultCode::IO_FILE_OPENING_ERROR);
+      return;
+    }
+    if (IsPayloadRemoved(payload_id)) {
+      LOG(WARNING) << "ProcessDataPacket: [removed] endpoint_id="
+                   << from_endpoint_id << "; payload_id=" << payload_id
+                   << ", aborting receipt.";
+      SendControlMessage(
+          *endpoint_manager_, {from_endpoint_id}, payload_header,
+          payload_chunk.offset(),
+          PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
       return;
     }
     RunOnStatusUpdateThread(
@@ -442,7 +502,9 @@ void IncomingPayloadManager::ProcessDataPacket(
         [to_client, from_endpoint_id,
          pending_payload = GetIncomingPayload(payload_id)]()
             ABSL_EXCLUSIVE_LOCKS_REQUIRED(status_update_executor_) {
-              if (!pending_payload) return;
+              if (!pending_payload || pending_payload->IsLocallyCanceled()) {
+                return;
+              }
               IncomingInternalPayload* incoming_payload =
                   pending_payload->GetIncomingInternalPayload();
               if (incoming_payload == nullptr) return;
@@ -558,64 +620,6 @@ IncomingPayloadManager::IncomingPendingPayload::IncomingPendingPayload(
 
 std::string IncomingPayloadManager::IncomingPendingPayload::ToString() const {
   return absl::StrCat("Payload(incoming", GetId(), ")");
-}
-
-void IncomingPayloadManager::IncomingPendingPayloads::StartTrackingPayload(
-    Payload::Id payload_id,
-    std::unique_ptr<IncomingPendingPayload> pending_payload) {
-  absl::MutexLock lock(mutex_);
-
-  // If the |payload_id| is being re-used, always prefer the newer payload.
-  Remove(pending_payloads_.find(payload_id));
-  VLOG(1) << "StartTrackingPayload: " << pending_payload->ToString();
-  pending_payloads_[payload_id] = std::move(pending_payload);
-}
-
-void IncomingPayloadManager::IncomingPendingPayloads::StopTrackingPayload(
-    Payload::Id payload_id) {
-  absl::MutexLock lock(mutex_);
-  VLOG(1) << "StopTrackingPayload " << payload_id;
-  Remove(pending_payloads_.find(payload_id));
-}
-
-void IncomingPayloadManager::IncomingPendingPayloads::Remove(
-    absl::flat_hash_map<Payload::Id,
-                        std::shared_ptr<IncomingPendingPayload>>::iterator it) {
-  if (it != pending_payloads_.end()) {
-    VLOG(1) << "Removing payload: " << it->second->ToString();
-    it->second->Close();
-    pending_payloads_.erase(it);
-  }
-}
-
-std::shared_ptr<IncomingPayloadManager::IncomingPendingPayload>
-IncomingPayloadManager::IncomingPendingPayloads::GetPayload(
-    Payload::Id payload_id) const {
-  absl::MutexLock lock(mutex_);
-
-  auto item = pending_payloads_.find(payload_id);
-  if (item == pending_payloads_.end()) {
-    return nullptr;
-  }
-  return item->second;
-}
-
-void IncomingPayloadManager::IncomingPendingPayloads::
-    StopTrackingAllPayloads() {
-  absl::MutexLock lock(mutex_);
-
-  for (auto it = pending_payloads_.begin(); it != pending_payloads_.end();) {
-    Remove(it++);
-  }
-}
-
-void IncomingPayloadManager::IncomingPendingPayloads::ForEachPayload(
-    absl::AnyInvocable<void(IncomingPendingPayload*)> callback) {
-  absl::MutexLock lock(mutex_);
-
-  for (const auto& item : pending_payloads_) {
-    callback(item.second.get());
-  }
 }
 
 }  // namespace nearby::connections

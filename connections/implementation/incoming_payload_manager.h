@@ -22,6 +22,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -53,22 +54,23 @@ class IncomingPayloadManager {
 
   // Returns true if `payload_id` was tracked as an incoming payload and
   // marked canceled.
-  bool CancelPayload(Payload::Id payload_id);
-  void CancelAllPayloads();
-  void StopTrackingAllPayloads();
+  bool CancelPayload(Payload::Id payload_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  void CancelAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
+  void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
 
   void OnEndpointDisconnect(
       ClientProxy* client, const std::string& endpoint_id,
       location::nearby::proto::connections::PayloadStatus payload_status,
       location::nearby::proto::connections::OperationResultCode
-          operation_result_code);
+          operation_result_code) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // @EndpointManagerDataPool
   void ProcessDataPacket(ClientProxy* to_client,
                          const std::string& from_endpoint_id,
                          location::nearby::connections::PayloadTransferFrame&
                              payload_transfer_frame,
-                         location::nearby::proto::connections::Medium medium);
+                         location::nearby::proto::connections::Medium medium)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // @EndpointManagerDataPool
   // Returns true if `payload_transfer_frame` matched a tracked incoming
@@ -76,7 +78,8 @@ class IncomingPayloadManager {
   bool ProcessControlPacket(ClientProxy* to_client,
                             const std::string& from_endpoint_id,
                             location::nearby::connections::PayloadTransferFrame&
-                                payload_transfer_frame);
+                                payload_transfer_frame)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   class IncomingPendingPayload : public PendingPayload {
@@ -108,47 +111,28 @@ class IncomingPayloadManager {
     std::atomic<int64_t> offset_{0};
   };
 
-  // Tracks and manages IncomingPendingPayload objects in a synchronized
-  // manner.
-  class IncomingPendingPayloads {
-   public:
-    IncomingPendingPayloads() = default;
-    ~IncomingPendingPayloads() = default;
-
-    void StartTrackingPayload(
-        Payload::Id payload_id,
-        std::unique_ptr<IncomingPendingPayload> pending_payload)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-    void StopTrackingPayload(Payload::Id payload_id)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-    void StopTrackingAllPayloads() ABSL_LOCKS_EXCLUDED(mutex_);
-    std::shared_ptr<IncomingPendingPayload> GetPayload(
-        Payload::Id payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
-    // Calls `callback` for each tracked payload. The callback must not call
-    // other `IncomingPendingPayloads` methods.
-    void ForEachPayload(
-        absl::AnyInvocable<void(IncomingPendingPayload*)> callback)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-
-   private:
-    void Remove(
-        absl::flat_hash_map<
-            Payload::Id, std::shared_ptr<IncomingPendingPayload>>::iterator it)
-        ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-    mutable absl::Mutex mutex_;
-    absl::flat_hash_map<Payload::Id, std::shared_ptr<IncomingPendingPayload>>
-        pending_payloads_ ABSL_GUARDED_BY(mutex_);
-  };
+  void StartTrackingPayload(
+      Payload::Id payload_id,
+      std::unique_ptr<IncomingPendingPayload> pending_payload)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void StopTrackingPayload(Payload::Id payload_id) ABSL_LOCKS_EXCLUDED(mutex_);
+  void Remove(
+      absl::flat_hash_map<
+          Payload::Id, std::shared_ptr<IncomingPendingPayload>>::iterator it)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Creates an incoming payload and returns a handle to it.
   // If `save_path` is empty, the payload will be saved to the default save
   // path set in `SetCustomSavePath()`.
   ErrorOr<std::shared_ptr<IncomingPendingPayload>> CreateIncomingPayload(
       const location::nearby::connections::PayloadTransferFrame& frame,
-      const std::string& endpoint_id, const std::string& save_path);
+      const std::string& endpoint_id, const std::string& save_path)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::shared_ptr<IncomingPendingPayload> GetIncomingPayload(
-      Payload::Id payload_id) const;
+      Payload::Id payload_id) const ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsPayloadRemoved(Payload::Id payload_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   void HandleIncomingPayloadError(
       ClientProxy* client, const std::string& endpoint_id,
@@ -166,7 +150,8 @@ class IncomingPayloadManager {
       location::nearby::proto::connections::PayloadStatus status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(status_update_executor_);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(status_update_executor_)
+          ABSL_LOCKS_EXCLUDED(mutex_);
 
   void HandleSuccessfulIncomingChunk(
       ClientProxy* client, const std::string& endpoint_id,
@@ -183,8 +168,11 @@ class IncomingPayloadManager {
   void RunOnStatusUpdateThread(const std::string& name,
                                absl::AnyInvocable<void()> runnable);
 
+  mutable absl::Mutex mutex_;
   std::string custom_save_path_;
-  IncomingPendingPayloads incoming_pending_payloads_;
+  absl::flat_hash_map<Payload::Id, std::shared_ptr<IncomingPendingPayload>>
+      pending_payloads_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_set<Payload::Id> removed_payload_ids_ ABSL_GUARDED_BY(mutex_);
   EndpointManager* endpoint_manager_;
   SingleThreadExecutor* status_update_executor_;
   std::atomic<bool>* shutdown_;

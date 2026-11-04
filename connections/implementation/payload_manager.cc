@@ -111,10 +111,10 @@ Status PayloadManager::CancelPayload(ClientProxy* client,
   // Mark the payload as canceled and close the underlying file/stream handle
   // immediately to unblock any pending read and allow callers to delete
   // partially written incoming files even if no further chunks arrive.
-  if (incoming_payload_manager_.CancelPayload(payload_id)) {
+  if (outgoing_payload_manager_.CancelPayload(payload_id)) {
     return {Status::kSuccess};
   }
-  if (outgoing_payload_manager_.CancelPayload(payload_id)) {
+  if (incoming_payload_manager_.CancelPayload(payload_id)) {
     return {Status::kSuccess};
   }
 

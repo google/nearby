@@ -362,8 +362,9 @@ TEST_F(IncomingPayloadManagerTest,
 
 TEST_F(IncomingPayloadManagerTest,
        CancelPayloadReturnsFalseForUnknownAndTrueForTrackedPayload) {
+  constexpr Payload::Id kUnknownPayloadId = 1004;
   constexpr Payload::Id kPayloadId = 1005;
-  EXPECT_FALSE(incoming_payload_manager_.CancelPayload(kPayloadId));
+  EXPECT_FALSE(incoming_payload_manager_.CancelPayload(kUnknownPayloadId));
 
   PayloadTransferFrame chunk0 =
       MakeDataFrame(kPayloadId, PayloadTransferFrame::PayloadHeader::STREAM,
@@ -397,6 +398,86 @@ TEST_F(IncomingPayloadManagerTest,
   ASSERT_TRUE(parsed.ok());
   EXPECT_EQ(parsed.result().v1().payload_transfer().control_message().event(),
             PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
+}
+
+TEST_F(IncomingPayloadManagerTest,
+       CancelPayloadBeforeFirstChunkRejectsSubsequentDataPacket) {
+  constexpr Payload::Id kPayloadId = 1015;
+  EXPECT_FALSE(incoming_payload_manager_.CancelPayload(kPayloadId));
+
+  PayloadTransferFrame chunk0 = MakeDataFrame(
+      kPayloadId, PayloadTransferFrame::PayloadHeader::BYTES,
+      /*total_size=*/5, /*offset=*/0, "hello",
+      PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
+  incoming_payload_manager_.ProcessDataPacket(&client_, std::string(kEndpointA),
+                                              chunk0, Medium::WIFI_LAN);
+  FlushStatusUpdateThread();
+
+  {
+    absl::MutexLock lock(mutex_);
+    EXPECT_TRUE(received_payloads_.empty());
+    EXPECT_TRUE(progress_updates_.empty());
+  }
+
+  std::vector<std::string> written_frames = channel_a_->GetWrittenFrames();
+  ASSERT_EQ(written_frames.size(), 1u);
+  ExceptionOr<OfflineFrame> parsed = parser::FromBytes(written_frames[0]);
+  ASSERT_TRUE(parsed.ok());
+  EXPECT_EQ(parsed.result().v1().payload_transfer().control_message().event(),
+            PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
+}
+
+TEST_F(IncomingPayloadManagerTest,
+       RemovedPayloadIdIsRejectedOnSubsequentZeroOffsetDataPacket) {
+  constexpr Payload::Id kPayloadId = 1016;
+  PayloadTransferFrame chunk0 = MakeDataFrame(
+      kPayloadId, PayloadTransferFrame::PayloadHeader::BYTES,
+      /*total_size=*/5, /*offset=*/0, "hello",
+      PayloadTransferFrame::PayloadChunk::LAST_CHUNK);
+  incoming_payload_manager_.ProcessDataPacket(&client_, std::string(kEndpointA),
+                                              chunk0, Medium::WIFI_LAN);
+  FlushStatusUpdateThread();
+
+  {
+    absl::MutexLock lock(mutex_);
+    ASSERT_EQ(received_payloads_.size(), 1u);
+    ASSERT_EQ(progress_updates_.size(), 1u);
+    EXPECT_EQ(progress_updates_[0].second.status,
+              PayloadProgressInfo::Status::kSuccess);
+  }
+
+  // Re-sending an offset=0 frame for a completed/removed payload ID is
+  // rejected.
+  incoming_payload_manager_.ProcessDataPacket(&client_, std::string(kEndpointA),
+                                              chunk0, Medium::WIFI_LAN);
+  FlushStatusUpdateThread();
+
+  {
+    absl::MutexLock lock(mutex_);
+    EXPECT_EQ(received_payloads_.size(), 1u);
+    EXPECT_EQ(progress_updates_.size(), 1u);
+  }
+
+  std::vector<std::string> written_frames = channel_a_->GetWrittenFrames();
+  ASSERT_EQ(written_frames.size(), 1u);
+  ExceptionOr<OfflineFrame> parsed = parser::FromBytes(written_frames[0]);
+  ASSERT_TRUE(parsed.ok());
+  EXPECT_EQ(parsed.result().v1().payload_transfer().control_message().event(),
+            PayloadTransferFrame::ControlMessage::PAYLOAD_CANCELED);
+
+  // OnEndpointDisconnect clears removed_payload_ids_.
+  incoming_payload_manager_.OnEndpointDisconnect(
+      &client_, std::string(kEndpointA), PayloadStatus::ENDPOINT_IO_ERROR,
+      OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+  incoming_payload_manager_.ProcessDataPacket(&client_, std::string(kEndpointA),
+                                              chunk0, Medium::WIFI_LAN);
+  FlushStatusUpdateThread();
+
+  {
+    absl::MutexLock lock(mutex_);
+    EXPECT_EQ(received_payloads_.size(), 2u);
+    EXPECT_EQ(progress_updates_.size(), 2u);
+  }
 }
 
 TEST_F(IncomingPayloadManagerTest, CancelAllPayloadsMarksAllTrackedCanceled) {
