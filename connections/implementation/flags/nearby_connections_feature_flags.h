@@ -109,6 +109,11 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// When true, only populate AdvertisingMetadata and DiscoveryMetadata capability
+// fields when measured, rather than defaulting unmeasured capabilities to
+// false/0.
+constexpr auto kOmitUnmeasuredAdvDisCapabilities =
+    flags::Flag<bool>(kConfigPackage, "45868908", true);
 // When true, LogicalConnection records EstablishedConnections in chronological
 // order instead of dropping repeated visits to an earlier Medium.
 constexpr auto kRecordChronologicalPhysicalConnections =

@@ -15,6 +15,7 @@
 #ifndef ANALYTICS_ADVERTISING_METADATA_PARAMS_H_
 #define ANALYTICS_ADVERTISING_METADATA_PARAMS_H_
 
+#include <optional>
 #include <vector>
 
 #include "connections/implementation/analytics/operation_result_with_medium.h"
@@ -23,9 +24,9 @@ namespace nearby {
 
 // A struct to construct AdvertisingMetadata for the analytics recorder.
 struct AdvertisingMetadataParams {
-  bool is_extended_advertisement_supported = false;
-  int connected_ap_frequency = 0;
-  bool is_nfc_available = false;
+  std::optional<bool> is_extended_advertisement_supported = std::nullopt;
+  std::optional<int> connected_ap_frequency = std::nullopt;
+  std::optional<bool> is_nfc_available = std::nullopt;
   std::vector<nearby::analytics::OperationResultWithMedium>
       operation_result_with_mediums = {};
 };
