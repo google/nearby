@@ -399,11 +399,20 @@ message BandwidthUpgradeNegotiationFrame {
     optional bool supports_client_introduction_ack = 9;
 
     optional UpgradePathRequest upgrade_path_request = 10;
+
+    // Bitmask of auto-reconnect capabilities that the initiator asks to use
+    // for this endpoint. Bits are assigned by the implementations that support
+    // auto-reconnect. The responder answers in
+    // SafeToClosePriorChannel.reconnect_capabilities.
+    optional int32 reconnect_capabilities = 13;
   }
 
   // Accompanies SAFE_TO_CLOSE_PRIOR_CHANNEL events.
   message SafeToClosePriorChannel {
     optional int32 sta_frequency = 1;
+    // The subset of UpgradePathInfo.reconnect_capabilities that the responder
+    // accepts. Unset if the responder accepts none of them.
+    optional int32 reconnect_capabilities = 2;
   }
 
   // Accompanies CLIENT_INTRODUCTION events.
