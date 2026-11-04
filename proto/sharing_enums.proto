@@ -1235,3 +1235,23 @@ enum FileSyncState {
   // Failed to read the file sync state from local storage.
   FILE_SYNC_STATE_READ_ERROR = 5;
 }
+
+// The Tap to Share state of the device.
+// Next id: 6
+enum TapToShareState {
+  TAP_TO_SHARE_STATE_UNKNOWN = 0;
+  // Tap to Share isn't supported on the device, e.g. it isn't rolled out to the
+  // device or the device doesn't meet its requirements.
+  TAP_TO_SHARE_STATE_UNSUPPORTED = 1;
+  // Tap to Share is supported on the device and the Tap to Share toggle is
+  // turned on.
+  TAP_TO_SHARE_STATE_SUPPORTED_TOGGLE_ON = 2;
+  // Tap to Share is supported on the device and the Tap to Share toggle is
+  // turned off.
+  TAP_TO_SHARE_STATE_SUPPORTED_TOGGLE_OFF = 3;
+  // Tap to Share is supported on the device, but the state of the Tap to Share
+  // toggle couldn't be read.
+  TAP_TO_SHARE_STATE_SUPPORTED_TOGGLE_UNKNOWN = 4;
+  // Failed to read the Tap to Share state, e.g. it couldn't be read in time.
+  TAP_TO_SHARE_STATE_READ_ERROR = 5;
+}
