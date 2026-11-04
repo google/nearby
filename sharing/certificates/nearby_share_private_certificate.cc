@@ -20,7 +20,6 @@
 #include <memory>
 #include <optional>
 #include <queue>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,7 +40,6 @@
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/internal/api/private_certificate_data.h"
-#include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/proto/encrypted_metadata.pb.h"
 #include "sharing/proto/enums.pb.h"
@@ -54,6 +52,7 @@ namespace {
 
 using ::nearby::sharing::api::PrivateCertificateData;
 using ::nearby::sharing::proto::DeviceVisibility;
+using SaltBitset = NearbySharePrivateCertificate::SaltBitset;
 
 // Generates a random validity bound offset in the interval
 // [0, kNearbyShareMaxPrivateCertificateValidityBoundOffset).
@@ -115,25 +114,56 @@ std::optional<std::vector<uint8_t>> EncodedStringToBytes(
                      : std::nullopt;
 }
 
-std::string SaltsToString(const std::set<std::vector<uint8_t>>& salts) {
-  std::string str;
-  str.reserve(salts.size() * 2 * kNearbyShareNumBytesMetadataEncryptionKeySalt);
-  for (const std::vector<uint8_t>& salt : salts) {
-    str += nearby::utils::HexEncode(salt);
+static_assert(kNearbyShareNumBytesMetadataEncryptionKeySalt == 2 &&
+                  SaltBitset().size() == 65536,
+              "SaltBitset assumes 2-byte (16-bit) salts.");
+
+uint16_t SaltToUint16(absl::Span<const uint8_t> salt) {
+  DCHECK_EQ(salt.size(), kNearbyShareNumBytesMetadataEncryptionKeySalt);
+  return static_cast<uint16_t>((static_cast<uint32_t>(salt[0]) << 8) |
+                               static_cast<uint32_t>(salt[1]));
+}
+
+bool HasSalt(const SaltBitset& salts, absl::Span<const uint8_t> salt) {
+  return salts.test(SaltToUint16(salt));
+}
+
+void SetSalt(SaltBitset& salts, absl::Span<const uint8_t> salt) {
+  salts.set(SaltToUint16(salt));
+}
+
+constexpr size_t kCharsPerSalt =
+    2 * kNearbyShareNumBytesMetadataEncryptionKeySalt;
+
+std::string SaltsToString(const SaltBitset& salts) {
+  if (salts.none()) return {};
+  size_t remaining = salts.count();
+  static constexpr char kHexDigits[] = "0123456789ABCDEF";
+  std::string str(remaining * kCharsPerSalt, '\0');
+  size_t pos = 0;
+  for (size_t i = 0; i < salts.size(); ++i) {
+    if (salts[i]) {
+      str[pos] = kHexDigits[(i >> 12) & 0xf];
+      str[pos + 1] = kHexDigits[(i >> 8) & 0xf];
+      str[pos + 2] = kHexDigits[(i >> 4) & 0xf];
+      str[pos + 3] = kHexDigits[i & 0xf];
+      pos += kCharsPerSalt;
+      if (--remaining == 0) break;
+    }
   }
   return str;
 }
 
-std::set<std::vector<uint8_t>> StringToSalts(absl::string_view str) {
-  const size_t chars_per_salt =
-      2 * kNearbyShareNumBytesMetadataEncryptionKeySalt;
-  DCHECK_EQ(str.size() % chars_per_salt, 0);
-  std::set<std::vector<uint8_t>> salts;
-  for (size_t i = 0; i < str.size(); i += chars_per_salt) {
-    std::string bytes =
-        absl::HexStringToBytes(absl::string_view(&str[i], chars_per_salt));
-    std::vector<uint8_t> salt(bytes.begin(), bytes.end());
-    salts.insert(std::move(salt));
+std::optional<SaltBitset> StringToSalts(absl::string_view str) {
+  if (str.size() % kCharsPerSalt != 0) return std::nullopt;
+  std::string bytes;
+  if (!absl::HexStringToBytes(str, &bytes)) return std::nullopt;
+  absl::Span<const uint8_t> salt_bytes = as_bytes(absl::MakeSpan(bytes));
+  std::optional<SaltBitset> salts(std::in_place);
+  for (size_t i = 0; i < salt_bytes.size();
+       i += kNearbyShareNumBytesMetadataEncryptionKeySalt) {
+    SetSalt(*salts, salt_bytes.subspan(
+                        i, kNearbyShareNumBytesMetadataEncryptionKeySalt));
   }
   return salts;
 }
@@ -164,7 +194,7 @@ NearbySharePrivateCertificate::NearbySharePrivateCertificate(
     std::unique_ptr<crypto::SymmetricKey> secret_key,
     std::vector<uint8_t> metadata_encryption_key, std::vector<uint8_t> id,
     nearby::sharing::proto::EncryptedMetadata unencrypted_metadata,
-    std::set<std::vector<uint8_t>> consumed_salts)
+    const SaltBitset& consumed_salts)
     : visibility_(visibility),
       not_before_(not_before),
       not_after_(not_after),
@@ -173,7 +203,7 @@ NearbySharePrivateCertificate::NearbySharePrivateCertificate(
       metadata_encryption_key_(std::move(metadata_encryption_key)),
       id_(std::move(id)),
       unencrypted_metadata_(std::move(unencrypted_metadata)),
-      consumed_salts_(std::move(consumed_salts)) {
+      consumed_salts_(consumed_salts) {
   DCHECK_NE(static_cast<int>(visibility),
             static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED));
 }
@@ -345,19 +375,21 @@ NearbySharePrivateCertificate::FromCertificateData(
   if (!str_opt) return std::nullopt;
   nearby::sharing::proto::EncryptedMetadata unencrypted_metadata;
   if (!unencrypted_metadata.ParseFromString(*str_opt)) return std::nullopt;
+  std::optional<SaltBitset> consumed_salts =
+      StringToSalts(cert_data.consumed_salts);
+  if (!consumed_salts) return std::nullopt;
 
   return NearbySharePrivateCertificate(
       static_cast<DeviceVisibility>(cert_data.visibility),
       absl::FromUnixNanos(cert_data.not_before),
       absl::FromUnixNanos(cert_data.not_after), std::move(key_pair),
       std::move(secret_key), std::move(metadata_encryption_key), std::move(id),
-      std::move(unencrypted_metadata),
-      StringToSalts(cert_data.consumed_salts));
+      std::move(unencrypted_metadata), *consumed_salts);
 }
 
 std::optional<std::vector<uint8_t>>
 NearbySharePrivateCertificate::GenerateUnusedSalt() {
-  if (consumed_salts_.size() >= kNearbyShareMaxNumMetadataEncryptionKeySalts) {
+  if (consumed_salts_.count() >= kNearbyShareMaxNumMetadataEncryptionKeySalts) {
     LOG(ERROR) << "All salts exhausted for certificate.";
     return std::nullopt;
   }
@@ -374,8 +406,8 @@ NearbySharePrivateCertificate::GenerateUnusedSalt() {
     }
     DCHECK_EQ(2u, salt.size());
 
-    if (consumed_salts_.find(salt) == consumed_salts_.end()) {
-      consumed_salts_.insert(salt);
+    if (!HasSalt(consumed_salts_, salt)) {
+      SetSalt(consumed_salts_, salt);
       return salt;
     }
   }

@@ -17,10 +17,10 @@
 
 #include <stdint.h>
 
+#include <bitset>
 #include <memory>
 #include <optional>
 #include <queue>
-#include <set>
 #include <vector>
 
 #include "absl/time/time.h"
@@ -54,6 +54,9 @@ namespace sharing {
 // metadata encryption key, which can then be advertised.
 class NearbySharePrivateCertificate {
  public:
+  // Bitset tracking 2-byte salts (2^16 = 65,536 possible values).
+  using SaltBitset = std::bitset<65536>;
+
   // Inverse operation of ToCertificateData(). Returns absl::nullopt if the
   // conversion is not successful
   static std::optional<NearbySharePrivateCertificate> FromCertificateData(
@@ -73,7 +76,7 @@ class NearbySharePrivateCertificate {
       std::unique_ptr<crypto::SymmetricKey> secret_key,
       std::vector<uint8_t> metadata_encryption_key, std::vector<uint8_t> id,
       nearby::sharing::proto::EncryptedMetadata unencrypted_metadata,
-      std::set<std::vector<uint8_t>> consumed_salts);
+      const SaltBitset& consumed_salts);
 
   NearbySharePrivateCertificate(const NearbySharePrivateCertificate& other);
   NearbySharePrivateCertificate& operator=(
@@ -173,8 +176,9 @@ class NearbySharePrivateCertificate {
   // that will eventually be serialized and encrypted.
   nearby::sharing::proto::EncryptedMetadata unencrypted_metadata_;
 
-  // The set of 2-byte salts already used to encrypt the metadata key.
-  std::set<std::vector<uint8_t>> consumed_salts_;
+  // Tracks which 2-byte salts have already been used to encrypt the metadata
+  // key, indexed by big-endian 16-bit salt value.
+  SaltBitset consumed_salts_;
 
   // For testing only.
   std::queue<std::vector<uint8_t>> next_salts_for_testing_;

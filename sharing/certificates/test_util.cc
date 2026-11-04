@@ -19,7 +19,6 @@
 
 #include <array>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -295,7 +294,7 @@ NearbySharePrivateCertificate GetNearbyShareTestPrivateCertificate(
       GetNearbyShareTestP256KeyPair(), GetNearbyShareTestSecretKey(),
       GetNearbyShareTestMetadataEncryptionKey(),
       GetNearbyShareTestCertificateId(), GetNearbyShareTestMetadata(vendor_id),
-      /*consumed_salts=*/std::set<std::vector<uint8_t>>());
+      /*consumed_salts=*/NearbySharePrivateCertificate::SaltBitset());
   cert.next_salts_for_testing().push(GetNearbyShareTestSalt());
   return cert;
 }
