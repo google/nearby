@@ -223,7 +223,8 @@ NS_ASSUME_NONNULL_BEGIN
         (PSKIdentify == nil || PSKSharedSecret == nil)
             ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/includePeerToPeer)
             : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentify,
-                                    /*includePeerToPeer=*/includePeerToPeer);
+                                    /*includePeerToPeer=*/includePeerToPeer,
+                                    /*role=*/GNCTLSRoleServer);
     if (!parameters) {
       GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW parameters.");
       return NO;
