@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/g3/ble.h"
 
+#include <memory>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -21,11 +22,17 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
+#include "third_party/gloop/thread/fiber/fiber.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -162,6 +169,147 @@ TEST(BleMediumTest, IsExtendedAdvertisementsAvailable) {
 
   BleMedium ble_medium(mock_bluetooth_adapter);
   EXPECT_FALSE(ble_medium.IsExtendedAdvertisementsAvailable());
+}
+
+TEST(BleMediumTest, CancelConnectOverL2capDoesNotCloseRemoteServerSocket) {
+  MediumEnvironment::Instance().Start();
+  MediumEnvironment::Instance().SetBleL2capAvailable(true);
+  BluetoothAdapter server_adapter;
+  BluetoothAdapter client1_adapter;
+  BluetoothAdapter client2_adapter;
+  BleMedium server_medium(server_adapter);
+  BleMedium client1_medium(client1_adapter);
+  BleMedium client2_medium(client2_adapter);
+
+  std::unique_ptr<api::ble::BleL2capServerSocket> server_socket =
+      server_medium.OpenL2capServerSocket(std::string(kTestServiceId));
+  ASSERT_NE(server_socket, nullptr);
+  int psm = server_socket->GetPSM();
+
+  CancellationFlag cancel_flag1;
+  absl::Notification client1_started;
+  absl::Notification client1_done;
+  std::unique_ptr<api::ble::BleL2capSocket> client1_socket;
+  thread::Fiber client1_fiber([&]() {
+    client1_started.Notify();
+    client1_socket = client1_medium.ConnectOverL2cap(
+        psm, std::string(kTestServiceId), api::ble::TxPowerLevel::kHigh,
+        server_adapter.GetUniqueId(), &cancel_flag1);
+    client1_done.Notify();
+  });
+
+  ASSERT_TRUE(client1_started.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  absl::SleepFor(absl::Milliseconds(50));
+  cancel_flag1.Cancel();
+  EXPECT_TRUE(client1_done.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  client1_fiber.Join();
+  EXPECT_EQ(client1_socket, nullptr);
+
+  // Subsequent client connection still succeeds because cancelling client1 did
+  // not close the server socket.
+  std::unique_ptr<api::ble::BleL2capSocket> accepted_socket;
+  absl::Notification accept_done;
+  thread::Fiber accept_fiber([&]() {
+    accepted_socket = server_socket->Accept();
+    accept_done.Notify();
+  });
+
+  CancellationFlag cancel_flag2;
+  std::unique_ptr<api::ble::BleL2capSocket> client2_socket =
+      client2_medium.ConnectOverL2cap(
+          psm, std::string(kTestServiceId), api::ble::TxPowerLevel::kHigh,
+          server_adapter.GetUniqueId(), &cancel_flag2);
+  EXPECT_TRUE(accept_done.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  accept_fiber.Join();
+
+  ASSERT_NE(client2_socket, nullptr);
+  ASSERT_NE(accepted_socket, nullptr);
+  client2_socket->Close();
+  accepted_socket->Close();
+  server_socket->Close();
+  MediumEnvironment::Instance().Stop();
+}
+
+TEST(BleMediumTest, DestroyL2capServerSocketDuringPendingConnectOverL2cap) {
+  MediumEnvironment::Instance().Start();
+  MediumEnvironment::Instance().SetBleL2capAvailable(true);
+  BluetoothAdapter server_adapter;
+  BluetoothAdapter client_adapter;
+  BleMedium server_medium(server_adapter);
+  BleMedium client_medium(client_adapter);
+
+  std::unique_ptr<api::ble::BleL2capServerSocket> server_socket =
+      server_medium.OpenL2capServerSocket(std::string(kTestServiceId));
+  ASSERT_NE(server_socket, nullptr);
+  int psm = server_socket->GetPSM();
+
+  CancellationFlag cancel_flag;
+  absl::Notification client_started;
+  absl::Notification client_done;
+  std::unique_ptr<api::ble::BleL2capSocket> client_socket;
+  thread::Fiber client_fiber([&]() {
+    client_started.Notify();
+    client_socket = client_medium.ConnectOverL2cap(
+        psm, std::string(kTestServiceId), api::ble::TxPowerLevel::kHigh,
+        server_adapter.GetUniqueId(), &cancel_flag);
+    client_done.Notify();
+  });
+
+  ASSERT_TRUE(client_started.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  absl::SleepFor(absl::Milliseconds(50));
+
+  // Destroy the server socket while ConnectOverL2cap is blocked, then trigger
+  // cancellation as well.
+  server_socket.reset();
+  cancel_flag.Cancel();
+
+  EXPECT_TRUE(client_done.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  client_fiber.Join();
+  EXPECT_EQ(client_socket, nullptr);
+  MediumEnvironment::Instance().Stop();
+}
+
+TEST(BleMediumTest, ConnectL2capRechecksCancellationAfterAcceptWakesUp) {
+  MediumEnvironment::Instance().Start();
+  BluetoothAdapter server_adapter;
+  BluetoothAdapter client_adapter;
+  BleMedium server_medium(server_adapter);
+  BleMedium client_medium(client_adapter);
+  BleL2capServerSocket server_socket(&server_adapter, 0x0080);
+  auto client_socket = std::make_unique<BleL2capSocket>(&client_adapter);
+  CancellationFlag cancel_flag;
+
+  absl::Notification client_done;
+  bool connected = true;
+  bool client_socket_closed = false;
+  thread::Fiber client_fiber([&]() {
+    connected = server_socket.Connect(*client_socket, &cancel_flag);
+    client_socket_closed = client_socket->IsClosed();
+    if (!connected) {
+      client_socket.reset();
+    }
+    client_done.Notify();
+  });
+
+  server_socket.WaitForPendingConnection();
+
+  // Simulate cancellation firing before Connect() wakes from Accept()'s signal
+  // without CancelConnect() having closed the pending socket.
+  cancel_flag.Cancel();
+  std::unique_ptr<api::ble::BleL2capSocket> accepted_socket =
+      server_socket.Accept();
+  ASSERT_NE(accepted_socket, nullptr);
+
+  EXPECT_TRUE(client_done.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  client_fiber.Join();
+  EXPECT_FALSE(connected);
+  EXPECT_TRUE(client_socket_closed);
+  EXPECT_EQ(client_socket, nullptr);
+  EXPECT_EQ(accepted_socket->GetRemotePeripheralId(),
+            client_adapter.GetUniqueId());
+  accepted_socket->Close();
+  server_socket.Close();
+  MediumEnvironment::Instance().Stop();
 }
 
 }  // namespace

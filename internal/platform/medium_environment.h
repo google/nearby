@@ -384,6 +384,11 @@ class MediumEnvironment {
   void SetBleExtendedAdvertisementsAvailable(bool enabled);
   bool IsBleExtendedAdvertisementsAvailable() const;
 
+  // Sets whether BLE L2CAP sockets are supported in the test environment. It
+  // is false by default.
+  void SetBleL2capAvailable(bool enabled);
+  bool IsBleL2capAvailable() const;
+
   // Sets whether Wi-Fi Direct Group Owner (GO) mode is supported. It is true
   // by default.
   void SetWifiDirectGoSupported(bool supported);
@@ -529,6 +534,7 @@ class MediumEnvironment {
   absl::Duration peer_connection_latency_ = absl::ZeroDuration();
   std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   bool ble_extended_advertisements_available_ = false;
+  std::atomic_bool ble_l2cap_available_ = false;
   bool wifi_direct_go_supported_ = true;
   std::atomic_bool fail_wifi_hotspot_listen_for_service_ = false;
   std::atomic_bool fail_wifi_direct_listen_for_service_ = false;
