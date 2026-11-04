@@ -126,6 +126,8 @@ class Lender {
       : shared_data_(
             std::make_shared<BorrowableSharedData<T>>(std::move(resource))) {}
   ~Lender() { Release(); }
+  Lender(Lender&&) = default;
+  Lender& operator=(Lender&&) = default;
 
   Borrowable<T> GetBorrowable() { return Borrowable<T>(shared_data_); }
 

@@ -25,6 +25,7 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -415,6 +416,91 @@ TEST(EncryptionRunnerTest, ClientSendsGarbageMessage3) {
   auto alert = from_server_to_client.first->Read(kChunkSize);
   EXPECT_TRUE(alert.ok());
   EXPECT_TRUE(alert.result().Empty());
+}
+
+TEST(EncryptionRunnerTest,
+     ServerTimeoutAfterClientProxyDestroyedDoesNotUaf) {
+  auto from_server_to_client = CreatePipe();
+  auto from_client_to_server = CreatePipe();
+  auto server_channel = std::make_shared<FakeEndpointChannel>(
+      /*in=*/from_client_to_server.first.get(),
+      /*out=*/from_server_to_client.second.get());
+  EncryptionRunner crypto;
+  auto client = std::make_unique<ClientProxy>();
+  ::nearby::Borrowable<ClientProxy*> borrowable = client->GetBorrowable();
+  EXPECT_TRUE(static_cast<bool>(borrowable.Borrow()));
+
+  Response response(1);
+  crypto.StartServer(
+      client.get(), "endpoint_id", server_channel,
+      {
+          .on_success_cb =
+              [&response](const std::string& endpoint_id,
+                          std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                          const std::string& auth_token,
+                          const ByteArray& raw_auth_token) {
+                response.server_status = Response::Status::kDone;
+                response.latch.CountDown();
+              },
+          .on_failure_cb =
+              [&response, server_channel](const std::string& endpoint_id) {
+                server_channel->Close();
+                response.server_status = Response::Status::kFailed;
+                response.latch.CountDown();
+              },
+      });
+
+  // Free ClientProxy while ServerRunnable is parked in Read() and the 15-second
+  // CancelableAlarm is active.
+  client.reset();
+  EXPECT_FALSE(static_cast<bool>(borrowable.Borrow()));
+
+  ASSERT_TRUE(response.latch.Await(absl::Seconds(20)).result());
+  EXPECT_EQ(response.server_status, Response::Status::kFailed);
+}
+
+TEST(EncryptionRunnerTest,
+     ServerPeerGarbageAfterClientProxyDestroyedDoesNotUaf) {
+  auto from_server_to_client = CreatePipe();
+  auto from_client_to_server = CreatePipe();
+  auto server_channel = std::make_shared<FakeEndpointChannel>(
+      /*in=*/from_client_to_server.first.get(),
+      /*out=*/from_server_to_client.second.get());
+  EncryptionRunner crypto;
+  auto client = std::make_unique<ClientProxy>();
+  ::nearby::Borrowable<ClientProxy*> borrowable = client->GetBorrowable();
+  EXPECT_TRUE(static_cast<bool>(borrowable.Borrow()));
+
+  Response response(1);
+  crypto.StartServer(
+      client.get(), "endpoint_id", server_channel,
+      {
+          .on_success_cb =
+              [&response](const std::string& endpoint_id,
+                          std::unique_ptr<securegcm::UKey2Handshake> ukey2,
+                          const std::string& auth_token,
+                          const ByteArray& raw_auth_token) {
+                response.server_status = Response::Status::kDone;
+                response.latch.CountDown();
+              },
+          .on_failure_cb =
+              [&response, server_channel](const std::string& endpoint_id) {
+                server_channel->Close();
+                response.server_status = Response::Status::kFailed;
+                response.latch.CountDown();
+              },
+      });
+
+  // Free ClientProxy while ServerRunnable is parked in Read().
+  client.reset();
+  EXPECT_FALSE(static_cast<bool>(borrowable.Borrow()));
+
+  // Peer sends malformed UKEY2 ClientInit bytes, waking Read() and triggering
+  // ServerRunnable::HandleAlertException after ClientProxy was freed.
+  EXPECT_TRUE(
+      from_client_to_server.second->Write("not-a-valid-ukey2-msg").Ok());
+  ASSERT_TRUE(response.latch.Await(absl::Seconds(5)).result());
+  EXPECT_EQ(response.server_status, Response::Status::kFailed);
 }
 
 }  // namespace
