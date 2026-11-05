@@ -136,6 +136,7 @@ class ShareSession {
 
   // Returns false if session is already cancelled, otherwise returns true.
   bool CancelPayloads();
+  bool is_cancelled() const { return is_cancelled_; }
 
   const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map() const {
     return attachment_payload_map_;

@@ -66,9 +66,11 @@ class PayloadTrackerTest : public ::testing::Test {
     fake_clock_.FastForward(duration);
   }
 
-  std::optional<TransferMetadata> PayloadUpdate(int bytes_transferred) {
+  std::optional<TransferMetadata> PayloadUpdate(
+      int bytes_transferred,
+      PayloadStatus status = PayloadStatus::kInProgress) {
     auto transfer_update = std::make_unique<PayloadTransferUpdate>(
-        /*payload_id=*/kFileId, PayloadStatus::kInProgress,
+        /*payload_id=*/kFileId, status,
         /*total_bytes=*/kFileSize, /*bytes_transferred=*/bytes_transferred);
     std::optional<TransferMetadataBuilder> metadata_builder =
         payload_tracker_->ProcessPayloadUpdate(std::move(transfer_update));
@@ -107,6 +109,14 @@ TEST_F(PayloadTrackerTest, StatusUpdateWithTimeUpdate) {
   metadata = PayloadUpdate(3072);
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata->progress(), 3.0);
+}
+
+TEST_F(PayloadTrackerTest, CancelledPayloadEmitsNonFinalCancellingStatus) {
+  std::optional<TransferMetadata> metadata =
+      PayloadUpdate(/*bytes_transferred=*/1024, PayloadStatus::kCanceled);
+  ASSERT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->status(), TransferMetadata::Status::kCancelling);
+  EXPECT_FALSE(metadata->is_final_status());
 }
 
 }  // namespace
