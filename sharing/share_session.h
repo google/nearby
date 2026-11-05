@@ -184,6 +184,9 @@ class ShareSession {
   NearbyConnectionsManager& connections_manager() {
     return connections_manager_;
   }
+  const NearbyConnectionsManager& connections_manager() const {
+    return connections_manager_;
+  }
   void set_endpoint_id(absl::string_view endpoint_id) {
     endpoint_id_ = std::string(endpoint_id);
   }

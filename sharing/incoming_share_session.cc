@@ -457,13 +457,24 @@ std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths() const {
   const absl::flat_hash_map<int64_t, int64_t>& attachment_paylod_map =
       attachment_payload_map();
   for (const auto& file : container.GetFileAttachments()) {
-    if (!file.file_path().has_value()) continue;
-    FilePath file_path = *file.file_path();
-    VLOG(1) << __func__ << ": file_path=" << file_path.ToString();
-    if (attachment_paylod_map.find(file.id()) == attachment_paylod_map.end()) {
+    auto it = attachment_paylod_map.find(file.id());
+    if (it == attachment_paylod_map.end()) {
       continue;
     }
-    file_paths.push_back(file_path);
+    if (file.file_path().has_value()) {
+      FilePath file_path = *file.file_path();
+      VLOG(1) << __func__ << ": file_path=" << file_path.ToString();
+      file_paths.push_back(file_path);
+      continue;
+    }
+    const Payload* incoming_payload =
+        connections_manager().GetIncomingPayload(it->second);
+    if (incoming_payload != nullptr && incoming_payload->content.is_file()) {
+      FilePath file_path = incoming_payload->content.file_payload.file_path;
+      VLOG(1) << __func__
+              << ": incoming_payload file_path=" << file_path.ToString();
+      file_paths.push_back(file_path);
+    }
   }
   return file_paths;
 }

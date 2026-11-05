@@ -3072,6 +3072,44 @@ TEST_F(NearbySharingServiceImplTest, RejectInvalidShareTarget) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
 }
 
+TEST_F(NearbySharingServiceImplTest,
+       DisconnectionDeletesIncomingPayloadBeforeStatusUpdateProcessed) {
+  FilePath unprocessed_file =
+      CreateTestFile("disconnect_unprocessed_payload.bin", {1, 2, 3, 4});
+  ASSERT_TRUE(Files::FileExists(unprocessed_file));
+
+  {
+    NiceMock<MockTransferUpdateCallback> callback;
+    int64_t share_target_id = SetUpIncomingConnection(callback);
+    ScopedReceiveSurface r(service_.get(), &callback);
+    AcceptConnection(callback, share_target_id, kEndpointId);
+
+    // Payload arrives in NearbyConnectionsManager right before disconnect,
+    // before any PayloadTransferUpdate has populated FileAttachment::file_path.
+    fake_nearby_connections_manager_->SetIncomingPayload(
+        kFilePayloadId, std::make_unique<Payload>(unprocessed_file));
+
+    absl::Notification failed_notification;
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+        .WillOnce([&](const ShareTarget&, const AttachmentContainer&,
+                      TransferMetadata metadata) {
+          EXPECT_TRUE(metadata.is_final_status());
+          EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
+          failed_notification.Notify();
+        });
+
+    sharing_service_task_runner_->PostTask(
+        [this]() { connection_.reset(); });
+    FlushTesting();
+    ASSERT_TRUE(
+        failed_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+
+  Shutdown();
+  service_.reset();
+  EXPECT_FALSE(Files::FileExists(unprocessed_file));
+}
+
 TEST_F(NearbySharingServiceImplTest, RejectValidShareTarget) {
   NiceMock<MockTransferUpdateCallback> callback;
   int64_t share_target_id = SetUpIncomingConnection(callback);

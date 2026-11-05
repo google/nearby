@@ -1300,6 +1300,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
       Eq(std::nullopt));
+  EXPECT_THAT(session_.GetPayloadFilePaths(),
+              UnorderedElementsAre(file1_path, file2_path));
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
