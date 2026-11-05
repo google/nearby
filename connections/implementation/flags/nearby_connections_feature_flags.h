@@ -99,6 +99,11 @@ constexpr auto kFilterUnconfirmedEndpointFrames =
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);
+// When true, fixes ClientProxy session completion checks, avoids redundant
+// empty session completions, and suppresses idle low-power advertising-only
+// ClientSession logs.
+constexpr auto kFixClientSessionLogging =
+    flags::Flag<bool>(kConfigPackage, "45881786", false);
 // When true, initializes WebRtcState to kUnconnectable when WebRTC is
 // unavailable in UpdateAdvertisingOptionsImpl (b/574971059).
 constexpr auto kFixWifiLanServiceInfoSerialization =

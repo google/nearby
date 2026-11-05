@@ -30,7 +30,7 @@ namespace connections {
 struct AdvertisingOptions : public OptionsBase {
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
-  bool low_power;
+  bool low_power = false;
   bool enable_bluetooth_listening;
   bool enable_webrtc_listening;
   // Indicates whether the endpoint id should be stable.

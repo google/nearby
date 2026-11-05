@@ -58,7 +58,6 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//location/nearby/analytics/cpp/logging:event_logger",
         "//location/nearby/analytics/cpp/proto:connections_log_cc_proto",
