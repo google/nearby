@@ -2043,6 +2043,201 @@ TEST_F(ClientProxyTest,
   EXPECT_EQ(captured_disc_nfc, std::optional<bool>(false));
 }
 
+TEST_F(ClientProxyTest,
+       OnDisconnectedWhileDiscoveringDoesNotCompleteSessionWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      true);
+  const std::string initial_endpoint_id = client2()->GetLocalEndpointId();
+
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogSession()).Times(0);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogStartSession()).Times(0);
+  OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
+
+  EXPECT_TRUE(client2()->IsDiscovering());
+  EXPECT_EQ(client2()->GetLocalEndpointId(), initial_endpoint_id);
+
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogStartSession()).Times(1);
+  client2()->StoppedDiscovery();
+
+  EXPECT_FALSE(client2()->IsDiscovering());
+  EXPECT_EQ(client2()->GetLastLocalEndpointId(), initial_endpoint_id);
+  EXPECT_NE(client2()->GetLocalEndpointId(), initial_endpoint_id);
+}
+
+TEST_F(ClientProxyTest,
+       OnDisconnectedWhileDiscoveringCompletesSessionWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      false);
+  const std::string initial_endpoint_id = client2()->GetLocalEndpointId();
+
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder2_ptr_, LogStartSession()).Times(1);
+  OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
+  testing::Mock::VerifyAndClearExpectations(mock_analytics_recorder2_ptr_);
+
+  EXPECT_TRUE(client2()->IsDiscovering());
+  EXPECT_EQ(client2()->GetLastLocalEndpointId(), initial_endpoint_id);
+}
+
+TEST_F(ClientProxyTest,
+       StoppedListeningForIncomingConnectionsCompletesSessionWhenIdle) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      true);
+  const std::string initial_endpoint_id = client1()->GetLocalEndpointId();
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStartedIncomingConnectionListening(strategy_))
+      .Times(1);
+  client1()->StartedListeningForIncomingConnections(
+      service_id_, strategy_, /*listener=*/{}, /*options=*/{});
+  EXPECT_TRUE(client1()->IsListeningForIncomingConnections());
+
+  OnAdvertisingConnectionInitiated(
+      client1(), Endpoint{.info = ByteArray{"endpoint"}, .id = "ep_1"});
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  client1()->OnDisconnected("ep_1", /*notify=*/false);
+  EXPECT_EQ(client1()->GetLocalEndpointId(), initial_endpoint_id);
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStoppedIncomingConnectionListening())
+      .Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(1);
+  client1()->StoppedListeningForIncomingConnections();
+
+  EXPECT_FALSE(client1()->IsListeningForIncomingConnections());
+  EXPECT_EQ(client1()->GetLastLocalEndpointId(), initial_endpoint_id);
+
+  // Redundant stop when already not listening should be a no-op.
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStoppedIncomingConnectionListening())
+      .Times(0);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  client1()->StoppedListeningForIncomingConnections();
+}
+
+TEST_F(ClientProxyTest, RedundantStopsAndResetLogSingleSessionWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      true);
+
+  // Stopping inactive states or resetting an idle ClientProxy should not
+  // complete a session.
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  client1()->StoppedAdvertising();
+  client1()->StoppedDiscovery();
+  client1()->StoppedListeningForIncomingConnections();
+  client1()->OnDisconnected("nonexistent_endpoint", /*notify=*/false);
+  client1()->Reset();
+
+  // Activate advertising, discovery, incoming connection listening, and an
+  // active connection simultaneously; Reset() should complete the session
+  // exactly once after the final active state clears.
+  StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client1(), GetDiscoveryListener());
+  client1()->StartedListeningForIncomingConnections(
+      service_id_, strategy_, /*listener=*/{}, /*options=*/{});
+  OnAdvertisingConnectionInitiated(
+      client1(), Endpoint{.info = ByteArray{"endpoint"}, .id = "ep_1"});
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopAdvertising()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStopDiscovery()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_,
+              OnStoppedIncomingConnectionListening())
+      .Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(1);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogStartSession()).Times(1);
+  client1()->Reset();
+
+  EXPECT_FALSE(client1()->IsAdvertising());
+  EXPECT_FALSE(client1()->IsDiscovering());
+  EXPECT_FALSE(client1()->IsListeningForIncomingConnections());
+  EXPECT_FALSE(client1()->HasOngoingConnection());
+
+  // Subsequent Reset() on the now-idle ClientProxy should not log another
+  // empty session.
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, LogSession()).Times(0);
+  client1()->Reset();
+}
+
+TEST_F(ClientProxyTest, StartedAdvertisingPopulatesPowerLevelMetadata) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      true);
+
+  location::nearby::proto::connections::PowerLevel captured_power_level =
+      location::nearby::proto::connections::PowerLevel::UNSPECIFIED;
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStartAdvertising)
+      .WillOnce([&captured_power_level](
+                    Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    AdvertisingMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_power_level = params->power_level;
+      });
+  AdvertisingOptions low_power_options;
+  low_power_options.low_power = true;
+  StartAdvertising(client1(), advertising_connection_listener_,
+                   low_power_options);
+  EXPECT_EQ(captured_power_level,
+            location::nearby::proto::connections::PowerLevel::LOW_POWER);
+
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStartAdvertising)
+      .WillOnce([&captured_power_level](
+                    Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    AdvertisingMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_power_level = params->power_level;
+      });
+  AdvertisingOptions high_power_options;
+  high_power_options.low_power = false;
+  StartAdvertising(client1(), advertising_connection_listener_,
+                   high_power_options);
+  EXPECT_EQ(captured_power_level,
+            location::nearby::proto::connections::PowerLevel::HIGH_POWER);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixClientSessionLogging,
+      false);
+  EXPECT_CALL(*mock_analytics_recorder1_ptr_, OnStartAdvertising)
+      .WillOnce([&captured_power_level](
+                    Strategy,
+                    const std::vector<
+                        location::nearby::proto::connections::Medium>&,
+                    AdvertisingMetadataParams* params) {
+        ASSERT_NE(params, nullptr);
+        captured_power_level = params->power_level;
+      });
+  StartAdvertising(client1(), advertising_connection_listener_,
+                   low_power_options);
+  EXPECT_EQ(captured_power_level,
+            location::nearby::proto::connections::PowerLevel::UNSPECIFIED);
+}
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

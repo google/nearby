@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "connections/implementation/analytics/operation_result_with_medium.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 
@@ -29,6 +30,8 @@ struct AdvertisingMetadataParams {
   std::optional<bool> is_nfc_available = std::nullopt;
   std::vector<nearby::analytics::OperationResultWithMedium>
       operation_result_with_mediums = {};
+  location::nearby::proto::connections::PowerLevel power_level =
+      location::nearby::proto::connections::PowerLevel::UNSPECIFIED;
 };
 
 }  // namespace nearby
