@@ -29,24 +29,9 @@ constexpr absl::string_view kConfigPackage = "nearby";
 
 // The Nearby Platform features.
 namespace nearby_platform_feature {
-// Disable/Enable GATT feature in BLE v2.
-constexpr auto kEnableBleV2Gatt =
-    flags::Flag<bool>(kConfigPackage, "45415180", true);
-// Disable/Enable GATT feature on devices without BLE extended feature.
-constexpr auto kEnableBleV2GattOnNonExtendedDevice =
-    flags::Flag<bool>(kConfigPackage, "45415267", true);
 // Enable/Disable Intel PIe SDK to query/set WIFI feature.
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);
-// Replace std::async with platform thread
-constexpr auto kEnablePlatformThreadToNetwork =
-    flags::Flag<bool>(kConfigPackage, "45412711", true);
-// Enable/Disable task scheduler for ScheduledExecutor and timer.
-constexpr auto kEnableTaskScheduler =
-    flags::Flag<bool>(kConfigPackage, "45643835", true);
-// Enable/Disable Wi-Fi hotspot native.
-constexpr auto kEnableWifiHotspotNative =
-    flags::Flag<bool>(kConfigPackage, "45667396", true);
 // The send buffer size of blocking socket.
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
