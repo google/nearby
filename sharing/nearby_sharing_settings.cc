@@ -216,10 +216,11 @@ void NearbyShareSettings::RemoveSettingsObserver(Observer* observer) {
 
 void NearbyShareSettings::SetFastInitiationNotificationState(
     FastInitiationNotificationState state) {
-  if (analytics_recorder_ != nullptr) {
+  FastInitiationNotificationState previous_state =
+      GetFastInitiationNotificationState();
+  if (analytics_recorder_ != nullptr && previous_state != state) {
     analytics_recorder_->NewToggleShowNotification(
-        GetNotificationStatus(GetFastInitiationNotificationState()),
-        GetNotificationStatus(state));
+        GetNotificationStatus(previous_state), GetNotificationStatus(state));
   }
 
   preference_manager_.SetInteger(PrefNames::kFastInitiationNotificationState,
@@ -229,15 +230,21 @@ void NearbyShareSettings::SetFastInitiationNotificationState(
 void NearbyShareSettings::SetDeviceName(
     absl::string_view device_name,
     std::function<void(DeviceNameValidationResult)> callback) {
-  if (analytics_recorder_ != nullptr) {
+  std::string previous_name = GetDeviceName();
+  DeviceNameValidationResult result =
+      local_device_data_manager_->SetDeviceName(device_name);
+  if (analytics_recorder_ != nullptr &&
+      result == DeviceNameValidationResult::kValid &&
+      previous_name != device_name) {
     analytics_recorder_->NewSetDeviceName(device_name.size());
   }
-  std::move(callback)(local_device_data_manager_->SetDeviceName(device_name));
+  std::move(callback)(result);
 }
 
 void NearbyShareSettings::SetDataUsage(DataUsage data_usage) {
-  if (analytics_recorder_ != nullptr) {
-    analytics_recorder_->NewSetDataUsage(GetDataUsage(), data_usage);
+  DataUsage previous_data_usage = GetDataUsage();
+  if (analytics_recorder_ != nullptr && previous_data_usage != data_usage) {
+    analytics_recorder_->NewSetDataUsage(previous_data_usage, data_usage);
   }
   preference_manager_.SetInteger(PrefNames::kDataUsage,
                                  static_cast<int>(data_usage));
