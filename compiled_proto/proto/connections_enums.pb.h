@@ -90,6 +90,8 @@ enum OperationResultCategory : int;
 extern const uint32_t OperationResultCategory_internal_data_[];
 enum OperationResultCode : int;
 extern const uint32_t OperationResultCode_internal_data_[];
+enum OsType : int;
+extern const uint32_t OsType_internal_data_[];
 enum PayloadStatus : int;
 extern const uint32_t PayloadStatus_internal_data_[];
 enum PayloadType : int;
@@ -172,6 +174,9 @@ internal::EnumTraitsT<::location::nearby::proto::connections::OperationResultCat
 template <>
 internal::EnumTraitsT<::location::nearby::proto::connections::OperationResultCode_internal_data_>
     internal::EnumTraitsImpl::value<::location::nearby::proto::connections::OperationResultCode>;
+template <>
+internal::EnumTraitsT<::location::nearby::proto::connections::OsType_internal_data_>
+    internal::EnumTraitsImpl::value<::location::nearby::proto::connections::OsType>;
 template <>
 internal::EnumTraitsT<::location::nearby::proto::connections::PayloadStatus_internal_data_>
     internal::EnumTraitsImpl::value<::location::nearby::proto::connections::PayloadStatus>;
@@ -1249,6 +1254,7 @@ enum OperationResultCode : int {
   NEARBY_CONNECTION_LISTENER_NULL = 4610,
   NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE = 4611,
   NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612,
+  NEARBY_PAIRED_KEY_VERIFICATION_FAILURE = 4613,
   DCT_ERROR_BLE_DISABLED = 5000,
   DCT_ERROR_BLE_ADV_FAILED = 5001,
   DCT_ERROR_BLE_SCAN_FAILED = 5002,
