@@ -39,17 +39,18 @@ class TransferMetadata {
     kAwaitingLocalConfirmation,
     kAwaitingRemoteAcceptance,
     kInProgress,
-    kComplete,  // final
-    kFailed,  // final
-    kRejected,  // final
-    kCancelled,  // final
-    kTimedOut,  // final
-    kMediaUnavailable,  // final
-    kNotEnoughSpace,  // final
-    kUnsupportedAttachmentType,  // final
+    kComplete,                    // final
+    kFailed,                      // final
+    kRejected,                    // final
+    kCancelled,                   // final
+    kTimedOut,                    // final
+    kMediaUnavailable,            // final
+    kNotEnoughSpace,              // final
+    kUnsupportedAttachmentType,   // final
     kDeviceAuthenticationFailed,  // final
-    kIncompletePayloads,  // final
-    kMaxValue = kIncompletePayloads
+    kIncompletePayloads,          // final
+    kCancelling,
+    kMaxValue = kCancelling
   };
   // LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
 

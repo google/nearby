@@ -45,6 +45,7 @@ bool TransferMetadata::IsFinalStatus(Status status) {
       return true;
     case Status::kAwaitingLocalConfirmation:
     case Status::kAwaitingRemoteAcceptance:
+    case Status::kCancelling:
     case Status::kConnecting:
     case Status::kInProgress:
     case Status::kUnknown:
@@ -86,6 +87,8 @@ std::string TransferMetadata::StatusToString(Status status) {
       return "kDeviceAuthenticationFailed";
     case Status::kIncompletePayloads:
       return "kIncompletePayloads";
+    case Status::kCancelling:
+      return "kCancelling";
   }
 }
 // LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
