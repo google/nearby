@@ -157,7 +157,7 @@ class FakeNearbySharingService : public NearbySharingService {
   FakeNearbyConnectionsManager& fake_nearby_connections_manager() {
     return connections_manager_;
   }
-  FakeTaskRunner& fake_task_runner() { return service_thread_; }
+  FakeSingleThreadTaskRunner& fake_task_runner() { return service_thread_; }
   analytics::AnalyticsRecorderImpl& analytics_recorder() {
     return analytics_recorder_;
   }
@@ -204,7 +204,7 @@ class FakeNearbySharingService : public NearbySharingService {
   ObserverList<TransferUpdateCallback> foreground_receive_transfer_callbacks_;
   ObserverList<TransferUpdateCallback> background_receive_transfer_callbacks_;
   FakeClock clock_;
-  FakeTaskRunner service_thread_;
+  FakeSingleThreadTaskRunner service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_;

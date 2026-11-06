@@ -14,7 +14,11 @@
 
 #include "sharing/internal/test/fake_context.h"
 
+#include <memory>
+
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
+#include "internal/platform/task_runner.h"
 
 namespace nearby {
 namespace {
@@ -24,7 +28,20 @@ TEST(FakeContext, TestAccessMockContext) {
   EXPECT_NE(context.GetClock(), nullptr);
   EXPECT_NE(context.CreateTimer(), nullptr);
   EXPECT_NE(context.GetConnectivityManager(), nullptr);
-  EXPECT_NE(context.CreateSequencedTaskRunner(), nullptr);
+  std::unique_ptr<SingleThreadTaskRunner> sequenced_runner =
+      context.CreateSequencedTaskRunner();
+  ASSERT_NE(sequenced_runner, nullptr);
+  ASSERT_EQ(context.last_sequenced_task_runner(), sequenced_runner.get());
+  EXPECT_NE(sequenced_runner->GetThreadId(), 0u);
+  EXPECT_NE(sequenced_runner->GetThreadId(), GetCurrentThreadId());
+
+  ThreadId observed_tid = 0;
+  EXPECT_TRUE(sequenced_runner->PostTask(
+      [&observed_tid]() { observed_tid = GetCurrentThreadId(); }));
+  ASSERT_TRUE(
+      context.last_sequenced_task_runner()->SyncWithTimeout(absl::Seconds(1)));
+  EXPECT_EQ(observed_tid, sequenced_runner->GetThreadId());
+
   EXPECT_NE(context.CreateConcurrentTaskRunner(5), nullptr);
 }
 

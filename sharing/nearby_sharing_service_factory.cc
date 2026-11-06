@@ -47,7 +47,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
 
   context_ =
       std::make_unique<ContextImpl>(sharing_platform);
-  std::unique_ptr<TaskRunner> service_thread =
+  std::unique_ptr<SingleThreadTaskRunner> service_thread =
       context_->CreateSequencedTaskRunner();
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(

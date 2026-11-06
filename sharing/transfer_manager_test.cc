@@ -34,7 +34,7 @@ constexpr absl::Duration kNotificationTimeout = absl::Milliseconds(200);
 
 TEST(TransferManager, MediumUpgradeSuccess) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -60,7 +60,7 @@ TEST(TransferManager, MediumUpgradeSuccess) {
 
 TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -87,7 +87,7 @@ TEST(TransferManager, SendAfterMediumUpgradeSuccess) {
 
 TEST(TransferManager, MediumUpgradeFailed) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -111,7 +111,7 @@ TEST(TransferManager, MediumUpgradeFailed) {
 
 TEST(TransferManager, MediumUpgradeTimeout) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -136,7 +136,7 @@ TEST(TransferManager, MediumUpgradeTimeout) {
 
 TEST(TransferManager, CancelStartedTransfer) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -162,7 +162,7 @@ TEST(TransferManager, CancelStartedTransfer) {
 
 TEST(TransferManager, CancelTimedOutMediumUpgrade) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 
@@ -188,7 +188,7 @@ TEST(TransferManager, CancelTimedOutMediumUpgrade) {
 
 TEST(TransferManager, MediumUpgradeBeforeStartTransfer) {
   FakeClock fake_clock;
-  FakeTaskRunner executor(&fake_clock, /*concurrent_count=*/1);
+  FakeSingleThreadTaskRunner executor(&fake_clock);
   absl::Notification notification;
   bool is_called = false;
 

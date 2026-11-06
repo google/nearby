@@ -348,7 +348,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  FakeSingleThreadTaskRunner fake_task_runner_{&fake_clock_};
   FakeDeviceInfo fake_device_info_;
   FakeNearbyConnectionsManager fake_connections_manager_;
   NearbyConnectionImpl connection_;

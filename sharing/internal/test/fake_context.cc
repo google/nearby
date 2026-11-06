@@ -58,8 +58,10 @@ api::FastInitiationManager& FakeContext::GetFastInitiationManager() const {
   return *fake_fast_initiation_manager_;
 }
 
-std::unique_ptr<TaskRunner> FakeContext::CreateSequencedTaskRunner() const {
-  auto task_runner = std::make_unique<FakeTaskRunner>(fake_clock_.get(), 1);
+std::unique_ptr<SingleThreadTaskRunner>
+FakeContext::CreateSequencedTaskRunner() const {
+  auto task_runner =
+      std::make_unique<FakeSingleThreadTaskRunner>(fake_clock_.get());
   last_sequenced_task_runner_ = task_runner.get();
   return task_runner;
 }

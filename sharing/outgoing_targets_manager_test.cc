@@ -47,7 +47,7 @@ using ::testing::SizeIs;
 class OutgoingTargetsManagerTest : public ::testing::Test {
  protected:
   OutgoingTargetsManagerTest()
-      : service_thread_(&clock_, /*count=*/1),
+      : service_thread_(&clock_),
         analytics_recorder_(/*vendor_id=*/0,
                             /*event_logger=*/nullptr),
         outgoing_targets_manager_(
@@ -59,7 +59,7 @@ class OutgoingTargetsManagerTest : public ::testing::Test {
             transfer_update_callback_.AsStdFunction()) {}
 
   FakeClock clock_;
-  FakeTaskRunner service_thread_;
+  FakeSingleThreadTaskRunner service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
   analytics::AnalyticsRecorderImpl analytics_recorder_;
   testing::MockFunction<void(const ShareTarget&)>

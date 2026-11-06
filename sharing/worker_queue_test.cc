@@ -28,7 +28,7 @@ namespace {
 
 TEST(WorkerQueueTest, SecondStartReturnsFalse) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   WorkerQueue<int> queue(&task_runner);
   EXPECT_TRUE(queue.Start([]() {}));
   EXPECT_FALSE(queue.Start([]() {}));
@@ -36,7 +36,7 @@ TEST(WorkerQueueTest, SecondStartReturnsFalse) {
 
 TEST(WorkerQueueTest, StartAfterStopReturnsFalse) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   WorkerQueue<int> queue(&task_runner);
   EXPECT_TRUE(queue.Start([]() {}));
   queue.Stop();
@@ -45,7 +45,7 @@ TEST(WorkerQueueTest, StartAfterStopReturnsFalse) {
 
 TEST(WorkerQueueTest, QueueItems) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   WorkerQueue<int> queue(&task_runner);
   absl::Notification notification;
   // Block the task runner thread.
@@ -67,7 +67,7 @@ TEST(WorkerQueueTest, QueueItems) {
 
 TEST(WorkerQueueTest, QueueItemsWhileCallbackRunning) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   WorkerQueue<int> queue(&task_runner);
   absl::Notification notification1;
   absl::Notification notification2;
@@ -92,7 +92,7 @@ TEST(WorkerQueueTest, QueueItemsWhileCallbackRunning) {
 
 TEST(WorkerQueueTest, StopStopsCallback) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   auto queue = std::make_unique<WorkerQueue<int>>(&task_runner);
   queue->Queue(1);
   queue->Queue(2);
@@ -116,7 +116,7 @@ TEST(WorkerQueueTest, StopStopsCallback) {
 
 TEST(WorkerQueueTest, StopWaitsForInFlightCallback) {
   FakeClock fake_clock;
-  FakeTaskRunner task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner task_runner(&fake_clock);
   auto queue = std::make_unique<WorkerQueue<int>>(&task_runner);
   absl::Notification notification1;
   absl::Notification notification2;

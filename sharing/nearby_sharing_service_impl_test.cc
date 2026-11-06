@@ -427,8 +427,8 @@ class NearbySharingServiceImplTest : public testing::Test {
         true);
 
     prefs::RegisterNearbySharingPrefs(preference_manager_);
-    auto fake_task_runner =
-        std::make_unique<FakeTaskRunner>(fake_context_.fake_clock(), 1);
+    auto fake_task_runner = std::make_unique<FakeSingleThreadTaskRunner>(
+        fake_context_.fake_clock());
     sharing_service_task_runner_ = fake_task_runner.get();
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
@@ -481,7 +481,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::unique_ptr<NearbySharingServiceImpl> CreateService(
-      std::unique_ptr<FakeTaskRunner> task_runner) {
+      std::unique_ptr<FakeSingleThreadTaskRunner> task_runner) {
     return std::make_unique<NearbySharingServiceImpl>(
         std::move(task_runner), &fake_context_, mock_sharing_platform_,
         &nearby_identity_client_,
@@ -1287,7 +1287,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;
-  FakeTaskRunner* sharing_service_task_runner_ = nullptr;
+  FakeSingleThreadTaskRunner* sharing_service_task_runner_ = nullptr;
   bool is_shutdown_ = false;
   absl::Mutex connection_output_mutex_;
   std::queue<std::unique_ptr<Frame>> frames_data_

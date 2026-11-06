@@ -34,8 +34,6 @@
 
 namespace nearby {
 
-inline int GetCurrentTid() { return api::GetCurrentTid(); }
-
 // Main interface to be used by platform as a base class for
 // - MultiThreadExecutor
 // - SingleThreadExecutor
@@ -97,6 +95,14 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
  protected:
   explicit SubmittableExecutor(std::unique_ptr<api::SubmittableExecutor> impl)
       : impl_(std::move(impl)) {}
+
+  // Submits a runnable directly to the underlying platform executor without
+  // PendingJobRegistry monitoring or lock annotations. Returns false if the
+  // underlying executor is null or shutting down.
+  bool SubmitInternal(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    return DoSubmit(std::move(runnable));
+  }
 
  private:
   void DoShutdown() ABSL_LOCKS_EXCLUDED(mutex_) {

@@ -43,7 +43,8 @@ class Context {
   virtual ConnectivityManager* GetConnectivityManager() const = 0;
   virtual sharing::api::BluetoothAdapter& GetBluetoothAdapter() const = 0;
   virtual api::FastInitiationManager& GetFastInitiationManager() const = 0;
-  virtual std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const = 0;
+  virtual std::unique_ptr<SingleThreadTaskRunner> CreateSequencedTaskRunner()
+      const = 0;
 
   // Creates task runner concurrently. |concurrent_count| is the maximum
   // count of tasks running at the same time.

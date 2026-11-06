@@ -431,7 +431,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
   }
 
   nearby::FakeContext fake_context_;
-  FakeTaskRunner fake_task_runner_{fake_context_.fake_clock(), 1};
+  FakeSingleThreadTaskRunner fake_task_runner_{fake_context_.fake_clock()};
   nearby::FakeDeviceInfo fake_device_info_;
   nearby::FakeConnectivityManager fake_connectivity_manager_;
   bool should_use_web_rtc_ = false;

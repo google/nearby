@@ -154,7 +154,7 @@ TEST(FakeTimer, WaitForRunningTask) {
   bool finish = false;
   FakeClock clock;
   FakeTimer timer1(&clock);
-  FakeTaskRunner task_runner{&clock, 1};
+  FakeSingleThreadTaskRunner task_runner{&clock};
 
   timer1.Start(50, 0, [&]() {
     absl::SleepFor(absl::Milliseconds(2000));
