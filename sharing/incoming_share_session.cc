@@ -126,6 +126,8 @@ IncomingShareSession::ProcessIntroduction(
   }
   AttachmentContainer::Builder builder;
   builder.SetDestinationDirectory(destination_directory);
+  // Note: introduction_frame.required_package is not used on non-Android
+  // platforms.
   builder.ReserveAttachmentsCount(
       introduction_frame.text_metadata_size(),
       introduction_frame.file_metadata_size() + app_file_count,
