@@ -32,6 +32,7 @@ objc_library(
     name = "comm",
     srcs = [
         "multi_thread_executor.mm",
+        "single_thread_executor.mm",
     ],
     hdrs = [
         "multi_thread_executor.h",
@@ -49,6 +50,8 @@ objc_library(
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 

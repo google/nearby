@@ -14,6 +14,7 @@
 
 #import <XCTest/XCTest.h>
 
+#include <memory>
 #include <utility>
 
 #include "absl/time/time.h"
@@ -82,6 +83,45 @@ using SingleThreadExecutor = ::nearby::api::SubmittableExecutor;
     [expectation fulfill];
   });
   executor->Shutdown();
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+  XCTAssertEqual(self.counter, 1);
+}
+
+// Tests that all tasks run sequentially on the same persistent worker thread.
+- (void)testTasksRunOnSinglePersistentThread {
+  std::unique_ptr<SingleThreadExecutor> executor([self executor]);
+  const nearby::ThreadId callerThreadId = nearby::api::GetCurrentThreadId();
+  XCTAssertNotEqual(callerThreadId, 0ULL);
+
+  auto firstWorkerThreadId = std::make_shared<nearby::ThreadId>(0);
+  auto secondWorkerThreadId = std::make_shared<nearby::ThreadId>(0);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"tasks finished"];
+
+  executor->Execute([firstWorkerThreadId]() {
+    *firstWorkerThreadId = nearby::api::GetCurrentThreadId();
+  });
+  executor->Execute([secondWorkerThreadId, expectation]() {
+    *secondWorkerThreadId = nearby::api::GetCurrentThreadId();
+    [expectation fulfill];
+  });
+
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+  XCTAssertNotEqual(*firstWorkerThreadId, 0ULL);
+  XCTAssertNotEqual(*firstWorkerThreadId, callerThreadId);
+  XCTAssertEqual(*firstWorkerThreadId, *secondWorkerThreadId);
+}
+
+// Tests that destroying the executor from inside one of its own tasks exits cleanly.
+- (void)testSelfDestroyInsideTask {
+  auto holder = std::make_shared<std::unique_ptr<SingleThreadExecutor>>([self executor]);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"destroyed"];
+
+  (*holder)->Execute([self, holder, expectation]() {
+    holder->reset();
+    self.counter++;
+    [expectation fulfill];
+  });
+
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
   XCTAssertEqual(self.counter, 1);
 }

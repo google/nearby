@@ -15,15 +15,46 @@
 #ifndef PLATFORM_IMPL_APPLE_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_APPLE_SINGLE_THREAD_EXECUTOR_H_
 
-#import "internal/platform/implementation/apple/multi_thread_executor.h"
+#include <pthread.h>
+
+#include <deque>
+#include <memory>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/submittable_executor.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace apple {
 
-class SingleThreadExecutor : public MultiThreadExecutor {
+class SingleThreadExecutor : public api::SubmittableExecutor {
  public:
-  SingleThreadExecutor() : MultiThreadExecutor(1) {}
-  ~SingleThreadExecutor() override = default;
+  SingleThreadExecutor();
+  ~SingleThreadExecutor() override;
+  SingleThreadExecutor(const SingleThreadExecutor&) = delete;
+  SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
+
+  void Execute(Runnable&& runnable) override;
+  bool DoSubmit(Runnable&& runnable) override;
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(join_mutex_);
+
+ private:
+  struct WorkerState {
+    absl::Mutex mutex;
+    std::deque<Runnable> queue ABSL_GUARDED_BY(mutex);
+    bool shutting_down ABSL_GUARDED_BY(mutex) = false;
+  };
+
+  static void* ThreadMain(void* arg);
+  static void RunWorkerLoop(WorkerState& state)
+      ABSL_LOCKS_EXCLUDED(state.mutex);
+
+  std::shared_ptr<WorkerState> state_;
+  pthread_t thread_{};
+  bool thread_started_ = false;
+  absl::Mutex join_mutex_;
+  bool thread_joined_ ABSL_GUARDED_BY(join_mutex_) = false;
 };
 
 }  // namespace apple

@@ -15,12 +15,21 @@
 #ifndef PLATFORM_API_EXECUTOR_H_
 #define PLATFORM_API_EXECUTOR_H_
 
+#include <cstdint>
+
 #include "internal/platform/runnable.h"
 
 namespace nearby {
+
+using ThreadId = uint64_t;
+
 namespace api {
 
-int GetCurrentTid();
+#if defined(NEARBY_CHROMIUM)
+inline ThreadId GetCurrentThreadId() { return 0; }
+#else
+ThreadId GetCurrentThreadId();
+#endif
 
 // This abstract class is the superclass of all classes representing an
 // Executor.
@@ -37,6 +46,7 @@ class Executor {
 };
 
 }  // namespace api
+
 }  // namespace nearby
 
 #endif  // PLATFORM_API_EXECUTOR_H_

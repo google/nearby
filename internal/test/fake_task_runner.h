@@ -24,6 +24,8 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/multi_thread_executor.h"
+#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/submittable_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
@@ -32,10 +34,7 @@ namespace nearby {
 
 class FakeTaskRunner : public TaskRunner {
  public:
-  FakeTaskRunner(FakeClock* clock, uint32_t count)
-      : clock_(clock),
-        count_(count),
-        task_executor_(std::make_unique<MultiThreadExecutor>(count)) {}
+  FakeTaskRunner(FakeClock* clock, uint32_t count);
   ~FakeTaskRunner() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool PostTask(absl::AnyInvocable<void()> task) override
@@ -56,14 +55,42 @@ class FakeTaskRunner : public TaskRunner {
   bool SyncWithTimeout(absl::Duration timeout);
 
  private:
+  friend class FakeSingleThreadTaskRunner;
+  FakeTaskRunner(FakeClock* clock,
+                 std::unique_ptr<SubmittableExecutor> task_executor);
+
   mutable absl::Mutex mutex_;
   FakeClock* clock_ = nullptr;
-  uint32_t count_ = 0;
-  std::unique_ptr<MultiThreadExecutor> task_executor_ ABSL_GUARDED_BY(mutex_) =
-      nullptr;
+  std::unique_ptr<SubmittableExecutor> task_executor_ = nullptr;
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 
   // Tracks delayed tasks.
   std::vector<std::unique_ptr<Timer>> timers_ ABSL_GUARDED_BY(mutex_);
+};
+
+class FakeSingleThreadTaskRunner final : public SingleThreadTaskRunner {
+ public:
+  explicit FakeSingleThreadTaskRunner(FakeClock* clock);
+  ~FakeSingleThreadTaskRunner() override;
+
+  bool PostTask(absl::AnyInvocable<void()> task) override;
+  bool PostDelayedTask(absl::Duration delay,
+                       absl::AnyInvocable<void()> task) override;
+  void Shutdown() override;
+  ThreadId GetThreadId() const override;
+
+  // Wait for all queued tasks to complete.
+  void Sync();
+
+  // In some test cases, we only need to wait for a timeout.
+  bool SyncWithTimeout(absl::Duration timeout);
+
+ private:
+  FakeSingleThreadTaskRunner(FakeClock* clock,
+                             std::unique_ptr<SingleThreadExecutor> executor);
+
+  ThreadId thread_id_ = 0;
+  FakeTaskRunner impl_;
 };
 
 }  // namespace nearby

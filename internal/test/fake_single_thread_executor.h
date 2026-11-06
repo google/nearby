@@ -33,6 +33,7 @@ class ABSL_LOCKABLE FakeSingleThreadExecutor final
   FakeSingleThreadExecutor& operator=(FakeSingleThreadExecutor&&) = default;
 
   void Execute(const std::string& name, Runnable&& runnable) override;
+  void Execute(Runnable&& runnable) override;
 
   void SetRunExecutablesImmediately(bool run_executables_immediately) {
     run_executables_immediately_ = run_executables_immediately;
