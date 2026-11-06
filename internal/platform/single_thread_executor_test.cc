@@ -16,16 +16,19 @@
 
 #include <atomic>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
+#include "internal/platform/implementation/executor.h"
 
 namespace nearby {
 
@@ -169,6 +172,87 @@ TEST(SingleThreadExecutorTest, ThreadCheck_SubmitCallable) {
 
   EXPECT_TRUE(submitted);
   EXPECT_EQ(future.Get().result(), 1);
+}
+
+TEST(SingleThreadExecutorTest, GetThreadIdMatchesExecutionThread) {
+  SingleThreadExecutor executor;
+  const ThreadId caller_tid = api::GetCurrentThreadId();
+  const ThreadId executor_tid = executor.GetThreadId();
+  EXPECT_NE(caller_tid, 0u);
+  EXPECT_NE(executor_tid, 0u);
+  EXPECT_NE(executor_tid, caller_tid);
+
+  std::vector<ThreadId> observed_tids;
+  executor.Execute([&observed_tids]() {
+    observed_tids.push_back(api::GetCurrentThreadId());
+  });
+  executor.Execute("named-task", [&observed_tids]() {
+    observed_tids.push_back(api::GetCurrentThreadId());
+  });
+
+  Future<ThreadId> future;
+  ASSERT_TRUE(executor.Submit<ThreadId>(
+      []() { return ExceptionOr<ThreadId>{api::GetCurrentThreadId()}; },
+      &future));
+  EXPECT_EQ(future.Get().result(), executor_tid);
+
+  ASSERT_EQ(observed_tids.size(), 2u);
+  EXPECT_EQ(observed_tids[0], executor_tid);
+  EXPECT_EQ(observed_tids[1], executor_tid);
+}
+
+TEST(SingleThreadExecutorTest, DifferentExecutorsHaveDifferentThreadIds) {
+  SingleThreadExecutor executor1;
+  SingleThreadExecutor executor2;
+
+  EXPECT_NE(executor1.GetThreadId(), 0u);
+  EXPECT_NE(executor2.GetThreadId(), 0u);
+  EXPECT_NE(executor1.GetThreadId(), executor2.GetThreadId());
+
+  Future<ThreadId> future1;
+  Future<ThreadId> future2;
+  ASSERT_TRUE(executor1.Submit<ThreadId>(
+      []() { return ExceptionOr<ThreadId>{api::GetCurrentThreadId()}; },
+      &future1));
+  ASSERT_TRUE(executor2.Submit<ThreadId>(
+      []() { return ExceptionOr<ThreadId>{api::GetCurrentThreadId()}; },
+      &future2));
+
+  EXPECT_EQ(future1.Get().result(), executor1.GetThreadId());
+  EXPECT_EQ(future2.Get().result(), executor2.GetThreadId());
+}
+
+TEST(SingleThreadExecutorTest, MovePreservesThreadId) {
+  SingleThreadExecutor executor1;
+  const ThreadId original_tid = executor1.GetThreadId();
+  ASSERT_NE(original_tid, 0u);
+
+  SingleThreadExecutor executor2(std::move(executor1));
+  EXPECT_EQ(executor2.GetThreadId(), original_tid);
+
+  SingleThreadExecutor executor3;
+  const ThreadId executor3_initial_tid = executor3.GetThreadId();
+  EXPECT_NE(executor3_initial_tid, original_tid);
+  executor3 = std::move(executor2);
+  EXPECT_EQ(executor3.GetThreadId(), original_tid);
+
+  absl::Notification done;
+  ThreadId observed_tid = 0;
+  executor3.Execute([&observed_tid, &done]() {
+    observed_tid = api::GetCurrentThreadId();
+    done.Notify();
+  });
+  ASSERT_TRUE(done.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  EXPECT_EQ(observed_tid, original_tid);
+}
+
+TEST(SingleThreadExecutorTest, GetThreadIdConsistentAfterShutdown) {
+  SingleThreadExecutor executor;
+  const ThreadId tid_before = executor.GetThreadId();
+  EXPECT_NE(tid_before, 0u);
+
+  executor.Shutdown();
+  EXPECT_EQ(executor.GetThreadId(), tid_before);
 }
 
 }  // namespace nearby

@@ -106,6 +106,10 @@ std::string ImplementationPlatform::GetCustomSavePath(
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 
+ThreadId GetCurrentThreadId() {
+  return static_cast<ThreadId>(::GetCurrentThreadId());
+}
+
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
     bool initial_value) {
   return std::make_unique<windows::AtomicBoolean>(initial_value);

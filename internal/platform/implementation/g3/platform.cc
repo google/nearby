@@ -14,6 +14,9 @@
 
 #include "internal/platform/implementation/platform.h"
 
+#include <sys/syscall.h>
+#include <unistd.h>
+
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -24,7 +27,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "third_party/gloop/thread/thread.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
@@ -38,6 +40,7 @@
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/g3/atomic_boolean.h"
 #include "internal/platform/implementation/g3/atomic_reference.h"
 #include "internal/platform/implementation/g3/awdl.h"
@@ -89,9 +92,8 @@ std::string ImplementationPlatform::GetCustomSavePath(
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }
 
-int GetCurrentTid() {
-  const LiveThread* my = Thread_GetMyLiveThread();
-  return LiveThread_Pthread_TID(my);
+ThreadId GetCurrentThreadId() {
+  return static_cast<ThreadId>(syscall(SYS_gettid));
 }
 
 std::unique_ptr<SubmittableExecutor>

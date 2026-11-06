@@ -16,10 +16,12 @@
 #define PLATFORM_IMPL_G3_MULTI_THREAD_EXECUTOR_H_
 
 #include <atomic>
+#include <utility>
 
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
+#include "internal/platform/runnable.h"
 #include "nisaba/port/thread_pool.h"
 
 namespace nearby {
@@ -30,9 +32,20 @@ namespace g3 {
 class MultiThreadExecutor : public api::SubmittableExecutor {
  public:
   explicit MultiThreadExecutor(int max_parallelism)
+#if defined(THIRD_PARTY_GLOOP_THREAD_THREADPOOL_H_) && \
+    !THREAD_HAVE_ALTERNATE_THREAD_POOL
+      // For 1-thread executors (including SingleThreadExecutor), spawn the
+      // worker eagerly and disable gloop's 1-minute idle-worker GC so the
+      // worker ThreadId stays constant for the lifetime of the executor.
+      : thread_pool_(max_parallelism,
+                     ThreadPool::Options{.force_eager_thread_creation =
+                                             (max_parallelism == 1)}) {
+  }
+#else
       : thread_pool_(max_parallelism) {
     thread_pool_.StartWorkers();
   }
+#endif
   void Execute(Runnable&& runnable) override {
     if (!shutdown_) {
       thread_pool_.Schedule(std::move(runnable));
