@@ -78,6 +78,9 @@ WifiHotspotBwuHandler::WifiHotspotBwuHandler(
 std::string WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
+  // The SoftAP may already be up for another upgrade, in which case it must
+  // not be torn down if this upgrade fails.
+  const bool started_hotspot = !wifi_hotspot_medium_.IsHotspotStarted();
   // Create SoftAP
   if (!wifi_hotspot_medium_.StartWifiHotspot()) {
     LOG(INFO) << "Failed to start Wifi Hotspot!";
@@ -95,6 +98,11 @@ std::string WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
           << " because it failed to start listening for incoming WifiLan "
              "connections.";
+      // The base handler only reverts upgrades that return a frame, so stop
+      // the SoftAP started by this call here.
+      if (started_hotspot) {
+        wifi_hotspot_medium_.StopWifiHotspot();
+      }
       return {};
     }
     LOG(INFO)

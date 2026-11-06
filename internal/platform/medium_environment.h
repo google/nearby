@@ -389,6 +389,16 @@ class MediumEnvironment {
   void SetWifiDirectGoSupported(bool supported);
   bool IsWifiDirectGoSupported() const;
 
+  // Sets whether ListenForService() fails on simulated Wi-Fi Hotspot mediums,
+  // as if the platform couldn't open a server socket. It is false by default.
+  void SetFailWifiHotspotListenForService(bool fail);
+  bool ShouldFailWifiHotspotListenForService() const;
+
+  // Sets whether ListenForService() fails on simulated Wi-Fi Direct mediums, as
+  // if the platform couldn't open a server socket. It is false by default.
+  void SetFailWifiDirectListenForService(bool fail);
+  bool ShouldFailWifiDirectListenForService() const;
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
@@ -433,7 +443,7 @@ class MediumEnvironment {
     bool is_go = false;
     // Set "true" when GO is started or GC is connected
     bool is_active = false;
-    const WifiDirectCredentials* wifi_direct_credentials;
+    const WifiDirectCredentials* wifi_direct_credentials = nullptr;
   };
 
   struct WifiHotspotMediumContext {
@@ -441,7 +451,7 @@ class MediumEnvironment {
     bool is_ap = true;
     // Set "true" when SoftAP is started or STA is connected
     bool is_active = false;
-    const HotspotCredentials* hotspot_credentials;
+    const HotspotCredentials* hotspot_credentials = nullptr;
   };
 
   struct BluetoothPairingContext {
@@ -520,6 +530,8 @@ class MediumEnvironment {
   std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   bool ble_extended_advertisements_available_ = false;
   bool wifi_direct_go_supported_ = true;
+  std::atomic_bool fail_wifi_hotspot_listen_for_service_ = false;
+  std::atomic_bool fail_wifi_direct_listen_for_service_ = false;
 };
 
 }  // namespace nearby

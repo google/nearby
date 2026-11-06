@@ -57,6 +57,9 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
       wifi_direct_medium_.GetCredentials(upgrade_service_id);
   wifi_direct_crendential->SetRemoteDeviceName(remote_device_name);
 
+  // The GO may already be up for another upgrade, in which case it must not be
+  // torn down if this upgrade fails.
+  const bool started_go = !wifi_direct_medium_.IsGOStarted();
   // Create WifiDirect GO
   if (!wifi_direct_medium_.StartWifiDirect()) {
     LOG(INFO) << "Failed to start Wifi Direct!";
@@ -74,6 +77,11 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
           << " because it failed to start listening for incoming WifiLan "
              "connections.";
+      // The base handler only reverts upgrades that return a frame, so stop
+      // the GO started by this call here.
+      if (started_go) {
+        wifi_direct_medium_.StopWifiDirect();
+      }
       return {};
     }
     LOG(INFO)

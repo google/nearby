@@ -124,6 +124,22 @@ TEST_F(WifiDirectMediumTest, CanConnectDisconnectWifiDirect) {
   EXPECT_TRUE(wifi_direct_a.DisconnectWifiDirect());
 }
 
+TEST_F(WifiDirectMediumTest, ListenForServiceFailsUntilEnvironmentRestarts) {
+  env_.SetFailWifiDirectListenForService(true);
+  {
+    WifiDirectMedium wifi_direct_a;
+    EXPECT_FALSE(wifi_direct_a.ListenForService().IsValid());
+  }
+
+  env_.Stop();
+  env_.Start();
+
+  WifiDirectMedium wifi_direct_b;
+  WifiDirectServerSocket server_socket = wifi_direct_b.ListenForService();
+  ASSERT_TRUE(server_socket.IsValid());
+  server_socket.Close();
+}
+
 TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);

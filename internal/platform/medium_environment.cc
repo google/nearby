@@ -115,6 +115,8 @@ void MediumEnvironment::Reset() {
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
     wifi_direct_go_supported_ = true;
+    fail_wifi_hotspot_listen_for_service_ = false;
+    fail_wifi_direct_listen_for_service_ = false;
   });
   Sync();
 }
@@ -980,7 +982,7 @@ api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
   for (auto& medium_info : wifi_direct_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
-    if (info.is_go && info.is_active) {
+    if (info.is_go && info.is_active && info.wifi_direct_credentials) {
       if ((info.wifi_direct_credentials->GetDeviceName() == device_name) ||
           (!ip_address.empty() &&
            (info.wifi_direct_credentials->GetGateway() == ip_address))) {
@@ -1030,6 +1032,8 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
             info.is_go = is_go;
             if (enabled) {
               info.wifi_direct_credentials = wifi_direct_credentials;
+            } else {
+              info.wifi_direct_credentials = nullptr;
             }
             continue;
           }
@@ -1405,6 +1409,22 @@ void MediumEnvironment::SetWifiDirectGoSupported(bool supported) {
 
 bool MediumEnvironment::IsWifiDirectGoSupported() const {
   return wifi_direct_go_supported_;
+}
+
+void MediumEnvironment::SetFailWifiHotspotListenForService(bool fail) {
+  fail_wifi_hotspot_listen_for_service_ = fail;
+}
+
+bool MediumEnvironment::ShouldFailWifiHotspotListenForService() const {
+  return fail_wifi_hotspot_listen_for_service_;
+}
+
+void MediumEnvironment::SetFailWifiDirectListenForService(bool fail) {
+  fail_wifi_direct_listen_for_service_ = fail;
+}
+
+bool MediumEnvironment::ShouldFailWifiDirectListenForService() const {
+  return fail_wifi_direct_listen_for_service_;
 }
 
 }  // namespace nearby

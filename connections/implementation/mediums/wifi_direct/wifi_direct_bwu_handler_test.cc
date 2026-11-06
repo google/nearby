@@ -199,6 +199,43 @@ TEST_F(WifiDirectTest,
   EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
 }
 
+// Verifies that when the GO comes up but listening for incoming connections
+// fails, the BWU initiator stops the GO it started.
+TEST_F(WifiDirectTest, ListenFailureStopsGroupOwnerStartedByUpgrade) {
+  env_.SetFailWifiDirectListenForService(true);
+  ClientProxy client;
+  Mediums mediums;
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()),
+      /*incoming_connection_callback=*/nullptr);
+
+  std::string upgrade_path_available_frame =
+      handler.InitializeUpgradedMediumForEndpoint(
+          &client, std::string(kServiceID), std::string(kEndpointID));
+
+  EXPECT_TRUE(upgrade_path_available_frame.empty());
+  EXPECT_FALSE(mediums.GetWifiDirect().IsGOStarted());
+}
+
+// Verifies that a listening failure doesn't stop a GO that was already started
+// before the upgrade, e.g. for another in-progress upgrade.
+TEST_F(WifiDirectTest, ListenFailureKeepsGroupOwnerStartedBeforeUpgrade) {
+  env_.SetFailWifiDirectListenForService(true);
+  ClientProxy client;
+  Mediums mediums;
+  ASSERT_TRUE(mediums.GetWifiDirect().StartWifiDirect());
+  WifiDirectBwuHandler handler(
+      static_cast<WifiDirect*>(&mediums.GetWifiDirect()),
+      /*incoming_connection_callback=*/nullptr);
+
+  std::string upgrade_path_available_frame =
+      handler.InitializeUpgradedMediumForEndpoint(
+          &client, std::string(kServiceID), std::string(kEndpointID));
+
+  EXPECT_TRUE(upgrade_path_available_frame.empty());
+  EXPECT_TRUE(mediums.GetWifiDirect().IsGOStarted());
+}
+
 }  // namespace connections
 }  // namespace nearby
 

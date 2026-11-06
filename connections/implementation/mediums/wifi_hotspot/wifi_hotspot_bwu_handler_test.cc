@@ -385,5 +385,40 @@ TEST_F(WifiHotspotTest, CreateUpgradedEndpointChannel_ClientRejectsJoin) {
   EXPECT_EQ(prompt->ssid, "DIRECT-SSID");
 }
 
+// Verifies that when the SoftAP comes up but listening for incoming connections
+// fails, the BWU initiator stops the SoftAP it started.
+TEST_F(WifiHotspotTest, ListenFailureStopsHotspotStartedByUpgrade) {
+  env_.SetFailWifiHotspotListenForService(true);
+  ClientProxy client;
+  Mediums mediums;
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(),
+                                /*incoming_connection_callback=*/nullptr);
+
+  std::string upgrade_path_available_frame =
+      handler.InitializeUpgradedMediumForEndpoint(
+          &client, std::string(kServiceID), std::string(kEndpointID));
+
+  EXPECT_TRUE(upgrade_path_available_frame.empty());
+  EXPECT_FALSE(mediums.GetWifiHotspot().IsHotspotStarted());
+}
+
+// Verifies that a listening failure doesn't stop a SoftAP that was already
+// started before the upgrade, e.g. for another in-progress upgrade.
+TEST_F(WifiHotspotTest, ListenFailureKeepsHotspotStartedBeforeUpgrade) {
+  env_.SetFailWifiHotspotListenForService(true);
+  ClientProxy client;
+  Mediums mediums;
+  ASSERT_TRUE(mediums.GetWifiHotspot().StartWifiHotspot());
+  WifiHotspotBwuHandler handler(&mediums.GetWifiHotspot(),
+                                /*incoming_connection_callback=*/nullptr);
+
+  std::string upgrade_path_available_frame =
+      handler.InitializeUpgradedMediumForEndpoint(
+          &client, std::string(kServiceID), std::string(kEndpointID));
+
+  EXPECT_TRUE(upgrade_path_available_frame.empty());
+  EXPECT_TRUE(mediums.GetWifiHotspot().IsHotspotStarted());
+}
+
 }  // namespace connections
 }  // namespace nearby

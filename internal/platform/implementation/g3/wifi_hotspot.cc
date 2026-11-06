@@ -270,6 +270,10 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
 std::unique_ptr<api::WifiHotspotServerSocket>
 WifiHotspotMedium::ListenForService(int port) {
   auto& env = MediumEnvironment::Instance();
+  if (env.ShouldFailWifiHotspotListenForService()) {
+    LOG(INFO) << "G3 WifiHotspot ListenForService: simulated failure.";
+    return nullptr;
+  }
   auto server_socket = std::make_unique<WifiHotspotServerSocket>();
 
   std::string ip_address = env.GetFakeIPAddress();

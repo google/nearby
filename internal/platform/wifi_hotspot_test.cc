@@ -118,6 +118,22 @@ TEST_F(WifiHotspotMediumTest, CanConnectDisconnectHotspot) {
   wifi_hotspot_a.reset();
 }
 
+TEST_F(WifiHotspotMediumTest, ListenForServiceFailsUntilEnvironmentRestarts) {
+  env_.SetFailWifiHotspotListenForService(true);
+  auto wifi_hotspot_a = std::make_unique<WifiHotspotMedium>();
+  EXPECT_FALSE(wifi_hotspot_a->ListenForService().IsValid());
+  wifi_hotspot_a.reset();
+
+  env_.Stop();
+  env_.Start();
+
+  auto wifi_hotspot_b = std::make_unique<WifiHotspotMedium>();
+  WifiHotspotServerSocket server_socket = wifi_hotspot_b->ListenForService();
+  ASSERT_TRUE(server_socket.IsValid());
+  server_socket.Close();
+  wifi_hotspot_b.reset();
+}
+
 TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
