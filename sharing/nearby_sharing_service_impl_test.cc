@@ -526,8 +526,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   void ReceiveMessageFromConnection(std::vector<uint8_t> bytes) {
     sharing_service_task_runner_->PostTask(
         [this, bytes]() { connection_->WriteMessage(bytes); });
-    EXPECT_TRUE(
-        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+    FlushTesting();
   }
 
   void FastForward(absl::Duration duration) {
@@ -1226,15 +1225,18 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void FlushTesting() {
-    // Drain tasks posted from the test/timer thread, then drain any follow-up
-    // task posted onto sharing_service_task_runner_ by an in-flight task (e.g.
-    // a timer callback updating settings and posting an observer task).
+    // Drain tasks posted from the test/timer thread plus chained follow-up
+    // tasks posted onto sharing_service_task_runner_ (e.g. certificate
+    // decryption -> paired-key encryption/result frame callbacks ->
+    // introduction/response/binding frame callbacks -> cancel/observer tasks,
+    // since IncomingFramesReader dispatches each frame callback via PostTask).
     // Short-circuit via ASSERT_TRUE so a wedged task runner fails after one
-    // kTaskWaitTimeout instead of stalling twice.
-    ASSERT_TRUE(
-        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-    ASSERT_TRUE(
-        sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+    // kTaskWaitTimeout.
+    constexpr int kMaxChainedTaskHops = 6;
+    for (int i = 0; i < kMaxChainedTaskHops; ++i) {
+      ASSERT_TRUE(
+          sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+    }
   }
 
   void SetDiskSpace(FilePath path, size_t size) {
@@ -2360,7 +2362,7 @@ TEST_F(NearbySharingServiceImplTest,
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  FlushTesting();
 }
 
 TEST_F(NearbySharingServiceImplTest,
@@ -2391,7 +2393,7 @@ TEST_F(NearbySharingServiceImplTest,
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  FlushTesting();
 }
 
 TEST_F(NearbySharingServiceImplTest, IncomingConnectionEmptyIntroductionFrame) {
@@ -2519,7 +2521,7 @@ TEST_F(NearbySharingServiceImplTest,
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  FlushTesting();
 }
 
 TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {

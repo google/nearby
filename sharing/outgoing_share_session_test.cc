@@ -584,6 +584,7 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
   connection.WriteMessage(std::move(data));
+  EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100)));
 
   EXPECT_THAT(connection_response_received, IsTrue());
 }
@@ -989,6 +990,7 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingSuccess) {
   EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
               IsTrue());
   connection.WriteMessage(std::move(data));
+  EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100)));
 
   EXPECT_THAT(binding_response.status(), Eq(BindingResponse::SUCCESS));
   EXPECT_THAT(binding_response.cert_ids(),
@@ -1099,6 +1101,7 @@ TEST_F(OutgoingShareSessionTest, StartPeerBindingFailure) {
   EXPECT_THAT(response_frame.SerializeToArray(data.data(), data.size()),
               IsTrue());
   connection.WriteMessage(std::move(data));
+  EXPECT_TRUE(fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100)));
 
   EXPECT_THAT(binding_response.status(), Eq(BindingResponse::FAILURE));
   EXPECT_THAT(binding_response.cert_ids(), IsEmpty());

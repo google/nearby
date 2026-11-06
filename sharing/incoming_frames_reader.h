@@ -17,11 +17,11 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <list>
 #include <memory>
 #include <optional>
 #include <queue>
+#include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
@@ -46,11 +46,11 @@ class IncomingFramesReader
   IncomingFramesReader(const IncomingFramesReader&) = delete;
   IncomingFramesReader& operator=(IncomingFramesReader&) = delete;
 
-  // Reads an incoming frame from connection. `callback` is called
-  // with the frame read from connection or nullopt if connection socket is
-  // closed or timeout has occurred. If timeout has occurred, the `is_timeout`
-  // parameter will be true.  Set `timeout` to absl::ZeroDuration() to disable
-  // timeout.
+  // Reads an incoming frame from connection. `callback` is called on the
+  // `service thread` with the frame read from connection or nullopt if
+  // connection socket is closed or timeout has occurred. If timeout has
+  // occurred, the `is_timeout` parameter will be true.  Set `timeout` to
+  // absl::ZeroDuration() to disable timeout.
   //
   // Note: Callers are expected wait for `callback` to be run before scheduling
   // subsequent calls to ReadFrame(..).
@@ -62,10 +62,10 @@ class IncomingFramesReader
       absl::Duration timeout) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Reads a frame of type `frame_type` from `connection`. `callback` is called
-  // with the frame read from connection or nullopt if connection socket is
-  // closed or `timeout` units of time have passed.  If timeout has occurred,
-  // the `is_timeout` parameter will be true.  Set `timeout` to
-  // absl::ZeroDuration() to disable timeout.
+  // on the `service thread` with the frame read from connection or nullopt if
+  // connection socket is closed or `timeout` units of time have passed.  If
+  // timeout has occurred, the `is_timeout` parameter will be true.  Set
+  // `timeout` to absl::ZeroDuration() to disable timeout.
   //
   // Note: Callers are expected wait for |callback| to be run before scheduling
   // subsequent calls to ReadFrame(..).
@@ -83,6 +83,21 @@ class IncomingFramesReader
 
  private:
   struct ReadFrameInfo {
+    ReadFrameInfo() = default;
+    ReadFrameInfo(
+        std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
+            frame_type,
+        absl::AnyInvocable<
+            void(bool is_timeout,
+                 std::optional<nearby::sharing::service::proto::V1Frame>)>
+            callback,
+        absl::Duration timeout)
+        : frame_type(frame_type),
+          callback(std::move(callback)),
+          timeout(timeout) {}
+    ReadFrameInfo(ReadFrameInfo&& other) = default;
+    ReadFrameInfo& operator=(ReadFrameInfo&& other) = default;
+
     std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
         frame_type = std::nullopt;
     absl::AnyInvocable<void(
@@ -92,7 +107,13 @@ class IncomingFramesReader
     absl::Duration timeout = absl::ZeroDuration();
   };
 
-  void ProcessReadRequest(
+  void MakeFrameCallbackOnServiceThread(
+      absl::AnyInvocable<
+          void(bool, std::optional<nearby::sharing::service::proto::V1Frame>)>
+          callback,
+      std::unique_ptr<nearby::sharing::service::proto::V1Frame> frame);
+
+  void AddNewRequest(
       std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
           frame_type,
       absl::AnyInvocable<
@@ -100,13 +121,15 @@ class IncomingFramesReader
                std::optional<nearby::sharing::service::proto::V1Frame>)>
           callback,
       absl::Duration timeout) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  static void DrainPendingReads(std::queue<ReadFrameInfo> queue,
+                                bool is_timeout);
   void CloseAllPendingReads(bool is_timeout) ABSL_LOCKS_EXCLUDED(mutex_);
   void ReadNextFrame() ABSL_LOCKS_EXCLUDED(mutex_);
   void OnDataReadFromConnection(const std::vector<uint8_t>& bytes)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnTimeout();
-  void Done(std::unique_ptr<nearby::sharing::service::proto::V1Frame> frame)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  void Continue() ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<nearby::sharing::service::proto::V1Frame> PopCachedFrame(
       std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
           frame_type) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);

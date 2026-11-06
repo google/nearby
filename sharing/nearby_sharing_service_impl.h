@@ -326,6 +326,13 @@ class NearbySharingServiceImpl
       ::location::nearby::proto::sharing::OSType share_target_os_type);
   void BeginOutgoingTransfer(OutgoingShareSession& session);
   void BeginOutgoingPairing(OutgoingShareSession& session);
+  std::function<void(bool is_timeout,
+                     std::optional<nearby::sharing::service::proto::V1Frame>)>
+  CreateIncomingFrameReadCallback(int64_t share_target_id);
+  std::function<void(bool is_timeout,
+                     std::optional<nearby::sharing::service::proto::V1Frame>)>
+  CreateOutgoingFrameReadCallback(int64_t share_target_id);
+
   void OnIncomingSessionFrameRead(
       int64_t share_target_id,
       bool is_timeout,

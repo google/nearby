@@ -349,7 +349,12 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   SetupBluetoothAdapter();
 }
 
-NearbySharingServiceImpl::~NearbySharingServiceImpl() = default;
+NearbySharingServiceImpl::~NearbySharingServiceImpl() {
+  is_shutting_down_ = nullptr;
+  if (service_thread_ != nullptr) {
+    service_thread_->Shutdown();
+  }
+}
 
 void NearbySharingServiceImpl::Shutdown(
     std::function<void(StatusCodes)> status_codes_callback) {
@@ -815,8 +820,16 @@ NearbySharingServiceImpl::ConnectOutgoingSessionOnServiceThread(
 bool NearbySharingServiceImpl::OutgoingSessionAccept(
     OutgoingShareSession& session) {
   return session.AcceptTransfer(
-      absl::bind_front(&NearbySharingServiceImpl::OnReceiveConnectionResponse,
-                       this, session.share_target().id));
+      [this, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+       share_target_id = session.share_target().id](
+          bool is_timeout, std::optional<ConnectionResponseFrame> frame) {
+        std::shared_ptr<bool> shutting_down = is_shutting_down.lock();
+        if (shutting_down == nullptr || *shutting_down) {
+          return;
+        }
+        OnReceiveConnectionResponse(share_target_id, is_timeout,
+                                    std::move(frame));
+      });
 }
 
 void NearbySharingServiceImpl::Accept(
@@ -2591,6 +2604,38 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           this, share_target_id));
 }
 
+std::function<void(bool is_timeout,
+                   std::optional<nearby::sharing::service::proto::V1Frame>)>
+NearbySharingServiceImpl::CreateIncomingFrameReadCallback(
+    int64_t share_target_id) {
+  return [this, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+          share_target_id](
+             bool is_timeout,
+             std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+    std::shared_ptr<bool> shutting_down = is_shutting_down.lock();
+    if (shutting_down == nullptr || *shutting_down) {
+      return;
+    }
+    OnIncomingSessionFrameRead(share_target_id, is_timeout, std::move(frame));
+  };
+}
+
+std::function<void(bool is_timeout,
+                   std::optional<nearby::sharing::service::proto::V1Frame>)>
+NearbySharingServiceImpl::CreateOutgoingFrameReadCallback(
+    int64_t share_target_id) {
+  return [this, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+          share_target_id](
+             bool is_timeout,
+             std::optional<nearby::sharing::service::proto::V1Frame> frame) {
+    std::shared_ptr<bool> shutting_down = is_shutting_down.lock();
+    if (shutting_down == nullptr || *shutting_down) {
+      return;
+    }
+    OnOutgoingSessionFrameRead(share_target_id, is_timeout, std::move(frame));
+  };
+}
+
 void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
     int64_t share_target_id, bool is_timeout,
     std::optional<nearby::sharing::service::proto::V1Frame> frame) {
@@ -2636,9 +2681,7 @@ void NearbySharingServiceImpl::OnIncomingSessionFrameRead(
   }
 
   session->frames_reader()->ReadFrame(
-      absl::bind_front(&NearbySharingServiceImpl::OnIncomingSessionFrameRead,
-                       this, share_target_id),
-      absl::ZeroDuration());
+      CreateIncomingFrameReadCallback(share_target_id), absl::ZeroDuration());
 }
 
 void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
@@ -2656,9 +2699,7 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
   }
   LOG(INFO) << "Waiting for introduction from " << share_target_id;
   session->frames_reader()->ReadFrame(
-      absl::bind_front(&NearbySharingServiceImpl::OnIncomingSessionFrameRead,
-                       this, share_target_id),
-      kReadFramesTimeout);
+      CreateIncomingFrameReadCallback(share_target_id), kReadFramesTimeout);
 }
 
 void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
@@ -2782,9 +2823,15 @@ void NearbySharingServiceImpl::OnInitiateSyncBindingResponse(
                     << ": Sync binding rpc succeeded: id=" << binding_id;
           session->StartPeerBinding(
               binding_id, BindingRequest::FILESYNC, GetCertIdsForSyncBinding(),
-              absl::bind_front(
-                  &NearbySharingServiceImpl::OnPeerSyncBindingComplete, this,
-                  share_target_id, binding_id));
+              [this, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
+               share_target_id, binding_id](const BindingResponse& response) {
+                std::shared_ptr<bool> shutting_down = is_shutting_down.lock();
+                if (shutting_down == nullptr || *shutting_down) {
+                  return;
+                }
+                OnPeerSyncBindingComplete(share_target_id, binding_id,
+                                          response);
+              });
         } else {
           LOG(INFO) << __func__ << ": Sync binding rpc failed.";
           session->Abort(TransferMetadata::Status::kFailed);
@@ -2890,8 +2937,7 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     return;
   }
   session->SendPayloads(
-      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingSessionFrameRead,
-                       this, share_target_id),
+      CreateOutgoingFrameReadCallback(share_target_id),
       absl::bind_front(
           &NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates, this,
           share_target_id));
@@ -2910,9 +2956,7 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
               Fail(*session, TransferMetadata::Status::kTimedOut);
             }
           },
-          absl::bind_front(
-              &NearbySharingServiceImpl::OnIncomingSessionFrameRead, this,
-              session.share_target().id))) {
+          CreateIncomingFrameReadCallback(session.share_target().id))) {
     return;
   }
   // Don't need to wait for user to accept for Self share.
@@ -2958,9 +3002,7 @@ void NearbySharingServiceImpl::OnOutgoingSessionFrameRead(
   }
 
   session->frames_reader()->ReadFrame(
-      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingSessionFrameRead,
-                       this, share_target_id),
-      absl::ZeroDuration());
+      CreateOutgoingFrameReadCallback(share_target_id), absl::ZeroDuration());
 }
 
 void NearbySharingServiceImpl::OnConnectionDisconnected(
