@@ -93,7 +93,7 @@ class TestShareSession : public ShareSession {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  FakeSingleThreadTaskRunner fake_task_runner_{&fake_clock_};
   FakeNearbyConnectionsManager connections_manager_;
   FakeDeviceInfo device_info_;
   nearby::analytics::MockEventLogger mock_event_logger_;

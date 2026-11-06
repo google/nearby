@@ -126,7 +126,7 @@ class IncomingFramesReaderTest : public testing::Test {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  FakeSingleThreadTaskRunner fake_task_runner_{&fake_clock_};
   FakeDeviceInfo fake_device_info_;
   std::unique_ptr<NearbyConnectionImpl> nearby_connection_;
   std::shared_ptr<IncomingFramesReader> frames_reader_ = nullptr;

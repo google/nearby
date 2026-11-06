@@ -194,7 +194,7 @@ class IncomingShareSessionTest : public ::testing::Test {
   }
 
   FakeClock clock_;
-  FakeTaskRunner task_runner_{&clock_, 1};
+  FakeSingleThreadTaskRunner task_runner_{&clock_};
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
                                                        &mock_event_logger_};

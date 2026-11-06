@@ -268,7 +268,7 @@ sync::SyncBinding::SourceDeviceType ShareTargetTypeToSourceDeviceType(
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
-    std::unique_ptr<TaskRunner> service_thread, Context* context,
+    std::unique_ptr<SingleThreadTaskRunner> service_thread, Context* context,
     SharingPlatform& sharing_platform,
     nearby::sharing::api::IdentityRpcClient* absl_nonnull
         nearby_identity_client,

@@ -40,7 +40,8 @@ class ContextImpl : public Context {
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
-  std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
+  std::unique_ptr<SingleThreadTaskRunner> CreateSequencedTaskRunner()
+      const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
 

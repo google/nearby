@@ -58,9 +58,9 @@ api::FastInitiationManager& ContextImpl::GetFastInitiationManager() const {
   return platform_.GetFastInitiationManager();
 }
 
-std::unique_ptr<TaskRunner> ContextImpl::CreateSequencedTaskRunner() const {
-  std::unique_ptr<TaskRunner> task_runner = std::make_unique<TaskRunnerImpl>(1);
-  return task_runner;
+std::unique_ptr<SingleThreadTaskRunner>
+ContextImpl::CreateSequencedTaskRunner() const {
+  return std::make_unique<SingleThreadTaskRunnerImpl>();
 }
 
 std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(

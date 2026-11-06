@@ -32,11 +32,12 @@
 namespace nearby {
 namespace sharing {
 
-NearbyFileHandler::NearbyFileHandler(std::unique_ptr<TaskRunner> runner) {
+NearbyFileHandler::NearbyFileHandler(
+    std::unique_ptr<SingleThreadTaskRunner> runner) {
   if (runner) {
     sequenced_task_runner_ = std::move(runner);
   } else {
-    sequenced_task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+    sequenced_task_runner_ = std::make_unique<SingleThreadTaskRunnerImpl>();
   }
 }
 

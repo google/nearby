@@ -17,6 +17,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
+#include "internal/platform/implementation/executor.h"
 
 namespace nearby {
 
@@ -42,6 +43,17 @@ class TaskRunner {
   // Shutdown this TaskRunner so that scheduled tasks are no longer executed.
   // New tasks posted after Shutdown all will be ignored.
   virtual void Shutdown() = 0;
+};
+
+// A TaskRunner backed by a single persistent worker thread that executes posted
+// tasks sequentially.
+class SingleThreadTaskRunner : public TaskRunner {
+ public:
+  ~SingleThreadTaskRunner() override = default;
+
+  // Returns the native OS thread ID of the worker thread backing this task
+  // runner.
+  virtual ThreadId GetThreadId() const = 0;
 };
 
 }  // namespace nearby

@@ -47,8 +47,8 @@ bool CreateFile(FilePath& file_path) {
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
   FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
+  auto task_runner = std::make_unique<FakeSingleThreadTaskRunner>(&clock);
+  FakeSingleThreadTaskRunner* task_runner_ptr = task_runner.get();
   NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
@@ -63,8 +63,8 @@ TEST(NearbyFileHandler, DeleteAFileFromDisk) {
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
   FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
+  auto task_runner = std::make_unique<FakeSingleThreadTaskRunner>(&clock);
+  FakeSingleThreadTaskRunner* task_runner_ptr = task_runner.get();
   NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
@@ -89,8 +89,8 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
 TEST(NearbyFileHandler, TestCallback) {
   std::atomic_bool received_callback = false;
   FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
+  auto task_runner = std::make_unique<FakeSingleThreadTaskRunner>(&clock);
+  FakeSingleThreadTaskRunner* task_runner_ptr = task_runner.get();
   NearbyFileHandler nearby_file_handler(std::move(task_runner));
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));

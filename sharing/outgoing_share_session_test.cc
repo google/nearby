@@ -162,7 +162,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
 
  protected:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  FakeSingleThreadTaskRunner fake_task_runner_{&fake_clock_};
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
                                                        &mock_event_logger_};

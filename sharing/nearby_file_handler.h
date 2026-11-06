@@ -33,15 +33,16 @@ class NearbyFileHandler {
  public:
   using DeleteFilesFromDiskCallback = std::function<void()>;
 
-  // Pass in a TaskRunner to use for testing.
-  explicit NearbyFileHandler(std::unique_ptr<TaskRunner> runner = nullptr);
+  // Pass in a SingleThreadTaskRunner to use for testing.
+  explicit NearbyFileHandler(
+      std::unique_ptr<SingleThreadTaskRunner> runner = nullptr);
   ~NearbyFileHandler();
 
   void DeleteFilesFromDisk(std::vector<FilePath> file_paths,
                            DeleteFilesFromDiskCallback callback);
 
  private:
-  std::unique_ptr<TaskRunner> sequenced_task_runner_;
+  std::unique_ptr<SingleThreadTaskRunner> sequenced_task_runner_;
 };
 
 }  // namespace sharing

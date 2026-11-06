@@ -28,7 +28,7 @@ namespace {
 
 class ThreadTimerTest : public ::testing::Test {
  public:
-  ThreadTimerTest() : task_runner_(&fake_clock_, 1) {}
+  ThreadTimerTest() : task_runner_(&fake_clock_) {}
 
   void Sync(absl::Duration timeout) {
     absl::Notification notification;
@@ -38,7 +38,7 @@ class ThreadTimerTest : public ::testing::Test {
 
  protected:
   FakeClock fake_clock_;
-  FakeTaskRunner task_runner_;
+  FakeSingleThreadTaskRunner task_runner_;
 };
 
 TEST_F(ThreadTimerTest, TimerFires) {

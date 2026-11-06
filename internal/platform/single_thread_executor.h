@@ -15,7 +15,14 @@
 #ifndef PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 
+#include <memory>
+#include <utility>
+
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/notification.h"
+#include "internal/platform/implementation/executor.h"
+#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/submittable_executor.h"
 
 namespace nearby {
@@ -27,11 +34,41 @@ namespace nearby {
 class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
  public:
   using Platform = api::ImplementationPlatform;
+
   SingleThreadExecutor()
-      : SubmittableExecutor(Platform::CreateSingleThreadExecutor()) {}
+      : SubmittableExecutor(Platform::CreateSingleThreadExecutor()) {
+#if !defined(NEARBY_CHROMIUM)
+    absl::Notification ready;
+    if (SubmitInternal([this, &ready]() {
+          thread_id_ = api::GetCurrentThreadId();
+          ready.Notify();
+        })) {
+      ready.WaitForNotification();
+    }
+#endif
+  }
   ~SingleThreadExecutor() override = default;
-  SingleThreadExecutor(SingleThreadExecutor&&) = default;
-  SingleThreadExecutor& operator=(SingleThreadExecutor&&) = default;
+  SingleThreadExecutor(SingleThreadExecutor&& other) noexcept
+      : SubmittableExecutor(std::move(other)),
+        thread_id_(std::exchange(other.thread_id_, 0)) {}
+  SingleThreadExecutor& operator=(SingleThreadExecutor&& other) noexcept {
+    if (this != &other) {
+      SubmittableExecutor::operator=(std::move(other));
+      thread_id_ = std::exchange(other.thread_id_, 0);
+    }
+    return *this;
+  }
+
+  // Returns the native OS thread ID of the worker thread backing this executor.
+  virtual ThreadId GetThreadId() const { return thread_id_; }
+
+ protected:
+  SingleThreadExecutor(std::unique_ptr<api::SubmittableExecutor> impl,
+                       ThreadId thread_id)
+      : SubmittableExecutor(std::move(impl)), thread_id_(thread_id) {}
+
+ private:
+  ThreadId thread_id_ = 0;
 };
 
 // Moves the object to `executor` and destroys it there.

@@ -44,7 +44,8 @@ class FakeContext : public Context {
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
-  std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
+  std::unique_ptr<SingleThreadTaskRunner> CreateSequencedTaskRunner()
+      const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
 
@@ -59,7 +60,7 @@ class FakeContext : public Context {
     return fake_fast_initiation_manager_.get();
   }
 
-  FakeTaskRunner* last_sequenced_task_runner() const {
+  FakeSingleThreadTaskRunner* last_sequenced_task_runner() const {
     return last_sequenced_task_runner_;
   }
 
@@ -68,7 +69,7 @@ class FakeContext : public Context {
   std::unique_ptr<FakeConnectivityManager> fake_connectivity_manager_;
   std::unique_ptr<FakeBluetoothAdapter> fake_bluetooth_adapter_;
   std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
-  mutable FakeTaskRunner* last_sequenced_task_runner_ = nullptr;
+  mutable FakeSingleThreadTaskRunner* last_sequenced_task_runner_ = nullptr;
 };
 
 }  // namespace nearby

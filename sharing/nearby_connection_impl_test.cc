@@ -31,7 +31,7 @@ namespace {
 
 TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner fake_task_runner(&fake_clock);
   FakeDeviceInfo device_info;
   bool called = false;
 
@@ -55,7 +55,7 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
 
 TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, 1);
+  FakeSingleThreadTaskRunner fake_task_runner(&fake_clock);
   FakeDeviceInfo device_info;
   std::optional<nearby::sharing::service::proto::V1Frame> frame_result;
 

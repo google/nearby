@@ -104,8 +104,8 @@ class NearbySharingServiceImpl
 
  public:
   NearbySharingServiceImpl(
-      std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
-      nearby::sharing::api::SharingPlatform& sharing_platform,
+      std::unique_ptr<nearby::SingleThreadTaskRunner> service_thread,
+      Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
       nearby::sharing::api::IdentityRpcClient* absl_nonnull
           nearby_identity_client,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
@@ -424,7 +424,7 @@ class NearbySharingServiceImpl
   void LogShareTargetDiscovered(const ShareTarget& share_target);
 
   // Used to run nearby sharing service APIs.
-  std::unique_ptr<TaskRunner> service_thread_;
+  std::unique_ptr<SingleThreadTaskRunner> service_thread_;
   Context* const context_;
   nearby::api::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
