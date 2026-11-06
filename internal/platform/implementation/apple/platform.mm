@@ -15,7 +15,9 @@
 #include "internal/platform/implementation/platform.h"
 
 #import <Foundation/Foundation.h>
+#include <pthread.h>
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -114,6 +116,12 @@ std::string ImplementationPlatform::GetCustomSavePath(const std::string& save_pa
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kApple; }
+
+ThreadId GetCurrentThreadId() {
+  uint64_t tid = 0;
+  pthread_threadid_np(nullptr, &tid);
+  return tid;
+}
 
 // Atomics:
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {

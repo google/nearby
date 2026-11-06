@@ -15,12 +15,15 @@
 #include "internal/test/fake_task_runner.h"
 
 #include <list>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_single_thread_executor.h"
 
 namespace nearby {
 namespace {
@@ -80,6 +83,25 @@ TEST(FakeTaskRunner, PostDelayedTaskInDelayedTask) {
   clock.FastForward(absl::Seconds(1));
   ASSERT_TRUE(task_runner.SyncWithTimeout(absl::Milliseconds(100)));
   EXPECT_EQ(called_count, 2);
+}
+
+TEST(FakeSingleThreadExecutor, GetThreadIdMatchesCallingThread) {
+  FakeSingleThreadExecutor executor;
+  const ThreadId expected_tid = api::GetCurrentThreadId();
+  EXPECT_EQ(executor.GetThreadId(), expected_tid);
+
+  std::vector<ThreadId> observed_tids;
+  executor.Execute(
+      [&observed_tids] { observed_tids.push_back(api::GetCurrentThreadId()); });
+  executor.Execute("named", [&observed_tids] {
+    observed_tids.push_back(api::GetCurrentThreadId());
+  });
+  EXPECT_TRUE(observed_tids.empty());
+
+  executor.RunAllExecutables();
+  ASSERT_EQ(observed_tids.size(), 2u);
+  EXPECT_EQ(observed_tids[0], expected_tid);
+  EXPECT_EQ(observed_tids[1], expected_tid);
 }
 
 }  // namespace
