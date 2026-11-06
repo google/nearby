@@ -65,6 +65,22 @@ using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::nearby::analytics::AnalyticsRecorder;
 
+// Returns true if `role` looks like an Android peer that was busy hosting a
+// Wi-Fi Direct group or a Wi-Fi hotspot when it wrote its
+// ConnectionRequestFrame. In that state Android (PcpManager#getMediumRole)
+// advertises only the host role it currently holds and clears every other
+// role bit, including Wi-Fi Aware. That is transient, unlike a peer that
+// genuinely cannot publish, which advertises no host role at all.
+bool IsTransientHostingRole(const MediumRole& role) {
+  const bool is_hosting = role.support_wifi_direct_group_owner() ||
+                          role.support_wifi_hotspot_host();
+  const bool has_other_roles = role.support_wifi_direct_group_client() ||
+                               role.support_wifi_hotspot_client() ||
+                               role.support_wifi_aware_publisher() ||
+                               role.support_wifi_aware_subscriber();
+  return is_hosting && !has_other_roles;
+}
+
 }  // namespace
 
 BwuManager::BwuManager(
@@ -1754,14 +1770,30 @@ bool BwuManager::NeedToSwitchRole(
         //      peer is already the publisher and switching would only force a
         //      redundant re-publish on a new port.
         const bool peer_is_android = remote_os_info.type() == OsInfo::ANDROID;
+        // The peer's MediumRole is a snapshot taken when it wrote its
+        // ConnectionRequestFrame and is never refreshed. An Android peer that
+        // was momentarily hosting a Wi-Fi Direct group or hotspot at that
+        // moment (e.g. for another receiver's Instant Connection during a
+        // group share) reports only that host role and clears its Wi-Fi Aware
+        // bits, even though it can publish once that resource is released.
+        // If the peer still lists Wi-Fi Aware as a shared upgrade medium,
+        // treat such a transient role as "may publish" and let the peer decide:
+        // it re-validates its current role when processing
+        // UPGRADE_PATH_REQUEST and replies with UPGRADE_FAILURE if it cannot
+        // host, which falls back to the regular retry path (b/573491029).
+        const bool peer_role_is_transient =
+            peer_is_android && IsTransientHostingRole(medium_role) &&
+            client->GetUpgradeMediums(endpoint_id).IsWifiAwareEnabled();
         const bool peer_can_publish =
-            medium_role.support_wifi_aware_publisher();
+            medium_role.support_wifi_aware_publisher() ||
+            peer_role_is_transient;
         const bool we_are_advertiser =
             client->IsIncomingConnection(endpoint_id);
         LOG(INFO) << "NeedToSwitchRole(WIFI_AWARE_R4) for endpoint "
                   << endpoint_id << ": peer_is_android=" << peer_is_android
                   << ", peer_can_publish=" << peer_can_publish
-                  << ", we_are_advertiser=" << we_are_advertiser;
+                  << " (peer_role_is_transient=" << peer_role_is_transient
+                  << "), we_are_advertiser=" << we_are_advertiser;
         return peer_is_android && peer_can_publish && we_are_advertiser;
       }
       default:

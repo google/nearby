@@ -2715,6 +2715,116 @@ TEST_F(BwuManagerTest,
   UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
+// Regression test for b/573491029. During a group share, the Android sender
+// may write its ConnectionRequestFrame to the Apple receiver while it is
+// hosting a Wi-Fi Direct group for another receiver's Instant Connection. It
+// then advertises only the Wi-Fi Direct GO role and clears its Wi-Fi Aware
+// bits. That role is a stale snapshot, so the Apple advertiser should still
+// delegate hosting via UPGRADE_PATH_REQUEST and let the peer re-validate.
+TEST_F(BwuManagerTest,
+       InitiateBwuAutoSelectAppleAwareR4AndroidTransientWfdGoRoleSwitchesRole) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ReinitBwuManager(BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+
+  // Matches PcpManager#getMediumRole() while hosting a Wi-Fi Direct group:
+  // direct(true,false), hotspot(false,false), aware(false,false).
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role,
+                              BooleanMediumSelector{.wifi_aware_r4 = true},
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_TRUE(
+      fake_wifi_aware_r4_bwu_handler_->handle_initialize_calls().empty());
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> written_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(written_frame.ok());
+  const auto& bwu_frame =
+      written_frame.result().v1().bandwidth_upgrade_negotiation();
+  EXPECT_EQ(bwu_frame.event_type(),
+            BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
+  EXPECT_EQ(bwu_frame.upgrade_path_info().medium(),
+            BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_AWARE_R4);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// A transient hosting role only counts as "may publish" when the peer still
+// lists Wi-Fi Aware as a shared upgrade medium.
+TEST_F(BwuManagerTest,
+       InitiateBwuAutoSelectAppleAwareR4AndroidTransientRoleWithoutAwareNoOp) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ReinitBwuManager(BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role,
+                              BooleanMediumSelector{.wifi_direct = true},
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_AWARE_R4);
+
+  // No role switch: falls back to hosting locally (pre-existing behavior).
+  EXPECT_EQ(fake_wifi_aware_r4_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> written_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(written_frame.ok());
+  EXPECT_EQ(
+      written_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// A peer that advertises client roles but no Wi-Fi Aware role is not in a
+// transient hosting state, so WIFI_AWARE_R4 is still stripped out.
+TEST_F(BwuManagerTest,
+       InitiateBwuAutoSelectAppleAwareR4AndroidNonTransientRoleStripsOut) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ReinitBwuManager(BooleanMediumSelector{.wifi_aware_r4 = true});
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  remote_medium_role.set_support_wifi_direct_group_client(true);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role,
+                              BooleanMediumSelector{.wifi_aware_r4 = true},
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_TRUE(
+      fake_wifi_aware_r4_bwu_handler_->handle_initialize_calls().empty());
+  EXPECT_TRUE(channel_ptr->GetWrittenFrames().empty());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
 // Verifies that when TryNextBestUpgradeMediums attempts a fallback medium
 // (WIFI_HOTSPOT) that early-returns in InitiateBwuForEndpoint because another
 // endpoint is connected over WIFI_LAN, the endpoint's BWU medium remains unset
