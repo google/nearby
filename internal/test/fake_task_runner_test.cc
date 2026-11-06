@@ -15,12 +15,15 @@
 #include "internal/test/fake_task_runner.h"
 
 #include <list>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_single_thread_executor.h"
 
 namespace nearby {
 namespace {
@@ -80,6 +83,59 @@ TEST(FakeTaskRunner, PostDelayedTaskInDelayedTask) {
   clock.FastForward(absl::Seconds(1));
   ASSERT_TRUE(task_runner.SyncWithTimeout(absl::Milliseconds(100)));
   EXPECT_EQ(called_count, 2);
+}
+
+TEST(FakeSingleThreadTaskRunner, GetThreadIdMatchesWorkerThread) {
+  FakeClock clock;
+  FakeSingleThreadTaskRunner runner1{&clock};
+  FakeSingleThreadTaskRunner runner2{&clock};
+  const ThreadId caller_tid = api::GetCurrentThreadId();
+  const ThreadId runner1_tid = runner1.GetThreadId();
+  const ThreadId runner2_tid = runner2.GetThreadId();
+
+  EXPECT_NE(runner1_tid, 0u);
+  EXPECT_NE(runner2_tid, 0u);
+  EXPECT_NE(runner1_tid, caller_tid);
+  EXPECT_NE(runner1_tid, runner2_tid);
+
+  ThreadId immediate_tid = 0;
+  ThreadId delayed_tid = 0;
+  EXPECT_TRUE(runner1.PostTask(
+      [&immediate_tid] { immediate_tid = api::GetCurrentThreadId(); }));
+  EXPECT_TRUE(runner1.PostDelayedTask(absl::Seconds(1), [&delayed_tid] {
+    delayed_tid = api::GetCurrentThreadId();
+  }));
+  ASSERT_TRUE(runner1.SyncWithTimeout(absl::Seconds(1)));
+  EXPECT_EQ(immediate_tid, runner1_tid);
+
+  clock.FastForward(absl::Seconds(1));
+  ASSERT_TRUE(runner1.SyncWithTimeout(absl::Seconds(1)));
+  EXPECT_EQ(delayed_tid, runner1_tid);
+
+  runner1.Shutdown();
+  EXPECT_EQ(runner1.GetThreadId(), runner1_tid);
+  EXPECT_FALSE(runner1.PostTask([] {}));
+  EXPECT_FALSE(runner1.PostDelayedTask(absl::Seconds(1), [] {}));
+  EXPECT_FALSE(runner1.SyncWithTimeout(absl::Milliseconds(10)));
+}
+
+TEST(FakeSingleThreadExecutor, GetThreadIdMatchesCallingThread) {
+  FakeSingleThreadExecutor executor;
+  const ThreadId expected_tid = api::GetCurrentThreadId();
+  EXPECT_EQ(executor.GetThreadId(), expected_tid);
+
+  std::vector<ThreadId> observed_tids;
+  executor.Execute(
+      [&observed_tids] { observed_tids.push_back(api::GetCurrentThreadId()); });
+  executor.Execute("named", [&observed_tids] {
+    observed_tids.push_back(api::GetCurrentThreadId());
+  });
+  EXPECT_TRUE(observed_tids.empty());
+
+  executor.RunAllExecutables();
+  ASSERT_EQ(observed_tids.size(), 2u);
+  EXPECT_EQ(observed_tids[0], expected_tid);
+  EXPECT_EQ(observed_tids[1], expected_tid);
 }
 
 }  // namespace

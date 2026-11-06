@@ -23,8 +23,10 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/single_thread_executor.h"
+#include "internal/platform/submittable_executor.h"
 #include "internal/platform/timer.h"
 #include "internal/platform/timer_impl.h"
 
@@ -37,6 +39,9 @@ TaskRunnerImpl::TaskRunnerImpl(uint32_t runner_count) {
     executor_ = std::make_unique<MultiThreadExecutor>(runner_count);
   }
 }
+
+TaskRunnerImpl::TaskRunnerImpl(std::unique_ptr<SubmittableExecutor> executor)
+    : executor_(std::move(executor)) {}
 
 TaskRunnerImpl::~TaskRunnerImpl() {
   {
@@ -115,5 +120,27 @@ bool TaskRunnerImpl::PostDelayedTask(absl::Duration delay,
 }
 
 uint64_t TaskRunnerImpl::GenerateId() { return nearby::RandData<uint64_t>(); }
+
+SingleThreadTaskRunnerImpl::SingleThreadTaskRunnerImpl()
+    : SingleThreadTaskRunnerImpl(std::make_unique<SingleThreadExecutor>()) {}
+
+SingleThreadTaskRunnerImpl::SingleThreadTaskRunnerImpl(
+    std::unique_ptr<SingleThreadExecutor> executor)
+    : thread_id_(executor->GetThreadId()), impl_(std::move(executor)) {}
+
+SingleThreadTaskRunnerImpl::~SingleThreadTaskRunnerImpl() = default;
+
+bool SingleThreadTaskRunnerImpl::PostTask(absl::AnyInvocable<void()> task) {
+  return impl_.PostTask(std::move(task));
+}
+
+bool SingleThreadTaskRunnerImpl::PostDelayedTask(
+    absl::Duration delay, absl::AnyInvocable<void()> task) {
+  return impl_.PostDelayedTask(delay, std::move(task));
+}
+
+void SingleThreadTaskRunnerImpl::Shutdown() { impl_.Shutdown(); }
+
+ThreadId SingleThreadTaskRunnerImpl::GetThreadId() const { return thread_id_; }
 
 }  // namespace nearby

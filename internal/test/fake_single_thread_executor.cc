@@ -18,9 +18,14 @@
 #include <utility>
 #include <vector>
 
+#include "internal/platform/implementation/executor.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/single_thread_executor.h"
+
 namespace nearby {
 
-FakeSingleThreadExecutor::FakeSingleThreadExecutor() = default;
+FakeSingleThreadExecutor::FakeSingleThreadExecutor()
+    : SingleThreadExecutor(/*impl=*/nullptr, api::GetCurrentThreadId()) {}
 
 FakeSingleThreadExecutor::~FakeSingleThreadExecutor() { DoShutdown(); }
 
@@ -31,6 +36,10 @@ void FakeSingleThreadExecutor::Execute(const std::string& name,
   if (!run_executables_immediately_) return;
 
   RunAllExecutables();
+}
+
+void FakeSingleThreadExecutor::Execute(Runnable&& runnable) {
+  Execute(/*name=*/"", std::move(runnable));
 }
 
 void FakeSingleThreadExecutor::RunAllExecutables() {

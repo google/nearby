@@ -31,6 +31,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/submittable_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
@@ -51,6 +52,9 @@ class TaskRunnerImpl : public TaskRunner {
   void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  friend class SingleThreadTaskRunnerImpl;
+  explicit TaskRunnerImpl(std::unique_ptr<SubmittableExecutor> executor);
+
   uint64_t GenerateId();
 
   mutable absl::Mutex mutex_;
@@ -58,6 +62,25 @@ class TaskRunnerImpl : public TaskRunner {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
       ABSL_GUARDED_BY(mutex_);
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+};
+
+class SingleThreadTaskRunnerImpl final : public SingleThreadTaskRunner {
+ public:
+  SingleThreadTaskRunnerImpl();
+  ~SingleThreadTaskRunnerImpl() override;
+
+  bool PostTask(absl::AnyInvocable<void()> task) override;
+  bool PostDelayedTask(absl::Duration delay,
+                       absl::AnyInvocable<void()> task) override;
+  void Shutdown() override;
+  ThreadId GetThreadId() const override;
+
+ private:
+  explicit SingleThreadTaskRunnerImpl(
+      std::unique_ptr<SingleThreadExecutor> executor);
+
+  ThreadId thread_id_ = 0;
+  TaskRunnerImpl impl_;
 };
 
 }  // namespace nearby
