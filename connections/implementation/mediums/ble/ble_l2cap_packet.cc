@@ -48,27 +48,28 @@ BleL2capPacket::BleL2capPacket(Command command,
 absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromStream(
     InputStream& input_stream) {
   // The first 1 byte is the command.
-  ExceptionOr<ByteArray> command_byte = input_stream.Read(kCommandLength);
-  if (!command_byte.ok()) {
+  ExceptionOr<ByteArray> command_bytes =
+      input_stream.ReadExactly(kCommandLength);
+  if (!command_bytes.ok() || command_bytes.result().Empty()) {
     LOG(WARNING) << "Cannot read BleL2capPacket: command byte not available.";
     return absl::InvalidArgumentError(
         "Cannot read BleL2capPacket: command byte not available.");
   }
-  Command command_data =
-      static_cast<Command>((int)command_byte.result().data()[0]);
+  Command command_data = static_cast<Command>(
+      static_cast<uint8_t>(command_bytes.result().data()[0]));
   VLOG(1) << "command_data: " << static_cast<int>(command_data);
 
   int data_length = 0;
   if (command_data == Command::kRequestAdvertisement ||
       command_data == Command::kResponseAdvertisement) {
-    ExceptionOr<ByteArray> length_byte = input_stream.Read(2);
-    if (!length_byte.ok()) {
+    ExceptionOr<ByteArray> length_bytes = input_stream.ReadExactly(kDataLength);
+    if (!length_bytes.ok() || length_bytes.result().size() < kDataLength) {
       LOG(WARNING) << "Cannot read BleL2capPacket: length byte not available.";
       return absl::InvalidArgumentError(
           "Cannot read BleL2capPacket: length byte not available.");
     }
-    data_length = (static_cast<uint8_t>(length_byte.result().data()[0]) << 8) |
-                  (static_cast<uint8_t>(length_byte.result().data()[1]));
+    data_length = (static_cast<uint8_t>(length_bytes.result().data()[0]) << 8) |
+                  (static_cast<uint8_t>(length_bytes.result().data()[1]));
     if (data_length == 0) {
       LOG(WARNING) << "Cannot read BleL2capPacket: data length incorrect.";
       return absl::InvalidArgumentError(
@@ -84,7 +85,7 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromStream(
     case Command::kResponseDataConnectionFailure:
       return BleL2capPacket(command_data, nullptr, nullptr);
     case Command::kRequestAdvertisement: {
-      if (data_length < BleAdvertisement::kServiceIdHashLength) {
+      if (data_length != BleAdvertisement::kServiceIdHashLength) {
         LOG(WARNING)
             << "Cannot read BleL2capPacket: service id hash length, got "
             << data_length;
@@ -93,7 +94,7 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromStream(
             "incorrect.");
       }
       ExceptionOr<ByteArray> service_id_hash_byte =
-          input_stream.Read(data_length);
+          input_stream.ReadExactly(data_length);
       if (!service_id_hash_byte.ok() ||
           service_id_hash_byte.result().size() != data_length) {
         LOG(WARNING) << "Cannot read BleL2capPacket: service id hash byte "
@@ -106,14 +107,15 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromStream(
                             nullptr);
     }
     case Command::kResponseAdvertisement: {
-      if (data_length > BleAdvertisement::kMaxAdvertisementLength) {
+      if (data_length < BleAdvertisement::kMinAdvertisementLength ||
+          data_length > BleAdvertisement::kMaxAdvertisementLength) {
         LOG(INFO) << "Cannot read BleL2capPacket: advertisement length, got "
                   << data_length;
         return absl::InvalidArgumentError(
             "Cannot read BleL2capPacket: advertisement length incorrect.");
       }
       ExceptionOr<ByteArray> advertisement_data =
-          input_stream.Read(data_length);
+          input_stream.ReadExactly(data_length);
       if (!advertisement_data.ok() ||
           advertisement_data.result().size() != data_length) {
         LOG(WARNING)
@@ -177,7 +179,7 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
   }
 
   if (command_data == Command::kRequestAdvertisement) {
-    if (data_length < BleAdvertisement::kServiceIdHashLength) {
+    if (data_length != BleAdvertisement::kServiceIdHashLength) {
       LOG(INFO)
           << "Cannot deserialize BleL2capPacket: service id hash length, got "
           << data_length;
@@ -194,7 +196,8 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
     }
     return BleL2capPacket(command_data, &service_id_hash_data.value(), nullptr);
   } else if (command_data == Command::kResponseAdvertisement) {
-    if (data_length > BleAdvertisement::kMaxAdvertisementLength) {
+    if (data_length < BleAdvertisement::kMinAdvertisementLength ||
+        data_length > BleAdvertisement::kMaxAdvertisementLength) {
       LOG(INFO) << "Cannot deserialize BleL2capPacket: advertisement length, "
                    "got "
                 << data_length;

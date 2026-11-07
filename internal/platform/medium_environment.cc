@@ -89,6 +89,7 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
+    ble_l2cap_available_.store(false, std::memory_order_relaxed);
     absl::MutexLock lock(mutex_);
     if (config_.use_simulated_clock) {
       simulated_clock_.reset();
@@ -114,6 +115,7 @@ void MediumEnvironment::Reset() {
     }
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
+    ble_l2cap_available_.store(false, std::memory_order_relaxed);
     wifi_direct_go_supported_ = true;
     fail_wifi_hotspot_listen_for_service_ = false;
     fail_wifi_direct_listen_for_service_ = false;
@@ -1401,6 +1403,14 @@ void MediumEnvironment::SetBleExtendedAdvertisementsAvailable(bool enabled) {
 
 bool MediumEnvironment::IsBleExtendedAdvertisementsAvailable() const {
   return ble_extended_advertisements_available_;
+}
+
+void MediumEnvironment::SetBleL2capAvailable(bool enabled) {
+  ble_l2cap_available_.store(enabled, std::memory_order_relaxed);
+}
+
+bool MediumEnvironment::IsBleL2capAvailable() const {
+  return ble_l2cap_available_.load(std::memory_order_relaxed);
 }
 
 void MediumEnvironment::SetWifiDirectGoSupported(bool supported) {

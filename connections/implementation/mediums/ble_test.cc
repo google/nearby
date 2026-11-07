@@ -14,17 +14,23 @@
 
 #include "connections/implementation/mediums/ble.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -35,12 +41,14 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -83,6 +91,46 @@ class BleTest : public testing::TestWithParam<FeatureFlags> {
   }
 
  protected:
+  std::optional<BlePeripheral> StartAdvertisingAndDiscoverPeripheral(
+      Ble& ble_server, Ble& ble_client, const std::string& service_id,
+      const ByteArray& advertisement_bytes) {
+    if (!ble_server
+             .StartAdvertising(service_id, PowerLevel::kHighPower,
+                               Ble::AdvertisingType::kFast, advertisement_bytes)
+             .has_value()) {
+      return std::nullopt;
+    }
+
+    absl::Notification discovered_notification;
+    BlePeripheral discovered_peripheral;
+    if (!ble_client
+             .StartScanning(
+                 service_id, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+                 /*include_dct_advertisement=*/false,
+                 mediums::DiscoveredPeripheralCallback{
+                     .peripheral_discovered_cb =
+                         [&discovered_notification, &discovered_peripheral](
+                             BlePeripheral peripheral,
+                             const std::string& service_id,
+                             const ByteArray& advertisement_bytes,
+                             bool fast_advertisement) {
+                           discovered_peripheral = peripheral;
+                           if (!discovered_notification.HasBeenNotified()) {
+                             discovered_notification.Notify();
+                           }
+                         },
+                 })
+             .has_value()) {
+      return std::nullopt;
+    }
+    if (!discovered_notification.WaitForNotificationWithTimeout(
+            kWaitDuration) ||
+        !discovered_peripheral.IsValid()) {
+      return std::nullopt;
+    }
+    return discovered_peripheral;
+  }
+
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
@@ -1511,6 +1559,342 @@ TEST_F(BleTest, RetrieveBlePeripheralIdFromNativeId) {
 
   EXPECT_FALSE(
       ble.RetrieveBlePeripheralFromNativeId("FF:FF:FF:FF:FF:DE").has_value());
+  env_.Stop();
+}
+
+TEST_F(BleTest, StartAcceptingL2capConnectionsSurvivesInvalidPacketsAndEof) {
+  env_.Start();
+  env_.SetBleL2capAvailable(true);
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  Ble ble_client{radio_client};
+  Ble ble_server{radio_server};
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes =
+      ByteArray::FromStringView(kAdvertisementString);
+  absl::Notification accept_notification;
+
+  std::unique_ptr<mediums::BleSocket> socket_for_server;
+  ErrorOr<int> psm_result = ble_server.StartAcceptingL2capConnections(
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
+        socket_for_server = std::move(socket);
+        accept_notification.Notify();
+      });
+  ASSERT_TRUE(psm_result.has_value());
+
+  std::optional<BlePeripheral> discovered_peripheral =
+      StartAdvertisingAndDiscoverPeripheral(ble_server, ble_client, service_id,
+                                            advertisement_bytes);
+  ASSERT_TRUE(discovered_peripheral.has_value());
+  discovered_peripheral->SetPsm(psm_result.value());
+
+  CancellationFlag flag;
+
+  // 1. Immediate EOF without sending any command byte.
+  ErrorOr<BleL2capSocket> eof_client =
+      ble_client.ConnectOverL2cap(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(eof_client.has_value());
+  EXPECT_TRUE(eof_client.value().Close().Ok());
+
+  // 2. Truncated kRequestAdvertisement packet (1 byte followed by EOF).
+  ErrorOr<BleL2capSocket> truncated_client =
+      ble_client.ConnectOverL2cap(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(truncated_client.has_value());
+  EXPECT_TRUE(truncated_client.value()
+                  .GetOutputStream()
+                  .Write(absl::string_view("\x01", 1))
+                  .Ok());
+  EXPECT_TRUE(truncated_client.value().Close().Ok());
+
+  // 3. Unexpected L2CAP command (not kRequestDataConnection).
+  ErrorOr<BleL2capSocket> wrong_cmd_client =
+      ble_client.ConnectOverL2cap(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(wrong_cmd_client.has_value());
+  EXPECT_TRUE(
+      wrong_cmd_client.value()
+          .GetOutputStream()
+          .Write(mediums::BleL2capPacket::ByteArrayForDataConnectionReady()
+                     .AsStringView())
+          .Ok());
+  EXPECT_TRUE(wrong_cmd_client.value().Close().Ok());
+
+  // 4. Subsequent valid L2CAP data connection still succeeds because the
+  // server accept loop continued rather than exiting on invalid packets.
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> valid_client =
+      ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(
+      accept_notification.WaitForNotificationWithTimeout(kWaitDuration));
+  ASSERT_TRUE(valid_client.has_value());
+  ASSERT_NE(valid_client.value(), nullptr);
+  EXPECT_TRUE(valid_client.value()->IsValid());
+  ASSERT_NE(socket_for_server, nullptr);
+  EXPECT_TRUE(socket_for_server->IsValid());
+
+  EXPECT_TRUE(valid_client.value()->Close().Ok());
+  EXPECT_TRUE(socket_for_server->Close().Ok());
+  EXPECT_TRUE(ble_client.StopScanning(service_id));
+  EXPECT_TRUE(ble_server.StopAcceptingL2capConnections(service_id));
+  EXPECT_TRUE(ble_server.StopAdvertising(service_id));
+  env_.Stop();
+}
+
+TEST_F(BleTest, StartAcceptingL2capConnectionsHandlesMultipleConnections) {
+  env_.Start();
+  env_.SetBleL2capAvailable(true);
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  Ble ble_client{radio_client};
+  auto ble_server = std::make_unique<Ble>(radio_server);
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes =
+      ByteArray::FromStringView(kAdvertisementString);
+  CountDownLatch accept_latch(2);
+
+  absl::Mutex server_sockets_mutex;
+  std::vector<std::unique_ptr<mediums::BleSocket>> server_sockets;
+  ErrorOr<int> psm_result = ble_server->StartAcceptingL2capConnections(
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
+        {
+          absl::MutexLock lock(server_sockets_mutex);
+          server_sockets.push_back(std::move(socket));
+        }
+        accept_latch.CountDown();
+      });
+  ASSERT_TRUE(psm_result.has_value());
+
+  std::optional<BlePeripheral> discovered_peripheral =
+      StartAdvertisingAndDiscoverPeripheral(*ble_server, ble_client, service_id,
+                                            advertisement_bytes);
+  ASSERT_TRUE(discovered_peripheral.has_value());
+  discovered_peripheral->SetPsm(psm_result.value());
+
+  CancellationFlag flag;
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> client_1 =
+      ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(client_1.has_value());
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> client_2 =
+      ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(client_2.has_value());
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+
+  std::unique_ptr<mediums::BleSocket> server_socket_1;
+  std::unique_ptr<mediums::BleSocket> server_socket_2;
+  {
+    absl::MutexLock lock(server_sockets_mutex);
+    ASSERT_EQ(server_sockets.size(), 2u);
+    server_socket_1 = std::move(server_sockets[0]);
+    server_socket_2 = std::move(server_sockets[1]);
+  }
+  ASSERT_NE(server_socket_1, nullptr);
+  ASSERT_NE(server_socket_2, nullptr);
+
+  // Close the first server socket while the second remains open.
+  EXPECT_TRUE(server_socket_1->Close().Ok());
+  EXPECT_TRUE(client_1.value()->Close().Ok());
+
+  // Destroy `ble_server` while `server_socket_2` is still held by the caller.
+  EXPECT_TRUE(ble_client.StopScanning(service_id));
+  ble_server.reset();
+
+  // Closing and destroying `server_socket_2` after `ble_server` is destroyed
+  // must not dereference a dangling `Ble*` in the close notifier.
+  EXPECT_TRUE(server_socket_2->Close().Ok());
+  EXPECT_TRUE(client_2.value()->Close().Ok());
+  server_socket_2.reset();
+  env_.Stop();
+}
+
+TEST_F(BleTest, DestroyBleWhileL2capPeerStallsDuringValidation) {
+  env_.Start();
+  env_.SetBleL2capAvailable(true);
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  Ble ble_client{radio_client};
+  auto ble_server = std::make_unique<Ble>(radio_server);
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes =
+      ByteArray::FromStringView(kAdvertisementString);
+
+  ErrorOr<int> psm_result = ble_server->StartAcceptingL2capConnections(
+      service_id,
+      [](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {});
+  ASSERT_TRUE(psm_result.has_value());
+
+  std::optional<BlePeripheral> discovered_peripheral =
+      StartAdvertisingAndDiscoverPeripheral(*ble_server, ble_client, service_id,
+                                            advertisement_bytes);
+  ASSERT_TRUE(discovered_peripheral.has_value());
+  discovered_peripheral->SetPsm(psm_result.value());
+
+  // Connect raw L2CAP socket without sending the validation packet so the
+  // server's `ble-l2cap-accept` thread blocks inside
+  // `ProcessIncomingL2capPacketValidation()`.
+  CancellationFlag flag;
+  ErrorOr<BleL2capSocket> stalled_client =
+      ble_client.ConnectOverL2cap(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(stalled_client.has_value());
+  SystemClock::Sleep(absl::Milliseconds(50));
+
+  EXPECT_TRUE(ble_client.StopScanning(service_id));
+  // Destroying `ble_server` must close the tracked incoming socket, unblocking
+  // `ProcessIncomingL2capPacketValidation()` so `~Ble()` does not hang.
+  ble_server.reset();
+
+  EXPECT_TRUE(stalled_client.value().Close().Ok());
+  env_.Stop();
+}
+
+TEST_F(BleTest, ConcurrentL2capSocketCloseAndBleDestruction) {
+  env_.Start();
+  env_.SetBleL2capAvailable(true);
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  Ble ble_client{radio_client};
+  auto ble_server = std::make_unique<Ble>(radio_server);
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes =
+      ByteArray::FromStringView(kAdvertisementString);
+  absl::Notification accept_notification;
+
+  std::unique_ptr<mediums::BleSocket> server_socket;
+  ErrorOr<int> psm_result = ble_server->StartAcceptingL2capConnections(
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
+        server_socket = std::move(socket);
+        accept_notification.Notify();
+      });
+  ASSERT_TRUE(psm_result.has_value());
+
+  std::optional<BlePeripheral> discovered_peripheral =
+      StartAdvertisingAndDiscoverPeripheral(*ble_server, ble_client, service_id,
+                                            advertisement_bytes);
+  ASSERT_TRUE(discovered_peripheral.has_value());
+  discovered_peripheral->SetPsm(psm_result.value());
+
+  CancellationFlag flag;
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> client_socket =
+      ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(client_socket.has_value());
+  ASSERT_TRUE(
+      accept_notification.WaitForNotificationWithTimeout(kWaitDuration));
+  ASSERT_NE(server_socket, nullptr);
+
+  EXPECT_TRUE(ble_client.StopScanning(service_id));
+
+  SingleThreadExecutor close_executor;
+  absl::Notification start_notification;
+  absl::Notification close_done_notification;
+  close_executor.Execute([&]() {
+    start_notification.Notify();
+    server_socket->Close();
+    close_done_notification.Notify();
+  });
+  ASSERT_TRUE(start_notification.WaitForNotificationWithTimeout(kWaitDuration));
+  ble_server.reset();
+  EXPECT_TRUE(
+      close_done_notification.WaitForNotificationWithTimeout(kWaitDuration));
+
+  close_executor.Shutdown();
+  EXPECT_TRUE(client_socket.value()->Close().Ok());
+  env_.Stop();
+}
+
+TEST_F(
+    BleTest,
+    StopAcceptingL2capConnectionsUnblocksStalledValidationSuppressesCallback) {
+  env_.Start();
+  env_.SetBleL2capAvailable(true);
+  BluetoothRadio radio_client;
+  BluetoothRadio radio_server;
+  Ble ble_client{radio_client};
+  Ble ble_server{radio_server};
+  radio_client.Enable();
+  radio_server.Enable();
+  std::string service_id(kServiceIDA);
+  ByteArray advertisement_bytes =
+      ByteArray::FromStringView(kAdvertisementString);
+
+  ErrorOr<int> initial_psm = ble_server.StartAcceptingL2capConnections(
+      service_id,
+      [](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {});
+  ASSERT_TRUE(initial_psm.has_value());
+
+  std::optional<BlePeripheral> discovered_peripheral =
+      StartAdvertisingAndDiscoverPeripheral(ble_server, ble_client, service_id,
+                                            advertisement_bytes);
+  ASSERT_TRUE(discovered_peripheral.has_value());
+  ASSERT_TRUE(ble_server.StopAcceptingL2capConnections(service_id));
+
+  CancellationFlag flag;
+  std::atomic<bool> unexpected_callback{false};
+  // Repeat more than `kMaxConcurrentAcceptLoops` (5) times to verify that
+  // `StopAcceptingL2capConnections` closes the in-flight unvalidated client
+  // socket and unblocks the `ble-l2cap-accept` worker thread each time.
+  for (int i = 0; i < 6; ++i) {
+    ErrorOr<int> psm_result = ble_server.StartAcceptingL2capConnections(
+        service_id,
+        [&unexpected_callback](std::unique_ptr<mediums::BleSocket> socket,
+                               const std::string&) {
+          unexpected_callback.store(true, std::memory_order_relaxed);
+        });
+    ASSERT_TRUE(psm_result.has_value());
+    discovered_peripheral->SetPsm(psm_result.value());
+
+    ErrorOr<BleL2capSocket> stalled_client =
+        ble_client.ConnectOverL2cap(service_id, *discovered_peripheral, &flag);
+    ASSERT_TRUE(stalled_client.has_value());
+    SystemClock::Sleep(absl::Milliseconds(20));
+
+    EXPECT_TRUE(ble_server.StopAcceptingL2capConnections(service_id));
+
+    // Sending the validation packet after `StopAcceptingL2capConnections` must
+    // not invoke the accepted connection callback for the stopped service, and
+    // the server-side unvalidated socket should already be closed (EOF).
+    stalled_client.value().GetOutputStream().Write(
+        mediums::BleL2capPacket::ByteArrayForRequestDataConnection()
+            .AsStringView());
+    ExceptionOr<ByteArray> read_result =
+        stalled_client.value().GetInputStream().Read(1);
+    EXPECT_TRUE(!read_result.ok() || read_result.result().Empty());
+    EXPECT_TRUE(stalled_client.value().Close().Ok());
+  }
+  EXPECT_FALSE(unexpected_callback.load(std::memory_order_relaxed));
+
+  // Verify the accept loop thread pool is not exhausted by accepting a valid
+  // connection afterwards.
+  absl::Notification accept_notification;
+  std::unique_ptr<mediums::BleSocket> accepted_server_socket;
+  ErrorOr<int> final_psm = ble_server.StartAcceptingL2capConnections(
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
+        accepted_server_socket = std::move(socket);
+        accept_notification.Notify();
+      });
+  ASSERT_TRUE(final_psm.has_value());
+  discovered_peripheral->SetPsm(final_psm.value());
+
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> valid_client =
+      ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
+  ASSERT_TRUE(valid_client.has_value());
+  EXPECT_TRUE(
+      accept_notification.WaitForNotificationWithTimeout(kWaitDuration));
+  ASSERT_NE(accepted_server_socket, nullptr);
+
+  EXPECT_TRUE(valid_client.value()->Close().Ok());
+  EXPECT_TRUE(accepted_server_socket->Close().Ok());
+  EXPECT_TRUE(ble_client.StopScanning(service_id));
+  EXPECT_TRUE(ble_server.StopAcceptingL2capConnections(service_id));
+  EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   env_.Stop();
 }
 
