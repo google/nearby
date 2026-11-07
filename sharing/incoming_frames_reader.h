@@ -20,8 +20,6 @@
 #include <list>
 #include <memory>
 #include <optional>
-#include <queue>
-#include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
@@ -33,8 +31,7 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/thread_timer.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // Helper class to read incoming frames from Nearby devices.
 class IncomingFramesReader
@@ -83,28 +80,12 @@ class IncomingFramesReader
 
  private:
   struct ReadFrameInfo {
-    ReadFrameInfo() = default;
-    ReadFrameInfo(
-        std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
-            frame_type,
-        absl::AnyInvocable<
-            void(bool is_timeout,
-                 std::optional<nearby::sharing::service::proto::V1Frame>)>
-            callback,
-        absl::Duration timeout)
-        : frame_type(frame_type),
-          callback(std::move(callback)),
-          timeout(timeout) {}
-    ReadFrameInfo(ReadFrameInfo&& other) = default;
-    ReadFrameInfo& operator=(ReadFrameInfo&& other) = default;
-
     std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
-        frame_type = std::nullopt;
+        frame_type;
     absl::AnyInvocable<void(
         bool is_timeout,
         std::optional<nearby::sharing::service::proto::V1Frame>)>
-        callback = nullptr;
-    absl::Duration timeout = absl::ZeroDuration();
+        callback;
   };
 
   void MakeFrameCallbackOnServiceThread(
@@ -122,14 +103,11 @@ class IncomingFramesReader
           callback,
       absl::Duration timeout) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  static void DrainPendingReads(std::queue<ReadFrameInfo> queue,
-                                bool is_timeout);
-  void CloseAllPendingReads(bool is_timeout) ABSL_LOCKS_EXCLUDED(mutex_);
+  void ClosePendingRead(bool is_timeout) ABSL_LOCKS_EXCLUDED(mutex_);
   void ReadNextFrame() ABSL_LOCKS_EXCLUDED(mutex_);
   void OnDataReadFromConnection(const std::vector<uint8_t>& bytes)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnTimeout();
-  void Continue() ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<nearby::sharing::service::proto::V1Frame> PopCachedFrame(
       std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
           frame_type) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -138,7 +116,7 @@ class IncomingFramesReader
   NearbyConnection* const connection_;
 
   absl::Mutex mutex_;
-  std::queue<ReadFrameInfo> read_frame_info_queue_ ABSL_GUARDED_BY(mutex_);
+  std::optional<ReadFrameInfo> next_read_frame_info_ ABSL_GUARDED_BY(mutex_);
 
   // Caches frames read from NearbyConnection which are not used immediately.
   std::list<std::unique_ptr<nearby::sharing::service::proto::V1Frame>>
@@ -147,7 +125,6 @@ class IncomingFramesReader
   std::unique_ptr<ThreadTimer> timeout_timer_ ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_INCOMING_FRAMES_READER_H_
