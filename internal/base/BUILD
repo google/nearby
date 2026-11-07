@@ -24,7 +24,6 @@ cc_library(
     ],
     visibility = [
         "//internal/account:__subpackages__",
-        "//internal/platform:__subpackages__",
         "//location/nearby/sharing/lib:__subpackages__",
         "//sharing:__subpackages__",
     ],
