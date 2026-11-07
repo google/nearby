@@ -435,6 +435,7 @@ cc_test(
         ":service_id_constants",
         "//connections:core_types",
         "//connections/implementation/analytics",
+        "//connections/implementation/analytics:mock_analytics_recorder",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//internal/flags:nearby_flags",

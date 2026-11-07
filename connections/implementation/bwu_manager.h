@@ -285,6 +285,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
   absl::flat_hash_map<std::string, std::shared_ptr<EndpointChannel>>
       previous_endpoint_channels_;
   absl::flat_hash_set<std::string> successfully_upgraded_endpoints_;
+  // Endpoints to which the local device has delegated BWU hosting via
+  // UPGRADE_PATH_REQUEST, allowing incoming UPGRADE_PATH_AVAILABLE frames
+  // (including fallback mediums chosen by the remote host) until the upgrade
+  // completes, local hosting starts, or the endpoint disconnects.
+  absl::flat_hash_set<std::string> role_switched_endpoints_;
   // Maps endpointId -> ClientProxy for which
   // initiateBwuForEndpoint() has been called but which have not
   // yet completed the upgrade via onIncomingConnection().
