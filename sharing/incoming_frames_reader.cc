@@ -20,7 +20,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <queue>
 #include <utility>
 #include <vector>
 
@@ -34,8 +33,7 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/thread_timer.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using FrameType = ::nearby::sharing::service::proto::V1Frame_FrameType;
@@ -63,16 +61,17 @@ IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
 
 IncomingFramesReader::~IncomingFramesReader() {
   VLOG(1) << "~IncomingFramesReader is called";
-  std::queue<ReadFrameInfo> queue;
+  std::optional<ReadFrameInfo> next_read_frame_info;
   {
     absl::MutexLock lock(mutex_);
-    queue.swap(read_frame_info_queue_);
+    next_read_frame_info.swap(next_read_frame_info_);
     timeout_timer_.reset();
   }
-  if (!queue.empty()) {
-    service_thread_.PostTask([queue = std::move(queue)]() mutable {
-      DrainPendingReads(std::move(queue), /*is_timeout=*/false);
-    });
+  if (next_read_frame_info.has_value()) {
+    service_thread_.PostTask(
+        [callback = std::move(next_read_frame_info->callback)]() mutable {
+          std::move(callback)(/*is_timeout=*/false, std::nullopt);
+        });
   }
 }
 
@@ -80,7 +79,6 @@ void IncomingFramesReader::ReadFrame(
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   AddNewRequest(std::nullopt, std::move(callback), timeout);
-  Continue();
 }
 
 void IncomingFramesReader::ReadFrame(
@@ -88,63 +86,57 @@ void IncomingFramesReader::ReadFrame(
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   AddNewRequest(frame_type, std::move(callback), timeout);
-  Continue();
 }
 
 void IncomingFramesReader::AddNewRequest(
     std::optional<FrameType> frame_type,
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
-  absl::MutexLock lock(mutex_);
-  ReadFrameInfo read_frame_info{frame_type, std::move(callback), timeout};
-  read_frame_info_queue_.push(std::move(read_frame_info));
-  if (timeout != absl::ZeroDuration()) {
-    timeout_timer_ = std::make_unique<ThreadTimer>(
-        service_thread_, "frame_reader_timeout", timeout,
-        [reader = GetWeakPtr()]() {
-          auto frame_reader = reader.lock();
-          if (frame_reader == nullptr) {
-            LOG(WARNING) << "IncomingFramesReader has already been released "
-                            "before read timeout.";
-            return;
-          }
-          frame_reader->OnTimeout();
-        });
+  std::unique_ptr<V1Frame> cached_frame;
+  {
+    absl::MutexLock lock(mutex_);
+    if (next_read_frame_info_.has_value()) {
+      LOG(DFATAL) << __func__ << ": Overwriting previous read frame request.";
+      next_read_frame_info_.reset();
+      timeout_timer_.reset();
+    }
+    // Check in the cache for frame.
+    cached_frame = PopCachedFrame(frame_type);
+    if (cached_frame == nullptr) {
+      next_read_frame_info_ = ReadFrameInfo{.frame_type = frame_type,
+                                            .callback = std::move(callback)};
+      if (timeout != absl::ZeroDuration()) {
+        timeout_timer_ = std::make_unique<ThreadTimer>(
+            service_thread_, "frame_reader_timeout", timeout,
+            [reader = GetWeakPtr()]() {
+              std::shared_ptr<IncomingFramesReader> frame_reader =
+                  reader.lock();
+              if (frame_reader == nullptr) {
+                LOG(WARNING)
+                    << "IncomingFramesReader has already been released "
+                       "before read timeout.";
+                return;
+              }
+              frame_reader->OnTimeout();
+            });
+      }
+    }
   }
+  if (cached_frame != nullptr) {
+    MakeFrameCallbackOnServiceThread(std::move(callback),
+                                     std::move(cached_frame));
+    return;
+  }
+  ReadNextFrame();
 }
 
 void IncomingFramesReader::MakeFrameCallbackOnServiceThread(
     absl::AnyInvocable<void(bool, std::optional<V1Frame>)> callback,
     std::unique_ptr<V1Frame> frame) {
-  service_thread_.PostTask([callback = std::move(callback),
-                            frame = std::move(frame)]() mutable {
-    std::move(callback)(/*is_timeout=*/false, std::move(*frame));
-  });
-}
-
-void IncomingFramesReader::Continue() {
-  ReadFrameInfo next_read_frame_info;
-  std::unique_ptr<V1Frame> cached_frame;
-  {
-    absl::MutexLock lock(mutex_);
-    if (read_frame_info_queue_.empty()) {
-      return;
-    }
-    ReadFrameInfo& read_frame_info = read_frame_info_queue_.front();
-    // Check in the cache for frame.
-    cached_frame = PopCachedFrame(read_frame_info.frame_type);
-    if (cached_frame) {
-      next_read_frame_info = std::move(read_frame_info);
-      read_frame_info_queue_.pop();
-      timeout_timer_.reset();
-    }
-  }
-  if (cached_frame) {
-    MakeFrameCallbackOnServiceThread(std::move(next_read_frame_info.callback),
-                                     std::move(cached_frame));
-    return;
-  }
-  ReadNextFrame();
+  service_thread_.PostTask(
+      [callback = std::move(callback), frame = std::move(frame)]() mutable {
+        std::move(callback)(/*is_timeout=*/false, std::move(*frame));
+      });
 }
 
 void IncomingFramesReader::ReadNextFrame() {
@@ -157,14 +149,14 @@ void IncomingFramesReader::ReadNextFrame() {
         }
         if (!bytes.has_value()) {
           LOG(WARNING) << __func__ << ": Failed to read frame";
-          // Schedule CloseAllPendingReads on service thread.
+          // Schedule ClosePendingRead on service thread.
           frame_reader->service_thread_.PostTask(
               [reader = frame_reader->GetWeakPtr()]() {
                 auto frame_reader = reader.lock();
                 if (frame_reader == nullptr) {
                   return;
                 }
-                frame_reader->CloseAllPendingReads(/*is_timeout=*/false);
+                frame_reader->ClosePendingRead(/*is_timeout=*/false);
               });
           return;
         }
@@ -174,7 +166,7 @@ void IncomingFramesReader::ReadNextFrame() {
 
 void IncomingFramesReader::OnTimeout() {
   LOG(WARNING) << __func__ << ": Timed out reading from NearbyConnection.";
-  CloseAllPendingReads(/*is_timeout=*/true);
+  ClosePendingRead(/*is_timeout=*/true);
 }
 
 void IncomingFramesReader::OnDataReadFromConnection(
@@ -192,22 +184,22 @@ void IncomingFramesReader::OnDataReadFromConnection(
   ReadFrameInfo next_read_frame_info;
   {
     absl::MutexLock lock(mutex_);
-    if (read_frame_info_queue_.empty()) {
+    if (!next_read_frame_info_.has_value()) {
       // Drop the frame if no one is waiting.
       return;
     }
-    ReadFrameInfo& frame_info = read_frame_info_queue_.front();
-    if (frame_info.frame_type.has_value() &&
-        *frame_info.frame_type != frame_type) {
+    if (next_read_frame_info_->frame_type.has_value() &&
+        *next_read_frame_info_->frame_type != frame_type) {
       LOG(WARNING) << __func__ << ": Failed to read frame of type "
-                   << *frame_info.frame_type << ", but got frame of type "
-                   << frame_type << ". Cached for later.";
+                   << *next_read_frame_info_->frame_type
+                   << ", but got frame of type " << frame_type
+                   << ". Cached for later.";
       cached_frames_.push_back(std::move(frame));
       cached_frame = true;
     } else {
       // Deliver the frame to the caller.
-      next_read_frame_info = std::move(frame_info);
-      read_frame_info_queue_.pop();
+      next_read_frame_info = std::move(*next_read_frame_info_);
+      next_read_frame_info_.reset();
       timeout_timer_.reset();
     }
   }
@@ -216,28 +208,19 @@ void IncomingFramesReader::OnDataReadFromConnection(
     return;
   }
   MakeFrameCallbackOnServiceThread(std::move(next_read_frame_info.callback),
-                                     std::move(frame));
-  Continue();
+                                   std::move(frame));
 }
 
-// static
-void IncomingFramesReader::DrainPendingReads(std::queue<ReadFrameInfo> queue,
-                                             bool is_timeout) {
-  while (!queue.empty()) {
-    ReadFrameInfo read_frame_info = std::move(queue.front());
-    queue.pop();
-    read_frame_info.callback(is_timeout, std::nullopt);
-  }
-}
-
-void IncomingFramesReader::CloseAllPendingReads(bool is_timeout) {
-  std::queue<ReadFrameInfo> queue;
+void IncomingFramesReader::ClosePendingRead(bool is_timeout) {
+  std::optional<ReadFrameInfo> next_read_frame_info;
   {
     absl::MutexLock lock(mutex_);
-    queue.swap(read_frame_info_queue_);
+    next_read_frame_info.swap(next_read_frame_info_);
     timeout_timer_.reset();
   }
-  DrainPendingReads(std::move(queue), is_timeout);
+  if (next_read_frame_info.has_value()) {
+    next_read_frame_info->callback(is_timeout, std::nullopt);
+  }
 }
 
 std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
@@ -266,5 +249,4 @@ std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
   return frame;
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
