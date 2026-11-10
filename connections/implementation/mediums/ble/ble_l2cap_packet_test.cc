@@ -14,12 +14,21 @@
 
 #include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/pipe.h"
 
 namespace nearby {
@@ -27,10 +36,32 @@ namespace connections {
 namespace mediums {
 namespace {
 
+using ::testing::HasSubstr;
+using ::testing::status::StatusIs;
+
 constexpr absl::string_view kInCorrectData = {"\x01\x02\x03\x04\x05"};
 constexpr absl::string_view kServiceID = "1test_service_id";
 constexpr absl::string_view kCorrectData = {
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x00"};
+
+class SingleByteInputStream : public InputStream {
+ public:
+  explicit SingleByteInputStream(absl::string_view data) : data_(data) {}
+  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+    if (pos_ >= data_.size() || size <= 0) {
+      return ExceptionOr<ByteArray>{ByteArray{}};
+    }
+    std::size_t chunk = std::min<std::size_t>(1, data_.size() - pos_);
+    ByteArray out(data_.data() + pos_, chunk);
+    pos_ += chunk;
+    return ExceptionOr<ByteArray>{out};
+  }
+  Exception Close() override { return {Exception::kSuccess}; }
+
+ private:
+  std::string data_;
+  std::size_t pos_ = 0;
+};
 
 TEST(BleL2capPacketTest, ByteArrayForRequestAdvertisementWithCorrectServiceID) {
   auto byte_array =
@@ -100,6 +131,7 @@ TEST(BleL2capPacketTest, ByteArrayForServiceIdNotFound) {
   ByteArray byte_array = BleL2capPacket::ByteArrayForServiceIdNotFound();
 
   auto result = BleL2capPacket::CreateFromBytes(byte_array);
+  ASSERT_TRUE(result.ok());
   ASSERT_TRUE(result.value().IsErrorServiceIdNotFound());
 }
 
@@ -174,6 +206,19 @@ TEST(BleL2capPacketTest, CreateFromBytesWithInvalidServiceIdHashLength) {
   ASSERT_FALSE(result.ok());
 }
 
+TEST(BleL2capPacketTest, CreateFromBytesWithTooLongServiceIdHashLength) {
+  ByteArray byte_array{7};
+  char* byte_array_data = byte_array.data();
+  byte_array_data[0] =
+      static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement);
+  byte_array_data[1] = 0x00;
+  byte_array_data[2] = 0x04;
+
+  EXPECT_THAT(BleL2capPacket::CreateFromBytes(byte_array),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("service id hash length incorrect")));
+}
+
 TEST(BleL2capPacketTest, CreateFromBytesWithTooLongAdvertisementLength) {
   ByteArray byte_array{3};
   char* byte_array_data = byte_array.data();
@@ -182,7 +227,8 @@ TEST(BleL2capPacketTest, CreateFromBytesWithTooLongAdvertisementLength) {
   byte_array_data[1] = 0xFF;
   byte_array_data[2] = 0xFF;
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
+  absl::StatusOr<BleL2capPacket> result =
+      BleL2capPacket::CreateFromBytes(byte_array);
   ASSERT_FALSE(result.ok());
 }
 
@@ -195,8 +241,23 @@ TEST(BleL2capPacketTest, CreateFromBytesWithInvalidLengthAdvertisement) {
   byte_array_data[2] = 0x03;
   byte_array_data[3] = 0x01;
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
+  EXPECT_THAT(BleL2capPacket::CreateFromBytes(byte_array),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("advertisement length incorrect")));
+}
+
+TEST(BleL2capPacketTest, CreateFromBytesWithTruncatedAdvertisementPayload) {
+  ByteArray byte_array{4};
+  char* byte_array_data = byte_array.data();
+  byte_array_data[0] =
+      static_cast<char>(BleL2capPacket::Command::kResponseAdvertisement);
+  byte_array_data[1] = 0x00;
+  byte_array_data[2] = 0x0a;
+  byte_array_data[3] = 0x01;
+
+  EXPECT_THAT(BleL2capPacket::CreateFromBytes(byte_array),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("advertisement not available")));
 }
 
 TEST(BleL2capPacketTest, CreateFromStreamFailsReadCommand) {
@@ -205,20 +266,79 @@ TEST(BleL2capPacketTest, CreateFromStreamFailsReadCommand) {
   output->Write("");
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
-  ASSERT_FALSE(ble_l2cap_packet.ok());
+  EXPECT_THAT(BleL2capPacket::CreateFromStream(*input),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("command byte not available")));
+}
+
+TEST(BleL2capPacketTest,
+     CreateFromStreamFailsEofLengthForRequestAdvertisement) {
+  auto [input, output] = nearby::CreatePipe();
+  std::string out(
+      1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement));
+
+  output->Write(out);
+  output->Close();
+
+  EXPECT_THAT(BleL2capPacket::CreateFromStream(*input),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("length byte not available")));
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamFailsTruncatedOneByteLength) {
+  auto [input, output] = nearby::CreatePipe();
+  std::string out = absl::StrCat(
+      std::string(
+          1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
+      "\x03");
+
+  output->Write(out);
+  output->Close();
+
+  EXPECT_THAT(BleL2capPacket::CreateFromStream(*input),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("length byte not available")));
+}
+
+TEST(BleL2capPacketTest,
+     CreateFromStreamFailsEofLengthForResponseAdvertisement) {
+  auto [input, output] = nearby::CreatePipe();
+  std::string out(
+      1, static_cast<char>(BleL2capPacket::Command::kResponseAdvertisement));
+
+  output->Write(out);
+  output->Close();
+
+  EXPECT_THAT(BleL2capPacket::CreateFromStream(*input),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("length byte not available")));
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamSucceedsAcrossSingleByteChunkedReads) {
+  ByteArray advertisement(300);
+  absl::StatusOr<ByteArray> serialized =
+      BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
+  ASSERT_TRUE(serialized.ok());
+
+  SingleByteInputStream chunked_stream(serialized->AsStringView());
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(chunked_stream);
+  ASSERT_TRUE(ble_l2cap_packet.ok());
+  EXPECT_TRUE(ble_l2cap_packet->IsAdvertisementResponse());
+  EXPECT_EQ(ble_l2cap_packet->GetAdvertisement(), advertisement);
 }
 
 TEST(BleL2capPacketTest, CreateFromStreamRequestAdvertisement) {
   auto [input, output] = nearby::CreatePipe();
-  auto byte_array =
+  absl::StatusOr<ByteArray> byte_array =
       BleL2capPacket::ByteArrayForRequestAdvertisement(std::string(kServiceID));
   ASSERT_TRUE(byte_array.ok());
 
   output->Write(byte_array->AsStringView());
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_TRUE(ble_l2cap_packet.ok());
   EXPECT_TRUE(ble_l2cap_packet->IsFetchAdvertisementRequest());
   EXPECT_EQ(ble_l2cap_packet->GetServiceIdHash(),
@@ -230,12 +350,13 @@ TEST(BleL2capPacketTest, CreateFromStreamZeroDataLength) {
   std::string out = absl::StrCat(
       std::string(
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
-      std::string("\x00\x00", 2));
+      absl::string_view("\x00\x00", 2));
 
   output->Write(out);
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_FALSE(ble_l2cap_packet.ok());
 }
 
@@ -245,13 +366,32 @@ TEST(BleL2capPacketTest,
   std::string out = absl::StrCat(
       std::string(
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
-      std::string("\x00\x01", 2));
+      absl::string_view("\x00\x01", 2));
 
   output->Write(out);
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_FALSE(ble_l2cap_packet.ok());
+}
+
+TEST(BleL2capPacketTest,
+     CreateFromStreamRequestAdvertisementTooLongServiceIdHashLength) {
+  auto [input, output] = nearby::CreatePipe();
+  std::string out = absl::StrCat(
+      std::string(
+          1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
+      "\xFF\xFF");
+
+  output->Write(out);
+
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
+  output->Close();
+  EXPECT_THAT(ble_l2cap_packet,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("service id hash length incorrect")));
 }
 
 TEST(BleL2capPacketTest, CreateFromStreamFailsReadServiceIdHash) {
@@ -259,23 +399,26 @@ TEST(BleL2capPacketTest, CreateFromStreamFailsReadServiceIdHash) {
   std::string out = absl::StrCat(
       std::string(
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
-      std::string("\x00\x03", 2));
+      absl::string_view("\x00\x03", 2));
 
   output->Write(out);
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_FALSE(ble_l2cap_packet.ok());
 }
 
 TEST(BleL2capPacketTest, CreateFromStreamRequestAdvertisementFinish) {
   auto [input, output] = nearby::CreatePipe();
-  auto byte_array = BleL2capPacket::ByteArrayForRequestAdvertisementFinish();
+  ByteArray byte_array =
+      BleL2capPacket::ByteArrayForRequestAdvertisementFinish();
 
   output->Write(byte_array.AsStringView());
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_TRUE(ble_l2cap_packet.ok());
   EXPECT_TRUE(ble_l2cap_packet->IsFetchAdvertisementFinished());
 }
@@ -283,14 +426,15 @@ TEST(BleL2capPacketTest, CreateFromStreamRequestAdvertisementFinish) {
 TEST(BleL2capPacketTest, CreateFromStreamResponseAdvertisement) {
   auto [input, output] = nearby::CreatePipe();
   ByteArray advertisement(kCorrectData.data(), kCorrectData.size());
-  auto byte_array =
+  absl::StatusOr<ByteArray> byte_array =
       BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
   ASSERT_TRUE(byte_array.ok());
 
   output->Write(byte_array->AsStringView());
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_TRUE(ble_l2cap_packet.ok());
   EXPECT_TRUE(ble_l2cap_packet->IsAdvertisementResponse());
   EXPECT_EQ(ble_l2cap_packet->GetAdvertisement(), advertisement);
@@ -308,8 +452,27 @@ TEST(BleL2capPacketTest,
   output->Write(out);
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_FALSE(ble_l2cap_packet.ok());
+}
+
+TEST(BleL2capPacketTest,
+     CreateFromStreamResponseAdvertisementTooShortAdvertisementLength) {
+  auto [input, output] = nearby::CreatePipe();
+  std::string out = absl::StrCat(
+      std::string(1, static_cast<char>(
+                         BleL2capPacket::Command::kResponseAdvertisement)),
+      absl::string_view("\x00\x01", 2));
+
+  output->Write(out);
+
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
+  output->Close();
+  EXPECT_THAT(ble_l2cap_packet,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("advertisement length incorrect")));
 }
 
 TEST(BleL2capPacketTest, CreateFromStreamFailsReadAdvertisement) {
@@ -317,12 +480,13 @@ TEST(BleL2capPacketTest, CreateFromStreamFailsReadAdvertisement) {
   std::string out = absl::StrCat(
       std::string(1, static_cast<char>(
                          BleL2capPacket::Command::kResponseAdvertisement)),
-      std::string("\x00\x0a", 2));
+      absl::string_view("\x00\x0a", 2));
 
   output->Write(out);
   output->Close();
 
-  auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet =
+      BleL2capPacket::CreateFromStream(*input);
   ASSERT_FALSE(ble_l2cap_packet.ok());
 }
 

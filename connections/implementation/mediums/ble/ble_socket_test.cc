@@ -53,6 +53,9 @@ class FakeInputStream : public InputStream {
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
     if (buffer_.empty()) {
+      if (eof_on_empty_) {
+        return ExceptionOr<ByteArray>{ByteArray{}};
+      }
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
     size_t read_size = std::min(static_cast<size_t>(size), buffer_.size());
@@ -70,9 +73,12 @@ class FakeInputStream : public InputStream {
     exception_on_read_ = exception_on_read;
   }
 
+  void SetEofOnEmpty(bool eof_on_empty) { eof_on_empty_ = eof_on_empty; }
+
  private:
   std::string buffer_;
   bool exception_on_read_ = false;
+  bool eof_on_empty_ = false;
 };
 
 class FakeOutputStream : public OutputStream {
@@ -587,6 +593,26 @@ TEST_F(BleL2capSocketBleMediumTest,
        ProcessIncomingL2capPacketValidationReadFails) {
   fake_input_stream_.SetExceptionOnRead(true);
   EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationEofFails) {
+  fake_input_stream_.SetEofOnEmpty(true);
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationTruncatedPacketAtEofFails) {
+  fake_input_stream_.SetEofOnEmpty(true);
+  fake_input_stream_.Append(ByteArray(std::string(
+      1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement))));
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationEofFails) {
+  fake_input_stream_.SetEofOnEmpty(true);
+  EXPECT_FALSE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
 }
 
 TEST_F(BleL2capSocketBleMediumTest,

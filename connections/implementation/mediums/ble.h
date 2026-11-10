@@ -40,6 +40,7 @@
 #include "connections/power_level.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
@@ -277,6 +278,9 @@ class Ble final {
   // `mutex_` held.
   bool IsAcceptingL2capConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void RegisterIncomingL2capSocketLocked(const std::string& service_id,
+                                         BleL2capSocket& client_socket)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   bool IsAdvertisementGattServerRunningLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -380,11 +384,23 @@ class Ble final {
   absl::flat_hash_map<std::string, BleL2capServerSocket> l2cap_server_sockets_
       ABSL_GUARDED_BY(mutex_);
 
-  // A map of service_id -> BleL2capSocket.
+  // A map of service_id -> (socket_ptr -> BleL2capSocket).
+  // Tracks accepted incoming L2CAP sockets that are currently undergoing
+  // packet validation before being handed to the accepted connection callback.
+  absl::flat_hash_map<
+      std::string,
+      absl::flat_hash_map<api::ble::BleL2capSocket*, BleL2capSocket>>
+      l2cap_pending_incoming_sockets_ ABSL_GUARDED_BY(mutex_);
+
+  // A map of service_id -> (socket_ptr -> BleL2capSocket).
   // Tracks currently connected incoming sockets. This lets the device know when
   // it's okay to restart L2CAP server related operations.
-  absl::flat_hash_map<std::string, BleL2capSocket>
+  absl::flat_hash_map<
+      std::string,
+      absl::flat_hash_map<api::ble::BleL2capSocket*, BleL2capSocket>>
       l2cap_incoming_service_id_to_sockets_ ABSL_GUARDED_BY(mutex_);
+
+  Lender<Ble*> lender_{this};
 };
 
 }  // namespace connections
