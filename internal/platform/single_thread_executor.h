@@ -16,6 +16,7 @@
 #define PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 
 #include "absl/base/thread_annotations.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/submittable_executor.h"
 
 namespace nearby {

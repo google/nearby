@@ -37,8 +37,6 @@
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby::connections {
@@ -186,7 +184,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
 
 Exception BaseEndpointChannel::Write(absl::string_view data) {
   {
-    MutexLock pause_lock(&is_paused_mutex_);
+    absl::MutexLock pause_lock(is_paused_mutex_);
     if (is_paused_) {
       BlockUntilUnpaused();
     }
@@ -259,7 +257,7 @@ Exception BaseEndpointChannel::Write(absl::string_view data) {
 void BaseEndpointChannel::Close() {
   {
     // In case channel is paused, resume it first thing.
-    MutexLock lock(&is_paused_mutex_);
+    absl::MutexLock lock(is_paused_mutex_);
     if (is_closed_) {
       VLOG(1) << "EndpointChannel already closed";
       return;
@@ -325,7 +323,7 @@ void BaseEndpointChannel::Close(
 }
 
 bool BaseEndpointChannel::IsClosed() const {
-  MutexLock lock(&is_paused_mutex_);
+  absl::MutexLock lock(is_paused_mutex_);
   return is_closed_;
 }
 
@@ -383,19 +381,19 @@ ExceptionOr<ByteArray> BaseEndpointChannel::TryDecrypt(const ByteArray& data) {
 }
 
 bool BaseEndpointChannel::IsPaused() const {
-  MutexLock lock(&is_paused_mutex_);
+  absl::MutexLock lock(is_paused_mutex_);
   return is_paused_;
 }
 
 void BaseEndpointChannel::Pause() {
-  MutexLock lock(&is_paused_mutex_);
+  absl::MutexLock lock(is_paused_mutex_);
   is_paused_ = true;
 }
 
 void BaseEndpointChannel::Resume() {
-  MutexLock lock(&is_paused_mutex_);
+  absl::MutexLock lock(is_paused_mutex_);
   is_paused_ = false;
-  is_paused_cond_.Notify();
+  is_paused_cond_.SignalAll();
 }
 
 absl::Time BaseEndpointChannel::GetLastReadTimestamp() const {
@@ -459,12 +457,7 @@ void BaseEndpointChannel::BlockUntilUnpaused() {
   // For more on how this works, see
   // https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html
   while (is_paused_) {
-    Exception wait_succeeded = is_paused_cond_.Wait();
-    if (!wait_succeeded.Ok()) {
-      LOG(WARNING) << __func__
-                   << ": Failure waiting to unpause: " << wait_succeeded.value;
-      return;
-    }
+    is_paused_cond_.Wait(&is_paused_mutex_);
   }
 }
 
@@ -472,7 +465,7 @@ void BaseEndpointChannel::UnblockPausedWriter() {
   // For more on how this works, see
   // https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html
   is_paused_ = false;
-  is_paused_cond_.Notify();
+  is_paused_cond_.SignalAll();
 }
 
 std::unique_ptr<std::string> BaseEndpointChannel::EncodeMessageForTests(

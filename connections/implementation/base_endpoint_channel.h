@@ -26,10 +26,8 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby::connections {
@@ -155,8 +153,8 @@ class BaseEndpointChannel : public EndpointChannel {
   std::shared_ptr<EncryptionContext> crypto_context_
       ABSL_GUARDED_BY(crypto_mutex_);
 
-  mutable Mutex is_paused_mutex_;
-  ConditionVariable is_paused_cond_{&is_paused_mutex_};
+  mutable absl::Mutex is_paused_mutex_;
+  absl::CondVar is_paused_cond_;
   // If true, writes should block until this has been set to false.
   bool is_paused_ ABSL_GUARDED_BY(is_paused_mutex_) = false;
   bool is_closed_ ABSL_GUARDED_BY(is_paused_mutex_) = false;

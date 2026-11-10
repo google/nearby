@@ -27,6 +27,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -54,11 +55,8 @@
 #include "internal/interop/authentication_status.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace connections {
@@ -97,11 +95,11 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, StartAdvertising)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.StartAdvertising(client, service_id, advertising_options, info,
                                std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->StartedAdvertising(kServiceId, advertising_options.strategy,
@@ -113,10 +111,10 @@ class ServiceControllerRouterTest : public testing::Test {
   void StopAdvertising(ClientProxy* client, ResultCallback callback) {
     EXPECT_CALL(*mock_, StopAdvertising).Times(1);
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.StopAdvertising(client, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
     }
     client->StoppedAdvertising();
     EXPECT_FALSE(client->IsAdvertising());
@@ -128,11 +126,11 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, StartDiscovery)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.StartDiscovery(client, kServiceId, discovery_options, {},
                              std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->StartedDiscovery(service_id, discovery_options.strategy,
@@ -144,10 +142,10 @@ class ServiceControllerRouterTest : public testing::Test {
   void StopDiscovery(ClientProxy* client, ResultCallback callback) {
     EXPECT_CALL(*mock_, StopDiscovery).Times(1);
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.StopDiscovery(client, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
     }
     client->StoppedDiscovery();
     EXPECT_FALSE(client->IsDiscovering());
@@ -158,10 +156,10 @@ class ServiceControllerRouterTest : public testing::Test {
                       ResultCallback callback) {
     EXPECT_CALL(*mock_, InjectEndpoint).Times(1);
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.InjectEndpoint(client, service_id, metadata, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
     }
   }
 
@@ -172,11 +170,11 @@ class ServiceControllerRouterTest : public testing::Test {
         .WillOnce(Return(Status{Status::kSuccess}));
     ConnectionOptions connection_options;
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.RequestConnection(client, endpoint_id, request_info,
                                 connection_options, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     ConnectionResponseInfo response_info{
@@ -199,10 +197,10 @@ class ServiceControllerRouterTest : public testing::Test {
     // Pre-condition for successful Accept is: connection must exist.
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.AcceptConnection(client, endpoint_id, {}, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->LocalEndpointAcceptedConnection(endpoint_id, {});
@@ -219,10 +217,10 @@ class ServiceControllerRouterTest : public testing::Test {
     // Pre-condition for successful Accept is: connection must exist.
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(endpoint_id));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.RejectConnection(client, endpoint_id, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->LocalEndpointRejectedConnection(endpoint_id);
@@ -235,11 +233,11 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, InitiateBandwidthUpgrade).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.InitiateBandwidthUpgrade(client, endpoint_id,
                                        std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
   }
@@ -255,11 +253,11 @@ class ServiceControllerRouterTest : public testing::Test {
     }
     EXPECT_TRUE(connected);
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.SendPayload(client, absl::MakeSpan(endpoint_ids),
                           std::move(payload), std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
   }
@@ -269,10 +267,10 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, CancelPayload)
         .WillOnce(Return(Status{Status::kSuccess}));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.CancelPayload(client, payload_id, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
   }
@@ -283,10 +281,10 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(endpoint_id));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.DisconnectFromEndpoint(client, endpoint_id, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
     }
     client->OnDisconnected(endpoint_id, false);
     EXPECT_FALSE(client->IsConnectedToEndpoint(endpoint_id));
@@ -331,12 +329,12 @@ class ServiceControllerRouterTest : public testing::Test {
     }
     ConnectionOptions connection_options;
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.RequestConnectionV3(client, kRemoteDevice,
                                   std::move(request_info), connection_options,
                                   std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       if (check_result) {
         EXPECT_EQ(result_, Status{Status::kSuccess});
       }
@@ -360,11 +358,11 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_TRUE(
         client->HasPendingConnectionToEndpoint(kRemoteDevice.GetEndpointId()));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.AcceptConnectionV3(client, kRemoteDevice, {},
                                  std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     auto endpoint_id = kRemoteDevice.GetEndpointId();
@@ -382,10 +380,10 @@ class ServiceControllerRouterTest : public testing::Test {
     // Pre-condition for successful Accept is: connection must exist.
     EXPECT_TRUE(client->HasPendingConnectionToEndpoint(device.GetEndpointId()));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.RejectConnectionV3(client, device, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->LocalEndpointRejectedConnection(device.GetEndpointId());
@@ -398,10 +396,10 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, InitiateBandwidthUpgrade).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(device.GetEndpointId()));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.InitiateBandwidthUpgradeV3(client, device, std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
   }
@@ -414,11 +412,11 @@ class ServiceControllerRouterTest : public testing::Test {
         client->IsConnectedToEndpoint(recipient_device.GetEndpointId());
     EXPECT_TRUE(connected);
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.SendPayloadV3(client, recipient_device, std::move(payload),
                             std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
   }
@@ -430,7 +428,7 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_TRUE(
         client->IsConnectedToEndpoint(recipient_device.GetEndpointId()));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       router_.CancelPayloadV3(client, recipient_device, payload_id,
                               std::move(callback));
     }
@@ -442,11 +440,11 @@ class ServiceControllerRouterTest : public testing::Test {
     EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
     EXPECT_TRUE(client->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.DisconnectFromDeviceV3(client, kRemoteDevice,
                                      std::move(callback));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
     }
     client->OnDisconnected(kRemoteDevice.GetEndpointId(), false);
     EXPECT_FALSE(client->IsConnectedToEndpoint(kRemoteDevice.GetEndpointId()));
@@ -470,12 +468,12 @@ class ServiceControllerRouterTest : public testing::Test {
           });
     }
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       complete_ = false;
       router_.StartListeningForIncomingConnectionsV3(
           client, service_id, std::move(listener), options,
           std::move(result_listener));
-      while (!complete_) cond_.Wait();
+      while (!complete_) cond_.Wait(&mutex_);
       EXPECT_TRUE(client->IsListeningForIncomingConnections());
     }
   }
@@ -534,8 +532,8 @@ class ServiceControllerRouterTest : public testing::Test {
       .listener = ConnectionListener(),
   };
 
-  Mutex mutex_;
-  ConditionVariable cond_{&mutex_};
+  absl::Mutex mutex_;
+  absl::CondVar cond_;
   Status result_ ABSL_GUARDED_BY(mutex_) = {Status::kError};
   bool complete_ ABSL_GUARDED_BY(mutex_) = false;
   MockServiceController* mock_;
@@ -563,75 +561,75 @@ TEST_F(ServiceControllerRouterTest, QualityConversionWorks) {
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
   StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, [this](Status status) {
-                     MutexLock lock(&mutex_);
+                     absl::MutexLock lock(mutex_);
                      result_ = status;
                      complete_ = true;
-                     cond_.Notify();
+                     cond_.SignalAll();
                    });
 }
 
 TEST_F(ServiceControllerRouterTest, StopAdvertisingCalled) {
   StartAdvertising(&client_, kServiceId, kAdvertisingOptions,
                    kConnectionRequestInfo, [this](Status status) {
-                     MutexLock lock(&mutex_);
+                     absl::MutexLock lock(mutex_);
                      result_ = status;
                      complete_ = true;
-                     cond_.Notify();
+                     cond_.SignalAll();
                    });
   StopAdvertising(&client_, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
 TEST_F(ServiceControllerRouterTest, StartDiscoveryCalled) {
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
 }
 
 TEST_F(ServiceControllerRouterTest, StopDiscoveryCalled) {
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   StopDiscovery(&client_, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
 TEST_F(ServiceControllerRouterTest, InjectEndpointCalled) {
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   InjectEndpoint(&client_, kServiceId, kOutOfBandConnectionMetadata,
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   StopDiscovery(&client_, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -639,17 +637,17 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
 }
 
@@ -657,25 +655,25 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can accept connection.
   AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -683,25 +681,25 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can reject connection.
   RejectConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -709,32 +707,32 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can accept connection.
   AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // Now we can change connection bandwidth.
   InitiateBandwidthUpgrade(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -742,33 +740,33 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can accept connection.
   AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // Now we can send payload.
   SendPayload(&client_, std::vector<std::string>{kRemoteEndpointId},
               Payload{ByteArray("data")}, [this](Status status) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 result_ = status;
                 complete_ = true;
-                cond_.Notify();
+                cond_.SignalAll();
               });
 }
 
@@ -776,34 +774,34 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can accept connection.
   AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // We have to know payload id, before we can cancel payload transfer.
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
   CancelPayload(&client_, kPayloadId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -811,32 +809,32 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromEndpointCalled) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   RequestConnection(&client_, kRemoteEndpointId, kConnectionRequestInfo,
                     [this](Status status) {
-                      MutexLock lock(&mutex_);
+                      absl::MutexLock lock(mutex_);
                       result_ = status;
                       complete_ = true;
-                      cond_.Notify();
+                      cond_.SignalAll();
                     });
   // Now, we can accept connection.
   AcceptConnection(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // We can disconnect at any time after RequestConnection.
   DisconnectFromEndpoint(&client_, kRemoteEndpointId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -844,10 +842,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -884,10 +882,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
                   }},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       true);
   EXPECT_TRUE(initiated_latch.Await().Ok());
@@ -901,10 +899,10 @@ TEST_F(ServiceControllerRouterTest,
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -942,10 +940,10 @@ TEST_F(ServiceControllerRouterTest,
                   }},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       true, true, true, AuthenticationStatus::kFailure);
   EXPECT_TRUE(initiated_latch.Await().Ok());
@@ -958,10 +956,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device = FakeNearbyDevice();
@@ -995,10 +993,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
                   }},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       true, true, false);
   EXPECT_TRUE(initiated_latch.Await().Ok());
@@ -1011,10 +1009,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1026,10 +1024,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   RequestConnectionV3(
@@ -1039,14 +1037,14 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false, false);
   {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     EXPECT_EQ(result_.value, Status::kAlreadyConnectedToEndpoint);
   }
 }
@@ -1055,10 +1053,10 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1070,18 +1068,18 @@ TEST_F(ServiceControllerRouterTest, AcceptConnectionCalledV3) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can accept connection.
   AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -1089,10 +1087,10 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1104,18 +1102,18 @@ TEST_F(ServiceControllerRouterTest, RejectConnectionCalledV3) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can reject connection.
   RejectConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -1123,10 +1121,10 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1138,25 +1136,25 @@ TEST_F(ServiceControllerRouterTest, InitiateBandwidthUpgradeCalledV3) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can accept connection.
   AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // Now we can change connection bandwidth.
   InitiateBandwidthUpgradeV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -1164,10 +1162,10 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1179,26 +1177,26 @@ TEST_F(ServiceControllerRouterTest, SendPayloadCalledV3) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can accept connection.
   AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // Now we can send payload.
   SendPayloadV3(&client_, kRemoteDevice, Payload{ByteArray("data")},
                 [this](Status status) {
-                  MutexLock lock(&mutex_);
+                  absl::MutexLock lock(mutex_);
                   result_ = status;
                   complete_ = true;
-                  cond_.Notify();
+                  cond_.SignalAll();
                 });
 }
 
@@ -1206,10 +1204,10 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1221,25 +1219,25 @@ TEST_F(ServiceControllerRouterTest, DisconnectFromDeviceCalledV3) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can accept connection.
   AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // We can disconnect at any time after RequestConnection.
   DisconnectFromDeviceV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -1247,10 +1245,10 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
   // Either Advertising, or Discovery should be ongoing.
   StartDiscovery(&client_, kServiceId, kDiscoveryOptions, DiscoveryListener{},
                  [this](Status status) {
-                   MutexLock lock(&mutex_);
+                   absl::MutexLock lock(mutex_);
                    result_ = status;
                    complete_ = true;
-                   cond_.Notify();
+                   cond_.SignalAll();
                  });
   // Establish connection.
   auto local_device =
@@ -1262,27 +1260,27 @@ TEST_F(ServiceControllerRouterTest, CancelPayloadV3Called) {
           .listener = {},
       },
       [this](Status status) {
-        MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         result_ = status;
         complete_ = true;
-        cond_.Notify();
+        cond_.SignalAll();
       },
       false);
   // Now, we can accept connection.
   AcceptConnectionV3(&client_, kRemoteDevice, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
   // We have to know payload id, before we can cancel payload transfer.
   // It is either after a call to SendPayload, or after receiving
   // PayloadProgress callback. Let's assume we have it, and proceed.
   CancelPayloadV3(&client_, kRemoteDevice, kPayloadId, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
     complete_ = true;
-    cond_.Notify();
+    cond_.SignalAll();
   });
 }
 
@@ -1293,10 +1291,10 @@ TEST_F(ServiceControllerRouterTest,
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_TRUE(result.first.Ok());
         {
-          MutexLock lock(&mutex_);
+          absl::MutexLock lock(mutex_);
           complete_ = true;
         }
-        cond_.Notify();
+        cond_.SignalAll();
       });
 
   StopListeningForIncomingConnectionsV3(&client_);
@@ -1309,10 +1307,10 @@ TEST_F(ServiceControllerRouterTest,
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_TRUE(result.first.Ok());
         {
-          MutexLock lock(&mutex_);
+          absl::MutexLock lock(mutex_);
           complete_ = true;
         }
-        cond_.Notify();
+        cond_.SignalAll();
       });
 
   StartListeningForIncomingConnectionsV3(
@@ -1320,10 +1318,10 @@ TEST_F(ServiceControllerRouterTest,
       [this](std::pair<Status, v3::ListeningResult> result) {
         EXPECT_EQ(result.first.value, Status::kAlreadyListening);
         {
-          MutexLock lock(&mutex_);
+          absl::MutexLock lock(mutex_);
           complete_ = true;
         }
-        cond_.Notify();
+        cond_.SignalAll();
       },
       /*expecting_call=*/false);
 }
@@ -1331,34 +1329,46 @@ TEST_F(ServiceControllerRouterTest,
 TEST_F(ServiceControllerRouterTest, UpdateAdvertisingOptionsV3Called) {
   EXPECT_CALL(*mock_, UpdateAdvertisingOptions)
       .WillOnce(Return(Status{Status::kSuccess}));
+  {
+    absl::MutexLock lock(mutex_);
+    complete_ = false;
+  }
   router_.UpdateAdvertisingOptionsV3(&client_, kServiceId, kAdvertisingOptions,
                                      [this](Status status) {
-                                       MutexLock lock(&mutex_);
+                                       absl::MutexLock lock(mutex_);
                                        result_ = status;
-                                       cond_.Notify();
+                                       complete_ = true;
+                                       cond_.SignalAll();
                                      });
   {
-    MutexLock lock(&mutex_);
-    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
-      EXPECT_EQ(result_, Status{Status::kSuccess});
+    absl::MutexLock lock(mutex_);
+    while (!complete_ && !cond_.WaitWithTimeout(&mutex_, absl::Seconds(1))) {
     }
+    EXPECT_TRUE(complete_);
+    EXPECT_EQ(result_, Status{Status::kSuccess});
   }
 }
 
 TEST_F(ServiceControllerRouterTest, UpdateDiscoveryOptionsV3Called) {
   EXPECT_CALL(*mock_, UpdateDiscoveryOptions)
       .WillOnce(Return(Status{Status::kSuccess}));
+  {
+    absl::MutexLock lock(mutex_);
+    complete_ = false;
+  }
   router_.UpdateDiscoveryOptionsV3(&client_, kServiceId, kDiscoveryOptions,
                                    [this](Status status) {
-                                     MutexLock lock(&mutex_);
+                                     absl::MutexLock lock(mutex_);
                                      result_ = status;
-                                     cond_.Notify();
+                                     complete_ = true;
+                                     cond_.SignalAll();
                                    });
   {
-    MutexLock lock(&mutex_);
-    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
-      EXPECT_EQ(result_, Status{Status::kSuccess});
+    absl::MutexLock lock(mutex_);
+    while (!complete_ && !cond_.WaitWithTimeout(&mutex_, absl::Seconds(1))) {
     }
+    EXPECT_TRUE(complete_);
+    EXPECT_EQ(result_, Status{Status::kSuccess});
   }
 }
 
@@ -1376,16 +1386,22 @@ TEST_F(ServiceControllerRouterTest, StopAllEndpointsCalled) {
   EXPECT_CALL(*mock_, StopDiscovery).Times(1);
   EXPECT_CALL(*mock_, ShutdownBwuManagerExecutors).Times(1);
 
+  {
+    absl::MutexLock lock(mutex_);
+    complete_ = false;
+  }
   router_.StopAllEndpoints(&client_, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
-    cond_.Notify();
+    complete_ = true;
+    cond_.SignalAll();
   });
   {
-    MutexLock lock(&mutex_);
-    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
-      EXPECT_EQ(result_, Status{Status::kSuccess});
+    absl::MutexLock lock(mutex_);
+    while (!complete_ && !cond_.WaitWithTimeout(&mutex_, absl::Seconds(1))) {
     }
+    EXPECT_TRUE(complete_);
+    EXPECT_EQ(result_, Status{Status::kSuccess});
   }
 
   // Verify client state is reset.
@@ -1400,16 +1416,22 @@ TEST_F(ServiceControllerRouterTest, SetCustomSavePathCalled) {
   std::string test_path = "/tmp/custom_path";
   EXPECT_CALL(*mock_, SetCustomSavePath(&client_, test_path)).Times(1);
 
+  {
+    absl::MutexLock lock(mutex_);
+    complete_ = false;
+  }
   router_.SetCustomSavePath(&client_, test_path, [this](Status status) {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     result_ = status;
-    cond_.Notify();
+    complete_ = true;
+    cond_.SignalAll();
   });
   {
-    MutexLock lock(&mutex_);
-    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
-      EXPECT_EQ(result_, Status{Status::kSuccess});
+    absl::MutexLock lock(mutex_);
+    while (!complete_ && !cond_.WaitWithTimeout(&mutex_, absl::Seconds(1))) {
     }
+    EXPECT_TRUE(complete_);
+    EXPECT_EQ(result_, Status{Status::kSuccess});
   }
 }
 

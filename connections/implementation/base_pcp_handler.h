@@ -27,6 +27,7 @@
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -670,7 +671,7 @@ class BasePcpHandler : public PcpHandler,
   AtomicBoolean closed_{false};
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
-  Mutex discovered_endpoint_mutex_;
+  absl::Mutex discovered_endpoint_mutex_;
 
   // A map of endpoint id -> PendingConnectionInfo. Entries in this map imply
   // that there is an active connection to the endpoint and we're waiting for

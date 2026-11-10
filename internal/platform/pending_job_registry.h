@@ -15,9 +15,12 @@
 #ifndef PLATFORM_PUBLIC_PENDING_JOB_REGISTRY_H_
 #define PLATFORM_PUBLIC_PENDING_JOB_REGISTRY_H_
 
+#include <string>
+
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 
@@ -41,7 +44,7 @@ class PendingJobRegistry {
 
   std::string CreateKey(const std::string& name, absl::Time post_time);
 
-  Mutex mutex_;
+  absl::Mutex mutex_;
   absl::flat_hash_map<std::string, absl::Time> pending_jobs_
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, absl::Time> running_jobs_

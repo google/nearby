@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -80,7 +81,7 @@ bool IsAllowedPreConfirmationFrameType(V1Frame::FrameType frame_type) {
 class EndpointManager::LockedFrameProcessor {
  public:
   explicit LockedFrameProcessor(FrameProcessorWithMutex* fp)
-      : lock_{std::make_unique<MutexLock>(&fp->mutex_)},
+      : lock_{std::make_unique<absl::MutexLock>(fp->mutex_)},
         frame_processor_with_mutex_{fp} {}
 
   // Constructor of a no-op object.
@@ -107,7 +108,7 @@ class EndpointManager::LockedFrameProcessor {
   }
 
  private:
-  std::unique_ptr<MutexLock> lock_;
+  std::unique_ptr<absl::MutexLock> lock_;
   FrameProcessorWithMutex* frame_processor_with_mutex_ = nullptr;
 };
 
@@ -412,7 +413,7 @@ void EndpointManager::ProcessDisconnectionFrame(
 ExceptionOr<bool> EndpointManager::HandleKeepAlive(
     std::shared_ptr<EndpointChannel> endpoint_channel,
     absl::Duration keep_alive_interval, absl::Duration keep_alive_timeout,
-    Mutex* keep_alive_waiter_mutex, ConditionVariable* keep_alive_waiter) {
+    absl::Mutex* keep_alive_waiter_mutex, absl::CondVar* keep_alive_waiter) {
   // Check if it has been too long since we received a frame from our endpoint.
   absl::Time last_read_time = endpoint_channel->GetLastReadTimestamp();
   absl::Duration duration_until_timeout =
@@ -451,11 +452,8 @@ ExceptionOr<bool> EndpointManager::HandleKeepAlive(
   absl::Duration wait_for =
       std::min(duration_until_timeout, duration_until_write_keep_alive);
   {
-    MutexLock lock(keep_alive_waiter_mutex);
-    Exception wait_exception = keep_alive_waiter->Wait(wait_for);
-    if (!wait_exception.Ok()) {
-      return ExceptionOr<bool>(wait_exception);
-    }
+    absl::MutexLock lock(*keep_alive_waiter_mutex);
+    keep_alive_waiter->WaitWithTimeout(keep_alive_waiter_mutex, wait_for);
   }
 
   return ExceptionOr<bool>(true);
@@ -516,7 +514,8 @@ void EndpointManager::RegisterFrameProcessor(
                "of frame processor "
             << processor << " for frame type "
             << V1Frame::FrameType_Name(frame_type) << ", self=" << this;
-    frame_processors_.emplace(frame_type, processor);
+    frame_processors_.emplace(
+        frame_type, std::make_unique<FrameProcessorWithMutex>(processor));
   }
 }
 
@@ -548,7 +547,7 @@ EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
   MutexLock lock(&frame_processors_lock_);
   auto it = frame_processors_.find(frame_type);
   if (it != frame_processors_.end()) {
-    return LockedFrameProcessor(&it->second);
+    return LockedFrameProcessor(it->second.get());
   }
   return LockedFrameProcessor();
 }
@@ -639,8 +638,8 @@ void EndpointManager::RegisterEndpoint(
             << endpoint_id;
     endpoint_state.StartEndpointKeepAliveManager(
         [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
-            Mutex* keep_alive_waiter_mutex,
-            ConditionVariable* keep_alive_waiter) {
+            absl::Mutex* keep_alive_waiter_mutex,
+            absl::CondVar* keep_alive_waiter) {
           EndpointChannelLoopRunnable(
               "KeepAliveManager", client, endpoint_id,
               [this, keep_alive_interval, keep_alive_timeout,
@@ -927,7 +926,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 
   int valid = 0;
   for (auto& item : frame_processors_) {
-    LockedFrameProcessor processor(&item.second);
+    LockedFrameProcessor processor(item.second.get());
     LOG(INFO) << "processor=" << processor.get()
               << "; frame type=" << V1Frame::FrameType_Name(item.first);
     if (processor) {
@@ -1006,8 +1005,8 @@ EndpointManager::EndpointState::~EndpointState() {
 
   // Make sure the KeepAlive thread isn't blocking shutdown.
   if (keep_alive_waiter_mutex_ && keep_alive_waiter_) {
-    MutexLock lock(keep_alive_waiter_mutex_.get());
-    keep_alive_waiter_->Notify();
+    absl::MutexLock lock(*keep_alive_waiter_mutex_);
+    keep_alive_waiter_->SignalAll();
   }
 }
 
@@ -1016,7 +1015,7 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 }
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
-    absl::AnyInvocable<void(Mutex*, ConditionVariable*)> runnable) {
+    absl::AnyInvocable<void(absl::Mutex*, absl::CondVar*)> runnable) {
   keep_alive_thread_.Execute(
       "keep-alive", [runnable = std::move(runnable),
                      keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),

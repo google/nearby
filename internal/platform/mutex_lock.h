@@ -24,10 +24,6 @@ namespace nearby {
 // An RAII mechanism to acquire a Lock over a block of code.
 class ABSL_SCOPED_LOCKABLE MutexLock final {
  public:
-  explicit MutexLock(Mutex* mutex) ABSL_EXCLUSIVE_LOCK_FUNCTION(mutex)
-      : mutex_(mutex->impl_.get()) {
-    mutex_->Lock();
-  }
   explicit MutexLock(RecursiveMutex* mutex) ABSL_EXCLUSIVE_LOCK_FUNCTION(mutex)
       : mutex_(mutex->impl_.get()) {
     mutex_->Lock();

@@ -48,58 +48,6 @@ class MutexTest : public testing::Test {
   absl::CondVar step_cond_;
 };
 
-TEST_F(MutexTest, ConstructorDestructorWorks) {
-  Mutex test_mutex;
-  SUCCEED();
-}
-
-TEST_F(MutexTest, BasicLockingWorks) {
-  Mutex test_mutex;
-  test_mutex.Lock();
-  executor_.Execute([this, &test_mutex]() {
-    step_ = 1;
-    step_cond_.Signal();
-    test_mutex.Lock();
-    test_mutex.Unlock();
-    step_ = 2;
-    step_cond_.Signal();
-  });
-  VerifyStepReached(1);
-  test_mutex.Unlock();
-  VerifyStepReached(2);
-}
-
-// This test re-locks a Mutex that the thread already holds, and then unlocks it
-// from a thread that doesn't hold it. On most platforms nearby::Mutex is an
-// absl::Mutex, which allows neither. TSan and absl's debug-mode deadlock
-// detection report the cross-thread unlock as an error, so only run this test
-// in optimized builds without TSan.
-#if defined(THREAD_SANITIZER) || !defined(NDEBUG)
-TEST_F(MutexTest, DISABLED_DoubleLockIsDeadlock)
-ABSL_NO_THREAD_SAFETY_ANALYSIS {
-#else
-TEST_F(MutexTest, DoubleLockIsDeadlock) ABSL_NO_THREAD_SAFETY_ANALYSIS {
-#endif
-  Mutex test_mutex{/*check=*/false};  // Disable run-time deadlock detection.
-  test_mutex.Lock();
-  executor_.Execute([this, &test_mutex]() ABSL_NO_THREAD_SAFETY_ANALYSIS {
-    step_ = 1;
-    step_cond_.Signal();  // We entered executor.
-    test_mutex.Lock();
-    step_ = 2;
-    step_cond_.Signal();  // We acquired the test lock.
-    test_mutex.Lock();    // Deadlock. (Main thread should save us).
-    step_ = 3;
-    step_cond_.Signal();  // We are done.
-  });
-  VerifyStepReached(1);
-  test_mutex.Unlock();  // Let executor proceed to step 2.
-  VerifyStepReached(2);
-  test_mutex.Unlock();  // Bring executor out of deadlock.
-  VerifyStepReached(3);
-  test_mutex.Unlock();  // Unlock before shutdown.
-}
-
 TEST_F(MutexTest, DoubleLockIsNotDeadlock) {
   RecursiveMutex test_mutex;
   test_mutex.Lock();
@@ -118,13 +66,6 @@ TEST_F(MutexTest, DoubleLockIsNotDeadlock) {
   VerifyStepReached(2);
 }
 
-TEST_F(MutexTest, AssertHeld) {
-  Mutex mutex;
-  mutex.Lock();
-  mutex.AssertHeld();
-  mutex.Unlock();
-}
-
 TEST_F(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
   RecursiveMutex mutex;
   mutex.Lock();
@@ -138,12 +79,6 @@ TEST_F(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
 
 #ifndef NDEBUG
 using MutexDeathTest = MutexTest;
-// Mutex death test may fail on some platforms.
-TEST_F(MutexDeathTest, DISABLED_MutexAssertHeldWithoutLock) {
-  Mutex mutex;
-  EXPECT_DEATH(mutex.AssertHeld(), "");
-}
-
 // RecursiveMutex death test may fail on some platforms.
 TEST_F(MutexDeathTest, DISABLED_RecursiveMutexAssertHeldWithoutLock) {
   RecursiveMutex mutex;

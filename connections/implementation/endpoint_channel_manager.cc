@@ -26,11 +26,8 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/medium_selector.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby::connections {
 namespace {
@@ -201,10 +198,11 @@ void EndpointChannelManager::RemoveTimeoutDisconnectedState(
 
 void EndpointChannelManager::ChannelState::EndpointData::
     CreateNewTimeoutDisconnectedState(absl::Duration timeout_millis) {
-  MutexLock lock(&timeout_to_disconnected_mutex_);
+  absl::MutexLock lock(timeout_to_disconnected_mutex_);
   timeout_to_disconnected_enabled_ = true;
   timeout_to_disconnected_notified_ = false;
-  timeout_to_disconnected_.Wait(timeout_millis);
+  timeout_to_disconnected_.WaitWithTimeout(&timeout_to_disconnected_mutex_,
+                                           timeout_millis);
   LOG(INFO) << "[safe-to-disconnect] Wait is done with "
             << (timeout_to_disconnected_notified_ ? "notification" : "timeout");
   if (!timeout_to_disconnected_notified_) {
@@ -217,31 +215,31 @@ void EndpointChannelManager::ChannelState::EndpointData::
 void EndpointChannelManager::ChannelState::EndpointData::
     MarkEndpointStopWaitToDisconnect(bool is_safe_to_disconnect,
                                      bool notify_stop_waiting) {
-  MutexLock lock(&timeout_to_disconnected_mutex_);
+  absl::MutexLock lock(timeout_to_disconnected_mutex_);
   this->is_safe_to_disconnect_ = is_safe_to_disconnect;
   if (!timeout_to_disconnected_enabled_) return;
   if (notify_stop_waiting) {
     LOG(INFO) << "[safe-to-disconnect] Notify stop waiting before timeout.";
-    timeout_to_disconnected_.Notify();
+    timeout_to_disconnected_.SignalAll();
     timeout_to_disconnected_notified_ = true;
   }
 }
 
 bool EndpointChannelManager::ChannelState::EndpointData::
     IsWaitingForSafeToDisconnectTimeout() const {
-  MutexLock lock(&timeout_to_disconnected_mutex_);
+  absl::MutexLock lock(timeout_to_disconnected_mutex_);
   return timeout_to_disconnected_enabled_;
 }
 
 bool EndpointChannelManager::ChannelState::EndpointData::IsSafeToDisconnect()
     const {
-  MutexLock lock(&timeout_to_disconnected_mutex_);
+  absl::MutexLock lock(timeout_to_disconnected_mutex_);
   return is_safe_to_disconnect_;
 }
 
 void EndpointChannelManager::ChannelState::EndpointData::
     RemoveTimeoutDisconnectedState() {
-  MutexLock lock(&timeout_to_disconnected_mutex_);
+  absl::MutexLock lock(timeout_to_disconnected_mutex_);
   timeout_to_disconnected_notified_ = false;
   timeout_to_disconnected_enabled_ = false;
 }

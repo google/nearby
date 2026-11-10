@@ -19,10 +19,8 @@
 #include <optional>
 #include <queue>
 
-#include "internal/platform/condition_variable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
@@ -38,32 +36,32 @@ class ArrayBlockingQueue {
   explicit ArrayBlockingQueue(size_t capacity) : capacity_(capacity) {}
 
   void Put(const T& value) {
-    MutexLock lock(&queue_mutex_);
-    if (queue_.size() >= capacity_) {
-      has_space_.Wait();
+    absl::MutexLock lock(queue_mutex_);
+    while (queue_.size() >= capacity_) {
+      has_space_.Wait(&queue_mutex_);
     }
     queue_.push(value);
     LOG(INFO) << "ArrayBlockingQueue::Put()";
-    has_data_.Notify();
+    has_data_.SignalAll();
   }
 
   T Take() {
-    MutexLock lock(&queue_mutex_);
-    if (queue_.empty()) {
-      has_data_.Wait();
+    absl::MutexLock lock(queue_mutex_);
+    while (queue_.empty()) {
+      has_data_.Wait(&queue_mutex_);
     }
     T front = queue_.front();
     queue_.pop();
     LOG(INFO) << "ArrayBlockingQueue::Take()";
-    has_space_.Notify();
+    has_space_.SignalAll();
     return front;
   }
 
   bool TryPut(const T& value) {
-    MutexLock lock(&queue_mutex_);
+    absl::MutexLock lock(queue_mutex_);
     if (queue_.size() < capacity_) {
       queue_.push(value);
-      has_data_.Notify();
+      has_data_.SignalAll();
       return true;
     }
     return false;
@@ -71,31 +69,31 @@ class ArrayBlockingQueue {
 
   // Returns std::nullopt if the queue is empty.
   std::optional<T> TryTake() {
-    MutexLock lock(&queue_mutex_);
+    absl::MutexLock lock(queue_mutex_);
     if (!queue_.empty()) {
       T front = queue_.front();
       queue_.pop();
-      has_space_.Notify();
+      has_space_.SignalAll();
       return front;
     }
     return std::nullopt;
   }
 
   size_t Size() const {
-    MutexLock lock(&queue_mutex_);
+    absl::MutexLock lock(queue_mutex_);
     return queue_.size();
   }
 
   bool Empty() const {
-    MutexLock lock(&queue_mutex_);
+    absl::MutexLock lock(queue_mutex_);
     return queue_.empty();
   }
 
  private:
   std::queue<T> queue_;
-  mutable Mutex queue_mutex_;
-  ConditionVariable has_data_{&queue_mutex_};
-  ConditionVariable has_space_{&queue_mutex_};
+  mutable absl::Mutex queue_mutex_;
+  absl::CondVar has_data_;
+  absl::CondVar has_space_;
   const size_t capacity_;
 };
 

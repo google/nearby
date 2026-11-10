@@ -32,6 +32,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -80,7 +81,6 @@
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
@@ -538,7 +538,7 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
             // Now that we've succeeded, mark the client as discovering and
             // clear out any old endpoints we had discovered.
             {
-              MutexLock lock(&discovered_endpoint_mutex_);
+              absl::MutexLock lock(discovered_endpoint_mutex_);
               discovered_endpoints_.clear();
             }
             std::optional<bool> is_extended_advertisement_supported =
@@ -1413,14 +1413,14 @@ void BasePcpHandler::StripOutUnavailableMediums(
 }
 
 bool BasePcpHandler::HasDiscoveredEndpoint(absl::string_view endpoint_id) {
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
   return discovered_endpoints_.contains(endpoint_id);
 }
 
 std::vector<BasePcpHandler::DiscoveredEndpoint*>
 BasePcpHandler::GetDiscoveredEndpoints(const std::string& endpoint_id) {
   std::vector<BasePcpHandler::DiscoveredEndpoint*> result;
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
   auto it = discovered_endpoints_.equal_range(endpoint_id);
   for (auto item = it.first; item != it.second; item++) {
     result.push_back(item->second.get());
@@ -1437,7 +1437,7 @@ std::vector<BasePcpHandler::DiscoveredEndpoint*>
 BasePcpHandler::GetDiscoveredEndpoints(
     location::nearby::proto::connections::Medium medium) {
   std::vector<BasePcpHandler::DiscoveredEndpoint*> result;
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
   for (const auto& item : discovered_endpoints_) {
     if (item.second->medium == medium) {
       result.push_back(item.second.get());
@@ -1842,7 +1842,7 @@ void BasePcpHandler::OnEndpointFound(
             << location::nearby::proto::connections::Medium_Name(
                    endpoint->medium)
             << " [enter]";
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
   auto range = discovered_endpoints_.equal_range(endpoint->endpoint_id);
   bool is_range_empty = range.first == range.second;
   DiscoveredEndpoint* owned_endpoint = nullptr;
@@ -1915,7 +1915,7 @@ void BasePcpHandler::OnEndpointLost(
   LOG(INFO) << "OnEndpointLost: id=" << endpoint.endpoint_id << " on medium="
             << location::nearby::proto::connections::Medium_Name(
                    endpoint.medium);
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
   auto range = discovered_endpoints_.equal_range(endpoint.endpoint_id);
   bool is_range_empty = range.first == range.second;
   if (is_range_empty) {
@@ -2398,7 +2398,7 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
   if (!local_discovery_options.allowed.bluetooth) {
     return false;
   }
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
 
   auto it = discovered_endpoints_.equal_range(endpoint_id);
   if (it.first == it.second) {
@@ -2444,7 +2444,7 @@ bool BasePcpHandler::AppendWebRTCEndpoint(
   if (!local_discovery_options.allowed.web_rtc) {
     return false;
   }
-  MutexLock lock(&discovered_endpoint_mutex_);
+  absl::MutexLock lock(discovered_endpoint_mutex_);
 
   bool should_connect_web_rtc = false;
   auto it = discovered_endpoints_.equal_range(endpoint_id);

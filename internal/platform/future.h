@@ -19,12 +19,10 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/system_clock.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 
@@ -33,11 +31,11 @@ class Future final {
  public:
   // Sets the value of the Future.
   bool Set(T value) {
-    MutexLock lock(&state_->mutex);
+    absl::MutexLock lock(state_->mutex);
     if (!state_->done) {
       state_->value = ExceptionOr<T>(std::move(value));
       state_->done = true;
-      state_->completed.Notify();
+      state_->completed.SignalAll();
       return true;
     }
     return false;
@@ -45,27 +43,24 @@ class Future final {
 
   // Sets the exception of the Future.
   bool SetException(Exception exception) {
-    MutexLock lock(&state_->mutex);
+    absl::MutexLock lock(state_->mutex);
     return SetExceptionLocked(exception);
   }
 
   ExceptionOr<T> Get() {
-    MutexLock lock(&state_->mutex);
+    absl::MutexLock lock(state_->mutex);
     while (!state_->done) {
-      state_->completed.Wait();
+      state_->completed.Wait(&state_->mutex);
     }
     return state_->value;
   }
 
   // Gets the value of the Future, timing out after the specified duration.
   ExceptionOr<T> Get(absl::Duration timeout) {
-    MutexLock lock(&state_->mutex);
+    absl::MutexLock lock(state_->mutex);
     while (!state_->done) {
       absl::Time start_time = SystemClock::ElapsedRealtime();
-      if (state_->completed.Wait(timeout).Raised(Exception::kInterrupted)) {
-        SetExceptionLocked({Exception::kInterrupted});
-        break;
-      }
+      state_->completed.WaitWithTimeout(&state_->mutex, timeout);
       absl::Duration spent = SystemClock::ElapsedRealtime() - start_time;
       if (spent < timeout) {
         timeout -= spent;
@@ -79,26 +74,27 @@ class Future final {
 
   // Returns true if the Future has been set.
   bool IsSet() const {
-    MutexLock lock(&state_->mutex);
+    absl::MutexLock lock(state_->mutex);
     return state_->done;
   }
 
  private:
   struct FutureState {
-    mutable Mutex mutex;
-    ConditionVariable completed{&mutex};
+    mutable absl::Mutex mutex;
+    absl::CondVar completed;
     bool done ABSL_GUARDED_BY(mutex) = {false};
     ExceptionOr<T> value ABSL_GUARDED_BY(mutex) =
         ExceptionOr<T>(Exception::kFailed);
   };
 
-  bool SetExceptionLocked(Exception exception) {
+  bool SetExceptionLocked(Exception exception)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state_->mutex) {
     if (!state_->done) {
       state_->value = ExceptionOr<T>(exception.value != Exception::kSuccess
                                          ? exception
                                          : Exception{Exception::kFailed});
       state_->done = true;
-      state_->completed.Notify();
+      state_->completed.SignalAll();
     }
     return true;
   }

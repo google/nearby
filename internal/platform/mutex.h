@@ -26,29 +26,6 @@ namespace nearby {
 #pragma push_macro("CreateMutex")
 #undef CreateMutex
 
-// This is a classic mutex can be acquired at most once.
-// Atttempt to acuire mutex from the same thread that is holding it will likely
-// cause a deadlock.
-class ABSL_LOCKABLE Mutex final {
- public:
-  explicit Mutex(bool check = true)
-      : impl_(api::ImplementationPlatform::CreateMutex(
-            check ? api::Mutex::Mode::kRegular
-                  : api::Mutex::Mode::kRegularNoCheck)) {}
-  Mutex(Mutex&&) = default;
-  Mutex& operator=(Mutex&&) = default;
-  ~Mutex() = default;
-
-  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() { impl_->Lock(); }
-  void Unlock() ABSL_UNLOCK_FUNCTION() { impl_->Unlock(); }
-  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() { impl_->AssertHeld(); }
-
- private:
-  friend class ConditionVariable;
-  friend class MutexLock;
-  std::unique_ptr<api::Mutex> impl_;
-};
-
 // This mutex is compatible with Java definition:
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
 // This mutex may be acuired multiple times by a thread that is already holding

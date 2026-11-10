@@ -19,7 +19,6 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
-#include "internal/platform/condition_variable.h"
 
 namespace nearby {
 namespace windows {
@@ -63,7 +62,6 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
   std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
 
  private:
-  friend class ::nearby::ConditionVariable;
   absl::Mutex mutex_;
   std::recursive_mutex recursive_mutex_;  //  The actual mutex allocation
   Mode mode_;

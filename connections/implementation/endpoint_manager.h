@@ -24,6 +24,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/client_proxy.h"
@@ -32,7 +33,6 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
@@ -171,9 +171,8 @@ class EndpointManager {
                   EndpointChannelManager* channel_manager)
         : endpoint_id_{endpoint_id},
           channel_manager_{channel_manager},
-          keep_alive_waiter_mutex_{std::make_unique<Mutex>()},
-          keep_alive_waiter_{std::make_unique<ConditionVariable>(
-              keep_alive_waiter_mutex_.get())} {}
+          keep_alive_waiter_mutex_{std::make_unique<absl::Mutex>()},
+          keep_alive_waiter_{std::make_unique<absl::CondVar>()} {}
 
     EndpointState(const EndpointState&) = delete;
     // The default move constructor would not reset |channel_manager_|, for
@@ -193,7 +192,7 @@ class EndpointManager {
 
     void StartEndpointReader(Runnable&& runnable);
     void StartEndpointKeepAliveManager(
-        absl::AnyInvocable<void(Mutex*, ConditionVariable*)> runnable);
+        absl::AnyInvocable<void(absl::Mutex*, absl::CondVar*)> runnable);
 
    private:
     const std::string endpoint_id_;
@@ -205,8 +204,8 @@ class EndpointManager {
     // blocking shutdown. Note: Create the mutex/condition variable on the heap
     // so raw pointers sent to HandleKeepAlive() aren't invalidated during
     // std::move operations.
-    mutable std::unique_ptr<Mutex> keep_alive_waiter_mutex_;
-    std::unique_ptr<ConditionVariable> keep_alive_waiter_;
+    mutable std::unique_ptr<absl::Mutex> keep_alive_waiter_mutex_;
+    std::unique_ptr<absl::CondVar> keep_alive_waiter_;
     SingleThreadExecutor keep_alive_thread_;
   };
 
@@ -222,7 +221,7 @@ class EndpointManager {
 
    private:
     FrameProcessor* frame_processor_;
-    Mutex mutex_;
+    absl::Mutex mutex_;
     friend class LockedFrameProcessor;
   };
 
@@ -236,7 +235,7 @@ class EndpointManager {
   ExceptionOr<bool> HandleKeepAlive(
       std::shared_ptr<EndpointChannel> endpoint_channel,
       absl::Duration keep_alive_interval, absl::Duration keep_alive_timeout,
-      Mutex* keep_alive_waiter_mutex, ConditionVariable* keep_alive_waiter);
+      absl::Mutex* keep_alive_waiter_mutex, absl::CondVar* keep_alive_waiter);
 
   // Waits for a given endpoint EndpointChannelLoopRunnable() workers to
   // terminate.
@@ -293,7 +292,7 @@ class EndpointManager {
 
   RecursiveMutex frame_processors_lock_;
   absl::flat_hash_map<location::nearby::connections::V1Frame::FrameType,
-                      FrameProcessorWithMutex>
+                      std::unique_ptr<FrameProcessorWithMutex>>
       frame_processors_ ABSL_GUARDED_BY(frame_processors_lock_);
 
   // We keep track of all registered channel endpoints here.

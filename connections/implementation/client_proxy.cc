@@ -31,6 +31,7 @@
 #include "absl/random/random.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -412,17 +413,17 @@ void ClientProxy::Reset() {
 }
 
 void ClientProxy::RegisterEventHandler(ClientEventHandler handler) {
-  MutexLock lock(&event_handler_mutex_);
+  absl::MutexLock lock(event_handler_mutex_);
   event_handler_ = std::move(handler);
 }
 
 void ClientProxy::UnregisterEventHandler() {
-  MutexLock lock(&event_handler_mutex_);
+  absl::MutexLock lock(event_handler_mutex_);
   event_handler_ = nullptr;
 }
 
 bool ClientProxy::OnEvent(const ClientEvent& event) {
-  MutexLock lock(&event_handler_mutex_);
+  absl::MutexLock lock(event_handler_mutex_);
   if (!event_handler_) {
     return true;
   }

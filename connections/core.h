@@ -53,8 +53,8 @@ class Core {
        ServiceControllerRouter* router)
       : client_(std::move(analytics_recorder)), router_(router) {}
   ~Core();
-  Core(Core&&);
-  Core& operator=(Core&&);
+  Core(const Core&) = delete;
+  Core& operator=(const Core&) = delete;
 
   // Starts advertising an endpoint for a local app.
   //

@@ -21,6 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -38,11 +39,9 @@
 #include "connections/v3/listeners.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
-#include "internal/platform/mutex.h"
 
 // Test-only class to help run end-to-end simulations for nearby connections
 // protocol.
@@ -238,8 +237,7 @@ class OfflineSimulationUser {
   AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
   DiscoveryOptions discovery_options_;
-  Mutex progress_mutex_;
-  ConditionVariable progress_sync_{&progress_mutex_};
+  absl::Mutex progress_mutex_;
   PayloadProgressInfo progress_info_;
   Payload payload_;
   Payload::Id sender_payload_id_ = 0;

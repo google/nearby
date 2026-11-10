@@ -21,6 +21,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "connections/listeners.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -32,7 +33,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace connections {
@@ -85,7 +85,7 @@ void SimulationUser::OnPayload(absl::string_view endpoint_id, Payload payload) {
 
 void SimulationUser::OnPayloadProgress(absl::string_view endpoint_id,
                                        const PayloadProgressInfo& info) {
-  MutexLock lock(&progress_mutex_);
+  absl::MutexLock lock(progress_mutex_);
   progress_info_ = info;
   if (future_ && predicate_ && predicate_(info)) future_->Set(true);
 }
@@ -95,14 +95,14 @@ bool SimulationUser::WaitForProgress(
     absl::Duration timeout) {
   Future<bool> future;
   {
-    MutexLock lock(&progress_mutex_);
+    absl::MutexLock lock(progress_mutex_);
     if (predicate(progress_info_)) return true;
     future_ = &future;
     predicate_ = std::move(predicate);
   }
   auto response = future.Get(timeout);
   {
-    MutexLock lock(&progress_mutex_);
+    absl::MutexLock lock(progress_mutex_);
     future_ = nullptr;
     predicate_ = nullptr;
   }

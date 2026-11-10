@@ -78,10 +78,6 @@ Core::~Core() {
   }
 }
 
-Core::Core(Core&&) = default;
-
-Core& Core::operator=(Core&&) = default;
-
 void Core::StartAdvertising(absl::string_view service_id,
                             AdvertisingOptions advertising_options,
                             ConnectionRequestInfo info,

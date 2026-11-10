@@ -14,10 +14,12 @@
 
 #include "internal/platform/pending_job_registry.h"
 
+#include <string>
+
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/system_clock.h"
 
 namespace nearby {
@@ -39,32 +41,32 @@ PendingJobRegistry::~PendingJobRegistry() = default;
 
 void PendingJobRegistry::AddPendingJob(const std::string& name,
                                        absl::Time post_time) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   pending_jobs_.emplace(CreateKey(name, post_time), post_time);
 }
 
 void PendingJobRegistry::RemovePendingJob(const std::string& name,
                                           absl::Time post_time) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   pending_jobs_.erase(CreateKey(name, post_time));
 }
 
 void PendingJobRegistry::AddRunningJob(const std::string& name,
                                        absl::Time post_time) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   running_jobs_.emplace(CreateKey(name, post_time),
                         SystemClock::ElapsedRealtime());
 }
 
 void PendingJobRegistry::RemoveRunningJob(const std::string& name,
                                           absl::Time post_time) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   running_jobs_.erase(CreateKey(name, post_time));
 }
 
 void PendingJobRegistry::ListJobs() {
   auto current_time = SystemClock::ElapsedRealtime();
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (current_time - list_jobs_time_ < kMinReportInterval) return;
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;
@@ -84,7 +86,7 @@ void PendingJobRegistry::ListJobs() {
 }
 
 void PendingJobRegistry::ListAllJobs() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto current_time = SystemClock::ElapsedRealtime();
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;

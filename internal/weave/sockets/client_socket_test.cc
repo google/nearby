@@ -107,17 +107,17 @@ class ClientSocketTest : public ::testing::Test {
                                  SocketCallback{
                                      .on_connected_cb =
                                          [this]() {
-                                           MutexLock lock(&mutex_);
+                                           absl::MutexLock lock(mutex_);
                                            connected_ = true;
                                          },
                                      .on_disconnected_cb =
                                          [this]() {
-                                           MutexLock lock(&mutex_);
+                                           absl::MutexLock lock(mutex_);
                                            connected_ = false;
                                          },
                                      .on_receive_cb =
                                          [this](std::string message) {
-                                           MutexLock lock(&mutex_);
+                                           absl::MutexLock lock(mutex_);
                                            messages_read_.push_back(message);
                                          },
                                      .on_error_cb =
@@ -176,7 +176,7 @@ class ClientSocketTest : public ::testing::Test {
   }
   FakeConnection connection_;
   TestClientSocket socket_;
-  Mutex mutex_;
+  absl::Mutex mutex_;
   bool connected_ = true;
   std::vector<std::string> messages_read_;
   bool expect_connected_ = true;
@@ -334,17 +334,17 @@ TEST_F(ClientSocketTest, TestSocketWithRandomDataProvider) {
       SocketCallback{
           .on_connected_cb =
               [this]() {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 connected_ = true;
               },
           .on_disconnected_cb =
               [this]() {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 connected_ = false;
               },
           .on_receive_cb =
               [this](std::string message) {
-                MutexLock lock(&mutex_);
+                absl::MutexLock lock(mutex_);
                 messages_read_.push_back(message);
               },
           .on_error_cb = [](absl::Status status) { LOG(ERROR) << status; },

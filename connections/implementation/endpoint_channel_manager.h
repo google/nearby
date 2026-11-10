@@ -27,7 +27,6 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/mutex.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
@@ -136,8 +135,8 @@ class EndpointChannelManager final {
     class EndpointData {
      public:
       EndpointData() = default;
-      EndpointData(EndpointData&&) = default;
-      EndpointData& operator=(EndpointData&&) = default;
+      EndpointData(const EndpointData&) = delete;
+      EndpointData& operator=(const EndpointData&) = delete;
       ~EndpointData() {
         if (channel_ != nullptr) {
           channel_->Close(disconnect_reason_);
@@ -187,9 +186,8 @@ class EndpointChannelManager final {
       DisconnectionReason disconnect_reason_ =
           DisconnectionReason::UNKNOWN_DISCONNECTION_REASON;
       bool safe_to_disconnect_enabled_ = false;
-      mutable Mutex timeout_to_disconnected_mutex_;
-      ConditionVariable timeout_to_disconnected_{
-          &timeout_to_disconnected_mutex_};
+      mutable absl::Mutex timeout_to_disconnected_mutex_;
+      absl::CondVar timeout_to_disconnected_;
       bool timeout_to_disconnected_enabled_
           ABSL_GUARDED_BY(timeout_to_disconnected_mutex_) = false;
       bool timeout_to_disconnected_notified_

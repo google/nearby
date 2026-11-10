@@ -49,7 +49,6 @@
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/uuid.h"
 
 using ::nearby::api::ble::BleAdvertisementData;
@@ -96,8 +95,8 @@ void DiscoveredPeripheralTracker::Shutdown() {
   }
 
   {
-    MutexLock lock(&task_mutex_);
-    cond_.Notify();
+    absl::MutexLock lock(task_mutex_);
+    cond_.SignalAll();
   }
 
   if (executor_to_shutdown != nullptr) {
@@ -764,7 +763,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   }
 
   {
-    MutexLock lock(&task_mutex_);
+    absl::MutexLock lock(task_mutex_);
     // Check if the advertisement header is already in progress.
     if (fetch_in_progress_header_.has_value() &&
         fetch_in_progress_header_ == advertisement_header) {
@@ -803,7 +802,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
           .scheduled_time = SystemClock::ElapsedRealtime(),
       });
     }
-    cond_.Notify();
+    cond_.SignalAll();
   }
 
   // Regardless of whether or not we read a new GATT advertisement, the maps
@@ -981,14 +980,14 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
     GattFetchTask task;
     bool found_task = false;
     {
-      MutexLock lock(&task_mutex_);
+      absl::MutexLock lock(task_mutex_);
       if (shutting_down_) {
         gatt_fetch_tasks_.clear();
         return;
       }
       while (gatt_fetch_tasks_.empty() && gatt_extended_fetch_tasks_.empty() &&
              !shutting_down_) {
-        cond_.Wait();
+        cond_.Wait(&task_mutex_);
       }
 
       if (shutting_down_) {
@@ -1030,7 +1029,7 @@ void DiscoveredPeripheralTracker::GattFetchingLoop() {
     }
     // Clear in progress header after the task is done.
     {
-      MutexLock lock(&task_mutex_);
+      absl::MutexLock lock(task_mutex_);
       fetch_in_progress_header_.reset();
     }
   }

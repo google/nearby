@@ -22,10 +22,12 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -52,6 +54,7 @@
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/scheduled_executor.h"
 
@@ -68,8 +71,8 @@ class ClientProxy final {
   explicit ClientProxy(std::unique_ptr<nearby::analytics::AnalyticsRecorder>
                            analytics_recorder = nullptr);
   ~ClientProxy();
-  ClientProxy(ClientProxy&&) = default;
-  ClientProxy& operator=(ClientProxy&&) = default;
+  ClientProxy(const ClientProxy&) = delete;
+  ClientProxy& operator=(const ClientProxy&) = delete;
 
   std::int64_t GetClientId() const;
 
@@ -575,7 +578,7 @@ class ClientProxy final {
   // Mutex serializing registration and invocation of `event_handler_`. Kept
   // separate from `mutex_` so `OnEvent` does not block other `ClientProxy`
   // operations or deadlock if the handler queries `ClientProxy`.
-  mutable Mutex event_handler_mutex_;
+  mutable absl::Mutex event_handler_mutex_;
   // Handler for events that require a decision from the client.
   ClientEventHandler event_handler_ ABSL_GUARDED_BY(event_handler_mutex_);
   bool supports_safe_to_disconnect_;

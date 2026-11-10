@@ -479,7 +479,6 @@ let package = Package(
         "internal/platform/wifi_test.cc",
         "internal/platform/wifi_aware_test.cc",
         "internal/platform/connection_info_test.cc",
-        "internal/platform/condition_variable_test.cc",
         "internal/platform/thread_check_nocompile_test.py",
         "internal/platform/bluetooth_classic_test.cc",
         "internal/platform/bluetooth_connection_info_test.cc",

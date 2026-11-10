@@ -38,10 +38,8 @@
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/multi_thread_executor.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -373,9 +371,9 @@ class DiscoveredPeripheralTracker {
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
 
-  Mutex task_mutex_;
+  absl::Mutex task_mutex_;
   AtomicBoolean shutting_down_{false};
-  ConditionVariable cond_{&task_mutex_};
+  absl::CondVar cond_;
   std::deque<GattFetchTask> gatt_fetch_tasks_ ABSL_GUARDED_BY(task_mutex_);
   std::deque<GattFetchTask> gatt_extended_fetch_tasks_
       ABSL_GUARDED_BY(task_mutex_);

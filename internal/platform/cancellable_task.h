@@ -18,9 +18,7 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
-#include "internal/platform/condition_variable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -44,16 +42,16 @@ class CancellableTask {
    * running.
    */
   void CancelAndWaitIfStarted() {
-    MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     is_cancelled_ = true;
     while (is_running_) {
-      cond_.Wait();
+      cond_.Wait(&mutex_);
     }
   }
 
   void operator()() {
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (is_cancelled_ || is_running_) return;
       if (!is_repeated_ && was_run_) return;
       was_run_ = true;
@@ -61,16 +59,16 @@ class CancellableTask {
     }
     runnable_();
     {
-      MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_running_ = false;
-      cond_.Notify();
+      cond_.SignalAll();
     }
   }
 
  private:
   const bool is_repeated_;
-  Mutex mutex_;
-  ConditionVariable cond_{&mutex_};
+  absl::Mutex mutex_;
+  absl::CondVar cond_;
   bool is_cancelled_ ABSL_GUARDED_BY(mutex_){false};
   bool was_run_ ABSL_GUARDED_BY(mutex_){false};
   bool is_running_ ABSL_GUARDED_BY(mutex_){false};
