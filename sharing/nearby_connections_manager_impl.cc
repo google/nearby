@@ -956,7 +956,6 @@ void NearbyConnectionsManagerImpl::SetCustomSavePath(
 
 void NearbyConnectionsManagerImpl::OverrideSavePath(
     absl::string_view endpoint_id, const FilePath& custom_save_path) {
-  MutexLock lock(&mutex_);
   nearby_connections_service_->OverrideSavePath(endpoint_id,
                                                 custom_save_path.ToString());
 }
