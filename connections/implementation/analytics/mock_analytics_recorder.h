@@ -155,8 +155,8 @@ class MockAnalyticsRecorder : public AnalyticsRecorder {
                location::nearby::proto::connections::Medium from_medium,
                location::nearby::proto::connections::Medium to_medium,
                location::nearby::proto::connections::ConnectionAttemptDirection
-                   direction,
-               const std::string& connection_token),
+                   bwu_connection_direction,
+               const std::string& connection_token, bool is_role_switched),
               (override));
   MOCK_METHOD(void, UpdateBwUpgradeNetworkInfo,
               (const std::string& endpoint_id, int num_interfaces,

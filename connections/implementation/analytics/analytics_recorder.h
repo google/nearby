@@ -167,13 +167,23 @@ class AnalyticsRecorder {
           operation_result_code) = 0;
 
   // BandwidthUpgrade
+  // `bwu_connection_direction` represents the direction of the BWU socket
+  // connection attempt (`INCOMING` when hosting the upgrade medium and waiting
+  // for an incoming socket connection; `OUTGOING` when connecting as a client
+  // to the peer's upgrade medium) rather than the initial connection role
+  // (`ClientProxy::IsIncomingConnection`).
+  // Combined with `is_role_switched`:
+  // - (INCOMING, false): Advertiser hosting BWU medium (default)
+  // - (INCOMING, true): Discoverer hosting BWU medium (role-switched)
+  // - (OUTGOING, false): Discoverer connecting as BWU client (default)
+  // - (OUTGOING, true): Advertiser connecting as BWU client (role-switched)
   virtual void OnBandwidthUpgradeStarted(
       const std::string& endpoint_id,
       location::nearby::proto::connections::Medium from_medium,
       location::nearby::proto::connections::Medium to_medium,
       location::nearby::proto::connections::ConnectionAttemptDirection
-          direction,
-      const std::string& connection_token) = 0;
+          bwu_connection_direction,
+      const std::string& connection_token, bool is_role_switched) = 0;
   virtual void UpdateBwUpgradeNetworkInfo(const std::string& endpoint_id,
                                           int num_interfaces,
                                           int num_ipv6_only_interfaces) = 0;

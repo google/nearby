@@ -139,6 +139,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
       ClientProxy* client) const;
 
  private:
+  enum class RoleSwitchState {
+    kSwitching,
+    kSwitched,
+  };
+
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =
       absl::Seconds(5);
 
@@ -147,6 +152,20 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void InitiateBwuForEndpoint(ClientProxy* client,
                               const std::string& endpoint_id, Medium new_medium,
                               bool allow_role_switch);
+  void RequestRoleSwitchForEndpoint(ClientProxy* client,
+                                    const std::string& endpoint_id,
+                                    EndpointChannel* channel,
+                                    Medium channel_medium,
+                                    Medium proposed_medium);
+  void InitializeLocalUpgradeForEndpoint(ClientProxy* client,
+                                         const std::string& endpoint_id,
+                                         EndpointChannel* channel,
+                                         BwuHandler* handler,
+                                         Medium channel_medium,
+                                         Medium proposed_medium,
+                                         bool is_role_switched);
+  bool IsRoleSwitched(const std::string& endpoint_id) const;
+  bool IsRoleSwitching(const std::string& endpoint_id) const;
   std::vector<Medium> StripOutUnavailableMediums(
       ClientProxy* client, const std::string& endpoint_id,
       const std::vector<Medium>& mediums) const;
@@ -285,6 +304,14 @@ class BwuManager : public EndpointManager::FrameProcessor {
   absl::flat_hash_map<std::string, std::shared_ptr<EndpointChannel>>
       previous_endpoint_channels_;
   absl::flat_hash_set<std::string> successfully_upgraded_endpoints_;
+
+  // Tracks the BWU role-switch state for each endpoint: kSwitching when the
+  // local device has sent UPGRADE_PATH_REQUEST and is waiting for the peer's
+  // UPGRADE_PATH_AVAILABLE, and kSwitched once BWU host and client roles have
+  // been switched.
+  absl::flat_hash_map<std::string, RoleSwitchState>
+      endpoint_role_switch_states_;
+
   // Maps endpointId -> ClientProxy for which
   // initiateBwuForEndpoint() has been called but which have not
   // yet completed the upgrade via onIncomingConnection().

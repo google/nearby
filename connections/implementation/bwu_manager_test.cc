@@ -28,6 +28,7 @@
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -57,8 +58,13 @@ using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::V1Frame;
+using ::location::nearby::proto::connections::BandwidthUpgradeErrorStage;
+using ::location::nearby::proto::connections::BandwidthUpgradeResult;
+using ::location::nearby::proto::connections::ConnectionAttemptDirection;
 using ::location::nearby::proto::connections::DisconnectionReason;
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::nearby::analytics::SafeDisconnectionResult;
+using ::testing::NiceMock;
 
 constexpr absl::string_view kServiceIdA = "ServiceA";
 constexpr absl::string_view kServiceIdB = "ServiceB";
@@ -627,7 +633,18 @@ class BwuManagerTest : public ::testing::Test {
     return upgraded_channel;
   }
 
-  ClientProxy client_;
+  static std::unique_ptr<analytics::AnalyticsRecorder>
+  CreateMockAnalyticsRecorder(
+      NiceMock<analytics::MockAnalyticsRecorder>** out) {
+    auto recorder =
+        std::make_unique<NiceMock<analytics::MockAnalyticsRecorder>>();
+    *out = recorder.get();
+    return recorder;
+  }
+
+  NiceMock<analytics::MockAnalyticsRecorder>* mock_analytics_recorder_ =
+      nullptr;
+  ClientProxy client_{CreateMockAnalyticsRecorder(&mock_analytics_recorder_)};
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};
   // It's okay there are no actual Mediums (i.e., implementations). These won't
@@ -2080,8 +2097,9 @@ TEST_F(BwuManagerTest,
 }
 
 // Verifies that an Apple Advertiser (incoming connection) accepts and processes
-// an incoming WIFI_HOTSPOT UPGRADE_PATH_AVAILABLE frame when dynamic role
-// switching is enabled and the remote peer hosts the hotspot.
+// an incoming WIFI_HOTSPOT UPGRADE_PATH_AVAILABLE frame after initiating a
+// role switch via UPGRADE_PATH_REQUEST when dynamic role switching is enabled
+// and the remote peer hosts the hotspot.
 TEST_F(BwuManagerTest,
        ProcessBwuPathAvailableEventAppleAdvertiserWithRoleSwitchSucceeds) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -2094,10 +2112,20 @@ TEST_F(BwuManagerTest,
   client_.SetLocalOsType(OsInfo::APPLE);
   MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_hotspot_host(true);
-  CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
-                          /*remote_os_type=*/std::nullopt,
-                          /*is_incoming_connection=*/true);
+  FakeEndpointChannel* channel_ptr = CreateConnectedEndpoint(
+      kEndpointId1, remote_medium_role, allowed,
+      /*remote_os_type=*/std::nullopt,
+      /*is_incoming_connection=*/true);
   ASSERT_TRUE(client_.IsConnectedToEndpoint(std::string(kEndpointId1)));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> request_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(request_frame.ok());
+  EXPECT_EQ(
+      request_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
 
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
@@ -2130,18 +2158,29 @@ TEST_F(BwuManagerTest,
       config_package_nearby::nearby_connections_feature::
           kEnableDynamicRoleSwitch,
       true);
-  // Initialize BwuManager without a WIFI_HOTSPOT handler so
-  // ProcessBwuPathAvailableEventInternal fails before
+  // Initialize BwuManager with WIFI_AWARE_R4 but without a WIFI_HOTSPOT handler
+  // so InitiateBwuForEndpoint sends UPGRADE_PATH_REQUEST and
+  // ProcessBwuPathAvailableEventInternal fails on WIFI_HOTSPOT before
   // CreateUpgradedEndpointChannel.
-  ReinitBwuManager(BooleanMediumSelector{.wifi_direct = true});
+  ReinitBwuManager(BooleanMediumSelector{.wifi_aware_r4 = true});
 
   client_.SetLocalOsType(OsInfo::APPLE);
   MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_aware_publisher(true);
   remote_medium_role.set_support_wifi_hotspot_host(true);
   FakeEndpointChannel* channel_ptr = CreateConnectedEndpoint(
       kEndpointId1, remote_medium_role,
-      BooleanMediumSelector{.wifi_hotspot = true},
-      /*remote_os_type=*/std::nullopt, /*is_incoming_connection=*/true);
+      BooleanMediumSelector{.wifi_hotspot = true, .wifi_aware_r4 = true},
+      OsInfo::ANDROID, /*is_incoming_connection=*/true);
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> request_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(request_frame.ok());
+  EXPECT_EQ(
+      request_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
 
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
@@ -2159,9 +2198,9 @@ TEST_F(BwuManagerTest,
 
   EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
   EXPECT_FALSE(channel_ptr->is_closed());
-  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 2u);
   ExceptionOr<OfflineFrame> written_frame =
-      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[1]);
   ASSERT_TRUE(written_frame.ok());
   EXPECT_EQ(
       written_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
@@ -2338,8 +2377,9 @@ TEST_F(BwuManagerTest,
   MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_owner(true);
   remote_medium_role.set_support_wifi_hotspot_host(true);
-  FakeEndpointChannel* channel_ptr = CreateConnectedEndpoint(
-      kEndpointId1, remote_medium_role, allowed, OsInfo::ANDROID);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
 
   // Initial auto-selection picks WIFI_DIRECT and sends UPGRADE_PATH_REQUEST.
   bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
@@ -2882,6 +2922,438 @@ TEST_F(BwuManagerTest,
 
   EXPECT_EQ(fake_wifi_lan_bwu_handler_->create_calls().size(), 1u);
   EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+  UnRegisterChannelForEndpoint(kEndpointId2);
+}
+
+// Verifies that when a Windows Advertiser delegates BWU hosting via
+// UPGRADE_PATH_REQUEST for WIFI_DIRECT, fails the WIFI_DIRECT connection
+// attempt (sending UPGRADE_FAILURE), and then receives UPGRADE_PATH_AVAILABLE
+// for WIFI_HOTSPOT from the remote Android host, it accepts the fallback
+// hotspot upgrade and clears the role-switch delegation once the upgrade
+// completes.
+TEST_F(BwuManagerTest,
+       WindowsAdvertiserRoleSwitchWifiDirectFailureAcceptsHotspotFallback) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
+  SetSupportMultipleBwuMediums(true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::WINDOWS);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  FakeEndpointChannel* bt_channel =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+  std::shared_ptr<EndpointChannel> shared_bt_channel =
+      ecm_.GetChannelForEndpoint(kEndpointId1);
+
+  // Verify analytics record OUTGOING attempts with is_role_switched=true (and
+  // never a bogus INCOMING attempt when delegating via UPGRADE_PATH_REQUEST)
+  // so role-switched Android->Windows Hotspot upgrades are distinguishable in
+  // Clearcut metrics from normal Windows AP Hotspot upgrades (INCOMING +
+  // is_role_switched=false) and Windows->Android Hotspot upgrades (OUTGOING +
+  // is_role_switched=false).
+  EXPECT_CALL(*mock_analytics_recorder_,
+              OnBandwidthUpgradeStarted(::testing::_, ::testing::_,
+                                        ::testing::_,
+                                        ConnectionAttemptDirection::INCOMING,
+                                        ::testing::_, ::testing::_))
+      .Times(0);
+  {
+    ::testing::InSequence seq;
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeStarted(
+            std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_DIRECT,
+            ConnectionAttemptDirection::OUTGOING, ::testing::_,
+            /*is_role_switched=*/true));
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeError(
+            std::string(kEndpointId1), BandwidthUpgradeResult::RESULT_IO_ERROR,
+            BandwidthUpgradeErrorStage::CLIENT_INTRODUCTION,
+            OperationResultCode::
+                NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FRAME_TYPE_ERROR));
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeStarted(
+            std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_HOTSPOT,
+            ConnectionAttemptDirection::OUTGOING, ::testing::_,
+            /*is_role_switched=*/true));
+    EXPECT_CALL(*mock_analytics_recorder_,
+                OnBandwidthUpgradeSuccess(std::string(kEndpointId1)));
+  }
+
+  // 1. Windows Advertiser initiates BWU, switching role via
+  // UPGRADE_PATH_REQUEST.
+  EXPECT_TRUE(client_.IsIncomingConnection(std::string(kEndpointId1)));
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(bt_channel->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> request_frame =
+      parser::FromBytes(bt_channel->GetWrittenFrames()[0]);
+  ASSERT_TRUE(request_frame.ok());
+  EXPECT_EQ(
+      request_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_REQUEST);
+
+  // 2. Remote Android host responds with UPGRADE_PATH_AVAILABLE(WIFI_DIRECT).
+  // Keep supports_client_introduction_ack enabled on the empty
+  // FakeEndpointChannel so ProcessBwuPathAvailableEventInternal fails and
+  // triggers RunUpgradeFailedProtocol.
+  ExceptionOr<OfflineFrame> direct_available =
+      parser::FromBytes(parser::ForBwuWifiDirectPathAvailable(
+          /*ssid=*/"", /*password=*/"", /*port=*/33953, /*frequency=*/5240,
+          /*supports_disabling_encryption=*/false, /*gateway=*/"192.168.49.1",
+          /*device_name=*/"Android_OEhA", /*pin=*/"79123456"));
+  ASSERT_TRUE(direct_available.ok());
+
+  bwu_manager_->OnIncomingFrame(direct_available.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_direct_bwu_handler_->create_calls().size(), 1u);
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  ASSERT_EQ(bt_channel->GetWrittenFrames().size(), 2u);
+  ExceptionOr<OfflineFrame> failure_frame =
+      parser::FromBytes(bt_channel->GetWrittenFrames()[1]);
+  ASSERT_TRUE(failure_frame.ok());
+  EXPECT_EQ(
+      failure_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_FAILURE);
+  EXPECT_EQ(failure_frame.result()
+                .v1()
+                .bandwidth_upgrade_negotiation()
+                .upgrade_path_info()
+                .medium(),
+            BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_DIRECT);
+
+  // 3. Remote Android host falls back to WIFI_HOTSPOT and sends
+  // UPGRADE_PATH_AVAILABLE(WIFI_HOTSPOT). Windows Advertiser accepts it.
+  ExceptionOr<OfflineFrame> hotspot_available =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/true));
+  ASSERT_TRUE(hotspot_available.ok());
+  OfflineFrame hotspot_frame = hotspot_available.result();
+  hotspot_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(hotspot_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_hotspot_bwu_handler_->create_calls().size(), 1u);
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  ASSERT_NE(ecm_.GetChannelForEndpoint(kEndpointId1), nullptr);
+  EXPECT_EQ(ecm_.GetChannelForEndpoint(kEndpointId1)->GetMedium(),
+            Medium::WIFI_HOTSPOT);
+
+  // 4. Complete the upgrade handshake; role-switch delegation should be cleared
+  // so subsequent unsolicited WIFI_HOTSPOT frames are ignored by Advertiser.
+  ExceptionOr<OfflineFrame> last_write_frame =
+      parser::FromBytes(parser::ForBwuLastWrite());
+  ASSERT_TRUE(last_write_frame.ok());
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+  ExceptionOr<OfflineFrame> safe_to_close_frame =
+      parser::FromBytes(parser::ForBwuSafeToClose());
+  ASSERT_TRUE(safe_to_close_frame.ok());
+  bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_TRUE(shared_bt_channel->IsClosed());
+
+  bwu_manager_->OnIncomingFrame(hotspot_frame, std::string(kEndpointId1),
+                                &client_, Medium::WIFI_HOTSPOT);
+  EXPECT_EQ(fake_wifi_hotspot_bwu_handler_->create_calls().size(), 1u);
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that an unsolicited UPGRADE_PATH_AVAILABLE(WIFI_HOTSPOT) frame is
+// still ignored by a Windows Advertiser when dynamic role switching is enabled
+// and the peer supports hosting a hotspot, if the Windows Advertiser never sent
+// an UPGRADE_PATH_REQUEST.
+TEST_F(BwuManagerTest,
+       ProcessBwuPathAvailableWindowsAdvertiserWithoutRequestIgnored) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
+  SetSupportMultipleBwuMediums(true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::WINDOWS);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  FakeEndpointChannel* bt_channel =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+
+  ExceptionOr<OfflineFrame> hotspot_available =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/true));
+  ASSERT_TRUE(hotspot_available.ok());
+  OfflineFrame hotspot_frame = hotspot_available.result();
+  hotspot_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(hotspot_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+
+  EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->create_calls().empty());
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  EXPECT_TRUE(bt_channel->GetWrittenFrames().empty());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that a Windows->Android transfer (Windows as Discoverer,
+// is_incoming_connection=false) upgrading to WIFI_HOTSPOT records an OUTGOING
+// bandwidth upgrade attempt with is_role_switched=false.
+TEST_F(BwuManagerTest,
+       WindowsDiscovererHotspotUpgradeRecordsOutgoingAnalytics) {
+  SetSupportMultipleBwuMediums(true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::WINDOWS);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                          OsInfo::ANDROID, /*is_incoming_connection=*/false);
+  EXPECT_FALSE(client_.IsIncomingConnection(std::string(kEndpointId1)));
+
+  EXPECT_CALL(*mock_analytics_recorder_,
+              OnBandwidthUpgradeStarted(::testing::_, ::testing::_,
+                                        ::testing::_,
+                                        ConnectionAttemptDirection::INCOMING,
+                                        ::testing::_, ::testing::_))
+      .Times(0);
+  {
+    ::testing::InSequence seq;
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeStarted(
+            std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_HOTSPOT,
+            ConnectionAttemptDirection::OUTGOING, ::testing::_,
+            /*is_role_switched=*/false));
+    EXPECT_CALL(*mock_analytics_recorder_,
+                OnBandwidthUpgradeSuccess(std::string(kEndpointId1)));
+  }
+
+  ExceptionOr<OfflineFrame> hotspot_available =
+      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/true));
+  ASSERT_TRUE(hotspot_available.ok());
+  OfflineFrame hotspot_frame = hotspot_available.result();
+  hotspot_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(hotspot_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+  ASSERT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  ExceptionOr<OfflineFrame> last_write_frame =
+      parser::FromBytes(parser::ForBwuLastWrite());
+  ASSERT_TRUE(last_write_frame.ok());
+  bwu_manager_->OnIncomingFrame(last_write_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+  ExceptionOr<OfflineFrame> safe_to_close_frame =
+      parser::FromBytes(parser::ForBwuSafeToClose());
+  ASSERT_TRUE(safe_to_close_frame.ok());
+  bwu_manager_->OnIncomingFrame(safe_to_close_frame.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+  EXPECT_FALSE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that when an Android Discoverer receives UPGRADE_PATH_REQUEST, hosts
+// WIFI_DIRECT first, and then falls back to hosting WIFI_HOTSPOT after
+// receiving UPGRADE_FAILURE(WIFI_DIRECT), both the initial WIFI_DIRECT attempt
+// and the fallback WIFI_HOTSPOT attempt record INCOMING with
+// is_role_switched=true.
+TEST_F(BwuManagerTest,
+       AndroidDiscovererRoleSwitchFallbackToHotspotPreservesRoleSwitchedState) {
+  SetSupportMultipleBwuMediums(true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::ANDROID);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_client(true);
+  remote_medium_role.set_support_wifi_hotspot_client(true);
+  CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                          OsInfo::WINDOWS, /*is_incoming_connection=*/false);
+
+  {
+    ::testing::InSequence seq;
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeStarted(
+            std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_DIRECT,
+            ConnectionAttemptDirection::INCOMING, ::testing::_,
+            /*is_role_switched=*/true));
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeError(
+            std::string(kEndpointId1),
+            BandwidthUpgradeResult::REMOTE_CONNECTION_ERROR,
+            BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+            OperationResultCode::NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE));
+    EXPECT_CALL(
+        *mock_analytics_recorder_,
+        OnBandwidthUpgradeStarted(
+            std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_HOTSPOT,
+            ConnectionAttemptDirection::INCOMING, ::testing::_,
+            /*is_role_switched=*/true));
+  }
+
+  std::string request_bytes = parser::ForBwuPathRequest(
+      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT, Medium::WIFI_HOTSPOT},
+      remote_medium_role, /*supports_5_ghz=*/true);
+  OfflineFrame request_frame;
+  ASSERT_TRUE(request_frame.ParseFromString(request_bytes));
+  bwu_manager_->OnIncomingFrame(request_frame, std::string(kEndpointId1),
+                                &client_, Medium::BLUETOOTH);
+  EXPECT_EQ(fake_wifi_direct_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo failure_info;
+  failure_info.set_medium(
+      BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_DIRECT);
+  ExceptionOr<OfflineFrame> upgrade_failure =
+      parser::FromBytes(parser::ForBwuFailure(failure_info));
+  ASSERT_TRUE(upgrade_failure.ok());
+  bwu_manager_->OnIncomingFrame(upgrade_failure.result(),
+                                std::string(kEndpointId1), &client_,
+                                Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+// Verifies that when kEnableWifiDirect is on and kEnableDynamicRoleSwitch is
+// off on Windows (where WFD Group Owner is unavailable), an incoming connection
+// (Advertiser) strips out WIFI_DIRECT and upgrades to WIFI_HOTSPOT as AP, while
+// an outgoing connection (Discoverer) upgrades to WIFI_DIRECT as GC.
+TEST_F(BwuManagerTest,
+       WindowsWifiDirectOnDynamicRoleSwitchOffIncomingHotspotOutgoingWfd) {
+  MediumEnvironment::Instance().SetWifiDirectGoSupported(false);
+  SetSupportMultipleBwuMediums(true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+
+  client_.SetLocalOsType(OsInfo::WINDOWS);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_direct_group_owner(true);
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  remote_medium_role.set_support_wifi_hotspot_client(true);
+
+  // 1. Incoming connection (Windows Advertiser): cannot host WFD GO and cannot
+  // switch role, so it upgrades to WIFI_HOTSPOT.
+  FakeEndpointChannel* incoming_bt_channel =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed,
+                              OsInfo::ANDROID, /*is_incoming_connection=*/true);
+  EXPECT_CALL(
+      *mock_analytics_recorder_,
+      OnBandwidthUpgradeStarted(
+          std::string(kEndpointId1), Medium::BLUETOOTH, Medium::WIFI_HOTSPOT,
+          ConnectionAttemptDirection::INCOMING, ::testing::_,
+          /*is_role_switched=*/false));
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+
+  EXPECT_TRUE(fake_wifi_direct_bwu_handler_->handle_initialize_calls().empty());
+  EXPECT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId1)));
+  ASSERT_EQ(incoming_bt_channel->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> written_frame =
+      parser::FromBytes(incoming_bt_channel->GetWrittenFrames()[0]);
+  ASSERT_TRUE(written_frame.ok());
+  EXPECT_EQ(
+      written_frame.result().v1().bandwidth_upgrade_negotiation().event_type(),
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  EXPECT_EQ(written_frame.result()
+                .v1()
+                .bandwidth_upgrade_negotiation()
+                .upgrade_path_info()
+                .medium(),
+            BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WIFI_HOTSPOT);
+
+  // 2. Outgoing connection (Windows Discoverer): accepts UPGRADE_PATH_AVAILABLE
+  // for WIFI_DIRECT from the remote Advertiser and upgrades to WIFI_DIRECT.
+  CreateConnectedEndpoint(kEndpointId2, remote_medium_role, allowed,
+                          OsInfo::ANDROID, /*is_incoming_connection=*/false);
+  EXPECT_CALL(
+      *mock_analytics_recorder_,
+      OnBandwidthUpgradeStarted(
+          std::string(kEndpointId2), Medium::BLUETOOTH, Medium::WIFI_DIRECT,
+          ConnectionAttemptDirection::OUTGOING, ::testing::_,
+          /*is_role_switched=*/false));
+  ExceptionOr<OfflineFrame> direct_available =
+      parser::FromBytes(parser::ForBwuWifiDirectPathAvailable(
+          /*ssid=*/"", /*password=*/"", /*port=*/33953, /*frequency=*/5240,
+          /*supports_disabling_encryption=*/true, /*gateway=*/"192.168.49.1",
+          /*device_name=*/"Android_OEhA", /*pin=*/"79123456"));
+  ASSERT_TRUE(direct_available.ok());
+  OfflineFrame direct_frame = direct_available.result();
+  direct_frame.mutable_v1()
+      ->mutable_bandwidth_upgrade_negotiation()
+      ->mutable_upgrade_path_info()
+      ->set_supports_client_introduction_ack(false);
+
+  bwu_manager_->OnIncomingFrame(direct_frame, std::string(kEndpointId2),
+                                &client_, Medium::BLUETOOTH);
+
+  EXPECT_EQ(fake_wifi_direct_bwu_handler_->create_calls().size(), 1u);
+  EXPECT_TRUE(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)));
+  ASSERT_NE(ecm_.GetChannelForEndpoint(kEndpointId2), nullptr);
+  EXPECT_EQ(ecm_.GetChannelForEndpoint(kEndpointId2)->GetMedium(),
+            Medium::WIFI_DIRECT);
 
   UnRegisterChannelForEndpoint(kEndpointId1);
   UnRegisterChannelForEndpoint(kEndpointId2);

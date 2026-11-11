@@ -216,6 +216,7 @@ void BwuManager::Shutdown() {
   CancelAllRetryUpgradeAlarms();
   medium_ = Medium::UNKNOWN_MEDIUM;
   endpoint_id_to_bwu_medium_.clear();
+  endpoint_role_switch_states_.clear();
   for (auto& medium_handler_pair : handlers_) {
     if (medium_handler_pair.second != nullptr) {
       medium_handler_pair.second->RevertInitiatorState();
@@ -320,16 +321,22 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       return;
     }
 
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
-        endpoint_id, channel_medium, proposed_medium,
-        location::nearby::proto::connections::INCOMING,
-        client->GetConnectionToken(endpoint_id));
-
+    const bool is_role_switched = IsRoleSwitched(endpoint_id);
     if (channel == nullptr) {
       LOG(INFO)
           << "BwuManager couldn't complete the upgrade for endpoint "
           << endpoint_id
           << " because it couldn't find an existing EndpointChannel for it.";
+      // `InitiateBwuForEndpoint` initiates hosting of the upgrade medium on the
+      // local device (waiting for an incoming BWU socket connection in
+      // `OnIncomingConnection`), so `bwu_connection_direction` is `INCOMING`
+      // regardless of `client->IsIncomingConnection(endpoint_id)` (which tracks
+      // the initial connection role).
+      client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+          endpoint_id, channel_medium, proposed_medium,
+          /*bwu_connection_direction=*/
+          location::nearby::proto::connections::INCOMING,
+          client->GetConnectionToken(endpoint_id), is_role_switched);
       client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
           endpoint_id, BandwidthUpgradeResult::CHANNEL_ERROR,
           BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
@@ -337,96 +344,161 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       return;
     }
 
-    if (allow_role_switch &&
+    if (allow_role_switch && !is_role_switched &&
         CanSwitchRoleForMedium(client, endpoint_id, proposed_medium)) {
-      SetBwuMediumForEndpoint(endpoint_id, Medium::UNKNOWN_MEDIUM);
-      if (!channel
-               ->Write(parser::ForBwuPathRequest(
-                   proposed_medium,
-                   client->GetUpgradeMediums(endpoint_id).GetMediums(true),
-                   GetLocalMediumRole(client),
-                   mediums_->GetWifi().GetCapability().supports_5_ghz))
-               .Ok()) {
-        LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
-                   << endpoint_id << " to medium "
-                   << location::nearby::proto::connections::Medium_Name(
-                          proposed_medium)
-                   << " because it failed to write the "
-                      "BWU_NEGOTIATION.UPGRADE_PATH_REQUEST OfflineFrame.";
-
-        client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-            endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
-            BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-            OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-        return;
-      }
-      LOG(INFO) << "BwuManager successfully wrote the "
-                   "BANDWIDTH_UPGRADE_NEGOTIATION.UPGRADE_PATH_REQUEST "
-                   "OfflineFrame while upgrading endpoint "
-                << endpoint_id << " to medium "
-                << location::nearby::proto::connections::Medium_Name(
-                       proposed_medium);
+      RequestRoleSwitchForEndpoint(client, endpoint_id, channel.get(),
+                                   channel_medium, proposed_medium);
       return;
     }
 
-    SetBwuMediumForEndpoint(endpoint_id, proposed_medium);
-    std::string service_id = channel->GetServiceId();
-    std::string bytes = handler->InitializeUpgradedMediumForEndpoint(
-        client, service_id, endpoint_id);
-
-    // Because we grab the endpointChannel first thing, it is possible the
-    // endpointChannel is stale by the time we attempt to write over it.
-    if (bytes.empty()) {
-      LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
-                 << endpoint_id << " to medium "
-                 << location::nearby::proto::connections::Medium_Name(
-                        proposed_medium)
-                 << " because it failed to initialize the "
-                    "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
-      BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
-      info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
-
-      ProcessUpgradeFailureEvent(
-          client, endpoint_id, info, BandwidthUpgradeResult::MEDIUM_ERROR,
-          /*record_analytic=*/false,
-          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-
-      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, BandwidthUpgradeResult::MEDIUM_ERROR,
-          BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-      return;
-    }
-    if (!channel->Write(bytes).Ok()) {
-      LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
-                 << endpoint_id << " to medium "
-                 << location::nearby::proto::connections::Medium_Name(
-                        proposed_medium)
-                 << " because it failed to write the "
-                    "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
-      BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
-      info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
-
-      ProcessUpgradeFailureEvent(
-          client, endpoint_id, info, BandwidthUpgradeResult::RESULT_IO_ERROR,
-          /*record_analytic=*/false,
-          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-
-      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
-          BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
-      return;
-    }
-
-    LOG(INFO) << "BwuManager successfully wrote the "
-                 "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame while "
-                 "upgrading endpoint "
-              << endpoint_id << " to medium "
-              << location::nearby::proto::connections::Medium_Name(
-                     proposed_medium);
-    in_progress_upgrades_.emplace(endpoint_id, client);
+    InitializeLocalUpgradeForEndpoint(client, endpoint_id, channel.get(),
+                                      handler, channel_medium, proposed_medium,
+                                      is_role_switched);
   });
+}
+
+void BwuManager::RequestRoleSwitchForEndpoint(ClientProxy* client,
+                                              const std::string& endpoint_id,
+                                              EndpointChannel* channel,
+                                              Medium channel_medium,
+                                              Medium proposed_medium) {
+  SetBwuMediumForEndpoint(endpoint_id, Medium::UNKNOWN_MEDIUM);
+  // Writing `UPGRADE_PATH_REQUEST` delegates BWU medium hosting to the peer and
+  // does not start a local upgrade medium or socket connection yet; once the
+  // peer responds with `UPGRADE_PATH_AVAILABLE`, `OnBandwidthUpgradeStarted` is
+  // recorded with `OUTGOING` and `is_role_switched=true` in
+  // `ProcessBwuPathAvailableEvent`. Record `OnBandwidthUpgradeStarted` here
+  // only if writing `UPGRADE_PATH_REQUEST` fails immediately.
+  if (!channel
+           ->Write(parser::ForBwuPathRequest(
+               proposed_medium,
+               client->GetUpgradeMediums(endpoint_id).GetMediums(true),
+               GetLocalMediumRole(client),
+               mediums_->GetWifi().GetCapability().supports_5_ghz))
+           .Ok()) {
+    LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
+               << endpoint_id << " to medium "
+               << location::nearby::proto::connections::Medium_Name(
+                      proposed_medium)
+               << " because it failed to write the "
+                  "BWU_NEGOTIATION.UPGRADE_PATH_REQUEST OfflineFrame.";
+
+    client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+        endpoint_id, channel_medium, proposed_medium,
+        /*bwu_connection_direction=*/
+        location::nearby::proto::connections::OUTGOING,
+        client->GetConnectionToken(endpoint_id), /*is_role_switched=*/true);
+    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+        endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+        BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+        OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+    return;
+  }
+  endpoint_role_switch_states_[endpoint_id] = RoleSwitchState::kSwitching;
+  LOG(INFO) << "BwuManager successfully wrote the "
+               "BANDWIDTH_UPGRADE_NEGOTIATION.UPGRADE_PATH_REQUEST "
+               "OfflineFrame while upgrading endpoint "
+            << endpoint_id << " (role="
+            << (client->IsIncomingConnection(endpoint_id) ? "ADVERTISER"
+                                                          : "DISCOVERER")
+            << ", role_switching=true) to medium "
+            << location::nearby::proto::connections::Medium_Name(
+                   proposed_medium);
+}
+
+void BwuManager::InitializeLocalUpgradeForEndpoint(
+    ClientProxy* client, const std::string& endpoint_id,
+    EndpointChannel* channel, BwuHandler* handler, Medium channel_medium,
+    Medium proposed_medium, bool is_role_switched) {
+  const bool is_incoming_connection = client->IsIncomingConnection(endpoint_id);
+  LOG(INFO) << "BwuManager starting incoming bandwidth upgrade for endpoint "
+            << endpoint_id << " from "
+            << location::nearby::proto::connections::Medium_Name(channel_medium)
+            << " to "
+            << location::nearby::proto::connections::Medium_Name(
+                   proposed_medium)
+            << " (role="
+            << (is_incoming_connection ? "ADVERTISER" : "DISCOVERER")
+            << ", role_switched=" << is_role_switched << ")";
+  // Here the local device hosts the upgraded medium and waits for an incoming
+  // BWU socket connection in `OnIncomingConnection`, so
+  // `bwu_connection_direction` is `INCOMING` even when `is_incoming_connection`
+  // is false (i.e. a Discoverer hosting after a role switch, where
+  // `is_role_switched` is true).
+  client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+      endpoint_id, channel_medium, proposed_medium,
+      /*bwu_connection_direction=*/
+      location::nearby::proto::connections::INCOMING,
+      client->GetConnectionToken(endpoint_id), is_role_switched);
+  SetBwuMediumForEndpoint(endpoint_id, proposed_medium);
+  std::string service_id = channel->GetServiceId();
+  std::string bytes = handler->InitializeUpgradedMediumForEndpoint(
+      client, service_id, endpoint_id);
+
+  // Because we grab the endpointChannel first thing, it is possible the
+  // endpointChannel is stale by the time we attempt to write over it.
+  if (bytes.empty()) {
+    LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
+               << endpoint_id << " to medium "
+               << location::nearby::proto::connections::Medium_Name(
+                      proposed_medium)
+               << " because it failed to initialize the "
+                  "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
+    info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
+
+    ProcessUpgradeFailureEvent(
+        client, endpoint_id, info, BandwidthUpgradeResult::MEDIUM_ERROR,
+        /*record_analytic=*/false,
+        OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+
+    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+        endpoint_id, BandwidthUpgradeResult::MEDIUM_ERROR,
+        BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+        OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+    return;
+  }
+  if (!channel->Write(bytes).Ok()) {
+    LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
+               << endpoint_id << " to medium "
+               << location::nearby::proto::connections::Medium_Name(
+                      proposed_medium)
+               << " because it failed to write the "
+                  "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
+    info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
+
+    ProcessUpgradeFailureEvent(
+        client, endpoint_id, info, BandwidthUpgradeResult::RESULT_IO_ERROR,
+        /*record_analytic=*/false,
+        OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+
+    client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+        endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+        BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+        OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+    return;
+  }
+
+  LOG(INFO) << "BwuManager successfully wrote the "
+               "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame while "
+               "upgrading endpoint "
+            << endpoint_id << " to medium "
+            << location::nearby::proto::connections::Medium_Name(
+                   proposed_medium);
+  in_progress_upgrades_.emplace(endpoint_id, client);
+}
+
+bool BwuManager::IsRoleSwitched(const std::string& endpoint_id) const {
+  auto it = endpoint_role_switch_states_.find(endpoint_id);
+  return it != endpoint_role_switch_states_.end() &&
+         it->second == RoleSwitchState::kSwitched;
+}
+
+bool BwuManager::IsRoleSwitching(const std::string& endpoint_id) const {
+  auto it = endpoint_role_switch_states_.find(endpoint_id);
+  return it != endpoint_role_switch_states_.end() &&
+         it->second == RoleSwitchState::kSwitching;
 }
 
 void BwuManager::OnIncomingFrame(OfflineFrame& frame,
@@ -482,6 +554,7 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
       }
     }
     in_progress_upgrades_.erase(endpoint_id);
+    endpoint_role_switch_states_.erase(endpoint_id);
     retry_delays_.erase(endpoint_id);
     CancelRetryUpgradeAlarm(endpoint_id);
     successfully_upgraded_endpoints_.erase(endpoint_id);
@@ -839,10 +912,18 @@ void BwuManager::ProcessBwuPathAvailableEvent(
         upgrade_path_info) {
   Medium upgrade_medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
+  const bool is_incoming_connection =
+      client->IsIncomingConnection(endpoint_id);
+  const bool is_role_switching = IsRoleSwitching(endpoint_id);
+  bool is_role_switched = IsRoleSwitched(endpoint_id);
   LOG(INFO) << "ProcessBwuPathAvailableEvent for endpoint " << endpoint_id
             << " medium "
             << location::nearby::proto::connections::Medium_Name(
-                   upgrade_medium);
+                   upgrade_medium)
+            << " (role="
+            << (is_incoming_connection ? "ADVERTISER" : "DISCOVERER")
+            << ", role_switching=" << is_role_switching
+            << ", role_switched=" << is_role_switched << ")";
 
   if ((channel_manager_->isWifiLanConnected() ||
        channel_manager_->isWifiAwareConnected()) &&
@@ -861,12 +942,14 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
-  bool abort_bwu = client->IsIncomingConnection(endpoint_id) &&
-                   !CanSwitchRoleForMedium(client, endpoint_id, upgrade_medium);
-  if (abort_bwu) {
-    LOG(INFO)
-        << "ProcessBandwidthUpgradePathAvailableEvent ignored by Advertiser";
-    return;
+  if (is_incoming_connection && !is_role_switched) {
+    if (!is_role_switching) {
+      LOG(ERROR) << "ProcessBandwidthUpgradePathAvailableEvent ignored by "
+                    "Advertiser not in role switch";
+      return;
+    }
+    endpoint_role_switch_states_[endpoint_id] = RoleSwitchState::kSwitched;
+    is_role_switched = true;
   }
 
   if (in_progress_upgrades_.contains(endpoint_id)) {
@@ -909,10 +992,26 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   auto current_channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
   Medium current_medium =
       current_channel ? current_channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
+  LOG(INFO) << "BwuManager starting outgoing bandwidth upgrade for endpoint "
+            << endpoint_id << " from "
+            << location::nearby::proto::connections::Medium_Name(
+                   current_medium)
+            << " to "
+            << location::nearby::proto::connections::Medium_Name(
+                   upgrade_medium)
+            << " (role="
+            << (is_incoming_connection ? "ADVERTISER" : "DISCOVERER")
+            << ", role_switched=" << is_role_switched << ")";
+  // Here the local device connects as a client to the peer's upgraded medium
+  // advertised in `UPGRADE_PATH_AVAILABLE`, so `bwu_connection_direction` is
+  // `OUTGOING` even when `is_incoming_connection` is true (i.e. an Advertiser
+  // connecting as a BWU client after a role switch, where `is_role_switched` is
+  // true).
   client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
       endpoint_id, current_medium, upgrade_medium,
+      /*bwu_connection_direction=*/
       location::nearby::proto::connections::OUTGOING,
-      client->GetConnectionToken(endpoint_id));
+      client->GetConnectionToken(endpoint_id), is_role_switched);
 
   absl::Time connection_attempt_start_time = SystemClock::ElapsedRealtime();
   ErrorOr<std::unique_ptr<EndpointChannel>> result =
@@ -1118,6 +1217,11 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
                     "BWU_NEGOTIATION.CLIENT_INTRODUCTION_ACK "
                     "OfflineFrame to newly-created EndpointChannel "
                  << new_channel->GetName() << ", aborting upgrade.";
+      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+          endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+          BandwidthUpgradeErrorStage::CLIENT_INTRODUCTION,
+          OperationResultCode::
+              NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FRAME_TYPE_ERROR);
       return {Error(
           OperationResultCode::
               NEARBY_GENERIC_READ_CLIENT_INTRODUCTION_ACK_FRAME_TYPE_ERROR)};
@@ -1404,8 +1508,13 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
       client->GetConnectionToken(endpoint_id));
   // ...and the success of the upgrade itself.
   client->GetAnalyticsRecorder().OnBandwidthUpgradeSuccess(endpoint_id);
-  LOG(INFO) << "BwuManager upgrade protocol completed successfully. "
-            << "Prior channel shut down cleanly. Endpoint upgraded to "
+  LOG(INFO) << "BwuManager upgrade protocol completed successfully for "
+               "endpoint "
+            << endpoint_id << " (role="
+            << (client->IsIncomingConnection(endpoint_id) ? "ADVERTISER"
+                                                          : "DISCOVERER")
+            << ", role_switched=" << IsRoleSwitched(endpoint_id)
+            << "). Prior channel shut down cleanly. Endpoint upgraded to "
             << location::nearby::proto::connections::Medium_Name(
                    GetBwuMediumForEndpoint(endpoint_id));
 
@@ -1433,6 +1542,7 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   }
   client->OnBandwidthChanged(endpoint_id, medium);
   in_progress_upgrades_.erase(endpoint_id);
+  endpoint_role_switch_states_.erase(endpoint_id);
 }
 
 void BwuManager::ProcessUpgradeFailureEvent(
@@ -1887,6 +1997,7 @@ void BwuManager::ProcessUpgradePathRequest(
     LOG(INFO) << "BwuManager: Initiating BWU for endpoint " << endpoint_id
               << " with medium "
               << location::nearby::proto::connections::Medium_Name(medium);
+    endpoint_role_switch_states_[endpoint_id] = RoleSwitchState::kSwitched;
     InitiateBwuForEndpoint(client, endpoint_id, medium,
                            /*allow_role_switch=*/false);
     return;
