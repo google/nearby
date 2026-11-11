@@ -73,6 +73,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/crypto.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
@@ -104,6 +105,7 @@ using ::nearby::analytics::OperationResultWithMedium;
 using ::securegcm::UKey2Handshake;
 
 constexpr int kEndpointCancelAlarmTimeout = 10;
+constexpr int kConnectionTokenLength = 8;
 
 std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
   switch (status) {
@@ -114,6 +116,32 @@ std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
     case AuthenticationStatus::kFailure:
       return "failure";
   }
+}
+
+// Formats `bytes` the same way as Java's Arrays.toString(byte[]), e.g.
+// "[0, 127, -128, -1]". Java bytes are signed, so each byte is converted to
+// int8_t rather than relying on the platform-dependent signedness of `char`.
+std::string ToJavaByteArrayString(const ByteArray& bytes) {
+  return absl::StrCat("[",
+                      absl::StrJoin(bytes, ", ",
+                                    [](std::string* out, char byte) {
+                                      absl::StrAppend(
+                                          out, static_cast<int8_t>(byte));
+                                    }),
+                      "]");
+}
+
+// Returns the 8-character connection token that both sides of a connection
+// log to analytics, derived from the raw UKEY2 authentication token.
+//
+// This matches Android's PcpManager#getHashedConnectionToken(), which hashes
+// the UTF-8 bytes of Java's Arrays.toString(byte[]) instead of the raw bytes,
+// so that both sides of a cross-platform connection (e.g. Windows and Android)
+// log the same token.
+std::string GetHashedConnectionToken(const ByteArray& token_bytes) {
+  return nearby::Base64Utils::Encode(
+             Crypto::Sha256(ToJavaByteArrayString(token_bytes)))
+      .substr(0, kConnectionTokenLength);
 }
 
 }  // namespace
@@ -2614,13 +2642,6 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
   }
 
   return wrapped_frame;
-}
-
-std::string BasePcpHandler::GetHashedConnectionToken(
-    const ByteArray& token_bytes) {
-  auto token = std::string(token_bytes);
-  return nearby::Base64Utils::Encode(Utils::Sha256Hash(token, token.size()))
-      .substr(0, kConnectionTokenLength);
 }
 
 void BasePcpHandler::LogConnectionAttemptFailure(

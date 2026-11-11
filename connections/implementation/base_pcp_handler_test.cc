@@ -26,6 +26,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
@@ -61,8 +63,10 @@
 #include "internal/interop/authentication_transport.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
+#include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/crypto.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
@@ -91,6 +95,21 @@ using ::testing::StrictMock;
 constexpr absl::string_view kTestEndpointId = "REMOTETEST";
 
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
+
+// Computes the connection token the way Android's
+// PcpManager#getHashedConnectionToken() does: the first 8 characters of the
+// URL-safe Base64 SHA-256 hash of Java's Arrays.toString(byte[]) applied to the
+// raw UKEY2 authentication token, e.g. "[0, 127, -128, -1]".
+std::string ComputeAndroidConnectionToken(const ByteArray& raw_auth_token) {
+  std::vector<std::string> java_bytes;
+  java_bytes.reserve(raw_auth_token.size());
+  for (char byte : raw_auth_token) {
+    java_bytes.push_back(absl::StrCat(static_cast<int8_t>(byte)));
+  }
+  std::string java_string =
+      absl::StrCat("[", absl::StrJoin(java_bytes, ", "), "]");
+  return Base64Utils::Encode(Crypto::Sha256(java_string)).substr(0, 8);
+}
 
 constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{},
@@ -697,7 +716,11 @@ class BasePcpHandlerTest
     EXPECT_CALL(*pcp_handler, GetStrategy)
         .WillRepeatedly(Return(Strategy::kP2pCluster));
     if (expected_result == Status{Status::kSuccess}) {
-      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call).Times(1);
+      EXPECT_CALL(mock_connection_listener_.initiated_cb, Call)
+          .WillOnce([this](const std::string& endpoint_id,
+                           const ConnectionResponseInfo& info) {
+            last_connection_response_info_ = info;
+          });
     }
     // Simulate successful discovery.
     auto encryption_runner = std::make_unique<EncryptionRunner>();
@@ -902,6 +925,9 @@ class BasePcpHandlerTest
     LOG(INFO) << "Stopping Encryption Runner";
   }
   MockConnectionListener mock_connection_listener_;
+  // The info passed to `initiated_cb` by the last successful
+  // RequestConnection().
+  ConnectionResponseInfo last_connection_response_info_;
   MockDiscoveryListener mock_discovery_listener_;
   ConnectionListener connection_listener_{
       .initiated_cb = mock_connection_listener_.initiated_cb.AsStdFunction(),
@@ -1253,6 +1279,41 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   LOG(INFO) << "RequestConnection complete";
   EXPECT_TRUE(pcp_handler.HasOutgoingConnections(client_.get()));
   EXPECT_FALSE(pcp_handler.HasIncomingConnections(client_.get()));
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+// Verifies that the connection token registered for a new connection is derived
+// from the raw UKEY2 authentication token the same way Android derives it, so
+// that both sides of a cross-platform connection log the same token.
+TEST_P(BasePcpHandlerTest, RequestConnectionSetsAndroidCompatibleToken) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
+
+  const ByteArray& raw_auth_token =
+      last_connection_response_info_.raw_authentication_token;
+  ASSERT_FALSE(raw_auth_token.Empty());
+  EXPECT_EQ(client_->GetConnectionToken("1234"),
+            ComputeAndroidConnectionToken(raw_auth_token));
+
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
@@ -3491,6 +3552,31 @@ TEST_F(BasePcpHandlerTest,
 
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
+}
+
+// Raw UKEY2 authentication token with a known Android connection token.
+// Covers 0x00, 0x7f (127), 0x80 (-128) and 0xff (-1) so that the signed-byte
+// formatting of Java's Arrays.toString(byte[]) is exercised.
+constexpr char kRawAuthToken[] =
+    "\x00\x01\x7f\x80\x81\xfe\xff\x10\x20\x30\x40\x50\x60\x70\x90\xa0"
+    "\xb0\xc0\xd0\xe0\xf0\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb";
+
+// Pins ComputeAndroidConnectionToken() (used to check the token produced by
+// RequestConnection() above) to the value Android's
+// PcpManager#getHashedConnectionToken() derives from the same raw token: the
+// first 8 characters of the URL-safe Base64 SHA-256 hash of
+// "[0, 1, 127, -128, -127, -2, -1, 16, 32, ..., -86, -69]".
+TEST(BasePcpHandlerConnectionTokenTest, ComputeTokenMatchesAndroid) {
+  EXPECT_EQ(ComputeAndroidConnectionToken(
+                ByteArray(kRawAuthToken, sizeof(kRawAuthToken) - 1)),
+            "4Ys-bOWN");
+}
+
+// Verifies that an empty raw token is formatted as "[]", like Java's
+// Arrays.toString(new byte[0]).
+TEST(BasePcpHandlerConnectionTokenTest,
+     ComputeTokenMatchesAndroidForEmptyToken) {
+  EXPECT_EQ(ComputeAndroidConnectionToken(ByteArray()), "T1PNoYwr");
 }
 
 }  // namespace

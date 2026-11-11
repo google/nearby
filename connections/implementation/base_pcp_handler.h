@@ -547,7 +547,6 @@ class BasePcpHandler : public PcpHandler,
       absl::Seconds(5);
   static constexpr absl::Duration kRejectedConnectionCloseDelay =
       absl::Seconds(2);
-  static constexpr int kConnectionTokenLength = 8;
 
   // Returns true if the new endpoint is preferred over the old endpoint.
   bool IsPreferred(const BasePcpHandler::DiscoveredEndpoint& new_endpoint,
@@ -608,10 +607,6 @@ class BasePcpHandler : public PcpHandler,
 
   ExceptionOr<location::nearby::connections::OfflineFrame>
   ReadConnectionRequestFrame(EndpointChannel* channel);
-
-  // Returns an 8 characters length hashed string generated via a token byte
-  // array.
-  std::string GetHashedConnectionToken(const ByteArray& token_bytes);
 
   static void LogConnectionAttemptFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
