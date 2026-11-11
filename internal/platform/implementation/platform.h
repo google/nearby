@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
@@ -62,8 +61,7 @@ class ImplementationPlatform {
   // General platform support:
   // - atomic variables (boolean, and any other copyable type)
   // - synchronization primitives:
-  //   - mutex (regular, and recursive)
-  //   - condition variable (must work with regular mutex only)
+  //   - recursive mutex
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
@@ -96,13 +94,7 @@ class ImplementationPlatform {
   static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
       std::int32_t count);
 
-#pragma push_macro("CreateMutex")
-#undef CreateMutex
-  static std::unique_ptr<Mutex> CreateMutex(Mutex::Mode mode);
-#pragma pop_macro("CreateMutex")
-
-  static std::unique_ptr<ConditionVariable> CreateConditionVariable(
-      Mutex* mutex);
+  static std::unique_ptr<RecursiveMutex> CreateRecursiveMutex();
 
 #if defined(NEARBY_CHROMIUM)
   static std::unique_ptr<InputFile> CreateInputFile(PayloadId);

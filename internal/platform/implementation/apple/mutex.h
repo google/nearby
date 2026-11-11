@@ -15,6 +15,11 @@
 #ifndef PLATFORM_IMPL_APPLE_MUTEX_H_
 #define PLATFORM_IMPL_APPLE_MUTEX_H_
 
+#include <atomic>
+#include <cassert>
+#include <cstdint>
+
+#include "absl/base/attributes.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
@@ -22,31 +27,7 @@
 namespace nearby {
 namespace apple {
 
-// Concrete Mutex implementation.
-class ABSL_LOCKABLE Mutex : public api::Mutex {
- public:
-  explicit Mutex() {}
-  ~Mutex() override = default;
-
-  Mutex(const Mutex&) = delete;
-  Mutex& operator=(const Mutex&) = delete;
-
-  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
-    mutex_.Lock();
-    mutex_.ForgetDeadlockInfo();
-  }
-  void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.Unlock(); }
-
-  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
-    mutex_.AssertHeld();
-  }
-
- private:
-  friend class ConditionVariable;
-  absl::Mutex mutex_;
-};
-
-class ABSL_LOCKABLE RecursiveMutex : public api::Mutex {
+class ABSL_LOCKABLE RecursiveMutex : public api::RecursiveMutex {
  public:
   RecursiveMutex() = default;
   ~RecursiveMutex() override = default;

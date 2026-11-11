@@ -13,58 +13,37 @@
 // limitations under the License.
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
-#include <stdio.h>
 
 #include <mutex>  //  NOLINT
 
-#include "absl/synchronization/mutex.h"
+#include "absl/base/thread_annotations.h"
 #include "internal/platform/implementation/mutex.h"
 
 namespace nearby {
 namespace windows {
 
-// A lock is a tool for controlling access to a shared resource by multiple
+// A recursive lock for controlling access to a shared resource by multiple
 // threads.
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
-class ABSL_LOCKABLE Mutex : public api::Mutex {
+class ABSL_LOCKABLE RecursiveMutex : public api::RecursiveMutex {
  public:
-  explicit Mutex(Mode mode) : mode_(mode) {}
-  ~Mutex() override = default;
-  Mutex(Mutex&&) = delete;
-  Mutex& operator=(Mutex&&) = delete;
-  Mutex(const Mutex&) = delete;
-  Mutex& operator=(const Mutex&) = delete;
+  RecursiveMutex() = default;
+  ~RecursiveMutex() override = default;
+  RecursiveMutex(RecursiveMutex&&) = delete;
+  RecursiveMutex& operator=(RecursiveMutex&&) = delete;
+  RecursiveMutex(const RecursiveMutex&) = delete;
+  RecursiveMutex& operator=(const RecursiveMutex&) = delete;
 
   void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
-    if (mode_ == Mode::kRegularNoCheck) mutex_.ForgetDeadlockInfo();
-    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
-      mutex_.Lock();
-    } else {
-      recursive_mutex_.lock();
-    }
+    recursive_mutex_.lock();
   }
 
   void Unlock() ABSL_UNLOCK_FUNCTION() override {
-    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
-      mutex_.Unlock();
-    } else {
-      recursive_mutex_.unlock();
-    }
+    recursive_mutex_.unlock();
   }
-
-  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
-    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
-      mutex_.AssertHeld();
-    }
-  }
-
-  absl::Mutex& GetMutex() { return mutex_; }
-  std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
 
  private:
-  absl::Mutex mutex_;
   std::recursive_mutex recursive_mutex_;  //  The actual mutex allocation
-  Mode mode_;
 };
 
 }  // namespace windows

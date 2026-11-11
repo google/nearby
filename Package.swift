@@ -489,7 +489,6 @@ let package = Package(
         "internal/platform/ble_test.cc",
         "internal/platform/prng_test.cc",
         "internal/platform/implementation/apple/count_down_latch_test.cc",
-        "internal/platform/implementation/apple/condition_variable_test.cc",
         "internal/platform/implementation/apple/mutex_test.cc",
         "internal/platform/implementation/apple/atomic_boolean_test.cc",
         "internal/platform/implementation/apple/atomic_uint32_test.cc",

@@ -34,7 +34,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
@@ -44,7 +43,6 @@
 #include "internal/platform/implementation/g3/ble.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
-#include "internal/platform/implementation/g3/condition_variable.h"
 #include "internal/platform/implementation/g3/credential_storage_impl.h"
 #include "internal/platform/implementation/g3/device_info.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
@@ -212,17 +210,8 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
   return absl::UnimplementedError("");
 }
 
-std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
-  if (mode == Mutex::Mode::kRecursive)
-    return std::make_unique<g3::RecursiveMutex>();
-  else
-    return std::make_unique<g3::Mutex>(mode == Mutex::Mode::kRegular);
-}
-
-std::unique_ptr<ConditionVariable>
-ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return std::unique_ptr<ConditionVariable>(
-      new g3::ConditionVariable(static_cast<g3::Mutex*>(mutex)));
+std::unique_ptr<RecursiveMutex> ImplementationPlatform::CreateRecursiveMutex() {
+  return std::make_unique<g3::RecursiveMutex>();
 }
 
 std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {

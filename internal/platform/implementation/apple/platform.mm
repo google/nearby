@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/ble.h"
-#include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
@@ -129,18 +128,8 @@ std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(std
   return std::make_unique<apple::CountDownLatch>(count);
 }
 
-std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
-  // iOS does not support unchecked Mutex in debug mode, therefore
-  // apple::Mutex is used for both kRegular and kRegularNoCheck.
-  if (mode == Mutex::Mode::kRecursive) {
-    return std::make_unique<apple::RecursiveMutex>();
-  } else {
-    return std::make_unique<apple::Mutex>();
-  }
-}
-
-std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return std::make_unique<apple::ConditionVariable>(static_cast<apple::Mutex*>(mutex));
+std::unique_ptr<RecursiveMutex> ImplementationPlatform::CreateRecursiveMutex() {
+  return std::make_unique<apple::RecursiveMutex>();
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path) {

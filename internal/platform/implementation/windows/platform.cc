@@ -44,7 +44,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/http_loader.h"
@@ -63,7 +62,6 @@
 #include "internal/platform/implementation/windows/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
-#include "internal/platform/implementation/windows/condition_variable.h"
 #include "internal/platform/implementation/windows/device_info.h"
 #include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/get_custom_save_path.h"
@@ -121,16 +119,9 @@ std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
   return std::make_unique<shared::CountDownLatch>(count);
 }
 
-#pragma push_macro("CreateMutex")
-#undef CreateMutex
-std::unique_ptr<Mutex> ImplementationPlatform::CreateMutex(Mutex::Mode mode) {
-  return std::make_unique<windows::Mutex>(mode);
-}
-#pragma pop_macro("CreateMutex")
-
-std::unique_ptr<ConditionVariable>
-ImplementationPlatform::CreateConditionVariable(Mutex* mutex) {
-  return std::make_unique<windows::ConditionVariable>(mutex);
+std::unique_ptr<RecursiveMutex>
+ImplementationPlatform::CreateRecursiveMutex() {
+  return std::make_unique<windows::RecursiveMutex>();
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(

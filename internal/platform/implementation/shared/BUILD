@@ -43,20 +43,6 @@ cc_library(
 )
 
 cc_library(
-    name = "posix_condition_variable",
-    srcs = [
-        "posix_condition_variable.cc",
-    ],
-    hdrs = [
-        "posix_condition_variable.h",
-    ],
-    deps = [
-        ":posix_mutex",
-        "//internal/platform/implementation:types",
-    ],
-)
-
-cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],

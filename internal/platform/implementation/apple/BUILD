@@ -337,14 +337,12 @@ objc_library(
 cc_library(
     name = "Platform_cc",
     srcs = [
-        "condition_variable.cc",
         "count_down_latch.cc",
         "system_clock.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
         "atomic_uint32.h",
-        "condition_variable.h",
         "count_down_latch.h",
         "mutex.h",
     ],
@@ -365,7 +363,6 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_uint32_test.cc",
-        "condition_variable_test.cc",
         "count_down_latch_test.cc",
         "mutex_test.cc",
     ],

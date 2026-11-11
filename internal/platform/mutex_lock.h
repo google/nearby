@@ -31,7 +31,7 @@ class ABSL_SCOPED_LOCKABLE MutexLock final {
   ~MutexLock() ABSL_UNLOCK_FUNCTION() { mutex_->Unlock(); }
 
  private:
-  api::Mutex* mutex_;
+  api::RecursiveMutex* mutex_;
 };
 
 }  // namespace nearby

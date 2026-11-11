@@ -16,38 +16,10 @@
 #define PLATFORM_IMPL_G3_MUTEX_H_
 
 #include "absl/base/thread_annotations.h"
-#include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/posix_mutex.h"
 
 namespace nearby {
 namespace g3 {
-
-class ABSL_LOCKABLE Mutex : public api::Mutex {
- public:
-  explicit Mutex(bool check) : check_(check) {}
-  ~Mutex() override = default;
-  Mutex(Mutex&&) = delete;
-  Mutex& operator=(Mutex&&) = delete;
-  Mutex(const Mutex&) = delete;
-  Mutex& operator=(const Mutex&) = delete;
-
-  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override {
-    mutex_.Lock();
-    if (!check_) mutex_.ForgetDeadlockInfo();
-  }
-
-  void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.Unlock(); }
-
-  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
-    mutex_.AssertHeld();
-  }
-
- private:
-  friend class ConditionVariable;
-  absl::Mutex mutex_;
-  bool check_;
-};
 
 class ABSL_LOCKABLE RecursiveMutex : public posix::Mutex {
  public:

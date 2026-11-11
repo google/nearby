@@ -27,28 +27,9 @@ namespace {
 static const absl::Duration kTimeToWait = absl::Milliseconds(500);
 
 TEST(MutexTest, LockOnce_UnlockOnce) {
-  Mutex test_mutex_1{};
-  test_mutex_1.Lock();
-  test_mutex_1.Unlock();
-
-  RecursiveMutex test_mutex_2;
-  test_mutex_2.Lock();
-  test_mutex_2.Unlock();
-}
-
-TEST(MutexTest, BasicLockingWorks) {
-  absl::Notification lock_obtained;
-  Mutex test_mutex{};
+  RecursiveMutex test_mutex;
   test_mutex.Lock();
-  thread::Fiber f([&test_mutex, &lock_obtained] {
-    test_mutex.Lock();
-    test_mutex.Unlock();
-    lock_obtained.Notify();
-  });
-  EXPECT_FALSE(lock_obtained.WaitForNotificationWithTimeout(kTimeToWait));
   test_mutex.Unlock();
-  EXPECT_TRUE(lock_obtained.WaitForNotificationWithTimeout(kTimeToWait));
-  f.Join();
 }
 
 TEST(MutexTest, RecursiveLockingWorks) {
@@ -84,13 +65,6 @@ TEST(MutexTest, RecursiveLockingForNestedWorks) {
   f.Join();
 }
 
-TEST(MutexTest, AssertHeld) {
-  Mutex mutex;
-  mutex.Lock();
-  mutex.AssertHeld();
-  mutex.Unlock();
-}
-
 TEST(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
   RecursiveMutex mutex;
   mutex.Lock();
@@ -103,11 +77,6 @@ TEST(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
 }
 
 #if !defined(NDEBUG) && defined(GTEST_HAS_DEATH_TEST)
-TEST(MutexDeathTest, MutexAssertHeldWithoutLock) {
-  Mutex mutex;
-  EXPECT_DEATH(mutex.AssertHeld(), "");
-}
-
 TEST(MutexDeathTest, RecursiveMutexAssertHeldWithoutLock) {
   RecursiveMutex mutex;
   EXPECT_DEATH(mutex.AssertHeld(), "");

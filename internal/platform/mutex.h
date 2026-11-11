@@ -23,9 +23,6 @@
 
 namespace nearby {
 
-#pragma push_macro("CreateMutex")
-#undef CreateMutex
-
 // This mutex is compatible with Java definition:
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html
 // This mutex may be acuired multiple times by a thread that is already holding
@@ -35,8 +32,7 @@ namespace nearby {
 class ABSL_LOCKABLE RecursiveMutex final {
  public:
   RecursiveMutex()
-      : impl_(api::ImplementationPlatform::CreateMutex(
-            api::Mutex::Mode::kRecursive)) {}
+      : impl_(api::ImplementationPlatform::CreateRecursiveMutex()) {}
   RecursiveMutex(RecursiveMutex&&) = default;
   RecursiveMutex& operator=(RecursiveMutex&&) = default;
   ~RecursiveMutex() = default;
@@ -47,10 +43,8 @@ class ABSL_LOCKABLE RecursiveMutex final {
 
  private:
   friend class MutexLock;
-  std::unique_ptr<api::Mutex> impl_;
+  std::unique_ptr<api::RecursiveMutex> impl_;
 };
-
-#pragma pop_macro("CreateMutex")
 
 }  // namespace nearby
 

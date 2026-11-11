@@ -22,7 +22,7 @@
 namespace nearby {
 namespace posix {
 
-class ABSL_LOCKABLE Mutex : public api::Mutex {
+class ABSL_LOCKABLE Mutex : public api::RecursiveMutex {
  public:
   Mutex();
   ~Mutex() override;
@@ -32,8 +32,6 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
   void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {}
 
  private:
-  friend class ConditionVariable;
-
   pthread_mutexattr_t attr_;
   pthread_mutex_t mutex_;
 };

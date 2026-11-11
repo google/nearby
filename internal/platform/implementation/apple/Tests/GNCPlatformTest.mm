@@ -266,16 +266,9 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertNotEqual(count_down_latch.get(), nullptr);
 }
 
-- (void)testCreateMutex {
-  auto mutex = nearby::api::ImplementationPlatform::CreateMutex(nearby::api::Mutex::Mode::kRegular);
+- (void)testCreateRecursiveMutex {
+  auto mutex = nearby::api::ImplementationPlatform::CreateRecursiveMutex();
   XCTAssertNotEqual(mutex.get(), nullptr);
-}
-
-- (void)testCreateConditionVariable {
-  auto mutex = nearby::api::ImplementationPlatform::CreateMutex(nearby::api::Mutex::Mode::kRegular);
-  auto condition_variable =
-      nearby::api::ImplementationPlatform::CreateConditionVariable(mutex.get());
-  XCTAssertNotEqual(condition_variable.get(), nullptr);
 }
 
 - (void)testCreateBluetoothAdapter {
