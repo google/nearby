@@ -113,6 +113,8 @@ class NoOpAnalyticsRecorder : public AnalyticsRecorder {
   void OnStopAdvertising() override {}
 
   int GetNextAdvertisingUpdateIndex() override { return 0; }
+  void UpdateAdvertisingPowerLevel(
+      location::nearby::proto::connections::PowerLevel power_level) override {}
 
   // Connection listening
   void OnStartedIncomingConnectionListening(
@@ -408,6 +410,11 @@ void ClientProxy::Reset() {
 
   StoppedAdvertising();
   StoppedDiscovery();
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging)) {
+    StoppedListeningForIncomingConnections();
+  }
   RemoveAllEndpoints();
   ExitStableEndpointIdMode();
 }
@@ -475,6 +482,14 @@ void ClientProxy::StartedAdvertising(
             /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
             operation_result_with_mediums);
   }
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging)) {
+    advertising_metadata_params->power_level =
+        advertising_options.low_power
+            ? location::nearby::proto::connections::PowerLevel::LOW_POWER
+            : location::nearby::proto::connections::PowerLevel::HIGH_POWER;
+  }
   analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
                                           advertising_metadata_params.get());
 }
@@ -483,13 +498,19 @@ void ClientProxy::StoppedAdvertising() {
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [StoppedAdvertising]: client=" << GetClientId();
 
-  if (IsAdvertising()) {
+  const bool was_advertising = IsAdvertising();
+  if (was_advertising) {
     advertising_info_.Clear();
     analytics_recorder_->OnStopAdvertising();
     local_endpoint_info_.clear();
   }
   // advertising_options_ is purposefully not cleared here.
-  OnSessionComplete();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging) ||
+      was_advertising) {
+    OnSessionComplete();
+  }
 
   ExitStableEndpointIdMode();
 }
@@ -503,6 +524,20 @@ bool ClientProxy::IsAdvertising() const {
 std::string ClientProxy::GetAdvertisingServiceId() const {
   MutexLock lock(&mutex_);
   return advertising_info_.service_id;
+}
+
+void ClientProxy::UpdateAdvertisingOptions(
+    const AdvertisingOptions& advertising_options) {
+  MutexLock lock(&mutex_);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging) &&
+      IsAdvertising() && advertising_options_.low_power &&
+      !advertising_options.low_power) {
+    analytics_recorder_->UpdateAdvertisingPowerLevel(
+        location::nearby::proto::connections::PowerLevel::HIGH_POWER);
+  }
+  advertising_options_ = advertising_options;
 }
 
 void ClientProxy::StartedListeningForIncomingConnections(
@@ -520,6 +555,16 @@ void ClientProxy::StartedListeningForIncomingConnections(
 
 void ClientProxy::StoppedListeningForIncomingConnections() {
   MutexLock lock(&mutex_);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging)) {
+    if (IsListeningForIncomingConnections()) {
+      listening_info_.Clear();
+      analytics_recorder_->OnStoppedIncomingConnectionListening();
+      OnSessionComplete();
+    }
+    return;
+  }
   listening_info_.Clear();
   analytics_recorder_->OnStoppedIncomingConnectionListening();
 }
@@ -622,13 +667,19 @@ void ClientProxy::StartedDiscovery(
 void ClientProxy::StoppedDiscovery() {
   MutexLock lock(&mutex_);
 
-  if (IsDiscovering()) {
+  const bool was_discovering = IsDiscovering();
+  if (was_discovering) {
     discovered_endpoint_ids_.clear();
     discovery_info_.Clear();
     analytics_recorder_->OnStopDiscovery();
   }
   // discovery_options_ is purposefully not cleared here.
-  OnSessionComplete();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging) ||
+      was_discovering) {
+    OnSessionComplete();
+  }
 }
 
 bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
@@ -1356,6 +1407,7 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
 void ClientProxy::RemoveAllEndpoints() {
   MutexLock lock(&mutex_);
 
+  const bool had_connections = !connections_.empty();
   // Note: we may want to notify the client of onDisconnected() for each
   // endpoint, in the case when this is called from stopAllEndpoints(). For now,
   // just remove without notifying.
@@ -1363,7 +1415,12 @@ void ClientProxy::RemoveAllEndpoints() {
   cancellation_flags_.clear();
   bluetooth_mac_addresses_.clear();
 
-  OnSessionComplete();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging) ||
+      had_connections) {
+    OnSessionComplete();
+  }
 }
 
 void ClientProxy::ResetLocalEndpointId() {
@@ -1379,7 +1436,14 @@ void ClientProxy::ResetLocalEndpointId() {
 
 void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
-  if (connections_.empty() && !IsAdvertising()) {
+  const bool is_session_idle =
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixClientSessionLogging)
+          ? (connections_.empty() && !IsAdvertising() && !IsDiscovering() &&
+             !IsListeningForIncomingConnections())
+          : (connections_.empty() && !IsAdvertising());
+  if (is_session_idle) {
     if (!local_endpoint_id_.empty()) {
       last_local_endpoint_id_ = local_endpoint_id_;
     }

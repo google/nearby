@@ -160,10 +160,7 @@ class ClientProxy final {
     MutexLock lock(&mutex_);
     local_endpoint_info_ = std::string(endpoint_info);
   }
-  void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options) {
-    MutexLock lock(&mutex_);
-    advertising_options_ = advertising_options;
-  }
+  void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options);
 
   void UpdateDiscoveryOptions(const DiscoveryOptions& discovery_options) {
     MutexLock lock(&mutex_);

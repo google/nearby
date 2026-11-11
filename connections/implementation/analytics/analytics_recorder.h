@@ -52,6 +52,8 @@ class AnalyticsRecorder {
   virtual void OnStopAdvertising() = 0;
 
   virtual int GetNextAdvertisingUpdateIndex() = 0;
+  virtual void UpdateAdvertisingPowerLevel(
+      location::nearby::proto::connections::PowerLevel power_level) = 0;
 
   // Connection listening
   virtual void OnStartedIncomingConnectionListening(
@@ -107,7 +109,9 @@ class AnalyticsRecorder {
       std::optional<int> connected_ap_frequency = std::nullopt,
       std::optional<bool> is_nfc_available = std::nullopt,
       const std::vector<OperationResultWithMedium>&
-          operation_result_with_mediums = {});
+          operation_result_with_mediums = {},
+      location::nearby::proto::connections::PowerLevel power_level =
+          location::nearby::proto::connections::PowerLevel::UNSPECIFIED);
   static std::unique_ptr<DiscoveryMetadataParams> BuildDiscoveryMetadataParams(
       std::optional<bool> is_extended_advertisement_supported = std::nullopt,
       std::optional<int> connected_ap_frequency = std::nullopt,

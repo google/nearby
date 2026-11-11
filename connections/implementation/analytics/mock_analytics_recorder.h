@@ -47,6 +47,9 @@ class MockAnalyticsRecorder : public AnalyticsRecorder {
   MOCK_METHOD(void, OnStopAdvertising, (), (override));
 
   MOCK_METHOD(int, GetNextAdvertisingUpdateIndex, (), (override));
+  MOCK_METHOD(void, UpdateAdvertisingPowerLevel,
+              (location::nearby::proto::connections::PowerLevel power_level),
+              (override));
 
   // Connection listening
   MOCK_METHOD(void, OnStartedIncomingConnectionListening,

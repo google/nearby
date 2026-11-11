@@ -31,6 +31,7 @@ using ::location::nearby::proto::connections::ConnectionBand;
 using ::location::nearby::proto::connections::ConnectionTechnology;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::location::nearby::proto::connections::PowerLevel;
 
 std::unique_ptr<AdvertisingMetadataParams>
 AnalyticsRecorder::BuildAdvertisingMetadataParams(
@@ -38,13 +39,15 @@ AnalyticsRecorder::BuildAdvertisingMetadataParams(
     std::optional<int> connected_ap_frequency,
     std::optional<bool> is_nfc_available,
     const std::vector<OperationResultWithMedium>&
-        operation_result_with_mediums) {
+        operation_result_with_mediums,
+    PowerLevel power_level) {
   auto params = std::make_unique<AdvertisingMetadataParams>();
   params->is_extended_advertisement_supported =
       is_extended_advertisement_supported;
   params->connected_ap_frequency = connected_ap_frequency;
   params->is_nfc_available = is_nfc_available;
   params->operation_result_with_mediums = operation_result_with_mediums;
+  params->power_level = power_level;
   return params;
 }
 
