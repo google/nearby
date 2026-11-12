@@ -15,8 +15,8 @@
 #include "connections/implementation/base_pcp_handler.h"
 
 #include <array>
-#include <cstdint>
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -36,6 +36,7 @@
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/bwu_manager.h"
@@ -84,11 +85,15 @@ namespace {
 
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::proto::connections::Medium;
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::testing::_;
 using ::testing::AtLeast;
+using ::testing::Field;
+using ::testing::IsNull;
 using ::testing::Matcher;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
+using ::testing::Pointee;
 using ::testing::Return;
 using ::testing::StrictMock;
 
@@ -924,6 +929,61 @@ class BasePcpHandlerTest
               expected_result);
     LOG(INFO) << "Stopping Encryption Runner";
   }
+
+  void RequestConnectionWithNullChannel(
+      OperationResultCode operation_result_code) {
+    Mediums m;
+    EndpointChannelManager ecm;
+    EndpointManager em(&ecm);
+    BwuManager bwu(m, em, ecm, {}, {});
+    MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+    StartDiscovery(client_.get(), &pcp_handler,
+                   BooleanMediumSelector{.bluetooth = true});
+
+    ConnectionRequestInfo info{
+        .endpoint_info = ByteArray{"ABCD"},
+        .listener = connection_listener_,
+    };
+    ConnectionOptions connection_options{
+        .remote_bluetooth_mac_address = remote_mac_address_,
+    };
+    EXPECT_CALL(mock_discovery_listener_.endpoint_found_cb, Call);
+    EXPECT_CALL(pcp_handler, CanSendOutgoingConnection)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(pcp_handler, GetStrategy)
+        .WillRepeatedly(Return(Strategy::kP2pCluster));
+
+    pcp_handler.OnEndpointFound(
+        client_.get(),
+        std::make_shared<MockDiscoveredEndpoint>(MockDiscoveredEndpoint{
+            {
+                std::string(kTestEndpointId),
+                info.endpoint_info,
+                "service",
+                Medium::BLUETOOTH,
+                WebRtcState::kUndefined,
+            },
+            MockContext{},
+        }));
+
+    EXPECT_CALL(pcp_handler, ConnectImpl)
+        .WillOnce(Return(MockPcpHandler::ConnectImplResult{
+            .medium = Medium::BLUETOOTH,
+            .status = {Status::kError},
+            .operation_result_code = operation_result_code,
+            .endpoint_channel = nullptr,
+        }));
+
+    EXPECT_EQ(pcp_handler.RequestConnection(client_.get(),
+                                            std::string(kTestEndpointId), info,
+                                            connection_options),
+              Status{Status::kError});
+
+    bwu.Shutdown();
+    pcp_handler.DisconnectFromEndpointManager();
+  }
+
   MockConnectionListener mock_connection_listener_;
   // The info passed to `initiated_cb` by the last successful
   // RequestConnection().
@@ -3577,6 +3637,48 @@ TEST(BasePcpHandlerConnectionTokenTest, ComputeTokenMatchesAndroid) {
 TEST(BasePcpHandlerConnectionTokenTest,
      ComputeTokenMatchesAndroidForEmptyToken) {
   EXPECT_EQ(ComputeAndroidConnectionToken(ByteArray()), "T1PNoYwr");
+}
+
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionLogsOperationResultCodeWhenChannelIsNull) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreserveNullChannelAttemptResultCode,
+      true);
+  constexpr OperationResultCode kExpectedResultCode =
+      OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE;
+  absl::Notification attempt_logged;
+  EXPECT_CALL(
+      *mock_analytics_recorder_ptr_,
+      OnOutgoingConnectionAttempt(
+          std::string(kTestEndpointId),
+          location::nearby::proto::connections::INITIAL, Medium::UNKNOWN_MEDIUM,
+          _, _, _,
+          Pointee(Field(&ConnectionAttemptMetadataParams::operation_result_code,
+                        kExpectedResultCode))))
+      .WillOnce([&attempt_logged] { attempt_logged.Notify(); });
+
+  RequestConnectionWithNullChannel(kExpectedResultCode);
+  ASSERT_TRUE(attempt_logged.WaitForNotificationWithTimeout(absl::Seconds(5)));
+}
+
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionOmitsNullChannelMetadataWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPreserveNullChannelAttemptResultCode,
+      false);
+  absl::Notification attempt_logged;
+  EXPECT_CALL(
+      *mock_analytics_recorder_ptr_,
+      OnOutgoingConnectionAttempt(std::string(kTestEndpointId),
+                                  location::nearby::proto::connections::INITIAL,
+                                  Medium::UNKNOWN_MEDIUM, _, _, _, IsNull()))
+      .WillOnce([&attempt_logged] { attempt_logged.Notify(); });
+
+  RequestConnectionWithNullChannel(
+      OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE);
+  ASSERT_TRUE(attempt_logged.WaitForNotificationWithTimeout(absl::Seconds(5)));
 }
 
 }  // namespace

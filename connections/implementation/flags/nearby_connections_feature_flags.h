@@ -119,6 +119,11 @@ constexpr auto kMediumMaxAllowedReadBytes =
 // false/0.
 constexpr auto kOmitUnmeasuredAdvDisCapabilities =
     flags::Flag<bool>(kConfigPackage, "45868908", true);
+// When true, populate ConnectionAttemptMetadataParams with
+// operation_result_code in BasePcpHandler::LogConnectionAttemptFailure even
+// when endpoint_channel is null.
+constexpr auto kPreserveNullChannelAttemptResultCode =
+    flags::Flag<bool>(kConfigPackage, "45868906", false);
 // When true, LogicalConnection records EstablishedConnections in chronological
 // order instead of dropping repeated visits to an earlier Medium.
 constexpr auto kRecordChronologicalPhysicalConnections =
