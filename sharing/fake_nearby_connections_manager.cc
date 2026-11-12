@@ -132,8 +132,13 @@ void FakeNearbyConnectionsManager::AcceptConnection(
 
 void FakeNearbyConnectionsManager::Disconnect(absl::string_view endpoint_id) {
   DCHECK(!is_shutdown());
-  absl::MutexLock lock(endpoints_mutex_);
-  connection_endpoint_infos_.erase(std::string(endpoint_id));
+  {
+    absl::MutexLock lock(endpoints_mutex_);
+    connection_endpoint_infos_.erase(std::string(endpoint_id));
+  }
+  if (disconnect_callback_) {
+    disconnect_callback_(endpoint_id);
+  }
 }
 
 void FakeNearbyConnectionsManager::Send(

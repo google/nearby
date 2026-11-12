@@ -152,10 +152,11 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
 
   if (IsCancelled(state)) {
     VLOG(1) << __func__ << ": Payloads cancelled.";
-    return std::move(TransferMetadataBuilder()
-        .set_status(TransferMetadata::Status::kCancelled)
-        .set_total_attachments_count(payload_state_.size())
-        .set_transferred_attachments_count(transferred_attachments_count_));
+    return std::move(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kCancelling)
+            .set_total_attachments_count(payload_state_.size())
+            .set_transferred_attachments_count(transferred_attachments_count_));
   }
 
   if (HasFailed(state)) {

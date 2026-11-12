@@ -119,6 +119,10 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
           callback) {
     send_payload_callback_ = std::move(callback);
   }
+  void set_disconnect_callback(
+      std::function<void(absl::string_view)> callback) {
+    disconnect_callback_ = std::move(callback);
+  }
   const std::optional<std::vector<uint8_t>>& advertising_endpoint_info() {
     return advertising_endpoint_info_;
   }
@@ -174,6 +178,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   std::function<void(std::unique_ptr<Payload>,
                      std::weak_ptr<PayloadStatusListener>)>
       send_payload_callback_;
+  std::function<void(absl::string_view)> disconnect_callback_;
   std::optional<std::vector<uint8_t>> advertising_endpoint_info_;
   std::set<std::string> disconnected_endpoints_;
   std::set<int64_t> canceled_payload_ids_;

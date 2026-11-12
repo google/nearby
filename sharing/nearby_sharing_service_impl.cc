@@ -950,32 +950,24 @@ void NearbySharingServiceImpl::DoCancel(
     return;
   }
 
-  // Inform the user that the transfer has been cancelled before disconnecting
-  // because subsequent disconnections might be interpreted as failure.
-  // UpdateTransferMetadata will ignore subsequent statuses in favor of this
-  // cancelled status. Note that the transfer update callback might have already
-  // been invoked as a result of the payload cancellations above, but again,
-  // superfluous status updates are handled gracefully by the
-  // UpdateTransferMetadata.
-  session->UpdateTransferMetadata(
-      TransferMetadataBuilder()
-          .set_usage(session->session_usage())
-          .set_status(TransferMetadata::Status::kCancelled)
-          .build());
-
-  // If a connection exists, close the connection. Note: The initiator of a
-  // cancellation waits for a short delay before closing the connection,
-  // allowing for final processing by the other device. Otherwise, disconnect
-  // from endpoint id directly. Note: A share attempt can be cancelled by the
-  // user before a connection is fully established, in which case,
-  // session->connection() will be null.
+  // If a connection exists, emit kCancelling and delay kCancelled until the
+  // connection is closed so no further file payloads can arrive after cleanup.
+  // Note: The initiator of a cancellation waits for a short delay before
+  // closing the connection, allowing for final processing by the other device.
+  // Otherwise, disconnect from endpoint id directly. Note: A share attempt can
+  // be cancelled by the user before a connection is fully established, in which
+  // case session->IsConnected() will be false and kCancelled is emitted
+  // immediately.
   if (session->IsConnected()) {
     LOG(INFO) << "Disconnect fully established endpoint id:"
               << session->endpoint_id();
+    session->set_disconnect_status(TransferMetadata::Status::kCancelled);
+    session->UpdateTransferMetadata(
+        TransferMetadataBuilder()
+            .set_usage(session->session_usage())
+            .set_status(TransferMetadata::Status::kCancelling)
+            .build());
     if (is_initiator_of_cancellation) {
-      // kCancelled status already sent above, no need to send on disconnect.
-      session->set_disconnect_status(TransferMetadata::Status::kUnknown);
-
       RunOnNearbySharingServiceThreadDelayed(
           "initiator_cancel_delay", kInitiatorCancelDelay,
           [this, endpoint_id = session->endpoint_id()]() {
@@ -989,6 +981,11 @@ void NearbySharingServiceImpl::DoCancel(
     }
   } else {
     LOG(INFO) << "Disconnect endpoint id:" << session->endpoint_id();
+    session->UpdateTransferMetadata(
+        TransferMetadataBuilder()
+            .set_usage(session->session_usage())
+            .set_status(TransferMetadata::Status::kCancelled)
+            .build());
     nearby_connections_manager_->Disconnect(session->endpoint_id());
     UnregisterShareTarget(share_target_id);
   }
@@ -3080,6 +3077,26 @@ void NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates(
     return;
   }
 
+  if (metadata->status() == TransferMetadata::Status::kCancelling) {
+    if (incoming_session->is_cancelled()) {
+      // Cancellation was already initiated via DoCancel(), which emitted
+      // kCancelling and scheduled disconnection.
+      return;
+    }
+    if (incoming_session->IsConnected()) {
+      incoming_session->set_disconnect_status(
+          TransferMetadata::Status::kCancelled);
+      incoming_session->UpdateTransferMetadata(*metadata);
+      incoming_session->Disconnect();
+    } else {
+      incoming_session->UpdateTransferMetadata(
+          TransferMetadataBuilder::Clone(*metadata)
+              .set_status(TransferMetadata::Status::kCancelled)
+              .build());
+    }
+    return;
+  }
+
   // Make sure to call this before calling Disconnect, or we risk losing
   // some transfer updates in the receive case due to the Disconnect call
   // cleaning up share targets.
@@ -3122,6 +3139,24 @@ void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
 
   if (metadata->status() == TransferMetadata::Status::kComplete) {
     session->DelayComplete(*metadata);
+    return;
+  }
+  if (metadata->status() == TransferMetadata::Status::kCancelling) {
+    if (session->is_cancelled()) {
+      // Cancellation was already initiated via DoCancel(), which emitted
+      // kCancelling and scheduled disconnection.
+      return;
+    }
+    if (session->IsConnected()) {
+      session->set_disconnect_status(TransferMetadata::Status::kCancelled);
+      session->UpdateTransferMetadata(*metadata);
+      session->Disconnect();
+    } else {
+      session->UpdateTransferMetadata(
+          TransferMetadataBuilder::Clone(*metadata)
+              .set_status(TransferMetadata::Status::kCancelled)
+              .build());
+    }
     return;
   }
   // Make sure to call this before calling Disconnect, or we risk losing some

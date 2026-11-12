@@ -824,6 +824,29 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteReceiverDisconnect) {
       IsTrue());
 }
 
+TEST_F(OutgoingShareSessionTest,
+       DelayCompleteCancelledBeforeDisconnectEmitsCancelled) {
+  NearbyConnectionImpl connection(device_info_);
+  session_.set_session_id(1234);
+  ConnectionSuccess(&connection);
+  TransferMetadata complete_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  session_.DelayComplete(complete_metadata);
+  EXPECT_TRUE(session_.CancelPayloads());
+  session_.set_disconnect_status(TransferMetadata::Status::kCancelled);
+
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kCancelled)));
+  session_.OnDisconnect();
+  fake_clock_.FastForward(absl::Seconds(60));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+}
+
 TEST_F(OutgoingShareSessionTest, DelayCompleteDisconnectTimeout) {
   NearbyConnectionImpl connection(device_info_);
   session_.set_session_id(1234);
