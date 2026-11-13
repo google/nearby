@@ -251,7 +251,6 @@ TEST_F(AwdlTest, CanConstructValidObject) {
   env_.Start();
   Awdl awdl_a;
   Awdl awdl_b;
-  std::string service_id(kServiceID);
 
   EXPECT_TRUE(awdl_a.IsAvailable());
   EXPECT_TRUE(awdl_b.IsAvailable());

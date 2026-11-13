@@ -220,7 +220,6 @@ TEST_P(BleMediumTest, CanDiscoverMultipleServices) {
   BleMedium ble_c(adapter_c_);
   Uuid service_uuid_a(1234, 5678);
   Uuid service_uuid_b(1234, 5679);
-  std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   absl::Notification found_latch;
 

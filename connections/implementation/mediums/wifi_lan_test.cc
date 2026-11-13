@@ -71,7 +71,6 @@ TEST_P(WifiLanTest, AdvertiseSameServiceNameReusesPort) {
   env_.Start();
   WifiLan wifi_lan_server;
   std::string service_id(kServiceID);
-  std::string endpoint_info_name(kEndpointName);
 
   WifiLanSocket socket_for_server;
   NsdServiceInfo nsd_service_info;
@@ -96,7 +95,6 @@ TEST_P(WifiLanTest, AdvertiseDifferentServiceNameUsesDifferentPort) {
   env_.Start();
   WifiLan wifi_lan_server;
   std::string service_id(kServiceID);
-  std::string endpoint_info_name(kEndpointName);
 
   WifiLanSocket socket_for_server;
   NsdServiceInfo nsd_service_info;
@@ -274,7 +272,6 @@ TEST_F(WifiLanTest, CanConstructValidObject) {
   env_.Start();
   WifiLan wifi_lan_a;
   WifiLan wifi_lan_b;
-  std::string service_id(kServiceID);
 
   EXPECT_TRUE(wifi_lan_a.IsAvailable());
   EXPECT_TRUE(wifi_lan_b.IsAvailable());

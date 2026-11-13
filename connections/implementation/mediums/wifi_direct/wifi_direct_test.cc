@@ -149,7 +149,6 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherCanCancelConnect) {
   env_.SetFeatureFlags(feature_flags);
 
   std::string service_id(kServiceID);
-  std::string ip(kIp);
   WifiDirect wifi_direct_a, wifi_direct_b;
 
   EXPECT_TRUE(wifi_direct_a.StartWifiDirect());

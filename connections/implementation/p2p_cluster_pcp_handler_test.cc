@@ -778,7 +778,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
 
   env_.SetBleExtendedAdvertisementsAvailable(true);
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -948,7 +947,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -984,7 +982,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -1034,7 +1031,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
 TEST_P(P2pClusterPcpHandlerTestWithParam,
        UpdateDiscoveryOptionsSkipMediumRestart) {
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -1217,7 +1213,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
 TEST_P(P2pClusterPcpHandlerTestWithParam,
        CanStartListeningForIncomingConnections) {
   env_.Start();
-  std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
   BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
   radio_a.GetBluetoothAdapter().SetName("BT Device A");
@@ -1264,7 +1259,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
 TEST_P(P2pClusterPcpHandlerTestWithParam,
        CanStopListeningForIncomingConnections) {
   env_.Start();
-  std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
   BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
   radio_a.GetBluetoothAdapter().SetName("BT Device A");
@@ -1303,8 +1297,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
 }
 
 TEST_F(P2pClusterPcpHandlerTest, CanAwdlDiscovery) {
-  std::string endpoint_name{"endpoint_name"};
-
   env_.Start();
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
@@ -1330,8 +1322,6 @@ TEST_F(P2pClusterPcpHandlerTest, CanAwdlDiscovery) {
 }
 
 TEST_F(P2pClusterPcpHandlerTest, CanAwdlWifiLanDiscovery) {
-  std::string endpoint_name{"endpoint_name"};
-
   env_.Start();
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
@@ -1407,7 +1397,6 @@ TEST_F(P2pClusterPcpHandlerTest, CanAwdlWifiLanAdvertise) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAwdlDiscoveryOptions) {
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -1463,7 +1452,6 @@ TEST_F(P2pClusterPcpHandlerTest, CanUpdateAwdlAdvertisingOptions) {
 
 TEST_F(P2pClusterPcpHandlerTest, FailedToInjectEndpointWithoutDiscovery) {
   env_.Start();
-  std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
   EndpointChannelManager ecm_a;
   EndpointManager em_a(&ecm_a);
@@ -1861,7 +1849,8 @@ TEST_F(P2pLostHandlerTest, CanConnect) {
                    },
            }},
       {});
-  std::string client_b_local_endpoint = client_b_.GetLocalEndpointId();
+  [[maybe_unused]] std::string client_b_local_endpoint =
+      client_b_.GetLocalEndpointId();
 
   EXPECT_TRUE(
       connect_latch_a.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
