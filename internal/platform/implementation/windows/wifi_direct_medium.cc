@@ -424,19 +424,16 @@ bool WifiDirectMedium::StopWifiDirect() {
     try {
       DeviceInformationPairing pairing =
           device->GetDeviceInformation().Pairing();
-      if (pairing.IsPaired()) {
-        LOG(INFO) << "GC Paired, unpair it";
-        DeviceUnpairingResult unpairing_result = pairing.UnpairAsync().get();
-        LOG(INFO) << "GC Unpair result:"
-                  << static_cast<int>(unpairing_result.Status());
-        if (unpairing_result.Status() ==
-            DeviceUnpairingResultStatus::Unpaired) {
-          LOG(INFO) << "GC Unpaired successfully";
-        } else {
-          LOG(INFO) << "GC Unpair failed";
-        }
+      LOG(INFO) << "GC IsPaired: " << pairing.IsPaired() << ", unpair it";
+      DeviceUnpairingResult unpairing_result = pairing.UnpairAsync().get();
+      LOG(INFO) << "GC Unpair result:"
+                << static_cast<int>(unpairing_result.Status());
+      if (unpairing_result.Status() == DeviceUnpairingResultStatus::Unpaired ||
+          unpairing_result.Status() ==
+              DeviceUnpairingResultStatus::AlreadyUnpaired) {
+        LOG(INFO) << "GC Unpaired successfully";
       } else {
-        LOG(INFO) << "GC Not Paired, skip";
+        LOG(INFO) << "GC Unpair failed";
       }
     } catch (const std::exception& exception) {
       LOG(ERROR) << __func__
@@ -799,10 +796,10 @@ bool WifiDirectMedium::ConnectWifiDirect(
       LOG(INFO) << "WifiDirectMedium::ConnectWifiDirect succeeded.";
       return true;
     }
-    LOG(WARNING) << "WifiDirectMedium::ConnectWifiDirect failed.";
-    CleanUpDeviceWatcherLocked();
-    return false;
   }
+  LOG(WARNING) << "WifiDirectMedium::ConnectWifiDirect failed.";
+  DisconnectWifiDirect();
+  return false;
 }
 
 void WifiDirectMedium::CleanUpDeviceWatcherLocked() {
@@ -851,19 +848,16 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
     try {
       DeviceInformationPairing pairing =
           device->GetDeviceInformation().Pairing();
-      if (pairing.IsPaired()) {
-        LOG(INFO) << "GC Paired, unpair it";
-        DeviceUnpairingResult unpairing_result = pairing.UnpairAsync().get();
-        LOG(INFO) << "GC Unpair result:"
-                  << static_cast<int>(unpairing_result.Status());
-        if (unpairing_result.Status() ==
-            DeviceUnpairingResultStatus::Unpaired) {
-          LOG(INFO) << "GC Unpaired successfully";
-        } else {
-          LOG(INFO) << "GC Unpair failed";
-        }
+      LOG(INFO) << "GC IsPaired: " << pairing.IsPaired() << ", unpair it";
+      DeviceUnpairingResult unpairing_result = pairing.UnpairAsync().get();
+      LOG(INFO) << "GC Unpair result:"
+                << static_cast<int>(unpairing_result.Status());
+      if (unpairing_result.Status() == DeviceUnpairingResultStatus::Unpaired ||
+          unpairing_result.Status() ==
+              DeviceUnpairingResultStatus::AlreadyUnpaired) {
+        LOG(INFO) << "GC Unpaired successfully";
       } else {
-        LOG(INFO) << "GC Not Paired, skip";
+        LOG(INFO) << "GC Unpair failed";
       }
     } catch (const std::exception& exception) {
       LOG(ERROR) << __func__
@@ -1018,8 +1012,13 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
 
 fire_and_forget WifiDirectMedium::Watcher_DeviceUpdated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  LOG(INFO) << "device updated for device ID "
-            << winrt::to_string(deviceInfoUpdate.Id());
+  winrt::hstring device_id = deviceInfoUpdate.Id();
+  LOG(INFO) << "device updated for device ID " << winrt::to_string(device_id);
+  absl::MutexLock lock(mutex_);
+  auto it = discovered_devices_by_id_.find(device_id);
+  if (it != discovered_devices_by_id_.end()) {
+    it->second->GetDeviceInformation().Update(deviceInfoUpdate);
+  }
   return fire_and_forget();
 }
 
