@@ -131,20 +131,36 @@ std::string ToJavaByteArrayString(const ByteArray& bytes) {
                       "]");
 }
 
+// Base64-URL prefix (first 8 characters) of SHA-256("") = e3b0c44298fc1c14...
+// `Crypto::Sha256` returns an empty `ByteArray` when given an empty input, so
+// empty tokens use the standard SHA-256("") prefix directly to match Java and
+// Rust SHA-256 implementations.
+constexpr absl::string_view kEmptySha256ConnectionToken = "47DEQpj8";
+
+}  // namespace
+
 // Returns the 8-character connection token that both sides of a connection
 // log to analytics, derived from the raw UKEY2 authentication token.
 //
-// This matches Android's PcpManager#getHashedConnectionToken(), which hashes
-// the UTF-8 bytes of Java's Arrays.toString(byte[]) instead of the raw bytes,
-// so that both sides of a cross-platform connection (e.g. Windows and Android)
-// log the same token.
-std::string GetHashedConnectionToken(const ByteArray& token_bytes) {
+// When `kHashRawConnectionTokenBytes` is enabled, hashes `token_bytes`
+// directly. Otherwise, hashes the UTF-8 bytes of Java's Arrays.toString(byte[])
+// to match Android's legacy PcpManager#getHashedConnectionToken().
+std::string BasePcpHandler::GetHashedConnectionToken(
+    const ByteArray& token_bytes) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kHashRawConnectionTokenBytes)) {
+    if (token_bytes.Empty()) {
+      return std::string(kEmptySha256ConnectionToken);
+    }
+    return nearby::Base64Utils::Encode(
+               Crypto::Sha256(token_bytes.AsStringView()))
+        .substr(0, kConnectionTokenLength);
+  }
   return nearby::Base64Utils::Encode(
              Crypto::Sha256(ToJavaByteArrayString(token_bytes)))
       .substr(0, kConnectionTokenLength);
 }
-
-}  // namespace
 
 BasePcpHandler::BasePcpHandler(Mediums* mediums,
                                EndpointManager* endpoint_manager,
