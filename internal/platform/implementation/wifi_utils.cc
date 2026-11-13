@@ -14,14 +14,18 @@
 
 #include "internal/platform/implementation/wifi_utils.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 
 namespace nearby {
 
@@ -120,6 +124,15 @@ bool WifiUtils::ValidateIPV4(std::string ipv4) {
 
 std::string WifiUtils::GetHumanReadableIpAddress(
     absl::string_view binary_address) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kFixIpAddressUnsignedByteFormatting)) {
+    return absl::StrJoin(binary_address, ".", [](std::string* out, uint8_t b) {
+      absl::StrAppend(out, b);
+    });
+  }
+  // TODO(b/574971208): Remove flag and legacy fallback once rollout is
+  // complete.
   std::vector<std::string> parts;
   for (unsigned int b : binary_address) {
     parts.push_back(absl::StrFormat("%d", b));

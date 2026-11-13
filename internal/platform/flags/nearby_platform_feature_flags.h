@@ -32,6 +32,10 @@ namespace nearby_platform_feature {
 // Enable/Disable Intel PIe SDK to query/set WIFI feature.
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);
+// When true, casts IPv4 octets to uint8_t in
+// WifiUtils::GetHumanReadableIpAddress (b/574971208).
+constexpr auto kFixIpAddressUnsignedByteFormatting =
+    flags::Flag<bool>(kConfigPackage, "45868915", false);
 // The send buffer size of blocking socket.
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
