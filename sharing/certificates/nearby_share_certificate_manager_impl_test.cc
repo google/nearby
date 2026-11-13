@@ -219,7 +219,7 @@ class NearbyShareCertificateManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(fake_context_.last_sequenced_task_runner()->SyncWithTimeout(
+    EXPECT_TRUE(fake_context_.last_single_thread_executor()->SyncWithTimeout(
         absl::Milliseconds(1000)));
   }
 

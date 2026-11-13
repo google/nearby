@@ -53,7 +53,7 @@
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/advertisement.h"
 #include "sharing/advertisement_capabilities.h"
 #include "sharing/attachment_container.h"
@@ -428,7 +428,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     auto fake_task_runner =
-        std::make_unique<FakeTaskRunner>(fake_context_.fake_clock(), 1);
+        std::make_unique<TestSingleThreadExecutor>(fake_context_.fake_clock());
     sharing_service_task_runner_ = fake_task_runner.get();
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
@@ -481,7 +481,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::unique_ptr<NearbySharingServiceImpl> CreateService(
-      std::unique_ptr<FakeTaskRunner> task_runner) {
+      std::unique_ptr<TestSingleThreadExecutor> task_runner) {
     return std::make_unique<NearbySharingServiceImpl>(
         std::move(task_runner), &fake_context_, mock_sharing_platform_,
         &nearby_identity_client_,
@@ -524,7 +524,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void ReceiveMessageFromConnection(std::vector<uint8_t> bytes) {
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this, bytes]() { connection_->WriteMessage(bytes); });
     FlushTesting();
   }
@@ -881,7 +881,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     auto endpoint_info = std::make_unique<DiscoveredEndpointInfo>(
         CreateTestEndpointInfo(), kServiceId);
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this, endpoint_info = std::move(endpoint_info)]() mutable {
           fake_nearby_connections_manager_->OnEndpointFound(
               kEndpointId, std::move(endpoint_info));
@@ -1099,7 +1099,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void FindInvalidEndpoint(absl::string_view endpoint_id) {
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this, endpoint_id = std::string(endpoint_id)]() {
           fake_nearby_connections_manager_->OnEndpointFound(
               endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
@@ -1114,7 +1114,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void FindEndpointWithVendorId(absl::string_view endpoint_id,
                                 uint8_t vendor_id) {
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this, endpoint_id = std::string(endpoint_id), vendor_id]() {
           fake_nearby_connections_manager_->OnEndpointFound(
               endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
@@ -1124,7 +1124,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void LoseEndpoint(absl::string_view endpoint_id) {
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this, endpoint_id = std::string(endpoint_id)]() {
           fake_nearby_connections_manager_->OnEndpointLost(endpoint_id);
         });
@@ -1160,7 +1160,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     absl::Notification block_notification;
     // Block the service thread so all PayloadTransferUpdate will be processed
     // together..
-    sharing_service_task_runner_->PostTask([&block_notification]() {
+    sharing_service_task_runner_->Execute([&block_notification]() {
       block_notification.WaitForNotificationWithTimeout(absl::Seconds(5));
     });
     for (int64_t id : GetValidIntroductionFramePayloadIds()) {
@@ -1301,7 +1301,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;
-  FakeTaskRunner* sharing_service_task_runner_ = nullptr;
+  TestSingleThreadExecutor* sharing_service_task_runner_ = nullptr;
   bool is_shutdown_ = false;
   absl::Mutex connection_output_mutex_;
   std::queue<std::unique_ptr<Frame>> frames_data_
@@ -2363,7 +2363,7 @@ TEST_F(NearbySharingServiceImplTest,
   ScopedReceiveSurface r(service_.get(), &callback);
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   StartIncomingConnection();
-  sharing_service_task_runner_->PostTask([this]() {
+  sharing_service_task_runner_->Execute([this]() {
     fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
@@ -2394,7 +2394,7 @@ TEST_F(NearbySharingServiceImplTest,
   StartIncomingConnection();
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/true);
-  sharing_service_task_runner_->PostTask([this]() {
+  sharing_service_task_runner_->Execute([this]() {
     fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
@@ -2522,7 +2522,7 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
       });
 
-  sharing_service_task_runner_->PostTask([this]() {
+  sharing_service_task_runner_->Execute([this]() {
     fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
@@ -3106,7 +3106,7 @@ TEST_F(NearbySharingServiceImplTest,
           failed_notification.Notify();
         });
 
-    sharing_service_task_runner_->PostTask(
+    sharing_service_task_runner_->Execute(
         [this]() { connection_.reset(); });
     FlushTesting();
     ASSERT_TRUE(
@@ -3648,7 +3648,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextDisconnectTimeout) {
       fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
           .has_value());
   // FakeNearbyConnectionsManager does not destroy the connection.
-  sharing_service_task_runner_->PostTask([this]() { connection_.reset(); });
+  sharing_service_task_runner_->Execute([this]() { connection_.reset(); });
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   account_manager().SetAccount(std::nullopt);
@@ -3671,7 +3671,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccessClosedConnection) {
           .has_value());
 
   // Call disconnect on the connection early before the timeout has passed.
-  sharing_service_task_runner_->PostTask([this]() {
+  sharing_service_task_runner_->Execute([this]() {
     fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not destroy the connection.
     connection_.reset();
@@ -4525,7 +4525,7 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   // Update endpoint 2 or 4 to receive disabled after disconnect.
   EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_)).Times(1);
   // Call disconnect on the connection early before the timeout has passed.
-  sharing_service_task_runner_->PostTask([this, connected_endpoint_id]() {
+  sharing_service_task_runner_->Execute([this, connected_endpoint_id]() {
     fake_nearby_connections_manager_->Disconnect(connected_endpoint_id);
     // FakeNearbyConnectionsManager does not destroy the connection.
     connection_.reset();

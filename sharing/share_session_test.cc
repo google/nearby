@@ -32,7 +32,7 @@
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/nearby_connection.h"
@@ -93,7 +93,7 @@ class TestShareSession : public ShareSession {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor fake_task_runner_{&fake_clock_};
   FakeNearbyConnectionsManager connections_manager_;
   FakeDeviceInfo device_info_;
   nearby::analytics::MockEventLogger mock_event_logger_;

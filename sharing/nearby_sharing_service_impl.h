@@ -42,7 +42,7 @@
 #include "absl/types/span.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -104,7 +104,8 @@ class NearbySharingServiceImpl
 
  public:
   NearbySharingServiceImpl(
-      std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
+      std::unique_ptr<nearby::SingleThreadExecutor> service_thread,
+      Context* context,
       nearby::sharing::api::SharingPlatform& sharing_platform,
       nearby::sharing::api::IdentityRpcClient* absl_nonnull
           nearby_identity_client,
@@ -431,7 +432,7 @@ class NearbySharingServiceImpl
   void LogShareTargetDiscovered(const ShareTarget& share_target);
 
   // Used to run nearby sharing service APIs.
-  std::unique_ptr<TaskRunner> service_thread_;
+  std::unique_ptr<SingleThreadExecutor> service_thread_;
   Context* const context_;
   nearby::api::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;

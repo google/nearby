@@ -22,7 +22,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/thread_timer.h"
@@ -44,7 +44,7 @@ bool IsHighQualityMedium(Medium medium) {
 }  // namespace
 
 TransferManager::TransferManager(
-    TaskRunner* absl_nonnull runner, absl::string_view endpoint_id,
+    SingleThreadExecutor* absl_nonnull runner, absl::string_view endpoint_id,
     absl::AnyInvocable<void(absl::string_view endpoint_id,
                             std::unique_ptr<Payload> payload)>
         deferred_send_function)

@@ -136,6 +136,7 @@ cc_test(
         "//internal/flags:nearby_flags",
         "//internal/platform:mac_address",
         "//internal/platform/implementation:platform_impl",
+        "//internal/test",
         "//location/nearby/sharing/lib/account:account_manager",
         "//location/nearby/sharing/lib/account:fake_account_manager",
         "//location/nearby/sharing/lib/rpc:fake_nearby_share_client",

@@ -31,8 +31,8 @@ class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
   explicit MultiThreadExecutor(int max_parallelism)
       : SubmittableExecutor(
             Platform::CreateMultiThreadExecutor(max_parallelism)) {}
-  MultiThreadExecutor(MultiThreadExecutor&&) = default;
-  MultiThreadExecutor& operator=(MultiThreadExecutor&&) = default;
+  MultiThreadExecutor(const MultiThreadExecutor&) = delete;
+  MultiThreadExecutor& operator=(const MultiThreadExecutor&) = delete;
   ~MultiThreadExecutor() override = default;
 };
 

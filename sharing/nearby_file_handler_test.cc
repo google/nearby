@@ -17,23 +17,18 @@
 #include <atomic>
 #include <fstream>
 #include <ios>
-#include <memory>
-#include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
-#include "internal/test/fake_clock.h"
-#include "internal/test/fake_task_runner.h"
-#include "sharing/internal/api/mock_sharing_platform.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
 using ::absl::Seconds;
-using ::nearby::sharing::api::MockSharingPlatform;
 
 bool CreateFile(FilePath& file_path) {
   std::ofstream file(file_path.GetPath(),
@@ -46,26 +41,22 @@ bool CreateFile(FilePath& file_path) {
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
-  FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(std::move(task_runner));
+  NearbyFileHandler nearby_file_handler;
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
-  nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
+  absl::Notification done;
+  nearby_file_handler.DeleteFilesFromDisk(file_paths,
+                                          [&done]() { done.Notify(); });
   ASSERT_TRUE(Files::FileExists(test_file));
-  EXPECT_TRUE(task_runner_ptr->SyncWithTimeout(Seconds(5)));
+  EXPECT_TRUE(done.WaitForNotificationWithTimeout(Seconds(5)));
   ASSERT_FALSE(Files::FileExists(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
-  FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(std::move(task_runner));
+  NearbyFileHandler nearby_file_handler;
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   FilePath test_file2 = Files::GetTemporaryDirectory().append(
@@ -75,12 +66,14 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
   std::vector<FilePath> file_paths;
   file_paths = {test_file, test_file2, test_file3};
   // Check it doesn't throw an exception.
-  nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
+  absl::Notification done;
+  nearby_file_handler.DeleteFilesFromDisk(file_paths,
+                                          [&done]() { done.Notify(); });
   ASSERT_FALSE(Files::FileExists(test_file));
   ASSERT_FALSE(Files::FileExists(test_file2));
   ASSERT_FALSE(Files::FileExists(test_file3));
 
-  EXPECT_TRUE(task_runner_ptr->SyncWithTimeout(Seconds(5)));
+  EXPECT_TRUE(done.WaitForNotificationWithTimeout(Seconds(5)));
   ASSERT_FALSE(Files::FileExists(test_file));
   ASSERT_FALSE(Files::FileExists(test_file2));
   ASSERT_FALSE(Files::FileExists(test_file3));
@@ -88,20 +81,21 @@ TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
 
 TEST(NearbyFileHandler, TestCallback) {
   std::atomic_bool received_callback = false;
-  FakeClock clock;
-  auto task_runner = std::make_unique<FakeTaskRunner>(&clock, 1);
-  FakeTaskRunner* task_runner_ptr = task_runner.get();
-  NearbyFileHandler nearby_file_handler(std::move(task_runner));
+  NearbyFileHandler nearby_file_handler;
   FilePath test_file = Files::GetTemporaryDirectory().append(
       FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
+  absl::Notification done;
   nearby_file_handler.DeleteFilesFromDisk(
-      file_paths, [&received_callback]() { received_callback = true; });
+      file_paths, [&received_callback, &done]() {
+        received_callback = true;
+        done.Notify();
+      });
   ASSERT_FALSE(received_callback);
   ASSERT_TRUE(Files::FileExists(test_file));
-  EXPECT_TRUE(task_runner_ptr->SyncWithTimeout(Seconds(5)));
+  EXPECT_TRUE(done.WaitForNotificationWithTimeout(Seconds(5)));
   ASSERT_TRUE(received_callback);
   ASSERT_FALSE(Files::FileExists(test_file));
 }
