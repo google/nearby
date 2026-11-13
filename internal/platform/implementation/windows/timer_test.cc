@@ -17,8 +17,8 @@
 #include <memory>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -37,18 +37,24 @@ TEST(TimerTest, TestCreateTimer) {
 
 // This test case cannot run on Google3
 TEST(TimerTest, TestRepeatTimer) {
-  shared::CountDownLatch latch(3);
+  absl::Mutex mutex;
   int count = 0;
   std::unique_ptr<nearby::api::Timer> timer = std::make_unique<Timer>();
 
   ASSERT_TRUE(timer != nullptr);
   EXPECT_TRUE(timer->Create(300, 300, [&]() {
+    absl::MutexLock lock(mutex);
     ++count;
-    latch.CountDown();
   }));
 
-  EXPECT_TRUE(latch.Await(absl::Seconds(2)));
-  EXPECT_EQ(count, 3);
+  {
+    absl::MutexLock lock(mutex);
+    EXPECT_TRUE(mutex.AwaitWithTimeout(
+        absl::Condition(
+            +[](int* c) { return *c >= 3; }, &count),
+        absl::Seconds(2)));
+    EXPECT_EQ(count, 3);
+  }
   EXPECT_TRUE(timer->Stop());
 }
 

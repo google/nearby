@@ -34,7 +34,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/g3/atomic_boolean.h"
@@ -63,7 +62,6 @@
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
@@ -115,11 +113,6 @@ std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
 std::unique_ptr<BluetoothAdapter>
 ImplementationPlatform::CreateBluetoothAdapter() {
   return std::make_unique<g3::BluetoothAdapter>();
-}
-
-std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(
-    std::int32_t count) {
-  return std::make_unique<shared::CountDownLatch>(count);
 }
 
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(

@@ -19,7 +19,6 @@
 
 #include "absl/time/clock.h"
 #include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "nisaba/port/thread_pool.h"
 
 namespace nearby {

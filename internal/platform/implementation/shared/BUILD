@@ -58,20 +58,6 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "count_down_latch",
-    srcs = ["count_down_latch.cc"],
-    hdrs = ["count_down_latch.h"],
-    visibility = ["//internal/platform/implementation:__subpackages__"],
-    deps = [
-        "//internal/platform/implementation:types",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/time",
-    ],
-)
-
 cc_test(
     name = "file_test",
     srcs = ["file_test.cc"],

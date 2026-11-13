@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/http_loader.h"
@@ -62,7 +61,6 @@ class ImplementationPlatform {
   // - atomic variables (boolean, and any other copyable type)
   // - synchronization primitives:
   //   - recursive mutex
-  //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging
 
@@ -90,9 +88,6 @@ class ImplementationPlatform {
   // Does not use locking, if platform supports 32-bit atomics natively.
   // Does not use dynamic memory allocations in operations.
   static std::unique_ptr<AtomicUint32> CreateAtomicUint32(std::uint32_t value);
-
-  static std::unique_ptr<CountDownLatch> CreateCountDownLatch(
-      std::int32_t count);
 
   static std::unique_ptr<RecursiveMutex> CreateRecursiveMutex();
 

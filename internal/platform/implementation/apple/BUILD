@@ -337,13 +337,11 @@ objc_library(
 cc_library(
     name = "Platform_cc",
     srcs = [
-        "count_down_latch.cc",
         "system_clock.cc",
     ],
     hdrs = [
         "atomic_boolean.h",
         "atomic_uint32.h",
-        "count_down_latch.h",
         "mutex.h",
     ],
     copts = ["-fno-exceptions"],
@@ -363,7 +361,6 @@ cc_test(
     srcs = [
         "atomic_boolean_test.cc",
         "atomic_uint32_test.cc",
-        "count_down_latch_test.cc",
         "mutex_test.cc",
     ],
     shard_count = 16,

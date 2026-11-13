@@ -24,7 +24,6 @@ cc_library(
         "atomic_reference.h",
         "bluetooth_adapter.h",
         "cancelable.h",
-        "count_down_latch.h",
         "crypto.h",
         "device_info.h",
         "executor.h",
