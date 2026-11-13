@@ -100,6 +100,11 @@ constexpr auto kEnableWifiLanUpgrade =
 // connections (b/574970747).
 constexpr auto kEnforceBwuIncomingEncryptionPolicy =
     flags::Flag<bool>(kConfigPackage, "45868914", false);
+// When true, BaseEndpointChannel rejects plaintext control frames after
+// encryption is enabled except KEEP_ALIVE frames within
+// unencrypted_keep_alive_grace_period_millis (b/585547476).
+constexpr auto kEnforceStrictUnencryptedFrameCheck =
+    flags::Flag<bool>(kConfigPackage, "45891614", false);
 // Enforces frame filtering on unconfirmed endpoints in EndpointManager and
 // BaseEndpointChannel so application payloads and upgrade requests are blocked
 // before connection acceptance.
@@ -146,6 +151,11 @@ constexpr auto kRefactorBleL2cap =
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
+// Maximum grace period in milliseconds after EnableEncryption() during which
+// BaseEndpointChannel accepts unencrypted KEEP_ALIVE frames when
+// enforce_strict_unencrypted_frame_check is enabled (b/585547476).
+constexpr auto kUnencryptedKeepAliveGracePeriodMillis =
+    flags::Flag<int64_t>(kConfigPackage, "45891616", 5000);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

@@ -150,10 +150,22 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         if (parsed.ok()) {
           location::nearby::connections::V1Frame::FrameType frame_type =
               parser::GetFrameType(parsed.result());
-          if (frame_type ==
-                  location::nearby::connections::V1Frame::KEEP_ALIVE ||
-              frame_type ==
-                  location::nearby::connections::V1Frame::DISCONNECTION) {
+          bool allow_unencrypted_frame = false;
+          if (NearbyFlags::GetInstance().GetBoolFlag(
+                  config_package_nearby::nearby_connections_feature::
+                      kEnforceStrictUnencryptedFrameCheck)) {
+            allow_unencrypted_frame =
+                frame_type ==
+                    location::nearby::connections::V1Frame::KEEP_ALIVE &&
+                IsWithinUnencryptedKeepAliveGracePeriodLocked();
+          } else {
+            allow_unencrypted_frame =
+                frame_type ==
+                    location::nearby::connections::V1Frame::KEEP_ALIVE ||
+                frame_type ==
+                    location::nearby::connections::V1Frame::DISCONNECTION;
+          }
+          if (allow_unencrypted_frame) {
             LOG(INFO) << __func__ << ": Read unencrypted frame of type "
                       << frame_type << " on encrypted channel.";
             result = ByteArray(input);
@@ -355,11 +367,15 @@ void BaseEndpointChannel::EnableEncryption(
     std::shared_ptr<EncryptionContext> context) {
   absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_ = context;
+  encryption_enabled_timestamp_ = context != nullptr
+                                      ? SystemClock::ElapsedRealtime()
+                                      : absl::InfinitePast();
 }
 
 void BaseEndpointChannel::DisableEncryption() {
   absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_.reset();
+  encryption_enabled_timestamp_ = absl::InfinitePast();
 }
 
 bool BaseEndpointChannel::IsEncrypted() {
@@ -451,6 +467,18 @@ int BaseEndpointChannel::GetDefaultMaxTransmitPacketSize() const {
 
 bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {
   return crypto_context_ != nullptr;
+}
+
+bool BaseEndpointChannel::IsWithinUnencryptedKeepAliveGracePeriodLocked()
+    const {
+  int64_t grace_period_millis = NearbyFlags::GetInstance().GetInt64Flag(
+      config_package_nearby::nearby_connections_feature::
+          kUnencryptedKeepAliveGracePeriodMillis);
+  if (grace_period_millis < 0) {
+    return false;
+  }
+  return SystemClock::ElapsedRealtime() - encryption_enabled_timestamp_ <=
+         absl::Milliseconds(grace_period_millis);
 }
 
 void BaseEndpointChannel::BlockUntilUnpaused() {
