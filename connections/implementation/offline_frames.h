@@ -114,7 +114,7 @@ std::string ForBwuFailure(const UpgradePathInfo& info);
 std::string ForBwuPathRequest(
     Medium medium, const std::vector<Medium>& mediums,
     const location::nearby::connections::MediumRole& medium_role,
-    bool supports_5_ghz);
+    bool supports_5_ghz, bool supports_6_ghz = false);
 std::string ForBwuLastWrite();
 std::string ForBwuSafeToClose();
 

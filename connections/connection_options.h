@@ -38,6 +38,7 @@ struct ConnectionInfo {
   std::optional<location::nearby::connections::MediumRole> medium_role;
   std::vector<location::nearby::proto::connections::WifiDirectAuthType>
       supported_wifi_direct_auth_types;
+  bool supports_6_ghz = false;
 };
 
 // Connection Options: used for both Advertising and Discovery.

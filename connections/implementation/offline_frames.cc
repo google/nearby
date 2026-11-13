@@ -98,6 +98,11 @@ std::string ForConnectionRequestConnections(
   connection_request->set_nonce(connection_info.nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();
   medium_metadata->set_supports_5_ghz(connection_info.supports_5_ghz);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata)) {
+    medium_metadata->set_supports_6_ghz(connection_info.supports_6_ghz);
+  }
   if (!connection_info.bssid.empty())
     medium_metadata->set_bssid(connection_info.bssid);
   medium_metadata->set_ap_frequency(connection_info.ap_frequency);
@@ -157,6 +162,11 @@ std::string ForConnectionRequestPresence(
   connection_request->set_nonce(connection_info.nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();
   medium_metadata->set_supports_5_ghz(connection_info.supports_5_ghz);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata)) {
+    medium_metadata->set_supports_6_ghz(connection_info.supports_6_ghz);
+  }
   if (!connection_info.bssid.empty())
     medium_metadata->set_bssid(connection_info.bssid);
   medium_metadata->set_ap_frequency(connection_info.ap_frequency);
@@ -542,7 +552,7 @@ std::string ForBwuFailure(const UpgradePathInfo& info) {
 
 std::string ForBwuPathRequest(Medium medium, const std::vector<Medium>& mediums,
                               const MediumRole& medium_role,
-                              bool supports_5_ghz) {
+                              bool supports_5_ghz, bool supports_6_ghz) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -558,9 +568,16 @@ std::string ForBwuPathRequest(Medium medium, const std::vector<Medium>& mediums,
   for (const auto& medium : mediums) {
     upgrade_path_request->add_mediums(MediumToUpgradePathInfoMedium(medium));
   }
-  LOG(INFO) << "ForBwuPathRequest: supports_5_ghz: " << supports_5_ghz;
+  LOG(INFO) << "ForBwuPathRequest: supports_5_ghz: " << supports_5_ghz
+            << ", supports_6_ghz: " << supports_6_ghz;
   upgrade_path_request->mutable_medium_meta_data()->set_supports_5_ghz(
       supports_5_ghz);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata)) {
+    upgrade_path_request->mutable_medium_meta_data()->set_supports_6_ghz(
+        supports_6_ghz);
+  }
   auto* role =
       upgrade_path_request->mutable_medium_meta_data()->mutable_medium_role();
   role->MergeFrom(medium_role);

@@ -2305,6 +2305,28 @@ TEST_F(ClientProxyTest,
       .Times(0);
   client1()->UpdateAdvertisingOptions(high_power_options);
 }
+
+TEST_F(ClientProxyTest, Is6GHzSupportedReflectsConnectionInfoWhenFlagEnabled) {
+  connection_options_.connection_info.supports_6_ghz = true;
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  EXPECT_FALSE(client2()->Is6GHzSupported(advertising_endpoint.id));
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  EXPECT_TRUE(client2()->Is6GHzSupported(advertising_endpoint.id));
+  EXPECT_FALSE(client2()->Is6GHzSupported("unknown_endpoint"));
+}
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

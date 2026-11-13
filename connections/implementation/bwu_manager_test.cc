@@ -3508,5 +3508,61 @@ TEST_F(BwuManagerTest,
   UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
+TEST_F(BwuManagerTest,
+       InitiateBwuRoleSwitchPopulatesSupports6GhzWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+  mediums_->GetWifi().GetCapability().supports_6_ghz = false;
+  mediums_->GetWifi().GetInformation().ap_frequency = 5955;
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> disabled_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(disabled_frame.ok());
+  EXPECT_FALSE(disabled_frame.result()
+                   .v1()
+                   .bandwidth_upgrade_negotiation()
+                   .upgrade_path_info()
+                   .upgrade_path_request()
+                   .medium_meta_data()
+                   .has_supports_6_ghz());
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 2u);
+  ExceptionOr<OfflineFrame> enabled_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[1]);
+  ASSERT_TRUE(enabled_frame.ok());
+  const auto& metadata = enabled_frame.result()
+                             .v1()
+                             .bandwidth_upgrade_negotiation()
+                             .upgrade_path_info()
+                             .upgrade_path_request()
+                             .medium_meta_data();
+  EXPECT_TRUE(metadata.has_supports_6_ghz());
+  EXPECT_TRUE(metadata.supports_6_ghz());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
 }  // namespace
 }  // namespace nearby::connections

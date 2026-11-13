@@ -127,14 +127,18 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
-// When true, only populate AdvertisingMetadata and DiscoveryMetadata capability
-// fields when measured, rather than defaulting unmeasured capabilities to
-// false/0.
+// When true, only populate measured capability fields on AdvertisingMetadata
+// and DiscoveryMetadata rather than defaulting unmeasured fields to false/0.
 constexpr auto kOmitUnmeasuredAdvDisCapabilities =
     flags::Flag<bool>(kConfigPackage, "45868908", true);
-// When true, populate ConnectionAttemptMetadataParams with
-// operation_result_code in BasePcpHandler::LogConnectionAttemptFailure even
-// when endpoint_channel is null.
+// When true, populates and parses MediumMetadata.supports_6_ghz in
+// ConnectionInfo, offline_frames, and BasePcpHandler/ClientProxy so 6
+// GHz-capable peers can negotiate 6 GHz Wi-Fi upgrades.
+constexpr auto kPopulateSupports6GhzInMediumMetadata =
+    flags::Flag<bool>(kConfigPackage, "45891761", false);
+// When true, LogConnectionAttemptFailure populates
+// ConnectionAttemptMetadataParams with operation_result_code even when
+// endpoint_channel is null.
 constexpr auto kPreserveNullChannelAttemptResultCode =
     flags::Flag<bool>(kConfigPackage, "45868906", false);
 // When true, LogicalConnection records EstablishedConnections in chronological
