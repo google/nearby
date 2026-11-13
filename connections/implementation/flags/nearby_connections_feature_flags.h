@@ -59,6 +59,10 @@ constexpr auto kEnableBleMediumInjection =
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
+// Categorizes DCT operation result codes (5000..5061) as CATEGORY_DCT_ERROR in
+// AnalyticsRecorderImpl.
+constexpr auto kEnableDctErrorResultCategory =
+    flags::Flag<bool>(kConfigPackage, "45868931", false);
 // Disable/Enable dynamic role switch in Nearby Connections SDK.
 constexpr auto kEnableDynamicRoleSwitch =
     flags::Flag<bool>(kConfigPackage, "45696452", false);
