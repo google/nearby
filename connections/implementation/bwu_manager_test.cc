@@ -1412,9 +1412,9 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_True) {
 
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_client(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1447,9 +1447,9 @@ TEST_F(BwuManagerTest,
 
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_aware_subscriber(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1483,9 +1483,9 @@ TEST_F(BwuManagerTest,
 
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_aware_subscriber(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1507,9 +1507,9 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_CanHost_False) {
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
   location::nearby::connections::MediumRole remote_medium_role;
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -1532,9 +1532,9 @@ TEST_F(BwuManagerTest, ProcessUpgradePathRequest_DynamicRoleSwitchDisabled) {
 
   location::nearby::connections::MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_client(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   frame.ParseFromString(bytes);
 
@@ -2230,7 +2230,7 @@ TEST_F(BwuManagerTest,
   remote_medium_role.set_support_wifi_hotspot_client(true);
   std::string bytes = parser::ForBwuPathRequest(
       Medium::WIFI_DIRECT, {Medium::WIFI_HOTSPOT, Medium::WIFI_DIRECT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2265,7 +2265,7 @@ TEST_F(BwuManagerTest,
   remote_medium_role.set_support_wifi_direct_group_client(true);
   std::string bytes = parser::ForBwuPathRequest(
       Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4, Medium::WIFI_DIRECT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2301,9 +2301,9 @@ TEST_F(BwuManagerTest,
   MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_direct_group_client(true);
   remote_medium_role.set_support_wifi_hotspot_client(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_HOTSPOT, {Medium::WIFI_HOTSPOT}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_HOTSPOT, {Medium::WIFI_HOTSPOT},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2343,7 +2343,7 @@ TEST_F(BwuManagerTest,
   remote_medium_role.set_support_wifi_hotspot_client(true);
   std::string bytes = parser::ForBwuPathRequest(
       Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT, Medium::WIFI_HOTSPOT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2516,9 +2516,9 @@ TEST_F(BwuManagerTest,
 
   MediumRole remote_medium_role;
   remote_medium_role.set_support_wifi_aware_subscriber(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4}, remote_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_AWARE_R4, {Medium::WIFI_AWARE_R4},
+                                remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2553,7 +2553,7 @@ TEST_F(BwuManagerTest,
   std::string bytes = parser::ForBwuPathRequest(
       Medium::WIFI_HOTSPOT,
       {Medium::WIFI_LAN, Medium::WIFI_DIRECT, Medium::WIFI_HOTSPOT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2591,9 +2591,9 @@ TEST_F(BwuManagerTest,
   MediumRole request_medium_role;
   request_medium_role.set_support_wifi_direct_group_owner(true);
   request_medium_role.set_support_wifi_direct_group_client(true);
-  std::string bytes = parser::ForBwuPathRequest(
-      Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT}, request_medium_role,
-      /*supports_5_ghz=*/true);
+  std::string bytes =
+      parser::ForBwuPathRequest(Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT},
+                                request_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -2635,7 +2635,7 @@ TEST_F(BwuManagerTest,
   remote_medium_role.set_support_wifi_direct_group_client(true);
   std::string bytes = parser::ForBwuPathRequest(
       Medium::WIFI_DIRECT, {Medium::WIFI_LAN, Medium::WIFI_DIRECT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame frame;
   ASSERT_TRUE(frame.ParseFromString(bytes));
 
@@ -3243,7 +3243,7 @@ TEST_F(BwuManagerTest,
 
   std::string request_bytes = parser::ForBwuPathRequest(
       Medium::WIFI_DIRECT, {Medium::WIFI_DIRECT, Medium::WIFI_HOTSPOT},
-      remote_medium_role, /*supports_5_ghz=*/true);
+      remote_medium_role, {.supports_5_ghz = true});
   OfflineFrame request_frame;
   ASSERT_TRUE(request_frame.ParseFromString(request_bytes));
   bwu_manager_->OnIncomingFrame(request_frame, std::string(kEndpointId1),
@@ -3504,6 +3504,61 @@ TEST_F(BwuManagerTest,
                                                      std::move(connection));
 
   EXPECT_TRUE(upgraded_channel_raw->IsEncrypted());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(BwuManagerTest,
+       InitiateBwuRoleSwitchPopulatesSupports6GhzWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  const BooleanMediumSelector allowed{.wifi_hotspot = true,
+                                      .wifi_direct = true};
+  ReinitBwuManager(allowed);
+  mediums_->GetWifi().GetCapability().supports_6_ghz = true;
+
+  client_.SetLocalOsType(OsInfo::APPLE);
+  MediumRole remote_medium_role;
+  remote_medium_role.set_support_wifi_hotspot_host(true);
+  FakeEndpointChannel* channel_ptr =
+      CreateConnectedEndpoint(kEndpointId1, remote_medium_role, allowed);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 1u);
+  ExceptionOr<OfflineFrame> disabled_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[0]);
+  ASSERT_TRUE(disabled_frame.ok());
+  EXPECT_FALSE(disabled_frame.result()
+                   .v1()
+                   .bandwidth_upgrade_negotiation()
+                   .upgrade_path_info()
+                   .upgrade_path_request()
+                   .medium_meta_data()
+                   .has_supports_6_ghz());
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1));
+  ASSERT_EQ(channel_ptr->GetWrittenFrames().size(), 2u);
+  ExceptionOr<OfflineFrame> enabled_frame =
+      parser::FromBytes(channel_ptr->GetWrittenFrames()[1]);
+  ASSERT_TRUE(enabled_frame.ok());
+  const auto& metadata = enabled_frame.result()
+                             .v1()
+                             .bandwidth_upgrade_negotiation()
+                             .upgrade_path_info()
+                             .upgrade_path_request()
+                             .medium_meta_data();
+  EXPECT_TRUE(metadata.has_supports_6_ghz());
+  EXPECT_TRUE(metadata.supports_6_ghz());
 
   UnRegisterChannelForEndpoint(kEndpointId1);
 }

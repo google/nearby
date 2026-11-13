@@ -111,10 +111,15 @@ std::string ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);
 std::string ForBwuFailure(const UpgradePathInfo& info);
+struct WifiBandSupport {
+  bool supports_5_ghz = false;
+  bool supports_6_ghz = false;
+};
+
 std::string ForBwuPathRequest(
     Medium medium, const std::vector<Medium>& mediums,
     const location::nearby::connections::MediumRole& medium_role,
-    bool supports_5_ghz);
+    WifiBandSupport wifi_support = {});
 std::string ForBwuLastWrite();
 std::string ForBwuSafeToClose();
 

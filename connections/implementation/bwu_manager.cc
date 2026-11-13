@@ -44,6 +44,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 #include "proto/connections_enums.pb.h"
@@ -369,12 +370,25 @@ void BwuManager::RequestRoleSwitchForEndpoint(ClientProxy* client,
   // recorded with `OUTGOING` and `is_role_switched=true` in
   // `ProcessBwuPathAvailableEvent`. Record `OnBandwidthUpgradeStarted` here
   // only if writing `UPGRADE_PATH_REQUEST` fails immediately.
+  bool supports_5_ghz = false;
+  bool supports_6_ghz = false;
+  if (mediums_->GetWifi().IsAvailable()) {
+    const api::WifiCapability& wifi_capability =
+        mediums_->GetWifi().GetCapability();
+    supports_5_ghz = wifi_capability.supports_5_ghz;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kPopulateSupports6GhzInMediumMetadata)) {
+      supports_6_ghz = wifi_capability.supports_6_ghz;
+    }
+  }
   if (!channel
            ->Write(parser::ForBwuPathRequest(
                proposed_medium,
                client->GetUpgradeMediums(endpoint_id).GetMediums(true),
                GetLocalMediumRole(client),
-               mediums_->GetWifi().GetCapability().supports_5_ghz))
+               {.supports_5_ghz = supports_5_ghz,
+                .supports_6_ghz = supports_6_ghz}))
            .Ok()) {
     LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
                << endpoint_id << " to medium "
