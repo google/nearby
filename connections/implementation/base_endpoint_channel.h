@@ -114,6 +114,8 @@ class BaseEndpointChannel : public EndpointChannel {
 
   bool IsEncryptionEnabledLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(crypto_mutex_);
+  bool IsWithinUnencryptedKeepAliveGracePeriodLocked() const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(crypto_mutex_);
   void UnblockPausedWriter() ABSL_EXCLUSIVE_LOCKS_REQUIRED(is_paused_mutex_);
   void BlockUntilUnpaused() ABSL_EXCLUSIVE_LOCKS_REQUIRED(is_paused_mutex_);
   void CloseIo() ABSL_NO_THREAD_SAFETY_ANALYSIS;
@@ -152,6 +154,8 @@ class BaseEndpointChannel : public EndpointChannel {
   mutable absl::Mutex crypto_mutex_;
   std::shared_ptr<EncryptionContext> crypto_context_
       ABSL_GUARDED_BY(crypto_mutex_);
+  absl::Time encryption_enabled_timestamp_ ABSL_GUARDED_BY(crypto_mutex_) =
+      absl::InfinitePast();
 
   mutable absl::Mutex is_paused_mutex_;
   absl::CondVar is_paused_cond_;

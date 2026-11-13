@@ -165,7 +165,6 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:logging",
-        "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
