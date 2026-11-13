@@ -38,7 +38,6 @@
 #include "connections/payload.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
@@ -286,7 +285,7 @@ class OutgoingPayloadManager {
           operation_result_code);
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<CountDownLatch> shutdown_barrier_;
+  int pending_shutdown_payloads_ ABSL_GUARDED_BY(mutex_) = 0;
   SingleThreadExecutor bytes_payload_executor_;
   SingleThreadExecutor file_payload_executor_;
   SingleThreadExecutor stream_payload_executor_;

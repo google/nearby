@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
@@ -35,7 +36,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -119,15 +119,16 @@ DoDhKeyExchange(std::shared_ptr<TestEndpointChannel> channel_a,
   std::shared_ptr<EndpointChannel> shared_channel_a = channel_a;
   std::shared_ptr<EndpointChannel> shared_channel_b = channel_b;
 
-  // Create a shared_ptr for the latch to prevent Use-After-Free if the
+  // Create shared_ptrs for the notifications to prevent Use-After-Free if the
   // negotiation times out and this function returns early.
-  auto latch = std::make_shared<CountDownLatch>(2);
+  auto latch_a = std::make_shared<absl::Notification>();
+  auto latch_b = std::make_shared<absl::Notification>();
 
   crypto_a.StartClient(
       &proxy_a, "endpoint_id", shared_channel_a,
       {
           .on_success_cb =
-              [latch, &context_a](
+              [latch_a, &context_a](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -137,19 +138,19 @@ DoDhKeyExchange(std::shared_ptr<TestEndpointChannel> channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_a = std::move(context);
-                latch->CountDown();
+                latch_a->Notify();
               },
           .on_failure_cb =
-              [latch](const std::string& endpoint_id) {
+              [latch_a](const std::string& endpoint_id) {
                 LOG(INFO) << "client-A side key negotiation failed";
-                latch->CountDown();
+                latch_a->Notify();
               },
       });
   crypto_b.StartServer(
       &proxy_b, "endpoint_id", shared_channel_b,
       {
           .on_success_cb =
-              [latch, &context_b](
+              [latch_b, &context_b](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -159,15 +160,18 @@ DoDhKeyExchange(std::shared_ptr<TestEndpointChannel> channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_b = std::move(context);
-                latch->CountDown();
+                latch_b->Notify();
               },
           .on_failure_cb =
-              [latch](const std::string& endpoint_id) {
+              [latch_b](const std::string& endpoint_id) {
                 LOG(INFO) << "client-B side key negotiation failed";
-                latch->CountDown();
+                latch_b->Notify();
               },
       });
-  EXPECT_TRUE(latch->Await(absl::Milliseconds(5000)).result());
+  EXPECT_TRUE(
+      latch_a->WaitForNotificationWithTimeout(absl::Milliseconds(5000)));
+  EXPECT_TRUE(
+      latch_b->WaitForNotificationWithTimeout(absl::Milliseconds(5000)));
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
 
@@ -455,21 +459,21 @@ TEST_F(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
     // Write will block until channel is resumed, or closed.
     EXPECT_TRUE(channel_a.Write(more_message).Ok());
   });
-  CountDownLatch latch(1);
+  absl::Notification latch;
   ByteArray read_more;
   pause_resume_executor.Execute([&channel_b, &read_more, &latch]() {
     // Read will block until channel is resumed, or closed.
     auto response = channel_b.Read();
     EXPECT_TRUE(response.ok());
     read_more = std::move(response.result());
-    latch.CountDown();
+    latch.Notify();
   });
   absl::SleepFor(absl::Milliseconds(500));
   EXPECT_TRUE(read_more.Empty());
 
   // Resume; verify that data transfer comepleted.
   channel_a.Resume();
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(read_more.AsStringView(), more_message);
 
   // Shutdown test environment.

@@ -17,9 +17,9 @@
 #include <atomic>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/cancelable.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
@@ -36,14 +36,14 @@ TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   ScheduledExecutor executor;
   std::atomic_int value = 0;
-  CountDownLatch first_task_latch(1);
-  CountDownLatch second_task_latch(1);
+  absl::Notification first_task_notification;
+  absl::Notification second_task_notification;
   // schedule job due in kLongDelay.
   executor.Schedule(
       [&]() {
         EXPECT_EQ(value, 1);
         value = 5;
-        first_task_latch.CountDown();
+        first_task_notification.Notify();
       },
       kLongDelay);
   // schedule job due in kShortDelay; must fire before the first one.
@@ -51,7 +51,7 @@ TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
       [&]() {
         EXPECT_EQ(value, 0);
         value = 1;
-        second_task_latch.CountDown();
+        second_task_notification.Notify();
       },
       kShortDelay);
   EXPECT_EQ(value, 0);
@@ -59,10 +59,10 @@ TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
                                             absl::Milliseconds(1));
   EXPECT_EQ(value, 0);
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  second_task_latch.Await();
+  second_task_notification.WaitForNotification();
   EXPECT_EQ(value, 1);
   MediumEnvironment::Instance().FastForward(kLongDelay - kShortDelay);
-  first_task_latch.Await();
+  first_task_notification.WaitForNotification();
   EXPECT_EQ(value, 5);
   // Very long sleep to make sure that the sleep is truly simulated.
   MediumEnvironment::Instance().FastForward(absl::Minutes(30));
@@ -90,12 +90,15 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   std::atomic_int i = 0;
-  CountDownLatch latch[] = {CountDownLatch(1), CountDownLatch(1)};
+  absl::Notification notifications[2];
 
   Cancelable cancelable = executor.ScheduleRepeatedly(
       [&]() {
         value++;
-        latch[i.fetch_add(1)].CountDown();
+        int index = i.fetch_add(1, std::memory_order_acq_rel);
+        if (index < 2) {
+          notifications[index].Notify();
+        }
       },
       kShortDelay);
 
@@ -107,7 +110,7 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
 
   // Advance past the first execution.
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  latch[0].Await(absl::Seconds(1));
+  notifications[0].WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_EQ(value, 1);
 
   // Advance to just before the second execution.
@@ -117,7 +120,7 @@ TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
 
   // Advance past the second execution.
   MediumEnvironment::Instance().FastForward(absl::Milliseconds(1));
-  latch[1].Await(absl::Seconds(1));
+  notifications[1].WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_EQ(value, 2);
 
   // Cancel the task.

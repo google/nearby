@@ -19,10 +19,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
 
 namespace nearby {
 namespace {
@@ -75,56 +75,56 @@ TEST_F(TaskRunnerImplTest, PostSequenceTasks) {
 TEST_P(TaskRunnerImplTest, PostDelayedTask) {
   TaskRunnerImpl task_runner{GetParam()};
   std::atomic_bool first_task_started = false;
-  CountDownLatch latch(2);
+  absl::BlockingCounter counter(2);
 
   // Run the first task
   task_runner.PostDelayedTask(absl::Milliseconds(50), [&]() {
     first_task_started = true;
-    latch.CountDown();
+    counter.DecrementCount();
   });
 
   // Run the second task
   task_runner.PostTask([&]() {
     EXPECT_FALSE(first_task_started);
-    latch.CountDown();
+    counter.DecrementCount();
   });
 
-  latch.Await();
+  counter.Wait();
 }
 
 TEST_P(TaskRunnerImplTest, PostTwoDelayedTasks) {
   TaskRunnerImpl task_runner{GetParam()};
   std::atomic_bool first_task_started = false;
-  CountDownLatch latch(2);
+  absl::BlockingCounter counter(2);
 
   // Run the first task
   task_runner.PostDelayedTask(absl::Milliseconds(500), [&]() {
     first_task_started = true;
-    latch.CountDown();
+    counter.DecrementCount();
   });
 
   // Run the second task
   task_runner.PostDelayedTask(absl::Milliseconds(1), [&]() {
     EXPECT_FALSE(first_task_started);
-    latch.CountDown();
+    counter.DecrementCount();
   });
 
-  latch.Await();
+  counter.Wait();
 }
 
 TEST_P(TaskRunnerImplTest, PostMultipleTasks) {
   TaskRunnerImpl task_runner(GetParam());
   constexpr int kNumTasks = 10;
-  CountDownLatch latch(kNumTasks);
+  absl::BlockingCounter counter(kNumTasks);
 
   for (int i = 0; i < kNumTasks; i++) {
     task_runner.PostTask([&]() {
       absl::SleepFor(absl::Milliseconds(10));
-      latch.CountDown();
+      counter.DecrementCount();
     });
   }
 
-  EXPECT_TRUE(latch.Await());
+  counter.Wait();
 }
 
 TEST_P(TaskRunnerImplTest, PostEmptyTask) {

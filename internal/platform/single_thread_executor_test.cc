@@ -21,9 +21,9 @@
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
 
@@ -124,15 +124,15 @@ TEST(SingleThreadExecutorTest, ExecuteAfterShutdownFails) {
 }
 
 TEST(SingleThreadExecutorTest, ExecuteDuringShutdownFails) {
-  CountDownLatch latch(1);
+  absl::Notification notification;
   SingleThreadExecutor executor;
 
   executor.Execute([&]() {
-    latch.CountDown();
+    notification.Notify();
     absl::SleepFor(absl::Seconds(1));
     executor.Execute([&]() { FAIL() << "Task should not run"; });
   });
-  latch.Await();
+  notification.WaitForNotification();
   executor.Shutdown();
 }
 

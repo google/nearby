@@ -241,10 +241,10 @@ cc_test(
     deps = [
         ":g3",
         ":types",
-        "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],

@@ -29,11 +29,11 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
@@ -647,7 +647,7 @@ absl::StatusOr<ByteArray> BleMedium::GattServer::ReadCharacteristic(
     }
   }
   absl::StatusOr<ByteArray> result;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   callback_.on_characteristic_read_cb(
       remote_device_id, characteristic, offset,
       [&](absl::StatusOr<absl::string_view> data) {
@@ -656,9 +656,9 @@ absl::StatusOr<ByteArray> BleMedium::GattServer::ReadCharacteristic(
         } else {
           result = data.status();
         }
-        latch.CountDown();
+        notification.Notify();
       });
-  latch.Await();
+  notification.WaitForNotification();
   return result;
 }
 
@@ -668,14 +668,14 @@ absl::Status BleMedium::GattServer::WriteCharacteristic(
     absl::string_view data) {
   if (HasCharacteristic(characteristic)) {
     absl::Status result;
-    CountDownLatch latch(1);
+    absl::Notification notification;
     callback_.on_characteristic_write_cb(remote_device_id, characteristic,
                                          offset, data,
                                          [&](absl::Status status) {
                                            result = status;
-                                           latch.CountDown();
+                                           notification.Notify();
                                          });
-    latch.Await();
+    notification.WaitForNotification();
     return result;
   }
   return absl::FailedPreconditionError(

@@ -109,6 +109,7 @@ cc_test(
     ],
     deps = [
         ":bluetooth_classic_interface",
+        "@com_google_absl//absl/synchronization",
     ] + select({
         "@platforms//os:ios": [":bluetooth_classic_stub"],
         "//conditions:default": [":bluetooth_internal"],

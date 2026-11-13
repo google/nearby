@@ -20,12 +20,12 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -91,7 +91,7 @@ TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
   env_.SetFeatureFlags(feature_flags);
 
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   BluetoothDevice* discovered_device = nullptr;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
@@ -99,13 +99,16 @@ TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   std::string service_name{"service"};
   std::string service_uuid("service-uuid");
   BluetoothServerSocket server_socket =
@@ -140,7 +143,7 @@ TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
   env_.SetFeatureFlags(feature_flags);
 
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   BluetoothDevice* discovered_device = nullptr;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
@@ -148,13 +151,16 @@ TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   std::string service_name{"service"};
   std::string service_uuid("service-uuid");
   BluetoothServerSocket server_socket =
@@ -196,7 +202,7 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedBluetoothClassicMediumTest,
 
 TEST_F(BluetoothClassicMediumTest, SendData) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   BluetoothDevice* discovered_device = nullptr;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
@@ -204,13 +210,15 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  ASSERT_TRUE(found_latch.Await().Ok());
+  found_latch.WaitForNotification();
   std::string service_name{"service"};
   std::string service_uuid("service-uuid");
   BluetoothServerSocket server_socket =
@@ -243,7 +251,7 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
 
 TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsEmpty) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   BluetoothDevice* discovered_device = nullptr;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
@@ -251,13 +259,15 @@ TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsEmpty) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  ASSERT_TRUE(found_latch.Await().Ok());
+  found_latch.WaitForNotification();
   std::string service_name{"service"};
   std::string service_uuid("service-uuid");
   BluetoothServerSocket server_socket =
@@ -306,36 +316,42 @@ TEST_F(BluetoothClassicMediumTest, ConstructorDestructorWorks) {
 
 TEST_F(BluetoothClassicMediumTest, CanStartDiscovery) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
       .device_lost_cb =
           [this, &lost_latch](BluetoothDevice& device) {
             LOG(INFO) << "Device lost: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            lost_latch.CountDown();
+            if (!lost_latch.HasBeenNotified()) {
+              lost_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   adapter_b_->SetStatus(BluetoothAdapter::Status::kDisabled);
   EXPECT_FALSE(adapter_b_->IsEnabled());
-  EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      lost_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
 }
 
 TEST_F(BluetoothClassicMediumTest, DiscoveryCallbackAfterStopDiscovery) {
   SingleThreadExecutor executor;
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
@@ -344,7 +360,9 @@ TEST_F(BluetoothClassicMediumTest, DiscoveryCallbackAfterStopDiscovery) {
               LOG(INFO) << "Device discovered: " << device.GetName();
               absl::SleepFor(absl::Milliseconds(500));
               EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-              found_latch.CountDown();
+              if (!found_latch.HasBeenNotified()) {
+                found_latch.Notify();
+              }
             });
           },
       .device_lost_cb = [](BluetoothDevice& device) {}});
@@ -352,53 +370,63 @@ TEST_F(BluetoothClassicMediumTest, DiscoveryCallbackAfterStopDiscovery) {
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   bt_a_->StopDiscovery();
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   executor.Shutdown();
 }
 
 TEST_F(BluetoothClassicMediumTest, CanStopDiscovery) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
       .device_lost_cb =
           [this, &lost_latch](BluetoothDevice& device) {
             LOG(INFO) << "Device lost: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            lost_latch.CountDown();
+            if (!lost_latch.HasBeenNotified()) {
+              lost_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   bt_a_->StopDiscovery();
   adapter_b_->SetStatus(BluetoothAdapter::Status::kDisabled);
   EXPECT_FALSE(adapter_b_->IsEnabled());
-  EXPECT_FALSE(lost_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_FALSE(
+      lost_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
 }
 
 TEST_F(BluetoothClassicMediumTest, CanListenForService) {
   adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
             LOG(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
-            found_latch.CountDown();
+            if (!found_latch.HasBeenNotified()) {
+              found_latch.Notify();
+            }
           },
   });
   adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
   EXPECT_EQ(adapter_b_->GetScanMode(),
             BluetoothAdapter::ScanMode::kConnectableDiscoverable);
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   std::string service_name{"service"};
   std::string service_uuid("service-uuid");
   BluetoothServerSocket server_socket =

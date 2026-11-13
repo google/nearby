@@ -66,7 +66,6 @@
 #include "internal/interop/device_provider.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
@@ -3324,11 +3323,11 @@ TEST_F(BasePcpHandlerTest,
   auto& server_channel_1 = channel_pair_1.second;
   MockEndpointChannel* server_channel_1_ptr = server_channel_1.get();
 
-  CountDownLatch initiated_latch(1);
+  absl::Notification initiated_notification;
   EXPECT_CALL(mock_connection_listener_.initiated_cb,
               Call(std::string(kEndpointId), _))
       .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
-        initiated_latch.CountDown();
+        initiated_notification.Notify();
       });
 
   client_channel_1->Write(
@@ -3345,7 +3344,8 @@ TEST_F(BasePcpHandlerTest,
                       std::move(server_channel_1), Medium::BLUETOOTH,
                       NearbyDevice::Type::kConnectionsDevice)
                   .Ok());
-  ASSERT_TRUE(initiated_latch.Await(absl::Seconds(5)).result());
+  ASSERT_TRUE(
+      initiated_notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
 
   // Send incoming Connection #2 with the same endpoint_id and same nonce
   // after Connection #1's channel has been moved to EndpointManager.
@@ -3402,11 +3402,11 @@ TEST_F(BasePcpHandlerTest,
   auto& server_channel_1 = channel_pair_1.second;
   MockEndpointChannel* server_channel_1_ptr = server_channel_1.get();
 
-  CountDownLatch initiated_latch_1(1);
+  absl::Notification initiated_notification_1;
   EXPECT_CALL(mock_connection_listener_.initiated_cb,
               Call(std::string(kEndpointId), _))
       .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
-        initiated_latch_1.CountDown();
+        initiated_notification_1.Notify();
       })
       .WillRepeatedly(Return());
 
@@ -3424,17 +3424,18 @@ TEST_F(BasePcpHandlerTest,
                       std::move(server_channel_1), Medium::BLUETOOTH,
                       NearbyDevice::Type::kConnectionsDevice)
                   .Ok());
-  ASSERT_TRUE(initiated_latch_1.Await(absl::Seconds(5)).result());
+  ASSERT_TRUE(initiated_notification_1.WaitForNotificationWithTimeout(
+      absl::Seconds(5)));
 
   // ProcessTieBreakLoss() synchronously calls ProcessPreConnectionResultFailure
   // which invokes rejected_cb for the superseded post-encryption pending
   // connection (where pending_connection_info.channel is nullptr).
   EXPECT_CALL(*server_channel_1_ptr, CloseImpl());
-  CountDownLatch rejected_latch(1);
+  absl::Notification rejected_notification;
   EXPECT_CALL(mock_connection_listener_.rejected_cb,
               Call(std::string(kEndpointId), Status{Status::kError}))
       .WillOnce([&](const std::string&, const Status&) {
-        rejected_latch.CountDown();
+        rejected_notification.Notify();
       });
 
   auto channel_pair_2 =
@@ -3452,7 +3453,8 @@ TEST_F(BasePcpHandlerTest,
                       std::move(server_channel_2), Medium::BLUETOOTH,
                       NearbyDevice::Type::kConnectionsDevice)
                   .Ok());
-  EXPECT_TRUE(rejected_latch.Await(absl::Seconds(5)).result());
+  EXPECT_TRUE(
+      rejected_notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
 
   client_channel_1->Close();
   client_channel_2->Close();
@@ -3485,11 +3487,11 @@ TEST_F(BasePcpHandlerTest,
       std::move(channel_pair_1.first);
   auto& server_channel_1 = channel_pair_1.second;
 
-  CountDownLatch initiated_latch(1);
+  absl::Notification initiated_notification;
   EXPECT_CALL(mock_connection_listener_.initiated_cb,
               Call(std::string(kEndpointId), _))
       .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
-        initiated_latch.CountDown();
+        initiated_notification.Notify();
       });
 
   client_channel_1->Write(
@@ -3506,7 +3508,8 @@ TEST_F(BasePcpHandlerTest,
                       std::move(server_channel_1), Medium::BLUETOOTH,
                       NearbyDevice::Type::kConnectionsDevice)
                   .Ok());
-  ASSERT_TRUE(initiated_latch.Await(absl::Seconds(5)).result());
+  ASSERT_TRUE(
+      initiated_notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
 
   auto channel_pair_2 =
       SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);

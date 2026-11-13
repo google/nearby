@@ -51,8 +51,8 @@ cc_library(
         "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:logging",
-        "//internal/platform:types",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
     ],
@@ -131,6 +131,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_googletest//:gtest_main",
     ],
 )

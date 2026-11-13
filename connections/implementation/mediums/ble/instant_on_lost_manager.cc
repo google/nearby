@@ -22,6 +22,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble/ble_utils.h"
@@ -30,7 +31,6 @@
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -123,11 +123,11 @@ void InstantOnLostManager::OnAdvertisingStopped(const std::string& service_id) {
 }
 
 bool InstantOnLostManager::Shutdown() {
-  CountDownLatch latch(1);
-  RunOnInstantOnLostThread("Shutdown", [this, &latch]() {
+  absl::Notification notification;
+  RunOnInstantOnLostThread("Shutdown", [this, &notification]() {
     if (is_shutdown_) {
       LOG(WARNING) << __func__ << ": InstantOnLostManager is already shutdown.";
-      latch.CountDown();
+      notification.Notify();
       return;
     }
 
@@ -143,41 +143,37 @@ bool InstantOnLostManager::Shutdown() {
     active_advertising_map_.clear();
 
     LOG(INFO) << __func__ << ": InstantOnLostManager is shutdown.";
-    latch.CountDown();
+    notification.Notify();
   });
 
-  ExceptionOr<bool> result = latch.Await(kShutdownWaitDuration);
-  if (result.ok()) {
-    return result.result();
-  }
-  return false;
+  return notification.WaitForNotificationWithTimeout(kShutdownWaitDuration);
 }
 
 std::list<std::string> InstantOnLostManager::GetOnLostHashesForTesting() {
-  CountDownLatch latch(1);
+  absl::Notification notification;
   std::list<std::string> result;
-  RunOnInstantOnLostThread("GetOnLostHashes", [&latch, &result, this]() {
-    result = GetOnLostHashesInternal();
-    latch.CountDown();
-  });
+  RunOnInstantOnLostThread(
+      "GetOnLostHashes", [&notification, &result, this]() {
+        result = GetOnLostHashesInternal();
+        notification.Notify();
+      });
 
-  ExceptionOr<bool> latch_result = latch.Await(kTestWaitDuration);
-  if (latch_result.ok() && latch_result.result()) {
+  if (notification.WaitForNotificationWithTimeout(kTestWaitDuration)) {
     return result;
   }
   return {};
 }
 
 bool InstantOnLostManager::IsOnLostAdvertisingForTesting() {
-  CountDownLatch latch(1);
+  absl::Notification notification;
   bool is_on_lost_advertising = false;
-  RunOnInstantOnLostThread("IsOnLostAdvertising",
-                           [&latch, &is_on_lost_advertising, this]() {
-                             is_on_lost_advertising = is_on_lost_advertising_;
-                             latch.CountDown();
-                           });
-  ExceptionOr<bool> result = latch.Await(kTestWaitDuration);
-  if (result.ok() && result.result()) {
+  RunOnInstantOnLostThread(
+      "IsOnLostAdvertising",
+      [&notification, &is_on_lost_advertising, this]() {
+        is_on_lost_advertising = is_on_lost_advertising_;
+        notification.Notify();
+      });
+  if (notification.WaitForNotificationWithTimeout(kTestWaitDuration)) {
     return is_on_lost_advertising;
   }
 

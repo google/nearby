@@ -28,6 +28,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -60,7 +61,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
 #include "internal/platform/mac_address.h"
@@ -168,7 +168,7 @@ class BasePcpHandler : public PcpHandler,
   // @EndpointManagerThread
   void OnEndpointDisconnect(ClientProxy* client, const std::string& service_id,
                             const std::string& endpoint_id,
-                            CountDownLatch barrier,
+                            std::shared_ptr<absl::Notification> barrier,
                             DisconnectionReason reason) override;
 
   Status UpdateAdvertisingOptions(
@@ -623,7 +623,6 @@ class BasePcpHandler : public PcpHandler,
   // endpoint id. This is done by CancellationFlag.
   static bool Cancelled(ClientProxy* client, const std::string& endpoint_id);
 
-  void WaitForLatch(const std::string& method_name, CountDownLatch* latch);
   Status WaitForResult(const std::string& method_name, std::int64_t client_id,
                        Future<Status>* future);
   bool MediumSupportedByClientOptions(

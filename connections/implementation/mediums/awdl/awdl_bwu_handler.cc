@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/awdl/awdl_bwu_handler.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
@@ -23,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -34,7 +36,6 @@
 #include "internal/base/masker.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
@@ -106,22 +107,25 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
             << service_name << ", service_type:" << service_type
             << ") for endpoint " << endpoint_id;
 
-  CountDownLatch latch(1);
+  absl::Notification notification;
+  std::atomic<bool> notified = false;
 
   // Needs to discover the upgrade service before connecting to it.
   if (!awdl_medium_.StartDiscovery(
           upgrade_service_id,
           {
               .service_discovered_cb =
-                  [service_name, &latch](const NsdServiceInfo& service_info,
-                                         const std::string& service_id) {
-                    if (service_info.GetServiceName() == service_name) {
+                  [service_name, &notification, &notified](
+                      const NsdServiceInfo& service_info,
+                      const std::string& service_id) {
+                    if (service_info.GetServiceName() == service_name &&
+                        !notified.exchange(true, std::memory_order_acq_rel)) {
                       LOG(INFO)
                           << "Discovered the "
                           << "AWDL service (service_name:" << service_name
                           << ", service_type:" << service_info.GetServiceType()
                           << ") successfully";
-                      latch.CountDown();
+                      notification.Notify();
                     }
                   },
               .service_lost_cb = [](NsdServiceInfo service_info,
@@ -134,7 +138,7 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
 
-  if (!latch.Await(kAwdlDiscoveryTimeout)) {
+  if (!notification.WaitForNotificationWithTimeout(kAwdlDiscoveryTimeout)) {
     LOG(ERROR) << "Failed to discover the AWDL service (service_name:"
                << service_name << ", service_type:" << service_type
                << ") due to timeout.";

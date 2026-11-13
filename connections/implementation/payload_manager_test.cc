@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -24,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
@@ -37,7 +39,6 @@
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -173,10 +174,10 @@ class PayloadSimulationUser : public SimulationUser {
 
   void DisconnectEndpoint(
       DisconnectionReason reason = DisconnectionReason::REMOTE_DISCONNECTION) {
-    CountDownLatch barrier(1);
+    auto barrier = std::make_shared<absl::Notification>();
     pm_.OnEndpointDisconnect(&client_, std::string(kServiceId),
                              discovered_.endpoint_id, barrier, reason);
-    EXPECT_TRUE(barrier.Await(kDefaultTimeout).result());
+    EXPECT_TRUE(barrier->WaitForNotificationWithTimeout(kDefaultTimeout));
   }
 
  protected:
@@ -192,29 +193,38 @@ class PayloadManagerTest
 
   bool SetupConnection(PayloadSimulationUser& user_a,
                        PayloadSimulationUser& user_b) {
-    user_a.StartAdvertising(std::string(kServiceId), &connection_latch_);
+    user_a.StartAdvertising(std::string(kServiceId), &connection_latch_a_);
     user_b.StartDiscovery(std::string(kServiceId), &discovery_latch_);
-    EXPECT_TRUE(discovery_latch_.Await(kDefaultTimeout).result());
+    EXPECT_TRUE(
+        discovery_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
     LOG(INFO) << "EP-B: [discovered] " << user_b.GetDiscovered().endpoint_id;
-    user_b.RequestConnection(&connection_latch_);
-    EXPECT_TRUE(connection_latch_.Await(kDefaultTimeout).result());
+    user_b.RequestConnection(&connection_latch_b_);
+    EXPECT_TRUE(
+        connection_latch_a_.WaitForNotificationWithTimeout(kDefaultTimeout));
+    EXPECT_TRUE(
+        connection_latch_b_.WaitForNotificationWithTimeout(kDefaultTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
     LOG(INFO) << "EP-A: [discovered] " << user_a.GetDiscovered().endpoint_id;
     LOG(INFO) << "Both users discovered their peers.";
-    user_a.AcceptConnection(&accept_latch_);
-    user_b.AcceptConnection(&accept_latch_);
-    EXPECT_TRUE(accept_latch_.Await(kDefaultTimeout).result());
+    user_a.AcceptConnection(&accept_latch_a_);
+    user_b.AcceptConnection(&accept_latch_b_);
+    EXPECT_TRUE(
+        accept_latch_a_.WaitForNotificationWithTimeout(kDefaultTimeout));
+    EXPECT_TRUE(
+        accept_latch_b_.WaitForNotificationWithTimeout(kDefaultTimeout));
     LOG(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
-  CountDownLatch discovery_latch_{1};
-  CountDownLatch connection_latch_{2};
-  CountDownLatch accept_latch_{2};
-  CountDownLatch payload_latch_{1};
+  absl::Notification discovery_latch_;
+  absl::Notification connection_latch_a_;
+  absl::Notification connection_latch_b_;
+  absl::Notification accept_latch_a_;
+  absl::Notification accept_latch_b_;
+  absl::Notification payload_latch_;
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
@@ -239,7 +249,7 @@ TEST_P(PayloadManagerTest, CanSendBytePayload) {
 
   user_a.ExpectPayload(payload_latch_);
   user_b.SendPayload(Payload(ByteArray{std::string(kMessage)}));
-  EXPECT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  EXPECT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   EXPECT_EQ(user_a.GetPayload().AsBytes(), ByteArray(std::string(kMessage)));
   LOG(INFO) << "Test completed.";
 
@@ -268,7 +278,7 @@ TEST_P(PayloadManagerTest, CanSendFilePayload) {
   user_a.ExpectPayload(payload_latch_);
   user_b.SendPayload(Payload("parent_folder", "test_send_file_dst.txt",
                              InputFile(src_file_path)));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   EXPECT_TRUE(user_a.WaitForProgress(
       [](const PayloadProgressInfo& info) {
         return info.status == PayloadProgressInfo::Status::kSuccess;
@@ -292,7 +302,7 @@ TEST_P(PayloadManagerTest, PayloadId0IsError) {
 
   user_a.ExpectPayload(payload_latch_);
   user_b.SendPayload(Payload(0, ByteArray{std::string(kMessage)}));
-  EXPECT_FALSE(payload_latch_.Await(kDefaultTimeout).result());
+  EXPECT_FALSE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
 
   user_a.Stop();
   user_b.Stop();
@@ -312,7 +322,7 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
   LOG(INFO) << "Stream extracted.";
@@ -354,7 +364,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
   LOG(INFO) << "Stream extracted.";
@@ -406,7 +416,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
   LOG(INFO) << "Stream extracted.";
@@ -463,7 +473,7 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   Payload payload(std::move(input));
   payload.SetOffset(kOffset);
   user_b.SendPayload(std::move(payload));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
   LOG(INFO) << "Stream extracted.";
@@ -513,7 +523,7 @@ TEST_P(PayloadManagerTest,
   tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
 
@@ -574,7 +584,7 @@ TEST_P(PayloadManagerTest, CancelIncompleteIncomingFilePayloadDeletesFile) {
   user_a.ReceiveFileChunk(kPayloadId, kFileName, kMessage.size() * 2,
                           /*offset=*/0, kMessage, /*flags=*/0);
 
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
 
   FilePath file_path = FilePath(temp_dir).append(FilePath(kFileName));
   EXPECT_TRUE(Files::FileExists(file_path));
@@ -606,7 +616,7 @@ TEST_P(PayloadManagerTest, DuplicateIncomingPayloadIdFailsPayload) {
   constexpr absl::string_view kFileName2 = "dup_id_file_2.txt";
   user_a.ReceiveFileChunk(kPayloadId, kFileName1, kMessage.size() * 2,
                           /*offset=*/0, kMessage, /*flags=*/0);
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
 
   FilePath file_path1 = FilePath(temp_dir).append(FilePath(kFileName1));
   FilePath file_path2 = FilePath(temp_dir).append(FilePath(kFileName2));
@@ -650,7 +660,7 @@ TEST_P(PayloadManagerTest,
 
   user_a.ReceiveFileChunk(kPayloadId, kFileName, kTotalSize,
                           /*offset=*/0, kMessage, /*flags=*/0);
-  ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
+  ASSERT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kDefaultTimeout));
 
   const int64_t kSecondChunkOffset = kMessage.size();
   user_a.ReceiveFileChunk(kPayloadId, kFileName, kTotalSize,

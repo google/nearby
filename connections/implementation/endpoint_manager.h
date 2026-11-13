@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/client_proxy.h"
@@ -33,7 +34,6 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/listeners.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
@@ -81,16 +81,16 @@ class EndpointManager {
         const std::string& from_endpoint_id, ClientProxy* to_client,
         location::nearby::proto::connections::Medium current_medium) = 0;
 
-    // Implementations must call barrier.CountDown() once
+    // Implementations must call barrier->Notify() once
     // they're done. This parallelizes the disconnection event across all frame
     // processors.
     //
     // @EndpointManagerThread
-    virtual void OnEndpointDisconnect(ClientProxy* client,
-                                      const std::string& service_id,
-                                      const std::string& endpoint_id,
-                                      CountDownLatch barrier,
-                                      DisconnectionReason reason) = 0;
+    virtual void OnEndpointDisconnect(
+        ClientProxy* client, const std::string& service_id,
+        const std::string& endpoint_id,
+        std::shared_ptr<absl::Notification> barrier,
+        DisconnectionReason reason) = 0;
   };
 
   explicit EndpointManager(EndpointChannelManager* manager);
@@ -250,11 +250,6 @@ class EndpointManager {
       absl::AnyInvocable<ExceptionOr<bool>(std::shared_ptr<EndpointChannel>)>
           handler);
 
-  static void WaitForLatch(const std::string& method_name,
-                           CountDownLatch* latch);
-  static void WaitForLatch(const std::string& method_name,
-                           CountDownLatch* latch, std::int32_t timeout_millis);
-
   // It should be noted that this method may be called multiple times (because
   // invoking this method closes the endpoint channel, which causes the
   // dedicated reader and KeepAlive threads to terminate, which in turn leads to
@@ -274,9 +269,11 @@ class EndpointManager {
       ClientProxy* client, const std::string& endpoint_id,
       std::shared_ptr<EndpointChannel> endpoint_channel,
       location::nearby::connections::OfflineFrame& frame);
-  CountDownLatch NotifyFrameProcessorsOnEndpointDisconnect(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id, DisconnectionReason reason);
+  std::vector<std::shared_ptr<absl::Notification>>
+  NotifyFrameProcessorsOnEndpointDisconnect(ClientProxy* client,
+                                            const std::string& service_id,
+                                            const std::string& endpoint_id,
+                                            DisconnectionReason reason);
 
   std::vector<std::string> SendTransferFrameBytes(
       const std::vector<std::string>& endpoint_ids,

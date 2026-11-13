@@ -22,12 +22,12 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/awdl/awdl_interface.h"  // IWYU pragma: keep
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/psk_info.h"
@@ -74,8 +74,8 @@ TEST_P(AwdlTest, CanConnect) {
   std::string service_id(kServiceID);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
@@ -83,7 +83,7 @@ TEST_P(AwdlTest, CanConnect) {
       [&](const std::string& service_id,
           std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   NsdServiceInfo nsd_service_info;
@@ -101,16 +101,18 @@ TEST_P(AwdlTest, CanConnect) {
                   NsdServiceInfo service_info, const std::string& service_id) {
                 LOG(INFO) << "Discovered service_info=" << &service_info;
                 discovered_service_info = service_info;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  discovered_latch.Await(kWaitDuration).result();
+  discovered_latch.WaitForNotificationWithTimeout(kWaitDuration);
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
       awdl_client.Connect(service_id, "", discovered_service_info, &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
   EXPECT_TRUE(channel_for_server);
@@ -130,8 +132,8 @@ TEST_P(AwdlTest, CanConnectWithPsk) {
   std::string endpoint_info_name(kEndpointName);
   api::PskInfo psk_info;
   psk_info.password = "password";
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
@@ -139,7 +141,7 @@ TEST_P(AwdlTest, CanConnectWithPsk) {
       [&](const std::string& service_id,
           std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   NsdServiceInfo nsd_service_info;
@@ -157,16 +159,18 @@ TEST_P(AwdlTest, CanConnectWithPsk) {
                   NsdServiceInfo service_info, const std::string& service_id) {
                 LOG(INFO) << "Discovered service_info=" << &service_info;
                 discovered_service_info = service_info;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  discovered_latch.Await(kWaitDuration).result();
+  discovered_latch.WaitForNotificationWithTimeout(kWaitDuration);
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
       awdl_client.Connect(service_id, discovered_service_info, psk_info, &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
   EXPECT_TRUE(channel_for_server);
@@ -184,8 +188,8 @@ TEST_P(AwdlTest, CanCancelConnect) {
   std::string service_id(kServiceID);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<EndpointChannel> channel_for_server;
   EXPECT_TRUE(awdl_server.StartAcceptingConnections(
@@ -193,7 +197,7 @@ TEST_P(AwdlTest, CanCancelConnect) {
       [&](const std::string& service_id,
           std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   NsdServiceInfo nsd_service_info;
@@ -211,10 +215,12 @@ TEST_P(AwdlTest, CanCancelConnect) {
                   NsdServiceInfo service_info, const std::string& service_id) {
                 LOG(INFO) << "Discovered service_info=" << &service_info;
                 discovered_service_info = service_info;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag(true);
@@ -222,14 +228,14 @@ TEST_P(AwdlTest, CanCancelConnect) {
       awdl_client.Connect(service_id, "", discovered_service_info, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
     EXPECT_TRUE(channel_for_server);
     EXPECT_TRUE(channel_for_client_result.has_value());
     EXPECT_TRUE(channel_for_client_result.value());
   } else {
-    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_FALSE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(awdl_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(awdl_server.StopAdvertising(service_id));
     EXPECT_FALSE(channel_for_server);
@@ -465,20 +471,24 @@ TEST_F(AwdlTest, CanAdvertiseThatOtherMediumDiscover) {
   std::string service_id(kServiceID);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   awdl_b.StartDiscovery(
       service_id, DiscoveredServiceCallback{
                       .service_discovered_cb =
                           [&discovered_latch](NsdServiceInfo service_info,
                                               const std::string& service_id) {
-                            discovered_latch.CountDown();
+                            if (!discovered_latch.HasBeenNotified()) {
+                              discovered_latch.Notify();
+                            }
                           },
                       .service_lost_cb =
                           [&lost_latch](NsdServiceInfo service_info,
                                         const std::string& service_id) {
-                            lost_latch.CountDown();
+                            if (!lost_latch.HasBeenNotified()) {
+                              lost_latch.Notify();
+                            }
                           },
                   });
 
@@ -489,9 +499,9 @@ TEST_F(AwdlTest, CanAdvertiseThatOtherMediumDiscover) {
   nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
                                 endpoint_info_name);
   EXPECT_TRUE(awdl_a.StartAdvertising(service_id, nsd_service_info));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_a.StopAdvertising(service_id));
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_b.StopDiscovery(service_id));
   env_.Stop();
 }
@@ -503,8 +513,8 @@ TEST_F(AwdlTest, CanDiscoverThatOtherMediumAdvertise) {
   std::string service_id(kServiceID);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   EXPECT_TRUE(awdl_b.StartAcceptingConnections(service_id, "", {}));
 
@@ -519,17 +529,21 @@ TEST_F(AwdlTest, CanDiscoverThatOtherMediumAdvertise) {
                       .service_discovered_cb =
                           [&discovered_latch](NsdServiceInfo service_info,
                                               const std::string& service_id) {
-                            discovered_latch.CountDown();
+                            if (!discovered_latch.HasBeenNotified()) {
+                              discovered_latch.Notify();
+                            }
                           },
                       .service_lost_cb =
                           [&lost_latch](NsdServiceInfo service_info,
                                         const std::string& service_id) {
-                            lost_latch.CountDown();
+                            if (!lost_latch.HasBeenNotified()) {
+                              lost_latch.Notify();
+                            }
                           },
                   }));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_b.StopAdvertising(service_id));
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(awdl_a.StopDiscovery(service_id));
   env_.Stop();
 }

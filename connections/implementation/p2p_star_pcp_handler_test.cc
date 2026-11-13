@@ -21,6 +21,7 @@
 #include <tuple>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -39,7 +40,6 @@
 #include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -169,35 +169,37 @@ TEST_P(P2pStarPcpHandlerTest, CanConnect) {
   InjectedBluetoothDeviceStore ibds_b;
   P2pStarPcpHandler handler_a(mediums_a, em_a, ecm_a, bwu_a, ibds_a);
   P2pStarPcpHandler handler_b(mediums_b, em_b, ecm_b, bwu_b, ibds_b);
-  CountDownLatch discover_latch(1);
-  CountDownLatch connect_latch(2);
+  absl::Notification discover_notification;
+  absl::Notification connect_notification_a;
+  absl::Notification connect_notification_b;
   struct DiscoveredInfo {
     std::string endpoint_id;
     ByteArray endpoint_info;
     std::string service_id;
   } discovered;
-  EXPECT_EQ(
-      handler_a.StartAdvertising(
-          &client_a_, service_id_, advertising_options_,
-          {
-              .endpoint_info = ByteArray{endpoint_name_a},
-              .listener =
-                  {
-                      .initiated_cb =
-                          [&connect_latch](const std::string& endpoint_id,
-                                           const ConnectionResponseInfo& info) {
-                            LOG(INFO)
-                                << "StartAdvertising: initiated_cb called";
-                            connect_latch.CountDown();
-                          },
-                  },
-          }),
-      Status{Status::kSuccess});
+  EXPECT_EQ(handler_a.StartAdvertising(
+                &client_a_, service_id_, advertising_options_,
+                {
+                    .endpoint_info = ByteArray{endpoint_name_a},
+                    .listener =
+                        {
+                            .initiated_cb =
+                                [&connect_notification_a](
+                                    const std::string& endpoint_id,
+                                    const ConnectionResponseInfo& info) {
+                                  LOG(INFO)
+                                      << "StartAdvertising: initiated_cb "
+                                         "called";
+                                  connect_notification_a.Notify();
+                                },
+                        },
+                }),
+            Status{Status::kSuccess});
   EXPECT_EQ(handler_b.StartDiscovery(
                 &client_b_, service_id_, discovery_options_,
                 {
                     .endpoint_found_cb =
-                        [&discover_latch, &discovered](
+                        [&discover_notification, &discovered](
                             const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
@@ -209,12 +211,15 @@ TEST_P(P2pStarPcpHandlerTest, CanConnect) {
                               .endpoint_info = endpoint_info,
                               .service_id = service_id,
                           };
-                          discover_latch.CountDown();
+                          if (!discover_notification.HasBeenNotified()) {
+                            discover_notification.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
 
-  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(discover_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
 
   const std::string kBssid = "34:36:3B:C7:8C:71";
@@ -231,16 +236,20 @@ TEST_P(P2pStarPcpHandlerTest, CanConnect) {
        .listener =
            {
                .initiated_cb =
-                   [&connect_latch](const std::string& endpoint_id,
-                                    const ConnectionResponseInfo& info) {
+                   [&connect_notification_b](
+                       const std::string& endpoint_id,
+                       const ConnectionResponseInfo& info) {
                      LOG(INFO) << "RequestConnection: initiated_cb called";
-                     connect_latch.CountDown();
+                     connect_notification_b.Notify();
                    },
            }},
       connection_options_);
   std::string client_b_local_endpoint = client_b_.GetLocalEndpointId();
 
-  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(connect_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(connect_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_TRUE(client_b_.Is5GHzSupported(discovered.endpoint_id));
   EXPECT_EQ(client_b_.GetBssid(discovered.endpoint_id), kBssid);
   EXPECT_EQ(client_b_.GetApFrequency(discovered.endpoint_id), kFreq);

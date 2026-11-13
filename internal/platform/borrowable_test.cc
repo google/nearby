@@ -17,9 +17,10 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -77,7 +78,7 @@ TEST(Borrowable, BorrowAfterReleaseFails) {
 TEST(Borrowable, ReleaseWaitsForBorrowToEnd) {
   constexpr int kValue = 1;
   Data *data = new Data();
-  CountDownLatch latch(1);
+  absl::Notification notification;
   Lender<Data *> lender(data);
   Borrowable<Data *> borrowable = lender.GetBorrowable();
   SingleThreadExecutor executor;
@@ -85,13 +86,13 @@ TEST(Borrowable, ReleaseWaitsForBorrowToEnd) {
   ASSERT_TRUE(borrowed);
 
   executor.Execute([&]() {
-    latch.CountDown();
+    notification.Notify();
     // Release() must wait until `borrowed` object goes out of scope.
     lender.Release();
     data->SetValue(kValue);
     delete data;
   });
-  EXPECT_TRUE(latch.Await().Ok());
+  notification.WaitForNotification();
   // If `Release()` didn't wait, then we would access a dead object below. Short
   // sleep makes the crash more likely.
   absl::SleepFor(absl::Milliseconds(100));
@@ -101,13 +102,13 @@ TEST(Borrowable, ReleaseWaitsForBorrowToEnd) {
 TEST(Borrowable, BorrowIsExclusive) {
   constexpr int kThreads = 15;
   constexpr int kTasks = 30;
-  CountDownLatch latch(kTasks);
+  absl::BlockingCounter counter(kTasks);
   Lender<Data> lender(Data{});
   MultiThreadExecutor executor(kThreads);
 
   for (int i = 0; i < kTasks; i++) {
     executor.Execute([&, value = i, borrowable = lender.GetBorrowable()]() {
-      latch.CountDown();
+      counter.DecrementCount();
       Borrowed<Data> borrowed = borrowable.Borrow();
       ASSERT_TRUE(borrowed);
 
@@ -119,7 +120,7 @@ TEST(Borrowable, BorrowIsExclusive) {
       EXPECT_EQ(borrowed->GetValue(), value);
     });
   }
-  EXPECT_TRUE(latch.Await().Ok());
+  counter.Wait();
   // Verify that the shared data was modified. We can't know for sure what the
   // final value is.
   EXPECT_NE(lender.GetBorrowable().Borrow()->GetValue(), kDefaultValue);

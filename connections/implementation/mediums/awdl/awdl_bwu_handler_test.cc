@@ -25,6 +25,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
@@ -35,7 +36,6 @@
 #include "connections/implementation/service_id_constants.h"
 #include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/platform.h"
@@ -317,18 +317,17 @@ TEST_F(AwdlBwuHandlerTest, OnIncomingAwdlConnection_Success) {
       .WillOnce(Return(ByMove(std::move(awdl_server_socket))));
   EXPECT_CALL(*awdl_medium_mock, StartAdvertising(_)).WillOnce(Return(true));
 
-  CountDownLatch latch(1);
+  absl::Notification latch;
   EXPECT_CALL(incoming_connection_callback_, Call(&client, _))
       .WillOnce([&latch](ClientProxy* client,
                          std::unique_ptr<BwuHandler::IncomingSocketConnection>
-                             connection) { latch.CountDown(); });
+                             connection) { latch.Notify(); });
 
   std::string result = handler_.InitializeUpgradedMediumForEndpoint(
       &client, std::string(kServiceId), std::string(kEndpointId));
   EXPECT_FALSE(result.empty());
 
-  auto await_result = latch.Await(absl::Seconds(5));
-  EXPECT_TRUE(await_result.ok());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Seconds(5)));
 
   handler_.RevertInitiatorState();
   MediumEnvironment::Instance().Stop();

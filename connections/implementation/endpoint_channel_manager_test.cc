@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -34,7 +35,6 @@
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -118,12 +118,13 @@ DoDhKeyExchange(std::shared_ptr<EndpointChannel> channel_a,
   EncryptionRunner crypto_b;
   ClientProxy proxy_a;
   ClientProxy proxy_b;
-  CountDownLatch latch(2);
+  auto latch_a = std::make_shared<absl::Notification>();
+  auto latch_b = std::make_shared<absl::Notification>();
   crypto_a.StartClient(
       &proxy_a, std::string(kEndpointId), channel_a,
       {
           .on_success_cb =
-              [&latch, &context_a](
+              [latch_a, &context_a](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -133,19 +134,19 @@ DoDhKeyExchange(std::shared_ptr<EndpointChannel> channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_a = std::move(context);
-                latch.CountDown();
+                latch_a->Notify();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id) {
+              [latch_a](const std::string& endpoint_id) {
                 LOG(INFO) << "client-A side key negotiation failed";
-                latch.CountDown();
+                latch_a->Notify();
               },
       });
   crypto_b.StartServer(
       &proxy_b, std::string(kEndpointId), channel_b,
       {
           .on_success_cb =
-              [&latch, &context_b](
+              [latch_b, &context_b](
                   const std::string& endpoint_id,
                   std::unique_ptr<securegcm::UKey2Handshake> ukey2,
                   const std::string& auth_token,
@@ -155,15 +156,18 @@ DoDhKeyExchange(std::shared_ptr<EndpointChannel> channel_a,
                 auto context = ukey2->ToConnectionContext();
                 EXPECT_NE(context, nullptr);
                 context_b = std::move(context);
-                latch.CountDown();
+                latch_b->Notify();
               },
           .on_failure_cb =
-              [&latch](const std::string& endpoint_id) {
+              [latch_b](const std::string& endpoint_id) {
                 LOG(INFO) << "client-B side key negotiation failed";
-                latch.CountDown();
+                latch_b->Notify();
               },
       });
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(5000)).result());
+  EXPECT_TRUE(
+      latch_a->WaitForNotificationWithTimeout(absl::Milliseconds(5000)));
+  EXPECT_TRUE(
+      latch_b->WaitForNotificationWithTimeout(absl::Milliseconds(5000)));
 
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
@@ -350,18 +354,18 @@ TEST(BaseEndpointChannelManagerTest,
   EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 1);
 
   MultiThreadExecutor executor(1);
-  CountDownLatch start_latch(1);
-  CountDownLatch finish_latch(1);
+  absl::Notification start_latch;
+  absl::Notification finish_latch;
   bool wait_result = false;
 
   executor.Execute([&]() {
-    start_latch.CountDown();
+    start_latch.Notify();
     wait_result =
         ecm.CreateNewTimeoutDisconnectedState(kEndpointId, absl::Seconds(5));
-    finish_latch.CountDown();
+    finish_latch.Notify();
   });
 
-  ASSERT_TRUE(start_latch.Await(absl::Seconds(1)).result());
+  ASSERT_TRUE(start_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
 
   // Wait for the endpoint to enter the waiting state.
   absl::Time deadline = absl::Now() + absl::Seconds(1);
@@ -381,7 +385,7 @@ TEST(BaseEndpointChannelManagerTest,
       SafeDisconnectionResult::kSafeDisconnection);
   EXPECT_TRUE(unregister_result);
 
-  EXPECT_TRUE(finish_latch.Await(absl::Seconds(2)).result());
+  EXPECT_TRUE(finish_latch.WaitForNotificationWithTimeout(absl::Seconds(2)));
   EXPECT_TRUE(wait_result);
   EXPECT_EQ(ecm.GetConnectedEndpointsCount(), 0);
 }

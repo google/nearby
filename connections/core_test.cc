@@ -21,6 +21,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/notification.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/mock_service_controller_router.h"
@@ -37,7 +39,6 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/discovery_options.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -254,10 +255,10 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
         callback({Status::kSuccess});
       });
   Core core{&mock_controller};
-  CountDownLatch result_latch(2);
-  CountDownLatch bandwidth_changed_latch(1);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch initiated_latch(1);
+  absl::BlockingCounter result_latch(2);
+  absl::Notification bandwidth_changed_latch;
+  absl::Notification disconnected_latch;
+  absl::Notification initiated_latch;
   v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   core.StartAdvertisingV3(
@@ -266,28 +267,28 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FourArgs) {
           .initiated_cb =
               [&initiated_latch](const NearbyDevice&,
                                  const v3::InitialConnectionInfo&) {
-                initiated_latch.CountDown();
+                initiated_latch.Notify();
               },
           .result_cb =
               [&result_latch](const NearbyDevice&,
                               v3::ConnectionResult resolution) {
-                result_latch.CountDown();
+                result_latch.DecrementCount();
               },
           .disconnected_cb =
               [&disconnected_latch](const NearbyDevice&) {
-                disconnected_latch.CountDown();
+                disconnected_latch.Notify();
               },
           .bandwidth_changed_cb =
               [&bandwidth_changed_latch](const NearbyDevice&,
                                          v3::BandwidthInfo) {
-                bandwidth_changed_latch.CountDown();
+                bandwidth_changed_latch.Notify();
               },
       },
       {});
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(initiated_latch.Await().Ok());
+  result_latch.Wait();
+  bandwidth_changed_latch.WaitForNotification();
+  disconnected_latch.WaitForNotification();
+  initiated_latch.WaitForNotification();
   core.StopAdvertisingV3({});
 }
 
@@ -311,10 +312,10 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
         callback({Status::kSuccess});
       });
   Core core{&mock_controller};
-  CountDownLatch result_latch(2);
-  CountDownLatch bandwidth_changed_latch(1);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch initiated_latch(1);
+  absl::BlockingCounter result_latch(2);
+  absl::Notification bandwidth_changed_latch;
+  absl::Notification disconnected_latch;
+  absl::Notification initiated_latch;
   v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   FakeNearbyDeviceProvider device_provider;
@@ -325,28 +326,28 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDeviceProvider) {
           .initiated_cb =
               [&initiated_latch](const NearbyDevice&,
                                  const v3::InitialConnectionInfo&) {
-                initiated_latch.CountDown();
+                initiated_latch.Notify();
               },
           .result_cb =
               [&result_latch](const NearbyDevice&,
                               v3::ConnectionResult resolution) {
-                result_latch.CountDown();
+                result_latch.DecrementCount();
               },
           .disconnected_cb =
               [&disconnected_latch](const NearbyDevice&) {
-                disconnected_latch.CountDown();
+                disconnected_latch.Notify();
               },
           .bandwidth_changed_cb =
               [&bandwidth_changed_latch](const NearbyDevice&,
                                          v3::BandwidthInfo) {
-                bandwidth_changed_latch.CountDown();
+                bandwidth_changed_latch.Notify();
               },
       },
       {});
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(initiated_latch.Await().Ok());
+  result_latch.Wait();
+  bandwidth_changed_latch.WaitForNotification();
+  disconnected_latch.WaitForNotification();
+  initiated_latch.WaitForNotification();
   core.StopAdvertisingV3({});
 }
 
@@ -370,10 +371,10 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
         callback({Status::kSuccess});
       });
   Core core{&mock_controller};
-  CountDownLatch result_latch(2);
-  CountDownLatch bandwidth_changed_latch(1);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch initiated_latch(1);
+  absl::BlockingCounter result_latch(2);
+  absl::Notification bandwidth_changed_latch;
+  absl::Notification disconnected_latch;
+  absl::Notification initiated_latch;
   v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   auto local_device = FakeNearbyDevice();
@@ -383,28 +384,28 @@ TEST(CoreV3Test, TestStartAdvertisingV3NonConnectionsDevice) {
           .initiated_cb =
               [&initiated_latch](const NearbyDevice&,
                                  const v3::InitialConnectionInfo&) {
-                initiated_latch.CountDown();
+                initiated_latch.Notify();
               },
           .result_cb =
               [&result_latch](const NearbyDevice&,
                               v3::ConnectionResult resolution) {
-                result_latch.CountDown();
+                result_latch.DecrementCount();
               },
           .disconnected_cb =
               [&disconnected_latch](const NearbyDevice&) {
-                disconnected_latch.CountDown();
+                disconnected_latch.Notify();
               },
           .bandwidth_changed_cb =
               [&bandwidth_changed_latch](const NearbyDevice&,
                                          v3::BandwidthInfo) {
-                bandwidth_changed_latch.CountDown();
+                bandwidth_changed_latch.Notify();
               },
       },
       {});
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(initiated_latch.Await().Ok());
+  result_latch.Wait();
+  bandwidth_changed_latch.WaitForNotification();
+  disconnected_latch.WaitForNotification();
+  initiated_latch.WaitForNotification();
   core.StopAdvertisingV3({});
 }
 
@@ -428,10 +429,10 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
         callback({Status::kSuccess});
       });
   Core core{&mock_controller};
-  CountDownLatch result_latch(2);
-  CountDownLatch bandwidth_changed_latch(1);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch initiated_latch(1);
+  absl::BlockingCounter result_latch(2);
+  absl::Notification bandwidth_changed_latch;
+  absl::Notification disconnected_latch;
+  absl::Notification initiated_latch;
   v3::AdvertisingOptions advertising_options;
   advertising_options.strategy = Strategy::kP2pCluster;
   auto local_device = v3::ConnectionsDevice("FAKE", "endpoint_info", {});
@@ -441,28 +442,28 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartAdvertisingV3FiveArgs) {
           .initiated_cb =
               [&initiated_latch](const NearbyDevice&,
                                  const v3::InitialConnectionInfo&) {
-                initiated_latch.CountDown();
+                initiated_latch.Notify();
               },
           .result_cb =
               [&result_latch](const NearbyDevice&,
                               v3::ConnectionResult resolution) {
-                result_latch.CountDown();
+                result_latch.DecrementCount();
               },
           .disconnected_cb =
               [&disconnected_latch](const NearbyDevice&) {
-                disconnected_latch.CountDown();
+                disconnected_latch.Notify();
               },
           .bandwidth_changed_cb =
               [&bandwidth_changed_latch](const NearbyDevice&,
                                          v3::BandwidthInfo) {
-                bandwidth_changed_latch.CountDown();
+                bandwidth_changed_latch.Notify();
               },
       },
       {});
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(initiated_latch.Await().Ok());
+  result_latch.Wait();
+  bandwidth_changed_latch.WaitForNotification();
+  disconnected_latch.WaitForNotification();
+  initiated_latch.WaitForNotification();
   core.StopAdvertisingV3({});
 }
 
@@ -485,29 +486,29 @@ TEST(CoreV3Test, TestCallbackWrapWorksStartDiscoveryV3) {
   v3::DiscoveryOptions options;
   options.strategy = Strategy::kP2pCluster;
   Core core{&mock_controller};
-  CountDownLatch endpoint_distance_latch(1);
-  CountDownLatch endpoint_found_latch(1);
-  CountDownLatch endpoint_lost_latch(1);
+  absl::Notification endpoint_distance_latch;
+  absl::Notification endpoint_found_latch;
+  absl::Notification endpoint_lost_latch;
   core.StartDiscoveryV3(
       "service", options,
       {
           .endpoint_found_cb =
               [&endpoint_found_latch](const NearbyDevice&, absl::string_view) {
-                endpoint_found_latch.CountDown();
+                endpoint_found_latch.Notify();
               },
           .endpoint_lost_cb =
               [&endpoint_lost_latch](const NearbyDevice&) {
-                endpoint_lost_latch.CountDown();
+                endpoint_lost_latch.Notify();
               },
           .endpoint_distance_changed_cb =
               [&endpoint_distance_latch](const NearbyDevice&, DistanceInfo) {
-                endpoint_distance_latch.CountDown();
+                endpoint_distance_latch.Notify();
               },
       },
       {});
-  EXPECT_TRUE(endpoint_distance_latch.Await().Ok());
-  EXPECT_TRUE(endpoint_found_latch.Await().Ok());
-  EXPECT_TRUE(endpoint_lost_latch.Await().Ok());
+  endpoint_distance_latch.WaitForNotification();
+  endpoint_found_latch.WaitForNotification();
+  endpoint_lost_latch.WaitForNotification();
   core.StopDiscoveryV3({});
 }
 }  // namespace

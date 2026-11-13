@@ -186,7 +186,6 @@ cc_test(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/hash:hash_testing",

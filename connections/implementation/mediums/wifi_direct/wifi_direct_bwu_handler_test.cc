@@ -15,12 +15,14 @@
 #if !defined(__APPLE__)
 #include "connections/implementation/mediums/wifi_direct/wifi_direct_bwu_handler.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
@@ -31,7 +33,6 @@
 #include "connections/implementation/mediums/wifi_direct/wifi_direct.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -81,9 +82,10 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
 }
 
 TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
-  CountDownLatch start_latch(1);
-  CountDownLatch accept_latch(1);
-  CountDownLatch end_latch(1);
+  absl::Notification start_latch;
+  absl::Notification accept_latch;
+  std::atomic<bool> accept_notified = false;
+  absl::Notification end_latch;
 
   ClientProxy wifi_direct_go, wifi_direct_gc;
   Mediums mediums_wfd_go, mediums_wfd_gc;
@@ -95,8 +97,10 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
           std::unique_ptr<BwuHandler::IncomingSocketConnection>
               mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back";
-        accept_latch.CountDown();
-        EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+        if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+          accept_latch.Notify();
+        }
+        EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
       });
 
   SingleThreadExecutor wfd_go_executor;
@@ -107,13 +111,13 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
     EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-    start_latch.CountDown();
+    start_latch.Notify();
   });
 
   wifi_direct_gc.AddCancellationFlag(std::string(kEndpointID));
   SingleThreadExecutor wfd_gc_executor;
   // Wait till wifi_direct_go started and then connect to it
-  EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(start_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
   std::unique_ptr<BwuHandler> wfd_gc_bwu_handler =
       std::make_unique<WifiDirectBwuHandler>(
@@ -141,7 +145,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
              ->Cancelled()) {
       ASSERT_TRUE(result.has_value());
       std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
-      EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+      EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
       EXPECT_EQ(new_channel->GetMedium(),
                 location::nearby::proto::connections::Medium::WIFI_DIRECT);
       absl::SleepFor(absl::Milliseconds(100));
@@ -152,17 +156,19 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
       EXPECT_EQ(result.error().operation_result_code(),
                 OperationResultCode::
                     CLIENT_CANCELLATION_CANCEL_WIFI_DIRECT_OUTGOING_CONNECTION);
-      accept_latch.CountDown();
+      if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+        accept_latch.Notify();
+      }
     }
     EXPECT_TRUE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
     wfd_gc_bwu_handler->RevertResponderState(std::string(kServiceID));
-    end_latch.CountDown();
+    end_latch.Notify();
   });
   wfd_gc_bwu_handler->OnEndpointDisconnect(&wifi_direct_gc,
                                   std::string(kEndpointID));
 
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
 }
 

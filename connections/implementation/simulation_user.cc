@@ -22,6 +22,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/listeners.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -30,7 +31,6 @@
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 
@@ -50,16 +50,16 @@ void SimulationUser::OnConnectionInitiated(const std::string& endpoint_id,
         .service_id = service_id_,
     };
   }
-  if (initiated_latch_) initiated_latch_->CountDown();
+  NotifyIfNotNotified(initiated_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnConnectionAccepted(const std::string& endpoint_id) {
-  if (accept_latch_) accept_latch_->CountDown();
+  NotifyIfNotNotified(accept_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnConnectionRejected(const std::string& endpoint_id,
                                           Status status) {
-  if (reject_latch_) reject_latch_->CountDown();
+  NotifyIfNotNotified(reject_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
@@ -71,16 +71,16 @@ void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
       .endpoint_info = endpoint_info,
       .service_id = service_id,
   };
-  if (found_latch_) found_latch_->CountDown();
+  NotifyIfNotNotified(found_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnEndpointLost(const std::string& endpoint_id) {
-  if (lost_latch_) lost_latch_->CountDown();
+  NotifyIfNotNotified(lost_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnPayload(absl::string_view endpoint_id, Payload payload) {
   payload_ = std::move(payload);
-  if (payload_latch_) payload_latch_->CountDown();
+  NotifyIfNotNotified(payload_notification_, notification_mutex_);
 }
 
 void SimulationUser::OnPayloadProgress(absl::string_view endpoint_id,
@@ -110,8 +110,8 @@ bool SimulationUser::WaitForProgress(
 }
 
 void SimulationUser::StartAdvertising(const std::string& service_id,
-                                      CountDownLatch* latch) {
-  initiated_latch_ = latch;
+                                      absl::Notification* notification) {
+  initiated_notification_ = notification;
   service_id_ = service_id;
   ConnectionListener listener = {
       .initiated_cb =
@@ -131,8 +131,8 @@ void SimulationUser::StartAdvertising(const std::string& service_id,
 }
 
 void SimulationUser::StartDiscovery(const std::string& service_id,
-                                    CountDownLatch* latch) {
-  found_latch_ = latch;
+                                    absl::Notification* notification) {
+  found_notification_ = notification;
   EXPECT_TRUE(
       mgr_.StartDiscovery(&client_, service_id, discovery_options_,
                           {
@@ -156,8 +156,8 @@ void SimulationUser::InjectEndpoint(
   mgr_.InjectEndpoint(&client_, service_id, metadata);
 }
 
-void SimulationUser::RequestConnection(CountDownLatch* latch) {
-  initiated_latch_ = latch;
+void SimulationUser::RequestConnection(absl::Notification* notification) {
+  initiated_notification_ = notification;
   ConnectionListener listener = {
       .initiated_cb =
           std::bind(&SimulationUser::OnConnectionInitiated, this,
@@ -178,9 +178,9 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
           .Ok());
 }
 
-void SimulationUser::RequestConnectionV3(CountDownLatch* latch,
+void SimulationUser::RequestConnectionV3(absl::Notification* notification,
                                          const NearbyDevice& remote_device) {
-  initiated_latch_ = latch;
+  initiated_notification_ = notification;
   ConnectionListener listener = {
       .initiated_cb =
           std::bind(&SimulationUser::OnConnectionInitiated, this,
@@ -201,8 +201,8 @@ void SimulationUser::RequestConnectionV3(CountDownLatch* latch,
           .Ok());
 }
 
-void SimulationUser::AcceptConnection(CountDownLatch* latch) {
-  accept_latch_ = latch;
+void SimulationUser::AcceptConnection(absl::Notification* notification) {
+  accept_notification_ = notification;
   PayloadListener listener = {
       .payload_cb = absl::bind_front(&SimulationUser::OnPayload, this),
       .payload_progress_cb =
@@ -213,17 +213,17 @@ void SimulationUser::AcceptConnection(CountDownLatch* latch) {
                   .Ok());
 }
 
-void SimulationUser::RejectConnection(CountDownLatch* latch) {
-  reject_latch_ = latch;
+void SimulationUser::RejectConnection(absl::Notification* notification) {
+  reject_notification_ = notification;
   EXPECT_TRUE(mgr_.RejectConnection(&client_, discovered_.endpoint_id).Ok());
 }
 
 void SimulationUser::StartListeningForIncomingConnections(
-    CountDownLatch* latch, absl::string_view service_id,
+    absl::Notification* notification, absl::string_view service_id,
     const v3::ConnectionListeningOptions& options, Status expected_status) {
   auto result = mgr_.StartListeningForIncomingConnections(
       &client_, service_id, /*listener=*/{}, options);
-  latch->CountDown();
+  NotifyIfNotNotified(notification, notification_mutex_);
   LOG(INFO) << "status: " << result.first.ToString();
   EXPECT_EQ(expected_status, result.first);
 }

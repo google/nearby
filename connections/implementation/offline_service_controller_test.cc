@@ -21,6 +21,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
@@ -37,7 +38,6 @@
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -103,30 +103,34 @@ class OfflineServiceControllerTest
   }
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
-    user_a.StartAdvertising(std::string(kServiceId), &connect_latch_);
+    user_a.StartAdvertising(std::string(kServiceId), &connect_latch_a_);
     user_b.StartDiscovery(std::string(kServiceId), &discover_latch_);
-    EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
+    EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
     LOG(INFO) << "EP-B: [discovered] " << user_b.GetDiscovered().endpoint_id;
-    user_b.RequestConnection(&connect_latch_);
-    EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
+    user_b.RequestConnection(&connect_latch_b_);
+    EXPECT_TRUE(connect_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+    EXPECT_TRUE(connect_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
     LOG(INFO) << "EP-A: [discovered] " << user_a.GetDiscovered().endpoint_id;
     LOG(INFO) << "Both users discovered their peers.";
-    user_a.AcceptConnection(&accept_latch_);
-    user_b.AcceptConnection(&accept_latch_);
-    EXPECT_TRUE(accept_latch_.Await(kLongTimeout));
+    user_a.AcceptConnection(&accept_latch_a_);
+    user_b.AcceptConnection(&accept_latch_b_);
+    EXPECT_TRUE(accept_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+    EXPECT_TRUE(accept_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
     LOG(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
-  CountDownLatch discover_latch_{1};
-  CountDownLatch lost_latch_{1};
-  CountDownLatch connect_latch_{2};
-  CountDownLatch accept_latch_{2};
-  CountDownLatch payload_latch_{1};
+  absl::Notification discover_latch_;
+  absl::Notification lost_latch_;
+  absl::Notification connect_latch_a_;
+  absl::Notification connect_latch_b_;
+  absl::Notification accept_latch_a_;
+  absl::Notification accept_latch_b_;
+  absl::Notification payload_latch_;
   MediumEnvironment& env_ = MediumEnvironment::Instance();
 };
 
@@ -164,7 +168,7 @@ TEST_P(OfflineServiceControllerTest, CanStartDiscoveryBeforeAdvertising) {
   EXPECT_TRUE(user_b.IsDiscovering());
   EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), nullptr),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -182,7 +186,7 @@ TEST_P(OfflineServiceControllerTest, CanStartDiscoveryAfterAdvertising) {
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(user_a.IsAdvertising());
   EXPECT_TRUE(user_b.IsDiscovering());
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -202,13 +206,14 @@ TEST_P(OfflineServiceControllerTest, CanStopAdvertising) {
                                     &lost_latch_),
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(user_b.IsDiscovering());
-  auto discovered_none = discover_latch_.Await(kDefaultTimeout).GetResult();
-  if (discovered_none) {
+  bool discovered =
+      discover_latch_.WaitForNotificationWithTimeout(kDefaultTimeout);
+  if (discovered) {
     // There are rare cases (1/1000) that advertisement data has been captured
     // by discovery device before advertising is stopped. So we need to check if
     // lost_cb has grabbed the event in the end to prove the advertising service
     // is stopped.
-    EXPECT_TRUE(lost_latch_.Await(kLongTimeout));
+    EXPECT_TRUE(lost_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   }
   user_a.Stop();
   user_b.Stop();
@@ -227,7 +232,7 @@ TEST_P(OfflineServiceControllerTest, CanStopDiscovery) {
   EXPECT_FALSE(user_b.IsDiscovering());
   EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), nullptr),
               Eq(Status{Status::kSuccess}));
-  EXPECT_FALSE(discover_latch_.Await(kShortTimeout).result());
+  EXPECT_FALSE(discover_latch_.WaitForNotificationWithTimeout(kShortTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -237,14 +242,16 @@ TEST_P(OfflineServiceControllerTest, CanConnect) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
-  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), &connect_latch_),
-              Eq(Status{Status::kSuccess}));
+  EXPECT_THAT(
+      user_a.StartAdvertising(std::string(kServiceId), &connect_latch_a_),
+      Eq(Status{Status::kSuccess}));
   EXPECT_THAT(user_b.StartDiscovery(std::string(kServiceId), &discover_latch_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
-  EXPECT_THAT(user_b.RequestConnection(&connect_latch_),
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_THAT(user_b.RequestConnection(&connect_latch_b_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(connect_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_TRUE(connect_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -254,17 +261,19 @@ TEST_P(OfflineServiceControllerTest, CanConnectV3) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
-  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), &connect_latch_),
-              Eq(Status{Status::kSuccess}));
+  EXPECT_THAT(
+      user_a.StartAdvertising(std::string(kServiceId), &connect_latch_a_),
+      Eq(Status{Status::kSuccess}));
   EXPECT_THAT(user_b.StartDiscovery(std::string(kServiceId), &discover_latch_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   auto remote_device = MockNearbyDevice();
   ON_CALL(remote_device, GetEndpointId)
       .WillByDefault(testing::Return(user_b.GetDiscovered().endpoint_id));
-  EXPECT_THAT(user_b.RequestConnectionV3(&connect_latch_, remote_device),
+  EXPECT_THAT(user_b.RequestConnectionV3(&connect_latch_b_, remote_device),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(connect_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_TRUE(connect_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -274,19 +283,22 @@ TEST_P(OfflineServiceControllerTest, CanAcceptConnection) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
-  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), &connect_latch_),
-              Eq(Status{Status::kSuccess}));
+  EXPECT_THAT(
+      user_a.StartAdvertising(std::string(kServiceId), &connect_latch_a_),
+      Eq(Status{Status::kSuccess}));
   EXPECT_THAT(user_b.StartDiscovery(std::string(kServiceId), &discover_latch_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
-  EXPECT_THAT(user_b.RequestConnection(&connect_latch_),
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_THAT(user_b.RequestConnection(&connect_latch_b_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
-  EXPECT_THAT(user_a.AcceptConnection(&accept_latch_),
+  EXPECT_TRUE(connect_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_TRUE(connect_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_THAT(user_a.AcceptConnection(&accept_latch_a_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_THAT(user_b.AcceptConnection(&accept_latch_),
+  EXPECT_THAT(user_b.AcceptConnection(&accept_latch_b_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(accept_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(accept_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_TRUE(accept_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
   EXPECT_TRUE(user_a.IsConnected());
   EXPECT_TRUE(user_b.IsConnected());
   user_a.Stop();
@@ -298,18 +310,20 @@ TEST_P(OfflineServiceControllerTest, CanRejectConnection) {
   env_.Start();
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
-  CountDownLatch reject_latch(1);
-  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), &connect_latch_),
-              Eq(Status{Status::kSuccess}));
+  absl::Notification reject_latch;
+  EXPECT_THAT(
+      user_a.StartAdvertising(std::string(kServiceId), &connect_latch_a_),
+      Eq(Status{Status::kSuccess}));
   EXPECT_THAT(user_b.StartDiscovery(std::string(kServiceId), &discover_latch_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
-  EXPECT_THAT(user_b.RequestConnection(&connect_latch_),
+  EXPECT_TRUE(discover_latch_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_THAT(user_b.RequestConnection(&connect_latch_b_),
               Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(connect_latch_a_.WaitForNotificationWithTimeout(kLongTimeout));
+  EXPECT_TRUE(connect_latch_b_.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.ExpectRejectedConnection(reject_latch);
   EXPECT_THAT(user_b.RejectConnection(nullptr), Eq(Status{Status::kSuccess}));
-  EXPECT_TRUE(reject_latch.Await(kLongTimeout));
+  EXPECT_TRUE(reject_latch.WaitForNotificationWithTimeout(kLongTimeout));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -323,7 +337,7 @@ TEST_P(OfflineServiceControllerTest, CanSendBytePayload) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   ByteArray message(std::string{kMessage});
   user_a.SendPayload(Payload(message));
-  EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   EXPECT_EQ(user_b.GetPayload().AsBytes(), message);
   user_a.Stop();
   user_b.Stop();
@@ -339,7 +353,7 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
   auto [input, tx] = CreatePipe();
   user_a.SendPayload(Payload(std::move(input)));
   tx->Write(kMessage);
-  EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
   ASSERT_TRUE(user_b.WaitForProgress(
@@ -362,7 +376,7 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
   auto [input, tx] = CreatePipe();
   user_a.SendPayload(Payload(std::move(input)));
   tx->Write(kMessage);
-  EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
+  EXPECT_TRUE(payload_latch_.WaitForNotificationWithTimeout(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
   ASSERT_TRUE(user_b.WaitForProgress(
@@ -394,14 +408,14 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
 
 TEST_P(OfflineServiceControllerTest, CanDisconnect) {
   env_.Start();
-  CountDownLatch disconnect_latch(1);
+  absl::Notification disconnect_latch;
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   LOG(INFO) << "Disconnecting";
   user_b.ExpectDisconnect(disconnect_latch);
   user_b.Disconnect();
-  EXPECT_TRUE(disconnect_latch.Await(kLongTimeout));
+  EXPECT_TRUE(disconnect_latch.WaitForNotificationWithTimeout(kLongTimeout));
   LOG(INFO) << "Disconnected";
   EXPECT_FALSE(user_b.IsConnected());
   user_a.Stop();

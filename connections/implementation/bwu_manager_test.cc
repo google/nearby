@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -44,7 +45,6 @@
 #include "connections/medium_selector.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
@@ -723,7 +723,7 @@ TEST_F(BwuManagerTest,
   {
     // Disconnect the first WebRTC endpoint. We don't expect a revert until the
     // last WebRTC endpoint for the service is disconnected.
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -737,7 +737,7 @@ TEST_F(BwuManagerTest,
   }
   {
     // Disconnect the second WebRTC endpoint. We expect a revert.
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -771,7 +771,7 @@ TEST_F(BwuManagerTest,
   EXPECT_TRUE(fake_web_rtc_bwu_handler_->handle_revert_calls().empty());
   {
     // Disconnect the first WebRTC endpoint.
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -791,7 +791,7 @@ TEST_F(BwuManagerTest,
   }
   {
     // Disconnect the second WebRTC endpoint.
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -827,7 +827,7 @@ TEST_F(BwuManagerTest,
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->disconnect_calls().empty());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_revert_calls().empty());
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
@@ -848,7 +848,7 @@ TEST_F(BwuManagerTest,
               fake_wifi_lan_bwu_handler_->handle_revert_calls()[0].service_id);
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -881,7 +881,7 @@ TEST_F(BwuManagerTest,
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->disconnect_calls().empty());
   EXPECT_TRUE(fake_wifi_lan_bwu_handler_->handle_revert_calls().empty());
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     EXPECT_EQ(2u, ecm_.GetConnectedEndpointsCount());
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
@@ -902,7 +902,7 @@ TEST_F(BwuManagerTest,
     EXPECT_EQ(2u, fake_wifi_lan_bwu_handler_->handle_revert_calls().size());
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -958,7 +958,7 @@ TEST_F(
   EXPECT_TRUE(fake_wifi_hotspot_bwu_handler_->handle_revert_calls().empty());
   EXPECT_TRUE(fake_wifi_direct_bwu_handler_->handle_revert_calls().empty());
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId1, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -983,7 +983,7 @@ TEST_F(
     EXPECT_TRUE(fake_wifi_direct_bwu_handler_->handle_revert_calls().empty());
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId2, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -1004,7 +1004,7 @@ TEST_F(
               fake_wifi_lan_bwu_handler_->handle_revert_calls()[0].service_id);
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId3, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -1025,7 +1025,7 @@ TEST_F(
               fake_wifi_lan_bwu_handler_->handle_revert_calls()[1].service_id);
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId4, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -1048,7 +1048,7 @@ TEST_F(
         fake_wifi_hotspot_bwu_handler_->handle_revert_calls()[0].service_id);
   }
   {
-    CountDownLatch latch(1);
+    auto latch = std::make_shared<absl::Notification>();
     ecm_.UnregisterChannelForEndpoint(
         kEndpointId5, DisconnectionReason::LOCAL_DISCONNECTION,
         SafeDisconnectionResult::kUnsafeDisconnection);
@@ -1164,7 +1164,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
   upgrade_path_info->set_supports_client_introduction_ack(false);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH);
-  CountDownLatch latch(1);
+  auto latch = std::make_shared<absl::Notification>();
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
                                      DisconnectionReason::LOCAL_DISCONNECTION);
@@ -1199,7 +1199,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
   upgrade_path_info->set_supports_disabling_encryption(true);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH);
-  CountDownLatch latch(1);
+  auto latch = std::make_shared<absl::Notification>();
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
                                      DisconnectionReason::LOCAL_DISCONNECTION);
@@ -1227,7 +1227,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
 
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,
                                 Medium::BLUETOOTH);
-  CountDownLatch latch(1);
+  auto latch = std::make_shared<absl::Notification>();
   bwu_manager_->OnEndpointDisconnect(&client_, (std::string)kServiceIdA,
                                      std::string(kEndpointId1), latch,
                                      DisconnectionReason::LOCAL_DISCONNECTION);
@@ -1266,7 +1266,6 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
   upgrade_path_info2->set_supports_disabling_encryption(true);
   bwu_manager_->OnIncomingFrame(frame2, std::string(kEndpointId2), &client_,
                                 Medium::BLUETOOTH);
-  CountDownLatch latch2(1);
   // The BWU frame should be drop, so the inProgressUpgrades should be empty.
   ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)), false);
   UnRegisterChannelForEndpoint(kEndpointId2);
@@ -1310,7 +1309,6 @@ TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
 
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId2), &client_,
                                 Medium::BLUETOOTH);
-  CountDownLatch latch2(1);
   // The BWU frame should be drop, so the IsUpgradeOngoing should be empty.
   ASSERT_EQ(bwu_manager_->IsUpgradeOngoing(std::string(kEndpointId2)), false);
   UnRegisterChannelForEndpoint(kEndpointId2);

@@ -22,6 +22,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic_interface.h"  // IWYU pragma: keep
@@ -29,7 +30,6 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -275,7 +275,7 @@ TEST_P(BluetoothClassicTest, CanConnect) {
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(),
             std::string(kDeviceName));
-  CountDownLatch latch(1);
+  absl::Notification latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -285,25 +285,27 @@ TEST_P(BluetoothClassicTest, CanConnect) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                latch.CountDown();
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   std::unique_ptr<EndpointChannel> channel_for_server;
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
       std::string(kServiceId1), [&](const std::string& service_id,
                                     std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
       bt_client.Connect(discovered_device, std::string(kServiceId1), "",
                         std::string(kChannelName), &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
   EXPECT_TRUE(channel_for_server);
   EXPECT_TRUE(channel_for_client_result.has_value());
@@ -327,7 +329,7 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(),
             std::string(kDeviceName));
-  CountDownLatch latch(1);
+  absl::Notification latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -337,19 +339,21 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
                 discovered_device = device;
-                latch.CountDown();
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   std::unique_ptr<EndpointChannel> channel_for_server;
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
       std::string(kServiceId1), [&](const std::string& service_id,
                                     std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
   CancellationFlag flag(true);
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
@@ -357,7 +361,7 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
                         std::string(kChannelName), &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_TRUE(channel_for_server);
     EXPECT_TRUE(channel_for_client_result.has_value());
@@ -365,7 +369,7 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
     EXPECT_EQ(channel_for_server->GetName(), "Device-A");
     EXPECT_EQ(channel_for_client_result.value()->GetName(), kChannelName);
   } else {
-    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_FALSE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_FALSE(channel_for_server);
     EXPECT_TRUE(channel_for_client_result.has_error());
@@ -395,7 +399,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(),
             std::string(kDeviceName));
-  CountDownLatch latch(1);
+  absl::Notification latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -405,19 +409,21 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                latch.CountDown();
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   std::unique_ptr<EndpointChannel> channel_for_server;
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
       std::string(kServiceId1), [&](const std::string& service_id,
                                     std::unique_ptr<EndpointChannel> channel) {
         channel_for_server = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client_result =
@@ -425,7 +431,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
                         std::string(kChannelName), &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_TRUE(channel_for_server);
     EXPECT_TRUE(channel_for_client_result.has_value());
@@ -433,7 +439,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
     EXPECT_EQ(channel_for_server->GetName(), "Device-A");
     EXPECT_EQ(channel_for_client_result.value()->GetName(), kChannelName);
   } else {
-    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_FALSE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_FALSE(channel_for_server);
     EXPECT_TRUE(channel_for_client_result.has_error());
@@ -462,7 +468,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(),
             std::string(kDeviceName));
-  CountDownLatch latch(1);
+  absl::Notification latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -472,21 +478,23 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                latch.CountDown();
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   std::unique_ptr<EndpointChannel> channel_for_server1;
   std::unique_ptr<EndpointChannel> channel_for_server2;
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
 
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
       std::string(kServiceId1), [&](const std::string& service_id,
                                     std::unique_ptr<EndpointChannel> channel) {
         channel_for_server1 = std::move(channel);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<EndpointChannel>> channel_for_client1_result =
@@ -496,14 +504,14 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
   // Simulate the flag being cancelled during connection attempt to a different
   // endpoint.
   medium_a_->CancelDuringConnectToService();
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
-  CountDownLatch accept_latch2(1);
+  absl::Notification accept_latch2;
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
       std::string(kServiceId2), [&](const std::string& service_id,
                                     std::unique_ptr<EndpointChannel> channel) {
         channel_for_server2 = std::move(channel);
-        accept_latch2.CountDown();
+        accept_latch2.Notify();
       }));
 
   CancellationFlag flag2;
@@ -513,7 +521,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch2.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch2.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId2)));
     EXPECT_TRUE(channel_for_server1);
@@ -574,26 +582,34 @@ TEST_F(BluetoothClassicTest, CanStopAdvertising) {
 TEST_F(BluetoothClassicTest, CanStartDiscovery) {
   EXPECT_TRUE(bt_a_->TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_a_->GetBluetoothAdapter().GetName(), kDeviceName);
-  CountDownLatch latch(1);
+  absl::Notification latch;
   EXPECT_TRUE(bt_b_->StartDiscovery(
       std::string(kServiceId1),
       {
           .device_discovered_cb =
-              [&latch](BluetoothDevice& device) { latch.CountDown(); },
+              [&latch](BluetoothDevice& device) {
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
+              },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_a_->TurnOffDiscoverability());
 }
 
 TEST_F(BluetoothClassicTest, CanStopDiscovery) {
-  CountDownLatch latch(1);
+  absl::Notification latch;
   EXPECT_TRUE(bt_a_->StartDiscovery(
       std::string(kServiceId1),
       {
           .device_discovered_cb =
-              [&latch](BluetoothDevice& device) { latch.CountDown(); },
+              [&latch](BluetoothDevice& device) {
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
+              },
       }));
-  EXPECT_FALSE(latch.Await(kWaitDuration).result());
+  EXPECT_FALSE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_a_->StopDiscovery(std::string(kServiceId1)));
 }
 
@@ -608,9 +624,9 @@ TEST_F(BluetoothClassicTest, CanDiscoverDeviceChanges) {
 
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(), kDeviceName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch rename_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification rename_latch;
+  absl::Notification lost_latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -620,28 +636,34 @@ TEST_F(BluetoothClassicTest, CanDiscoverDeviceChanges) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
           .device_name_changed_cb =
               [&rename_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Rename device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                rename_latch.CountDown();
+                if (!rename_latch.HasBeenNotified()) {
+                  rename_latch.Notify();
+                }
               },
           .device_lost_cb =
               [&lost_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Lost device=" << device.GetName()
                           << ", impl=" << &device.GetImpl();
-                lost_latch.CountDown();
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(radio_for_server.GetBluetoothAdapter().SetName("new_name"));
-  EXPECT_TRUE(rename_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(rename_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(radio_for_server.Disable());
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_client.StopDiscovery(std::string(kServiceId1)));
 }
 
@@ -656,7 +678,7 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
 
   EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(), kDeviceName);
-  CountDownLatch latch(1);
+  absl::Notification latch;
   BluetoothDevice discovered_device;
   EXPECT_TRUE(bt_client.StartDiscovery(
       std::string(kServiceId1),
@@ -666,10 +688,12 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
                           << ",impl=" << &device.GetImpl();
-                latch.CountDown();
+                if (!latch.HasBeenNotified()) {
+                  latch.Notify();
+                }
               },
       }));
-  EXPECT_TRUE(latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   EXPECT_TRUE(discovered_device.IsValid());
   EXPECT_TRUE(

@@ -33,6 +33,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -72,7 +73,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
@@ -260,14 +260,15 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
 }
 
 void BasePcpHandler::StopListeningForIncomingConnections(ClientProxy* client) {
-  CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-listening-for-incoming-conn",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopListeningForIncomingConnectionsImpl(client);
-                          client->StoppedListeningForIncomingConnections();
-                          latch.CountDown();
-                        });
-  WaitForLatch("StopListeningForIncomingConnections", &latch);
+  absl::Notification notification;
+  RunOnPcpHandlerThread(
+      "stop-listening-for-incoming-conn",
+      [this, client, &notification]() RUN_ON_PCP_HANDLER_THREAD() {
+        StopListeningForIncomingConnectionsImpl(client);
+        client->StoppedListeningForIncomingConnections();
+        notification.Notify();
+      });
+  notification.WaitForNotification();
 }
 
 Status BasePcpHandler::StartAdvertising(
@@ -346,14 +347,15 @@ Status BasePcpHandler::StartAdvertising(
 void BasePcpHandler::StopAdvertising(ClientProxy* client) {
   LOG(INFO) << "StopAdvertising local_endpoint_id="
             << client->GetLocalEndpointId();
-  CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-advertising",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopAdvertisingImpl(client);
-                          client->StoppedAdvertising();
-                          latch.CountDown();
-                        });
-  WaitForLatch("StopAdvertising", &latch);
+  absl::Notification notification;
+  RunOnPcpHandlerThread(
+      "stop-advertising",
+      [this, client, &notification]() RUN_ON_PCP_HANDLER_THREAD() {
+        StopAdvertisingImpl(client);
+        client->StoppedAdvertising();
+        notification.Notify();
+      });
+  notification.WaitForNotification();
 }
 
 std::string BasePcpHandler::GetStringValueOfSupportedMediums(
@@ -597,39 +599,30 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
 }
 
 void BasePcpHandler::StopDiscovery(ClientProxy* client) {
-  CountDownLatch latch(1);
-  RunOnPcpHandlerThread("stop-discovery",
-                        [this, client, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-                          StopDiscoveryImpl(client);
-                          client->StoppedDiscovery();
-                          latch.CountDown();
-                        });
+  absl::Notification notification;
+  RunOnPcpHandlerThread(
+      "stop-discovery",
+      [this, client, &notification]() RUN_ON_PCP_HANDLER_THREAD() {
+        StopDiscoveryImpl(client);
+        client->StoppedDiscovery();
+        notification.Notify();
+      });
 
-  WaitForLatch("StopDiscovery", &latch);
+  notification.WaitForNotification();
 }
 
 void BasePcpHandler::InjectEndpoint(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
-  CountDownLatch latch(1);
-  RunOnPcpHandlerThread("inject-endpoint",
-                        [this, client, service_id, metadata, &latch]()
-                            RUN_ON_PCP_HANDLER_THREAD() {
-                              InjectEndpointImpl(client, service_id, metadata);
-                              latch.CountDown();
-                            });
+  absl::Notification notification;
+  RunOnPcpHandlerThread(
+      "inject-endpoint", [this, client, service_id, metadata,
+                          &notification]() RUN_ON_PCP_HANDLER_THREAD() {
+        InjectEndpointImpl(client, service_id, metadata);
+        notification.Notify();
+      });
 
-  WaitForLatch(absl::StrCat("InjectEndpoint(", service_id, ")"), &latch);
-}
-
-void BasePcpHandler::WaitForLatch(const std::string& method_name,
-                                  CountDownLatch* latch) {
-  Exception await_exception = latch->Await();
-  if (!await_exception.Ok()) {
-    if (await_exception.Raised(Exception::kTimeout)) {
-      LOG(INFO) << "Blocked in " << method_name;
-    }
-  }
+  notification.WaitForNotification();
 }
 
 Status BasePcpHandler::WaitForResult(const std::string& method_name,
@@ -1763,11 +1756,14 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
 void BasePcpHandler::OnIncomingFrame(
     OfflineFrame& frame, const std::string& endpoint_id, ClientProxy* client,
     location::nearby::proto::connections::Medium medium) {
-  CountDownLatch latch(1);
+  absl::Notification notification;
   bool scheduled = RunOnPcpHandlerThread(
       "incoming-frame",
-      [this, client, endpoint_id, frame, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-        absl::Cleanup release_caller = [&latch] { latch.CountDown(); };
+      [this, client, endpoint_id, frame,
+       &notification]() RUN_ON_PCP_HANDLER_THREAD() {
+        absl::Cleanup release_caller = [&notification] {
+          notification.Notify();
+        };
         LOG(INFO) << "OnConnectionResponse: endpoint_id=" << endpoint_id;
 
         if (client->HasRemoteEndpointResponded(endpoint_id)) {
@@ -1827,22 +1823,22 @@ void BasePcpHandler::OnIncomingFrame(
         }
       });
   if (scheduled) {
-    WaitForLatch("OnIncomingFrame()", &latch);
+    notification.WaitForNotification();
   }
 }
 
-void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
-                                          const std::string& service_id,
-                                          const std::string& endpoint_id,
-                                          CountDownLatch barrier,
-                                          DisconnectionReason reason) {
+void BasePcpHandler::OnEndpointDisconnect(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id,
+    std::shared_ptr<absl::Notification> barrier, DisconnectionReason reason) {
   if (stop_.Get()) {
-    barrier.CountDown();
+    barrier->Notify();
     return;
   }
   RunOnPcpHandlerThread(
-      "on-endpoint-disconnect", [this, client, endpoint_id, barrier,
-                                 reason]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+      "on-endpoint-disconnect",
+      [this, client, endpoint_id, barrier = std::move(barrier),
+       reason]() RUN_ON_PCP_HANDLER_THREAD() {
         auto item = pending_alarms_.find(endpoint_id);
         if (item != pending_alarms_.end()) {
           auto& alarm = item->second;
@@ -1852,7 +1848,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
         ProcessPreConnectionResultFailure(
             client, endpoint_id,
             /* should_call_disconnect_endpoint= */ false, reason);
-        barrier.CountDown();
+        barrier->Notify();
       });
 }
 

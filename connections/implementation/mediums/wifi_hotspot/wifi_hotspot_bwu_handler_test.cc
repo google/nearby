@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/wifi_hotspot/wifi_hotspot_bwu_handler.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
@@ -23,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
@@ -32,7 +34,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/listeners.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
@@ -102,7 +103,7 @@ TEST_F(WifiHotspotTest, ClientStaRoleJoinsRemoteSoftApIndependently) {
   server_socket.PopulateHotspotCredentials(*remote_credentials);
   ASSERT_FALSE(remote_credentials->GetAddressCandidates().empty());
 
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
   WifiHotspotSocket accepted_socket;
   SingleThreadExecutor server_executor;
   absl::Cleanup cleanup = [&server_socket, &accepted_socket,
@@ -116,7 +117,7 @@ TEST_F(WifiHotspotTest, ClientStaRoleJoinsRemoteSoftApIndependently) {
   server_executor.Execute([&server_socket, &accepted_socket, &accept_latch]() {
     accepted_socket = server_socket.Accept();
     if (accepted_socket.IsValid()) {
-      accept_latch.CountDown();
+      accept_latch.Notify();
     }
   });
 
@@ -149,7 +150,7 @@ TEST_F(WifiHotspotTest, ClientStaRoleJoinsRemoteSoftApIndependently) {
   ASSERT_NE(channel, nullptr);
   EXPECT_EQ(channel->GetMedium(),
             location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(mediums_sta.GetWifiHotspot().IsConnectedToHotspot());
 
   channel->Close();
@@ -225,9 +226,10 @@ TEST_F(WifiHotspotTest, ClientStaRoleRevertsCleanlyWhenCancelledMidUpgrade) {
 }
 
 TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
-  CountDownLatch start_latch(1);
-  CountDownLatch accept_latch(1);
-  CountDownLatch end_latch(1);
+  absl::Notification start_latch;
+  absl::Notification accept_latch;
+  std::atomic<bool> accept_notified = false;
+  absl::Notification end_latch;
 
   ClientProxy client_hotspot_ap, client_hotspot_sta;
   Mediums mediums_HS_ap, mediums_HS_sta;
@@ -239,8 +241,10 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
           std::unique_ptr<BwuHandler::IncomingSocketConnection>
               mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back";
-        accept_latch.CountDown();
-        EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+        if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+          accept_latch.Notify();
+        }
+        EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
       });
 
   // client_hotspot_ap works as Hotspot SoftAP
@@ -253,7 +257,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
     EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-    start_latch.CountDown();
+    start_latch.Notify();
   });
 
   client_hotspot_sta.AddCancellationFlag(std::string(kEndpointID));
@@ -261,7 +265,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
   // client_hotspot_ap
   SingleThreadExecutor client_executor;
   // Wait till client_hotspot_ap started as hotspot and then connect to it
-  EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(start_latch.WaitForNotificationWithTimeout(kWaitDuration));
   std::unique_ptr<BwuHandler> handler_2 =
       std::make_unique<WifiHotspotBwuHandler>(&mediums_HS_sta.GetWifiHotspot(),
                                               nullptr);
@@ -288,7 +292,7 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
              ->Cancelled()) {
       ASSERT_TRUE(result.has_value());
       std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
-      EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+      EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
       EXPECT_EQ(new_channel->GetMedium(),
                 location::nearby::proto::connections::Medium::WIFI_HOTSPOT);
       absl::SleepFor(absl::Milliseconds(100));
@@ -300,17 +304,19 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
           result.error().operation_result_code(),
           OperationResultCode::
               CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION);
-      accept_latch.CountDown();
+      if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+        accept_latch.Notify();
+      }
     }
     EXPECT_TRUE(mediums_HS_sta.GetWifiHotspot().IsConnectedToHotspot());
     handler_2->RevertResponderState(std::string(kServiceID));
-    end_latch.CountDown();
+    end_latch.Notify();
   });
   handler_2->OnEndpointDisconnect(&client_hotspot_sta,
                                   std::string(kEndpointID));
 
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_FALSE(mediums_HS_sta.GetWifiHotspot().IsConnectedToHotspot());
 }
 

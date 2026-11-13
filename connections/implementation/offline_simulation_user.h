@@ -22,6 +22,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -39,7 +40,6 @@
 #include "connections/v3/listeners.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 
@@ -89,9 +89,10 @@ class OfflineSimulationUser {
   virtual ~OfflineSimulationUser() = default;
 
   // Calls PcpManager::StartAdvertising().
-  // If latch is provided, will call latch->CountDown() in the initiated_cb
-  // callback.
-  Status StartAdvertising(const std::string& service_id, CountDownLatch* latch);
+  // If notification is provided, will call notification->Notify() in the
+  // initiated_cb callback.
+  Status StartAdvertising(const std::string& service_id,
+                          absl::Notification* notification);
 
   // Calls PcpManager::StopAdvertising().
   void StopAdvertising();
@@ -101,13 +102,13 @@ class OfflineSimulationUser {
                                   const AdvertisingOptions& options);
 
   // Calls PcpManager::StartDiscovery().
-  // If found_latch is provided, will call found_latch->CountDown() in the
-  // endpoint_found_cb callback.
-  // If lost_latch is provided, will call lost_latch->CountDown() in the
-  // endpoint_lost_cb callback.
+  // If found_notification is provided, will call found_notification->Notify()
+  // in the endpoint_found_cb callback.
+  // If lost_notification is provided, will call lost_notification->Notify() in
+  // the endpoint_lost_cb callback.
   Status StartDiscovery(const std::string& service_id,
-                        CountDownLatch* found_latch,
-                        CountDownLatch* lost_latch = nullptr);
+                        absl::Notification* found_notification,
+                        absl::Notification* lost_notification = nullptr);
 
   // Calls PcpManager::StopDiscovery().
   void StopDiscovery();
@@ -121,36 +122,40 @@ class OfflineSimulationUser {
                       const OutOfBandConnectionMetadata& metadata);
 
   // Calls PcpManager::RequestConnection().
-  // If latch is provided, latch->CountDown() will be called in the initiated_cb
-  // callback.
-  Status RequestConnection(CountDownLatch* latch);
+  // If notification is provided, notification->Notify() will be called in the
+  // initiated_cb callback.
+  Status RequestConnection(absl::Notification* notification);
 
   // Calls PcpManager::RequestConnectionV3.
-  // If latch is provided, latch->CountDown() will be called in the initiated_cb
-  // callback.
-  Status RequestConnectionV3(CountDownLatch* latch,
+  // If notification is provided, notification->Notify() will be called in the
+  // initiated_cb callback.
+  Status RequestConnectionV3(absl::Notification* notification,
                              const NearbyDevice& remote_device);
 
   // Calls PcpManager::AcceptConnection.
-  // If latch is provided, latch->CountDown() will be called in the accepted_cb
-  // callback.
-  Status AcceptConnection(CountDownLatch* latch);
+  // If notification is provided, notification->Notify() will be called in the
+  // accepted_cb callback.
+  Status AcceptConnection(absl::Notification* notification);
 
   // Calls PcpManager::RejectConnection.
-  // If latch is provided, latch->CountDown() will be called in the rejected_cb
-  // callback.
-  Status RejectConnection(CountDownLatch* latch);
+  // If notification is provided, notification->Notify() will be called in the
+  // rejected_cb callback.
+  Status RejectConnection(absl::Notification* notification);
 
   // Unlike acceptance, rejection does not have to be mutual, in order to work.
   // This method will allow to synchronize on the remote rejection, without
   // performing a local rejection.
-  // latch.CountDown() will be called in the rejected_cb callback.
-  void ExpectRejectedConnection(CountDownLatch& latch) {
-    reject_latch_ = &latch;
+  // notification.Notify() will be called in the rejected_cb callback.
+  void ExpectRejectedConnection(absl::Notification& notification) {
+    reject_notification_ = &notification;
   }
 
-  void ExpectPayload(CountDownLatch& latch) { payload_latch_ = &latch; }
-  void ExpectDisconnect(CountDownLatch& latch) { disconnect_latch_ = &latch; }
+  void ExpectPayload(absl::Notification& notification) {
+    payload_notification_ = &notification;
+  }
+  void ExpectDisconnect(absl::Notification& notification) {
+    disconnect_notification_ = &notification;
+  }
 
   const DiscoveredInfo& GetDiscovered() const { return discovered_; }
   ByteArray GetInfo() const { return info_; }
@@ -238,16 +243,17 @@ class OfflineSimulationUser {
   ConnectionOptions connection_options_;
   DiscoveryOptions discovery_options_;
   absl::Mutex progress_mutex_;
+  absl::Mutex notification_mutex_;
   PayloadProgressInfo progress_info_;
   Payload payload_;
   Payload::Id sender_payload_id_ = 0;
-  CountDownLatch* initiated_latch_ = nullptr;
-  CountDownLatch* accept_latch_ = nullptr;
-  CountDownLatch* reject_latch_ = nullptr;
-  CountDownLatch* found_latch_ = nullptr;
-  CountDownLatch* lost_latch_ = nullptr;
-  CountDownLatch* payload_latch_ = nullptr;
-  CountDownLatch* disconnect_latch_ = nullptr;
+  absl::Notification* initiated_notification_ = nullptr;
+  absl::Notification* accept_notification_ = nullptr;
+  absl::Notification* reject_notification_ = nullptr;
+  absl::Notification* found_notification_ = nullptr;
+  absl::Notification* lost_notification_ = nullptr;
+  absl::Notification* payload_notification_ = nullptr;
+  absl::Notification* disconnect_notification_ = nullptr;
   Future<bool>* future_ = nullptr;
   absl::AnyInvocable<bool(const PayloadProgressInfo&)> predicate_;
   ClientProxy client_;

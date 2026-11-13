@@ -40,7 +40,6 @@
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
@@ -146,14 +145,14 @@ TEST_P(BleTest, CanConnect) {
   radio_server.Enable();
   std::string service_id(kServiceIDA);
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   BleSocket socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string&) {
         socket_for_server = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   ble_server.StartAdvertising(service_id, PowerLevel::kHighPower,
@@ -172,16 +171,18 @@ TEST_P(BleTest, CanConnect) {
                 discovered_peripheral = peripheral;
                 LOG(INFO) << "Discovered peripheral, fast advertisement="
                           << fast_advertisement;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  discovered_latch.Await(kWaitDuration).result();
+  discovered_latch.WaitForNotificationWithTimeout(kWaitDuration);
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag;
   ErrorOr<BleSocket> socket_for_client_result =
       ble_client.Connect(service_id, discovered_peripheral, &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   EXPECT_TRUE(socket_for_server.IsValid());
@@ -204,15 +205,15 @@ TEST_P(BleTest, CanConnect2) {
   radio_server.Enable();
   std::string service_id(kServiceIDA);
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<mediums::BleSocket> socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
       service_id,
       [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
         socket_for_server = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   ble_server.StartAdvertising(service_id, PowerLevel::kHighPower,
@@ -231,16 +232,18 @@ TEST_P(BleTest, CanConnect2) {
                 discovered_peripheral = peripheral;
                 LOG(INFO) << "Discovered peripheral, fast advertisement="
                           << fast_advertisement;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  discovered_latch.Await(kWaitDuration).result();
+  discovered_latch.WaitForNotificationWithTimeout(kWaitDuration);
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<mediums::BleSocket>> socket_for_client_result =
       ble_client.Connect2(service_id, discovered_peripheral, &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   ASSERT_NE(socket_for_server, nullptr);
@@ -265,14 +268,14 @@ TEST_P(BleTest, CanCancelConnect) {
   radio_server.Enable();
   std::string service_id(kServiceIDA);
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   BleSocket socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string&) {
         socket_for_server = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   ble_server.StartAdvertising(service_id, PowerLevel::kHighPower,
@@ -291,10 +294,12 @@ TEST_P(BleTest, CanCancelConnect) {
                 discovered_peripheral = peripheral;
                 LOG(INFO) << "Discovered peripheral, fast advertisement="
                           << fast_advertisement;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag(true);
@@ -302,7 +307,7 @@ TEST_P(BleTest, CanCancelConnect) {
       ble_client.Connect(service_id, discovered_peripheral, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     EXPECT_TRUE(socket_for_server.IsValid());
@@ -312,7 +317,7 @@ TEST_P(BleTest, CanCancelConnect) {
     EXPECT_TRUE(
         socket_for_client_result.value().GetRemotePeripheral().IsValid());
   } else {
-    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_FALSE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     EXPECT_FALSE(socket_for_server.IsValid());
@@ -333,15 +338,15 @@ TEST_P(BleTest, CanCancelConnect2) {
   radio_server.Enable();
   std::string service_id(kServiceIDA);
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<mediums::BleSocket> socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
       service_id,
       [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
         socket_for_server = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       }));
 
   ble_server.StartAdvertising(service_id, PowerLevel::kHighPower,
@@ -360,10 +365,12 @@ TEST_P(BleTest, CanCancelConnect2) {
                 discovered_peripheral = peripheral;
                 LOG(INFO) << "Discovered peripheral, fast advertisement="
                           << fast_advertisement;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag(true);
@@ -371,7 +378,7 @@ TEST_P(BleTest, CanCancelConnect2) {
       ble_client.Connect2(service_id, discovered_peripheral, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     ASSERT_NE(socket_for_server, nullptr);
@@ -381,7 +388,7 @@ TEST_P(BleTest, CanCancelConnect2) {
     EXPECT_TRUE(
         socket_for_client_result.value()->GetRemotePeripheral().IsValid());
   } else {
-    EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
+    EXPECT_FALSE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     ASSERT_EQ(socket_for_server, nullptr);
@@ -404,15 +411,15 @@ TEST_P(BleTest, DISABLED_CanConnectOverL2capRefactored) {
   radio_server.Enable();
   std::string service_id(kServiceIDA);
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch accept_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification accept_latch;
 
   std::unique_ptr<mediums::BleSocket> socket_for_server;
   auto result = ble_server.StartAcceptingL2capConnections(
       service_id,
       [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
         socket_for_server = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch.Notify();
       });
   if (!result.has_value()) {
     GTEST_SKIP() << "L2CAP not supported";
@@ -434,16 +441,18 @@ TEST_P(BleTest, DISABLED_CanConnectOverL2capRefactored) {
                 discovered_peripheral = peripheral;
                 LOG(INFO) << "Discovered peripheral, fast advertisement="
                           << fast_advertisement;
-                discovered_latch.CountDown();
+                if (!discovered_latch.HasBeenNotified()) {
+                  discovered_latch.Notify();
+                }
               },
       });
-  discovered_latch.Await(kWaitDuration);
+  discovered_latch.WaitForNotificationWithTimeout(kWaitDuration);
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag;
   ErrorOr<std::unique_ptr<mediums::BleSocket>> socket_for_client_result =
       ble_client.ConnectOverL2cap2(service_id, discovered_peripheral, &flag);
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_server.StopAcceptingL2capConnections(service_id));
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   ASSERT_NE(socket_for_server, nullptr);
@@ -546,7 +555,7 @@ TEST_F(BleTest, CanStartFastAdvertising) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartScanning(
       kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
@@ -558,14 +567,16 @@ TEST_F(BleTest, CanStartFastAdvertising) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_TRUE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       });
 
   EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                                      Ble::AdvertisingType::kFast,
                                      advertisement_bytes));
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
   ble_b.StopScanning(kServiceIDA);
   env_.Stop();
@@ -580,7 +591,7 @@ TEST_F(BleTest, CanStartFastScanning) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
@@ -595,11 +606,13 @@ TEST_F(BleTest, CanStartFastScanning) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_TRUE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ble_b.StopAdvertising(kServiceIDA);
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
@@ -614,7 +627,7 @@ TEST_F(BleTest, CanStartAdvertising) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartScanning(
       kServiceIDA, Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
@@ -626,14 +639,16 @@ TEST_F(BleTest, CanStartAdvertising) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       });
 
   EXPECT_TRUE(ble_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                                      Ble::AdvertisingType::kRegular,
                                      advertisement_bytes));
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_a.StopAdvertising(kServiceIDA));
   ble_b.StopScanning(kServiceIDA);
   env_.Stop();
@@ -648,7 +663,7 @@ TEST_F(BleTest, CanStartScanning) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -663,11 +678,13 @@ TEST_F(BleTest, CanStartScanning) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ble_b.StopAdvertising(kServiceIDA);
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
@@ -834,8 +851,8 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
@@ -850,16 +867,22 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_TRUE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       });
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_b.StopAdvertising(kServiceIDA);
 
@@ -867,7 +890,7 @@ TEST_F(BleTest, StartFastScanningDiscoverAndLostPeripheral) {
   // `ProcessLostGattAdvertisements` twice to lost periperal.
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_a.StopScanning(kServiceIDA);
   env_.Stop();
@@ -882,8 +905,8 @@ TEST_F(BleTest, StartFastScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kFast, advertisement_bytes);
@@ -898,23 +921,29 @@ TEST_F(BleTest, StartFastScanningDiscoverButNoPeripheralLostAfterStopScanning) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_TRUE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       });
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_b.StopAdvertising(kServiceIDA);
   ble_a.StopScanning(kServiceIDA);
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
-  EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_FALSE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   env_.Stop();
 }
@@ -928,8 +957,8 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -944,16 +973,22 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       });
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_b.StopAdvertising(kServiceIDA);
 
@@ -961,7 +996,7 @@ TEST_F(BleTest, StartScanningDiscoverAndLostPeripheral) {
   // `ProcessLostGattAdvertisements` twice to lost periperal.
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_a.StopScanning(kServiceIDA);
   env_.Stop();
@@ -976,8 +1011,8 @@ TEST_F(BleTest, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -992,23 +1027,29 @@ TEST_F(BleTest, StartScanningDiscoverButNoPeripheralLostAfterStopScanning) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       });
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   ble_b.StopAdvertising(kServiceIDA);
   ble_a.StopScanning(kServiceIDA);
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
-  EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_FALSE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   env_.Stop();
 }
@@ -1102,7 +1143,7 @@ TEST_F(BleTest, HandleLegacyAdvertising) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch legacy_device_found_latch(1);
+  absl::Notification legacy_device_found_latch;
 
   ble_b.StartLegacyAdvertising(kServiceIDA, kLocalEndpointId,
                                kFastAdvertisementServiceUuid);
@@ -1120,11 +1161,14 @@ TEST_F(BleTest, HandleLegacyAdvertising) {
               },
           .legacy_device_discovered_cb =
               [&legacy_device_found_latch]() {
-                legacy_device_found_latch.CountDown();
+                if (!legacy_device_found_latch.HasBeenNotified()) {
+                  legacy_device_found_latch.Notify();
+                }
               },
       }));
 
-  EXPECT_TRUE(legacy_device_found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(
+      legacy_device_found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ble_b.StopAdvertising(kServiceIDA);
   EXPECT_TRUE(ble_a.StopScanning(legacy_service_id));
   env_.Stop();
@@ -1140,7 +1184,7 @@ TEST_F(BleTest, CanStartAsyncScanning) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -1155,11 +1199,13 @@ TEST_F(BleTest, CanStartAsyncScanning) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ble_b.StopAdvertising(kServiceIDA);
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
@@ -1175,7 +1221,7 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -1192,7 +1238,9 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
@@ -1207,11 +1255,13 @@ TEST_F(BleTest, StartAsyncScanningWithPlatformErrors) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   ble_b.StopAdvertising(kServiceIDA);
 
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
@@ -1231,8 +1281,8 @@ TEST_F(BleTest, StartAsyncScanningDiscoverAndLostPeripheral) {
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -1247,23 +1297,29 @@ TEST_F(BleTest, StartAsyncScanningDiscoverAndLostPeripheral) {
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_b.StopAdvertising(kServiceIDA));
 
   // Wait for a while (2 times delay) to let the alarm occur twice and
   // `ProcessLostGattAdvertisements` twice to lost periperal.
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
   env_.Stop();
@@ -1280,8 +1336,8 @@ TEST_F(BleTest,
   radio_a.Enable();
   radio_b.Enable();
   auto advertisement_bytes = ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
 
   ble_b.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                          Ble::AdvertisingType::kRegular, advertisement_bytes);
@@ -1296,23 +1352,29 @@ TEST_F(BleTest,
                              const ByteArray& advertisement_bytes,
                              bool fast_advertisement) {
                 EXPECT_FALSE(fast_advertisement);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           .peripheral_lost_cb =
-              [&lost_latch](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch.CountDown(); },
+              [&lost_latch](BlePeripheral peripheral,
+                            const std::string& service_id,
+                            const ByteArray& advertisement_bytes,
+                            bool fast_advertisement) {
+                if (!lost_latch.HasBeenNotified()) {
+                  lost_latch.Notify();
+                }
+              },
       }));
 
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_b.StopAdvertising(kServiceIDA));
   EXPECT_TRUE(ble_a.StopScanning(kServiceIDA));
 
   // Don't receive lost peripheral callback because we have stopped scanning and
   // cancelled the alarm.
-  EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_FALSE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
 
   env_.Stop();
 }
@@ -1331,8 +1393,8 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
   radio_advertiser_b.Enable();
   auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
   auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
-  CountDownLatch found_latch_a(1);
-  CountDownLatch found_latch_b(1);
+  absl::Notification found_latch_a;
+  absl::Notification found_latch_b;
 
   ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                                     Ble::AdvertisingType::kRegular,
@@ -1352,7 +1414,9 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
                                bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDA);
                 EXPECT_FALSE(fast_advertisement);
-                found_latch_a.CountDown();
+                if (!found_latch_a.HasBeenNotified()) {
+                  found_latch_a.Notify();
+                }
               },
       });
 
@@ -1367,12 +1431,14 @@ TEST_F(BleTest, CanStartStopMultipleAsyncScanningWithDifferentServiceIds) {
                                bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDB);
                 EXPECT_FALSE(fast_advertisement);
-                found_latch_b.CountDown();
+                if (!found_latch_b.HasBeenNotified()) {
+                  found_latch_b.Notify();
+                }
               },
       });
 
-  EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
-  EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch_a.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(found_latch_b.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDA));
   EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
   env_.Stop();
@@ -1392,10 +1458,10 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   radio_advertiser_b.Enable();
   auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
   auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
-  CountDownLatch found_latch_a(1);
-  CountDownLatch found_latch_b(1);
-  CountDownLatch lost_latch_a(1);
-  CountDownLatch lost_latch_b(1);
+  absl::Notification found_latch_a;
+  absl::Notification found_latch_b;
+  absl::Notification lost_latch_a;
+  absl::Notification lost_latch_b;
 
   ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                                     Ble::AdvertisingType::kRegular,
@@ -1415,7 +1481,9 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
                                bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDA);
                 EXPECT_FALSE(fast_advertisement);
-                found_latch_a.CountDown();
+                if (!found_latch_a.HasBeenNotified()) {
+                  found_latch_a.Notify();
+                }
               },
           .peripheral_lost_cb =
               [&lost_latch_a](BlePeripheral peripheral,
@@ -1424,7 +1492,9 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
                               bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDA);
                 EXPECT_FALSE(fast_advertisement);
-                lost_latch_a.CountDown();
+                if (!lost_latch_a.HasBeenNotified()) {
+                  lost_latch_a.Notify();
+                }
               },
       });
 
@@ -1439,7 +1509,9 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
                                bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDB);
                 EXPECT_FALSE(fast_advertisement);
-                found_latch_b.CountDown();
+                if (!found_latch_b.HasBeenNotified()) {
+                  found_latch_b.Notify();
+                }
               },
           .peripheral_lost_cb =
               [&lost_latch_b](BlePeripheral peripheral,
@@ -1448,12 +1520,14 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
                               bool fast_advertisement) {
                 EXPECT_EQ(service_id, kServiceIDB);
                 EXPECT_FALSE(fast_advertisement);
-                lost_latch_b.CountDown();
+                if (!lost_latch_b.HasBeenNotified()) {
+                  lost_latch_b.Notify();
+                }
               },
       });
 
-  EXPECT_TRUE(found_latch_a.Await(kWaitDuration).result());
-  EXPECT_TRUE(found_latch_b.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch_a.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(found_latch_b.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_advertiser_a.StopAdvertising(kServiceIDA));
 
@@ -1461,7 +1535,7 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   // `ProcessLostGattAdvertisements` twice to lost periperal.
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
-  EXPECT_TRUE(lost_latch_a.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch_a.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_advertiser_b.StopAdvertising(kServiceIDB));
 
@@ -1469,7 +1543,7 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
   // `ProcessLostGattAdvertisements` twice to lost periperal.
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
-  EXPECT_TRUE(lost_latch_b.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch_b.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDA));
   EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
@@ -1491,9 +1565,9 @@ TEST_F(BleTest,
   radio_advertiser_b.Enable();
   auto advertisement_bytes_a = ByteArray::FromStringView(kAdvertisementString);
   auto advertisement_bytes_b = ByteArray::FromStringView(kAdvertisementStringB);
-  CountDownLatch found_latch_a(1);
-  CountDownLatch found_latch_b(1);
-  CountDownLatch lost_latch_b(1);
+  absl::Notification found_latch_a;
+  absl::Notification found_latch_b;
+  absl::Notification lost_latch_b;
 
   ble_advertiser_a.StartAdvertising(kServiceIDA, PowerLevel::kHighPower,
                                     Ble::AdvertisingType::kRegular,
@@ -1507,10 +1581,14 @@ TEST_F(BleTest,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch_a](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { found_latch_a.CountDown(); },
+              [&found_latch_a](BlePeripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                if (!found_latch_a.HasBeenNotified()) {
+                  found_latch_a.Notify();
+                }
+              },
       });
 
   ble_scanner.StartScanning(
@@ -1518,19 +1596,27 @@ TEST_F(BleTest,
       /*include_dct_advertisement=*/false,
       mediums::DiscoveredPeripheralCallback{
           .peripheral_discovered_cb =
-              [&found_latch_b](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { found_latch_b.CountDown(); },
+              [&found_latch_b](BlePeripheral peripheral,
+                               const std::string& service_id,
+                               const ByteArray& advertisement_bytes,
+                               bool fast_advertisement) {
+                if (!found_latch_b.HasBeenNotified()) {
+                  found_latch_b.Notify();
+                }
+              },
           .peripheral_lost_cb =
-              [&lost_latch_b](
-                  BlePeripheral peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { lost_latch_b.CountDown(); },
+              [&lost_latch_b](BlePeripheral peripheral,
+                              const std::string& service_id,
+                              const ByteArray& advertisement_bytes,
+                              bool fast_advertisement) {
+                if (!lost_latch_b.HasBeenNotified()) {
+                  lost_latch_b.Notify();
+                }
+              },
       });
 
-  ASSERT_TRUE(found_latch_a.Await(kWaitDuration).result());
-  ASSERT_TRUE(found_latch_b.Await(kWaitDuration).result());
+  ASSERT_TRUE(found_latch_a.WaitForNotificationWithTimeout(kWaitDuration));
+  ASSERT_TRUE(found_latch_b.WaitForNotificationWithTimeout(kWaitDuration));
 
   // Stop scanning for service A only.
   ASSERT_TRUE(ble_scanner.StopScanning(kServiceIDA));
@@ -1542,7 +1628,7 @@ TEST_F(BleTest,
   SystemClock::Sleep(absl::Milliseconds(kPeripheralLostTimeoutInMillis) * 2);
 
   // Service B should still receive the peripheral lost callback.
-  EXPECT_TRUE(lost_latch_b.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch_b.WaitForNotificationWithTimeout(kWaitDuration));
 
   EXPECT_TRUE(ble_scanner.StopScanning(kServiceIDB));
   env_.Stop();
@@ -1653,18 +1739,14 @@ TEST_F(BleTest, StartAcceptingL2capConnectionsHandlesMultipleConnections) {
   std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes =
       ByteArray::FromStringView(kAdvertisementString);
-  CountDownLatch accept_latch(2);
 
   absl::Mutex server_sockets_mutex;
   std::vector<std::unique_ptr<mediums::BleSocket>> server_sockets;
   ErrorOr<int> psm_result = ble_server->StartAcceptingL2capConnections(
       service_id,
       [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
-        {
-          absl::MutexLock lock(server_sockets_mutex);
-          server_sockets.push_back(std::move(socket));
-        }
-        accept_latch.CountDown();
+        absl::MutexLock lock(server_sockets_mutex);
+        server_sockets.push_back(std::move(socket));
       });
   ASSERT_TRUE(psm_result.has_value());
 
@@ -1681,12 +1763,18 @@ TEST_F(BleTest, StartAcceptingL2capConnectionsHandlesMultipleConnections) {
   ErrorOr<std::unique_ptr<mediums::BleSocket>> client_2 =
       ble_client.ConnectOverL2cap2(service_id, *discovered_peripheral, &flag);
   ASSERT_TRUE(client_2.has_value());
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
 
   std::unique_ptr<mediums::BleSocket> server_socket_1;
   std::unique_ptr<mediums::BleSocket> server_socket_2;
   {
     absl::MutexLock lock(server_sockets_mutex);
+    EXPECT_TRUE(server_sockets_mutex.AwaitWithTimeout(
+        absl::Condition(
+            +[](std::vector<std::unique_ptr<mediums::BleSocket>>* v) {
+              return v->size() >= 2;
+            },
+            &server_sockets),
+        kWaitDuration));
     ASSERT_EQ(server_sockets.size(), 2u);
     server_socket_1 = std::move(server_sockets[0]);
     server_socket_2 = std::move(server_sockets[1]);

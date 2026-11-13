@@ -23,6 +23,8 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
@@ -37,7 +39,6 @@
 #include "connections/medium_selector.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -487,13 +488,14 @@ EndpointManager::~EndpointManager() {
     MutexLock lock(&mutex_);
     is_shutdown_ = true;
   }
-  CountDownLatch latch(1);
-  RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
-    LOG(INFO) << "Bringing down endpoints";
-    endpoints_.clear();
-    latch.CountDown();
-  });
-  latch.Await();
+  absl::Notification notification;
+  RunOnEndpointManagerThread(
+      "bring-down-endpoints", [this, &notification]() {
+        LOG(INFO) << "Bringing down endpoints";
+        endpoints_.clear();
+        notification.Notify();
+      });
+  notification.WaitForNotification();
 
   LOG(INFO) << "Bringing down control thread";
   serial_executor_->Shutdown();
@@ -572,108 +574,110 @@ void EndpointManager::RegisterEndpoint(
     const ConnectionOptions& connection_options,
     std::shared_ptr<EndpointChannel> channel,
     const ConnectionListener& listener, const std::string& connection_token) {
-  CountDownLatch latch(1);
+  absl::Notification notification;
 
-  RunOnEndpointManagerThread("register-endpoint", [this, client, channel,
-                                                   &endpoint_id, &info,
-                                                   &connection_options,
-                                                   &listener, &connection_token,
-                                                   &latch]() {
-    if (endpoints_.contains(endpoint_id)) {
-      LOG(WARNING) << "Registering duplicate endpoint " << endpoint_id;
-      // We must remove old endpoint state before registering a new one
-      // for the same endpoint_id.
-      RemoveEndpointState(endpoint_id);
-    }
+  RunOnEndpointManagerThread(
+      "register-endpoint",
+      [this, client, channel, &endpoint_id, &info, &connection_options,
+       &listener, &connection_token, &notification]() {
+        if (endpoints_.contains(endpoint_id)) {
+          LOG(WARNING) << "Registering duplicate endpoint " << endpoint_id;
+          // We must remove old endpoint state before registering a new one
+          // for the same endpoint_id.
+          RemoveEndpointState(endpoint_id);
+        }
 
-    absl::Duration keep_alive_interval =
-        absl::Milliseconds(connection_options.keep_alive_interval_millis);
-    absl::Duration keep_alive_timeout =
-        absl::Milliseconds(connection_options.keep_alive_timeout_millis);
-    LOG(INFO) << "Registering endpoint " << endpoint_id << " for client "
-              << client->GetClientId() << " with keep-alive frame as interval="
-              << absl::FormatDuration(keep_alive_interval)
-              << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
+        absl::Duration keep_alive_interval =
+            absl::Milliseconds(connection_options.keep_alive_interval_millis);
+        absl::Duration keep_alive_timeout =
+            absl::Milliseconds(connection_options.keep_alive_timeout_millis);
+        LOG(INFO) << "Registering endpoint " << endpoint_id << " for client "
+                  << client->GetClientId()
+                  << " with keep-alive frame as interval="
+                  << absl::FormatDuration(keep_alive_interval)
+                  << ", timeout=" << absl::FormatDuration(keep_alive_timeout);
 
-    // Pass ownership of channel to EndpointChannelManager
-    LOG(INFO) << "Registering endpoint with channel manager: endpoint "
-              << endpoint_id;
-    channel_manager_->RegisterChannelForEndpoint(client, endpoint_id, channel);
+        // Pass ownership of channel to EndpointChannelManager
+        LOG(INFO) << "Registering endpoint with channel manager: endpoint "
+                  << endpoint_id;
+        channel_manager_->RegisterChannelForEndpoint(client, endpoint_id,
+                                                     channel);
 
-    EndpointState& endpoint_state =
-        endpoints_
-            .emplace(endpoint_id, EndpointState(endpoint_id, channel_manager_))
-            .first->second;
+        EndpointState& endpoint_state =
+            endpoints_
+                .emplace(endpoint_id,
+                         EndpointState(endpoint_id, channel_manager_))
+                .first->second;
 
-    LOG(INFO) << "Starting workers: endpoint " << endpoint_id;
-    // For every endpoint, there's normally only one Read handler instance
-    // running on a dedicated thread. This instance reads data from the
-    // endpoint and delegates incoming frames to various FrameProcessors.
-    // Once the frame has been properly handled, it starts reading again
-    // for the next frame. If the handler fails its read and no other
-    // EndpointChannels are available for this endpoint, a disconnection
-    // will be initiated.
-    endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
-      EndpointChannelLoopRunnable(
-          "Read", client, endpoint_id,
-          [this, client,
-           endpoint_id](std::shared_ptr<EndpointChannel> channel) {
-            return HandleData(endpoint_id, client, channel);
-          });
-    });
-
-    // For every endpoint, there's only one KeepAliveManager instance
-    // running on a dedicated thread. This instance will periodically send
-    // out a ping* to the endpoint while listening for an incoming pong**.
-    // If it fails to send the ping, or if no pong is heard within
-    // keep_alive_timeout, it initiates a disconnection.
-    //
-    // (*) Bluetooth requires a constant outgoing stream of messages. If
-    // there's silence, Android will break the socket. This is why we
-    // ping.
-    // (**) Wifi Hotspots can fail to notice a connection has been lost,
-    // and they will happily keep writing to /dev/null. This is why we
-    // listen for the pong.
-    VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
-            << endpoint_id;
-    endpoint_state.StartEndpointKeepAliveManager(
-        [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
-            absl::Mutex* keep_alive_waiter_mutex,
-            absl::CondVar* keep_alive_waiter) {
+        LOG(INFO) << "Starting workers: endpoint " << endpoint_id;
+        // For every endpoint, there's normally only one Read handler instance
+        // running on a dedicated thread. This instance reads data from the
+        // endpoint and delegates incoming frames to various FrameProcessors.
+        // Once the frame has been properly handled, it starts reading again
+        // for the next frame. If the handler fails its read and no other
+        // EndpointChannels are available for this endpoint, a disconnection
+        // will be initiated.
+        endpoint_state.StartEndpointReader([this, client, endpoint_id]() {
           EndpointChannelLoopRunnable(
-              "KeepAliveManager", client, endpoint_id,
-              [this, keep_alive_interval, keep_alive_timeout,
-               keep_alive_waiter_mutex,
-               keep_alive_waiter](std::shared_ptr<EndpointChannel> channel) {
-                return HandleKeepAlive(
-                    channel, keep_alive_interval, keep_alive_timeout,
-                    keep_alive_waiter_mutex, keep_alive_waiter);
+              "Read", client, endpoint_id,
+              [this, client,
+               endpoint_id](std::shared_ptr<EndpointChannel> channel) {
+                return HandleData(endpoint_id, client, channel);
               });
         });
-    LOG(INFO) << "Registering endpoint " << endpoint_id
-              << ", workers started and notifying client.";
 
-    // It's now time to let the client know of this new connection so that
-    // they can accept or reject it.
-    client->OnConnectionInitiated(endpoint_id, info, connection_options,
-                                  listener, connection_token);
-    latch.CountDown();
-  });
-  latch.Await();
+        // For every endpoint, there's only one KeepAliveManager instance
+        // running on a dedicated thread. This instance will periodically send
+        // out a ping* to the endpoint while listening for an incoming pong**.
+        // If it fails to send the ping, or if no pong is heard within
+        // keep_alive_timeout, it initiates a disconnection.
+        //
+        // (*) Bluetooth requires a constant outgoing stream of messages. If
+        // there's silence, Android will break the socket. This is why we
+        // ping.
+        // (**) Wifi Hotspots can fail to notice a connection has been lost,
+        // and they will happily keep writing to /dev/null. This is why we
+        // listen for the pong.
+        VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
+                << endpoint_id;
+        endpoint_state.StartEndpointKeepAliveManager(
+            [this, client, endpoint_id, keep_alive_interval,
+             keep_alive_timeout](absl::Mutex* keep_alive_waiter_mutex,
+                                 absl::CondVar* keep_alive_waiter) {
+              EndpointChannelLoopRunnable(
+                  "KeepAliveManager", client, endpoint_id,
+                  [this, keep_alive_interval, keep_alive_timeout,
+                   keep_alive_waiter_mutex, keep_alive_waiter](
+                      std::shared_ptr<EndpointChannel> channel) {
+                    return HandleKeepAlive(
+                        channel, keep_alive_interval, keep_alive_timeout,
+                        keep_alive_waiter_mutex, keep_alive_waiter);
+                  });
+            });
+        LOG(INFO) << "Registering endpoint " << endpoint_id
+                  << ", workers started and notifying client.";
+
+        // It's now time to let the client know of this new connection so that
+        // they can accept or reject it.
+        client->OnConnectionInitiated(endpoint_id, info, connection_options,
+                                      listener, connection_token);
+        notification.Notify();
+      });
+  notification.WaitForNotification();
 }
 
 void EndpointManager::UnregisterEndpoint(ClientProxy* client,
                                          const std::string& endpoint_id) {
   LOG(INFO) << "UnregisterEndpoint for endpoint " << endpoint_id;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnEndpointManagerThread(
-      "unregister-endpoint", [this, client, endpoint_id, &latch]() {
+      "unregister-endpoint", [this, client, endpoint_id, &notification]() {
         RemoveEndpoint(client, endpoint_id,
                        /*notify=*/client->IsConnectedToEndpoint(endpoint_id),
                        DisconnectionReason::LOCAL_DISCONNECTION);
-        latch.CountDown();
+        notification.Notify();
       });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 int EndpointManager::GetMaxTransmitPacketSize(const std::string& endpoint_id) {
@@ -899,12 +903,21 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
     const std::string& endpoint_id, DisconnectionReason reason) {
   LOG(INFO) << "Wait: client=" << client << "; service_id=" << service_id
             << "; endpoint_id=" << endpoint_id;
-  CountDownLatch barrier = NotifyFrameProcessorsOnEndpointDisconnect(
-      client, service_id, endpoint_id, reason);
+  std::vector<std::shared_ptr<absl::Notification>> barriers =
+      NotifyFrameProcessorsOnEndpointDisconnect(client, service_id, endpoint_id,
+                                                reason);
 
   LOG(INFO) << "Waiting for frame processors to disconnect from endpoint "
             << endpoint_id;
-  if (!barrier.Await(kProcessEndpointDisconnectionTimeout).result()) {
+  absl::Time deadline = absl::Now() + kProcessEndpointDisconnectionTimeout;
+  bool all_disconnected = true;
+  for (const std::shared_ptr<absl::Notification>& barrier : barriers) {
+    if (!barrier->WaitForNotificationWithDeadline(deadline)) {
+      all_disconnected = false;
+      break;
+    }
+  }
+  if (!all_disconnected) {
     LOG(INFO) << "Failed to disconnect frame processors from endpoint "
               << endpoint_id;
   } else {
@@ -914,7 +927,8 @@ void EndpointManager::WaitForEndpointDisconnectionProcessing(
   }
 }
 
-CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
+std::vector<std::shared_ptr<absl::Notification>>
+EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, DisconnectionReason reason) {
   LOG(INFO) << "NotifyFrameProcessorsOnEndpointDisconnect: client=" << client
@@ -922,7 +936,8 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
   MutexLock lock(&frame_processors_lock_);
   auto total_size = frame_processors_.size();
   LOG(INFO) << "Total frame processors: " << total_size;
-  CountDownLatch barrier(total_size);
+  std::vector<std::shared_ptr<absl::Notification>> barriers;
+  barriers.reserve(total_size);
 
   int valid = 0;
   for (auto& item : frame_processors_) {
@@ -931,10 +946,10 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
               << "; frame type=" << V1Frame::FrameType_Name(item.first);
     if (processor) {
       valid++;
+      auto barrier = std::make_shared<absl::Notification>();
       processor->OnEndpointDisconnect(client, service_id, endpoint_id, barrier,
                                       reason);
-    } else {
-      barrier.CountDown();
+      barriers.push_back(std::move(barrier));
     }
   }
 
@@ -943,7 +958,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
   } else {
     LOG(INFO) << "Valid frame processors: " << valid;
   }
-  return barrier;
+  return barriers;
 }
 
 std::vector<std::string> EndpointManager::SendPayloadAck(

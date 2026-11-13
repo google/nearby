@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -46,7 +47,6 @@
 #include "connections/v3/params.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
@@ -71,9 +71,10 @@ void CheckServiceId(absl::string_view service_id) {
 Core::Core(ServiceControllerRouter* router) : router_(router) {}
 
 Core::~Core() {
-  CountDownLatch latch(1);
-  router_->StopAllEndpoints(&client_, [&latch](Status) { latch.CountDown(); });
-  if (!latch.Await(kWaitForDisconnect).result()) {
+  absl::Notification notification;
+  router_->StopAllEndpoints(
+      &client_, [&notification](Status) { notification.Notify(); });
+  if (!notification.WaitForNotificationWithTimeout(kWaitForDisconnect)) {
     LOG(FATAL) << "Unable to shutdown";
   }
 }

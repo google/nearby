@@ -42,7 +42,6 @@
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
@@ -177,8 +176,9 @@ void P2pClusterPcpHandlerTest::RunCanConnectHelper(
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch discover_latch(1);
-  CountDownLatch connect_latch(2);
+  absl::Notification discover_latch;
+  absl::Notification connect_latch_a;
+  absl::Notification connect_latch_b;
   struct DiscoveredInfo {
     std::string endpoint_id;
     ByteArray endpoint_info;
@@ -198,11 +198,12 @@ void P2pClusterPcpHandlerTest::RunCanConnectHelper(
               .listener =
                   {
                       .initiated_cb =
-                          [&connect_latch](const std::string& endpoint_id,
-                                           const ConnectionResponseInfo& info) {
+                          [&connect_latch_a](
+                              const std::string& endpoint_id,
+                              const ConnectionResponseInfo& info) {
                             LOG(INFO)
                                 << "StartAdvertising: initiated_cb called";
-                            connect_latch.CountDown();
+                            connect_latch_a.Notify();
                           },
                   },
           }),
@@ -223,12 +224,15 @@ void P2pClusterPcpHandlerTest::RunCanConnectHelper(
                               .endpoint_info = endpoint_info,
                               .service_id = service_id,
                           };
-                          discover_latch.CountDown();
+                          if (!discover_latch.HasBeenNotified()) {
+                            discover_latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
 
-  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      discover_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
 
   const std::string kBssid = "34:36:3B:C7:8C:71";
@@ -245,16 +249,19 @@ void P2pClusterPcpHandlerTest::RunCanConnectHelper(
        .listener =
            {
                .initiated_cb =
-                   [&connect_latch](const std::string& endpoint_id,
-                                    const ConnectionResponseInfo& info) {
+                   [&connect_latch_b](const std::string& endpoint_id,
+                                      const ConnectionResponseInfo& info) {
                      LOG(INFO) << "RequestConnection: initiated_cb called";
-                     connect_latch.CountDown();
+                     connect_latch_b.Notify();
                    },
            }},
       connection_options);
   std::string client_b_local_endpoint = client_b_.GetLocalEndpointId();
 
-  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      connect_latch_a.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
+  EXPECT_TRUE(
+      connect_latch_b.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_TRUE(client_b_.Is5GHzSupported(discovered.endpoint_id));
   EXPECT_EQ(client_b_.GetBssid(discovered.endpoint_id), kBssid);
   EXPECT_EQ(client_b_.GetApFrequency(discovered.endpoint_id), kFreq);
@@ -325,7 +332,7 @@ TEST_F(P2pClusterPcpHandlerTest,
   BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch latch(1);
+  absl::Notification latch;
 
   EXPECT_EQ(handler_a.StartDiscovery(&client_a_, service_id_,
                                      GetBluetoothOnlyDiscoveryOptions(), {}),
@@ -343,7 +350,9 @@ TEST_F(P2pClusterPcpHandlerTest,
                            const ByteArray& endpoint_info,
                            const std::string& service_id) {
                     LOG(INFO) << "Device discovered: id=" << endpoint_id;
-                    latch.CountDown();
+                    if (!latch.HasBeenNotified()) {
+                      latch.Notify();
+                    }
                   },
           }),
       Status{Status::kSuccess});
@@ -355,7 +364,7 @@ TEST_F(P2pClusterPcpHandlerTest,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
 
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
 
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
@@ -692,7 +701,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscover) {
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch latch(1);
+  absl::Notification latch;
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
@@ -705,11 +714,13 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscover) {
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
                           LOG(INFO) << "Device discovered: id=" << endpoint_id;
-                          latch.CountDown();
+                          if (!latch.HasBeenNotified()) {
+                            latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   // We discovered endpoint over one medium. Before we finish the test, we have
   // to stop discovery for other mediums that may be still ongoing.
   handler_b.StopDiscovery(&client_b_);
@@ -731,7 +742,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch latch(1);
+  absl::Notification latch;
   EXPECT_EQ(
       handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
@@ -744,12 +755,14 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
                           LOG(INFO) << "Device discovered: id=" << endpoint_id;
-                          latch.CountDown();
+                          if (!latch.HasBeenNotified()) {
+                            latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
   // advertising for legacy device depends on both BT and BLE enabled.
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   // We discovered endpoint over one medium. Before we finish the test, we have
   // to stop discovery for other mediums that may be still ongoing.
   handler_b.StopDiscovery(&client_b_);
@@ -812,7 +825,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
   BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch latch(1);
+  absl::Notification latch;
 
   EXPECT_EQ(handler_a.StartDiscovery(
                 &client_a_, service_id_, discovery_options_,
@@ -822,7 +835,9 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
                           LOG(INFO) << "Device discovered: id=" << endpoint_id;
-                          latch.CountDown();
+                          if (!latch.HasBeenNotified()) {
+                            latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
@@ -835,7 +850,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
 
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   absl::SleepFor(absl::Milliseconds(100));
 
   EXPECT_TRUE(mediums_a.GetBle().IsScanning(service_id_));
@@ -864,11 +879,11 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   // For the first time we find the device with the old name.
-  CountDownLatch first_found_latch(1);
+  absl::Notification first_found_latch;
   // For the second time we "find" the device with the new name.
-  CountDownLatch second_found_latch(1);
+  absl::Notification second_found_latch;
   // For when the name is changed.
-  CountDownLatch lost_latch(1);
+  absl::Notification lost_latch;
   AdvertisingOptions advertising_options = {
       {
           Strategy::kP2pCluster,
@@ -900,16 +915,18 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
                             const std::string& service_id) {
                           LOG(INFO) << "Device discovered: id=" << endpoint_id;
                           if (!first) {
-                            first_found_latch.CountDown();
+                            first_found_latch.Notify();
                             first = true;
-                          } else {
-                            second_found_latch.CountDown();
+                          } else if (!second_found_latch.HasBeenNotified()) {
+                            second_found_latch.Notify();
                           }
                         },
                     .endpoint_lost_cb =
                         [&](const std::string& id) {
                           LOG(INFO) << "Device lost: id=" << id;
-                          lost_latch.CountDown();
+                          if (!lost_latch.HasBeenNotified()) {
+                            lost_latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
@@ -920,11 +937,11 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
                                name.GetEndpointId(), name.GetServiceIdHash(),
                                ByteArray("BT Device A"), name.GetUwbAddress(),
                                name.GetWebRtcState());
-  EXPECT_TRUE(first_found_latch.Await().Ok());
+  first_found_latch.WaitForNotification();
   mediums_a.GetBluetoothRadio().GetBluetoothAdapter().SetName(
       std::string(new_name));
-  EXPECT_TRUE(second_found_latch.Await().Ok());
-  EXPECT_TRUE(lost_latch.Await().Ok());
+  second_found_latch.WaitForNotification();
+  lost_latch.WaitForNotification();
   handler_b.StopDiscovery(&client_b_);
   env_.Stop();
 }
@@ -1093,8 +1110,9 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
   InjectedBluetoothDeviceStore ibds_b;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
-  CountDownLatch discover_latch(1);
-  CountDownLatch connect_latch(2);
+  absl::Notification discover_latch;
+  absl::Notification connect_latch_a;
+  absl::Notification connect_latch_b;
   struct DiscoveredInfo {
     std::string endpoint_id;
     ByteArray endpoint_info;
@@ -1108,11 +1126,12 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
               .listener =
                   {
                       .initiated_cb =
-                          [&connect_latch](const std::string& endpoint_id,
-                                           const ConnectionResponseInfo& info) {
+                          [&connect_latch_a](
+                              const std::string& endpoint_id,
+                              const ConnectionResponseInfo& info) {
                             LOG(INFO)
                                 << "StartAdvertising: initiated_cb called";
-                            connect_latch.CountDown();
+                            connect_latch_a.Notify();
                           },
                   },
           }),
@@ -1133,12 +1152,15 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
                               .endpoint_info = endpoint_info,
                               .service_id = service_id,
                           };
-                          discover_latch.CountDown();
+                          if (!discover_latch.HasBeenNotified()) {
+                            discover_latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
 
-  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      discover_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(endpoint_info_a, discovered.endpoint_info);
 
   const std::string kBssid = "34:36:3B:C7:8C:71";
@@ -1155,16 +1177,19 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
        .listener =
            {
                .initiated_cb =
-                   [&connect_latch](const std::string& endpoint_id,
-                                    const ConnectionResponseInfo& info) {
+                   [&connect_latch_b](const std::string& endpoint_id,
+                                      const ConnectionResponseInfo& info) {
                      LOG(INFO) << "RequestConnection: initiated_cb called";
-                     connect_latch.CountDown();
+                     connect_latch_b.Notify();
                    },
            }},
       connection_options_);
   std::string client_b_local_endpoint = client_b.GetLocalEndpointId();
 
-  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      connect_latch_a.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
+  EXPECT_TRUE(
+      connect_latch_b.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_TRUE(client_b.Is5GHzSupported(discovered.endpoint_id));
   EXPECT_EQ(client_b.GetBssid(discovered.endpoint_id), kBssid);
   EXPECT_EQ(client_b.GetApFrequency(discovered.endpoint_id), kFreq);
@@ -1485,7 +1510,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectEndpoint) {
       /* is_out_of_band_connection= */ true,
   };
 
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   std::string found_endpoint_id;
 
   EXPECT_EQ(
@@ -1496,7 +1521,9 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectEndpoint) {
                                            const ByteArray& endpoint_info,
                                            const std::string& service_id) {
                                          found_endpoint_id = endpoint_id;
-                                         found_latch.CountDown();
+                                         if (!found_latch.HasBeenNotified()) {
+                                           found_latch.Notify();
+                                         }
                                        },
                                }),
       Status{Status::kSuccess});
@@ -1515,7 +1542,8 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectEndpoint) {
 
   handler_a.InjectEndpoint(&client_a_, service_id_, metadata);
 
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(found_endpoint_id, endpoint_id);
   EXPECT_TRUE(ibds_a.IsInjectedDevice(
       mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetAddress()));
@@ -1544,8 +1572,9 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
   mediums_b.GetBluetoothRadio().GetBluetoothAdapter().SetName("Device B");
 
-  CountDownLatch found_latch(1);
-  CountDownLatch connect_latch(2);
+  absl::Notification found_latch;
+  absl::Notification connect_latch_a;
+  absl::Notification connect_latch_b;
 
   std::string discovered_endpoint_id;
   ByteArray discovered_endpoint_info;
@@ -1561,7 +1590,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
                             .initiated_cb =
                                 [&](const std::string& endpoint_id,
                                     const ConnectionResponseInfo& info) {
-                                  connect_latch.CountDown();
+                                  connect_latch_a.Notify();
                                 },
                         },
                 }),
@@ -1587,7 +1616,9 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
                             const std::string& service_id) {
                           discovered_endpoint_id = endpoint_id;
                           discovered_endpoint_info = endpoint_info;
-                          found_latch.CountDown();
+                          if (!found_latch.HasBeenNotified()) {
+                            found_latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
@@ -1603,7 +1634,8 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
 
   handler_b.InjectEndpoint(&client_b_, service_id_, metadata);
 
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(discovered_endpoint_id, client_a_.GetLocalEndpointId());
 
   // 4. Discoverer requests connection to the injected endpoint
@@ -1616,12 +1648,15 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
                .initiated_cb =
                    [&](const std::string& endpoint_id,
                        const ConnectionResponseInfo& info) {
-                     connect_latch.CountDown();
+                     connect_latch_b.Notify();
                    },
            }},
       {});
 
-  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(2000)).result());
+  EXPECT_TRUE(
+      connect_latch_a.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
+  EXPECT_TRUE(
+      connect_latch_b.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
 
   handler_a.StopAdvertising(&client_a_);
   handler_b.StopDiscovery(&client_b_);
@@ -1651,7 +1686,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectBleEndpoint) {
       /* is_out_of_band_connection= */ false,
   };
 
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
   std::string found_endpoint_id;
 
   EXPECT_EQ(
@@ -1662,7 +1697,9 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectBleEndpoint) {
                                            const ByteArray& endpoint_info,
                                            const std::string& service_id) {
                                          found_endpoint_id = endpoint_id;
-                                         found_latch.CountDown();
+                                         if (!found_latch.HasBeenNotified()) {
+                                           found_latch.Notify();
+                                         }
                                        },
                                }),
       Status{Status::kSuccess});
@@ -1683,7 +1720,8 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectBleEndpoint) {
 
   handler_a.InjectEndpoint(&client_a_, service_id_, metadata);
 
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(found_endpoint_id, endpoint_id);
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
@@ -1745,9 +1783,10 @@ TEST_F(P2pLostHandlerTest, CanConnect) {
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
   P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
 
-  CountDownLatch discover_latch(1);
-  CountDownLatch connect_latch(2);
-  CountDownLatch lost_latch(1);
+  absl::Notification discover_latch;
+  absl::Notification connect_latch_a;
+  absl::Notification connect_latch_b;
+  absl::Notification lost_latch;
 
   struct DiscoveredInfo {
     std::string endpoint_id;
@@ -1771,12 +1810,16 @@ TEST_F(P2pLostHandlerTest, CanConnect) {
                               .endpoint_info = endpoint_info,
                               .service_id = service_id,
                           };
-                          discover_latch.CountDown();
+                          if (!discover_latch.HasBeenNotified()) {
+                            discover_latch.Notify();
+                          }
                         },
                     .endpoint_lost_cb =
                         [&lost_latch](const std::string& endpoint_id) {
                           LOG(INFO) << "Device lost: id=" << endpoint_id;
-                          lost_latch.CountDown();
+                          if (!lost_latch.HasBeenNotified()) {
+                            lost_latch.Notify();
+                          }
                         },
                 }),
             Status{Status::kSuccess});
@@ -1789,17 +1832,19 @@ TEST_F(P2pLostHandlerTest, CanConnect) {
               .listener =
                   {
                       .initiated_cb =
-                          [&connect_latch](const std::string& endpoint_id,
-                                           const ConnectionResponseInfo& info) {
+                          [&connect_latch_a](
+                              const std::string& endpoint_id,
+                              const ConnectionResponseInfo& info) {
                             LOG(INFO)
                                 << "StartAdvertising: initiated_cb called";
-                            connect_latch.CountDown();
+                            connect_latch_a.Notify();
                           },
                   },
           }),
       Status{Status::kSuccess});
 
-  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      discover_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
 
   client_b_.AddCancellationFlag(discovered.endpoint_id);
@@ -1809,19 +1854,23 @@ TEST_F(P2pLostHandlerTest, CanConnect) {
        .listener =
            {
                .initiated_cb =
-                   [&connect_latch](const std::string& endpoint_id,
-                                    const ConnectionResponseInfo& info) {
+                   [&connect_latch_b](const std::string& endpoint_id,
+                                      const ConnectionResponseInfo& info) {
                      LOG(INFO) << "RequestConnection: initiated_cb called";
-                     connect_latch.CountDown();
+                     connect_latch_b.Notify();
                    },
            }},
       {});
   std::string client_b_local_endpoint = client_b_.GetLocalEndpointId();
 
-  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      connect_latch_a.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
+  EXPECT_TRUE(
+      connect_latch_b.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
 
   handler_a.StopAdvertising(&client_a_);
-  EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(3000)).result());
+  EXPECT_TRUE(
+      lost_latch.WaitForNotificationWithTimeout(absl::Milliseconds(3000)));
   handler_b.StopDiscovery(&client_b_);
   bwu_a.Shutdown();
   bwu_b.Shutdown();

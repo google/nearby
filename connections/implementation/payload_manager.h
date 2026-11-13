@@ -17,11 +17,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -30,7 +32,6 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/status.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
@@ -57,7 +58,8 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // @EndpointManagerThread
   void OnEndpointDisconnect(
       ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id, CountDownLatch barrier,
+      const std::string& endpoint_id,
+      std::shared_ptr<absl::Notification> barrier,
       location::nearby::proto::connections::DisconnectionReason reason)
       override;
 

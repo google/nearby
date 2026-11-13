@@ -20,7 +20,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/count_down_latch.h"
+#include "absl/synchronization/notification.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -62,8 +62,8 @@ TEST_P(WifiLanMediumTest, CanConnectToService) {
   std::string service_type(kServiceType);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   WifiLanServerSocket server_socket = wifi_lan_b.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
@@ -85,15 +85,16 @@ TEST_P(WifiLanMediumTest, CanConnectToService) {
                   NsdServiceInfo service_info,
                   const std::string& service_type) {
                 discovered_service_info = service_info;
-                discovered_latch.CountDown();
+                discovered_latch.Notify();
               },
           .service_lost_cb =
               [&lost_latch](NsdServiceInfo service_info,
                             const std::string& service_type) {
-                lost_latch.CountDown();
+                lost_latch.Notify();
               },
       });
-  EXPECT_TRUE(discovered_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   WifiLanSocket socket_a;
   WifiLanSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
@@ -133,8 +134,8 @@ TEST_P(WifiLanMediumTest, CanCancelConnect) {
   std::string service_type(kServiceType);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   WifiLanServerSocket server_socket = wifi_lan_b.ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
@@ -157,15 +158,16 @@ TEST_P(WifiLanMediumTest, CanCancelConnect) {
                   NsdServiceInfo service_info,
                   const std::string& service_type) {
                 discovered_service_info = service_info;
-                discovered_latch.CountDown();
+                discovered_latch.Notify();
               },
           .service_lost_cb =
               [&lost_latch](NsdServiceInfo service_info,
                             const std::string& service_type) {
-                lost_latch.CountDown();
+                lost_latch.Notify();
               },
       });
-  EXPECT_TRUE(discovered_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   WifiLanSocket socket_a;
   WifiLanSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
@@ -306,8 +308,8 @@ TEST_F(WifiLanMediumTest, CanAdvertiseThatOtherMediumDiscover) {
   std::string service_type(kServiceType);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   wifi_lan_b.StartDiscovery(
       service_id, service_type,
@@ -315,12 +317,12 @@ TEST_F(WifiLanMediumTest, CanAdvertiseThatOtherMediumDiscover) {
           .service_discovered_cb =
               [&discovered_latch](NsdServiceInfo service_info,
                                   const std::string& service_type) {
-                discovered_latch.CountDown();
+                discovered_latch.Notify();
               },
           .service_lost_cb =
               [&lost_latch](NsdServiceInfo service_info,
                             const std::string& service_id) {
-                lost_latch.CountDown();
+                lost_latch.Notify();
               },
       });
 
@@ -333,9 +335,9 @@ TEST_F(WifiLanMediumTest, CanAdvertiseThatOtherMediumDiscover) {
                                 endpoint_info_name);
   nsd_service_info.SetServiceType(service_type);
   EXPECT_TRUE(wifi_lan_a.StartAdvertising(nsd_service_info));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(wifi_lan_a.StopAdvertising(nsd_service_info));
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(wifi_lan_b.StopDiscovery(service_type));
   env_.Stop();
 }
@@ -348,21 +350,32 @@ TEST_F(WifiLanMediumTest, CanDiscoverMultipleAdvertisementsOnSameService) {
   std::string service_id(kServiceId);
   std::string service_type(kServiceType);
 
-  CountDownLatch discovered_latch(2);
-  CountDownLatch lost_latch(2);
+  absl::Notification discovered_latch_1;
+  absl::Notification discovered_latch_2;
+  absl::Notification lost_latch_1;
+  absl::Notification lost_latch_2;
 
   wifi_lan_discovery.StartDiscovery(
       service_id, service_type,
       DiscoveredServiceCallback{
           .service_discovered_cb =
-              [&discovered_latch](NsdServiceInfo service_info,
-                                  const std::string& service_type) {
-                discovered_latch.CountDown();
+              [&discovered_latch_1, &discovered_latch_2](
+                  NsdServiceInfo service_info,
+                  const std::string& service_type) {
+                if (service_info.GetServiceName() == "service1") {
+                  discovered_latch_1.Notify();
+                } else if (service_info.GetServiceName() == "service2") {
+                  discovered_latch_2.Notify();
+                }
               },
           .service_lost_cb =
-              [&lost_latch](NsdServiceInfo service_info,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
+              [&lost_latch_1, &lost_latch_2](NsdServiceInfo service_info,
+                                             const std::string& service_id) {
+                if (service_info.GetServiceName() == "service1") {
+                  lost_latch_1.Notify();
+                } else if (service_info.GetServiceName() == "service2") {
+                  lost_latch_2.Notify();
+                }
               },
       });
 
@@ -388,10 +401,12 @@ TEST_F(WifiLanMediumTest, CanDiscoverMultipleAdvertisementsOnSameService) {
 
   EXPECT_TRUE(wifi_lan_advertising_1.StartAdvertising(nsd_service_info_1));
   EXPECT_TRUE(wifi_lan_advertising_2.StartAdvertising(nsd_service_info_2));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch_1.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(discovered_latch_2.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(wifi_lan_advertising_1.StopAdvertising(nsd_service_info_1));
   EXPECT_TRUE(wifi_lan_advertising_2.StopAdvertising(nsd_service_info_2));
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch_1.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(lost_latch_2.WaitForNotificationWithTimeout(kWaitDuration));
 
   // Stop to descovery
   EXPECT_TRUE(wifi_lan_discovery.StopDiscovery(service_type));
@@ -406,8 +421,8 @@ TEST_F(WifiLanMediumTest, CanDiscoverThatOtherMediumAdvertise) {
   std::string service_type(kServiceType);
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
-  CountDownLatch discovered_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification discovered_latch;
+  absl::Notification lost_latch;
 
   wifi_lan_a.StartDiscovery(
       service_id, service_type,
@@ -415,12 +430,12 @@ TEST_F(WifiLanMediumTest, CanDiscoverThatOtherMediumAdvertise) {
           .service_discovered_cb =
               [&discovered_latch](NsdServiceInfo service_info,
                                   const std::string& service_type) {
-                discovered_latch.CountDown();
+                discovered_latch.Notify();
               },
           .service_lost_cb =
               [&lost_latch](NsdServiceInfo service_info,
                             const std::string& service_type) {
-                lost_latch.CountDown();
+                lost_latch.Notify();
               },
       });
 
@@ -433,9 +448,9 @@ TEST_F(WifiLanMediumTest, CanDiscoverThatOtherMediumAdvertise) {
                                 endpoint_info_name);
   nsd_service_info.SetServiceType(service_type);
   EXPECT_TRUE(wifi_lan_b.StartAdvertising(nsd_service_info));
-  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(discovered_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(wifi_lan_b.StopAdvertising(nsd_service_info));
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(lost_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(wifi_lan_a.StopDiscovery(service_type));
   env_.Stop();
 }

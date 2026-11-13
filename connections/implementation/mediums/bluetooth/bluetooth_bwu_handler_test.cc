@@ -15,11 +15,13 @@
 #if !defined(__APPLE__)
 #include "connections/implementation/mediums/bluetooth/bluetooth_bwu_handler.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -27,7 +29,6 @@
 #include "connections/implementation/mediums/bluetooth/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
@@ -82,9 +83,10 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
   flags.enable_cancellation_flag = enable_cancellation;
   FeatureFlags::GetMutableInstanceForTesting().SetFlags(flags);
 
-  CountDownLatch start_latch(1);
-  CountDownLatch accept_latch(1);
-  CountDownLatch end_latch(1);
+  absl::Notification start_latch;
+  absl::Notification accept_latch;
+  std::atomic<bool> accept_notified = false;
+  absl::Notification end_latch;
 
   ClientProxy client_1, client_2;
   Mediums mediums_1, mediums_2;
@@ -100,8 +102,10 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
           std::unique_ptr<BwuHandler::IncomingSocketConnection>
               mutable_connection) {
         LOG(WARNING) << "Server socket connection accept call back";
-        accept_latch.CountDown();
-        EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+        if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+          accept_latch.Notify();
+        }
+        EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
       });
 
   // client_1 works as Bluetooth Server Device
@@ -114,13 +118,13 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
     EXPECT_FALSE(upgrade_path_available_frame.empty());
 
     upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-    start_latch.CountDown();
+    start_latch.Notify();
   });
 
   // client_2 works as Bluetooth Client Device which will connect to client_1
   SingleThreadExecutor client_executor;
   // Wait till client_1 started as Bluetooth and then connect to it
-  EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(start_latch.WaitForNotificationWithTimeout(kWaitDuration));
   std::unique_ptr<BwuHandler> handler_2 = std::make_unique<BluetoothBwuHandler>(
       &mediums_2.GetBluetoothRadio(),
       static_cast<BluetoothClassic*>(&mediums_2.GetBluetoothClassic()),
@@ -137,7 +141,7 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
     if (!enable_cancellation) {
       ASSERT_TRUE(result.has_value());
       std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
-      EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+      EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
       EXPECT_EQ(new_channel->GetMedium(),
                 location::nearby::proto::connections::Medium::BLUETOOTH);
     } else {
@@ -146,15 +150,17 @@ void BluetoothBwuTest::RunSTACreateEndpointChannelTest(
       EXPECT_EQ(result.error().operation_result_code(),
                 OperationResultCode::
                     CLIENT_CANCELLATION_CANCEL_BT_OUTGOING_CONNECTION);
-      accept_latch.CountDown();
+      if (!accept_notified.exchange(true, std::memory_order_acq_rel)) {
+        accept_latch.Notify();
+      }
     }
     EXPECT_TRUE(mediums_2.GetBluetoothClassic().GetAddress().IsSet());
     handler_2->RevertResponderState(/*service_id=*/"A");
-    end_latch.CountDown();
+    end_latch.Notify();
   });
 
-  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(accept_latch.WaitForNotificationWithTimeout(kWaitDuration));
+  EXPECT_TRUE(end_latch.WaitForNotificationWithTimeout(kWaitDuration));
 }
 
 TEST_F(BluetoothBwuTest,

@@ -21,6 +21,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/mock_device.h"
@@ -31,7 +32,6 @@
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
@@ -105,9 +105,10 @@ TEST_P(PcpManagerTest, CanDiscover) {
   SimulationUser user_a("device-a", GetParam());
   SimulationUser user_b("device-b", GetParam());
   user_a.StartAdvertising(kServiceId, nullptr);
-  CountDownLatch latch(1);
-  user_b.StartDiscovery(kServiceId, &latch);
-  EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
+  absl::Notification notification;
+  user_b.StartDiscovery(kServiceId, &notification);
+  EXPECT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   user_b.StopDiscovery();
@@ -118,15 +119,20 @@ TEST_P(PcpManagerTest, CanConnect) {
   env_.Start();
   SimulationUser user_a("device-a", GetParam());
   SimulationUser user_b("device-b", GetParam());
-  CountDownLatch discovery_latch(1);
-  CountDownLatch connection_latch(2);
-  user_a.StartAdvertising(kServiceId, &connection_latch);
-  user_b.StartDiscovery(kServiceId, &discovery_latch);
-  EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
+  absl::Notification discovery_notification;
+  absl::Notification connection_notification_a;
+  absl::Notification connection_notification_b;
+  user_a.StartAdvertising(kServiceId, &connection_notification_a);
+  user_b.StartDiscovery(kServiceId, &discovery_notification);
+  EXPECT_TRUE(discovery_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
-  user_b.RequestConnection(&connection_latch);
-  EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
+  user_b.RequestConnection(&connection_notification_b);
+  EXPECT_TRUE(connection_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(connection_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -136,19 +142,28 @@ TEST_P(PcpManagerTest, CanAccept) {
   env_.Start();
   SimulationUser user_a("device-a", GetParam());
   SimulationUser user_b("device-b", GetParam());
-  CountDownLatch discovery_latch(1);
-  CountDownLatch connection_latch(2);
-  CountDownLatch accept_latch(2);
-  user_a.StartAdvertising(kServiceId, &connection_latch);
-  user_b.StartDiscovery(kServiceId, &discovery_latch);
-  EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
+  absl::Notification discovery_notification;
+  absl::Notification connection_notification_a;
+  absl::Notification connection_notification_b;
+  absl::Notification accept_notification_a;
+  absl::Notification accept_notification_b;
+  user_a.StartAdvertising(kServiceId, &connection_notification_a);
+  user_b.StartDiscovery(kServiceId, &discovery_notification);
+  EXPECT_TRUE(discovery_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
-  user_b.RequestConnection(&connection_latch);
-  EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
-  user_a.AcceptConnection(&accept_latch);
-  user_b.AcceptConnection(&accept_latch);
-  EXPECT_TRUE(accept_latch.Await(absl::Milliseconds(1000)).result());
+  user_b.RequestConnection(&connection_notification_b);
+  EXPECT_TRUE(connection_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(connection_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  user_a.AcceptConnection(&accept_notification_a);
+  user_b.AcceptConnection(&accept_notification_b);
+  EXPECT_TRUE(accept_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(accept_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -158,19 +173,25 @@ TEST_P(PcpManagerTest, CanReject) {
   env_.Start();
   SimulationUser user_a("device-a", GetParam());
   SimulationUser user_b("device-b", GetParam());
-  CountDownLatch discovery_latch(1);
-  CountDownLatch connection_latch(2);
-  CountDownLatch reject_latch(1);
-  user_a.StartAdvertising(kServiceId, &connection_latch);
-  user_b.StartDiscovery(kServiceId, &discovery_latch);
-  EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
+  absl::Notification discovery_notification;
+  absl::Notification connection_notification_a;
+  absl::Notification connection_notification_b;
+  absl::Notification reject_notification;
+  user_a.StartAdvertising(kServiceId, &connection_notification_a);
+  user_b.StartDiscovery(kServiceId, &discovery_notification);
+  EXPECT_TRUE(discovery_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
-  user_b.RequestConnection(&connection_latch);
-  EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
-  user_b.ExpectRejectedConnection(reject_latch);
+  user_b.RequestConnection(&connection_notification_b);
+  EXPECT_TRUE(connection_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(connection_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  user_b.ExpectRejectedConnection(reject_notification);
   user_a.RejectConnection(nullptr);
-  EXPECT_TRUE(reject_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(reject_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -180,7 +201,7 @@ TEST_P(PcpManagerTest, CanStartListeningForIncomingConnections) {
   env_.Start();
   BooleanMediumSelector selector = GetParam();
   SimulationUser user_a(kDeviceA, selector);
-  CountDownLatch start_latch(1);
+  absl::Notification start_notification;
   v3::ConnectionListeningOptions options;
   options.enable_ble_listening = selector.ble;
   options.enable_bluetooth_listening = selector.bluetooth;
@@ -188,8 +209,8 @@ TEST_P(PcpManagerTest, CanStartListeningForIncomingConnections) {
   options.listening_mediums = selector.GetMediums(true);
   options.upgrade_mediums = selector.GetMediums(true);
   options.strategy = Strategy::kP2pCluster;
-  user_a.StartListeningForIncomingConnections(&start_latch, "service", options,
-                                              {Status::kSuccess});
+  user_a.StartListeningForIncomingConnections(&start_notification, "service",
+                                              options, {Status::kSuccess});
   user_a.Stop();
   env_.Stop();
 }
@@ -198,15 +219,15 @@ TEST_P(PcpManagerTest, StartListeningForIncomingConnectionsFailsNoStrategy) {
   env_.Start();
   BooleanMediumSelector selector = GetParam();
   SimulationUser user_a(kDeviceA, selector);
-  CountDownLatch start_latch(1);
+  absl::Notification start_notification;
   v3::ConnectionListeningOptions options;
   options.enable_ble_listening = selector.ble;
   options.enable_bluetooth_listening = selector.bluetooth;
   options.enable_wlan_listening = selector.wifi_lan;
   options.listening_mediums = selector.GetMediums(true);
   options.upgrade_mediums = selector.GetMediums(true);
-  user_a.StartListeningForIncomingConnections(&start_latch, "service", options,
-                                              {Status::kError});
+  user_a.StartListeningForIncomingConnections(&start_notification, "service",
+                                              options, {Status::kError});
   user_a.Stop();
   env_.Stop();
 }
@@ -215,18 +236,23 @@ TEST_P(PcpManagerTest, CanConnectV3) {
   env_.Start();
   SimulationUser user_a("device-a", GetParam());
   SimulationUser user_b("device-b", GetParam());
-  CountDownLatch discovery_latch(1);
-  CountDownLatch connection_latch(2);
-  user_a.StartAdvertising(kServiceId, &connection_latch);
-  user_b.StartDiscovery(kServiceId, &discovery_latch);
-  EXPECT_TRUE(discovery_latch.Await(absl::Milliseconds(1000)).result());
+  absl::Notification discovery_notification;
+  absl::Notification connection_notification_a;
+  absl::Notification connection_notification_b;
+  user_a.StartAdvertising(kServiceId, &connection_notification_a);
+  user_b.StartDiscovery(kServiceId, &discovery_notification);
+  EXPECT_TRUE(discovery_notification.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
   EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
   auto remote_device = MockNearbyDevice();
   EXPECT_CALL(remote_device, GetEndpointId)
       .WillRepeatedly(Return(std::string(user_b.GetDiscovered().endpoint_id)));
-  user_b.RequestConnectionV3(&connection_latch, remote_device);
-  EXPECT_TRUE(connection_latch.Await(absl::Milliseconds(1000)).result());
+  user_b.RequestConnectionV3(&connection_notification_b, remote_device);
+  EXPECT_TRUE(connection_notification_a.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
+  EXPECT_TRUE(connection_notification_b.WaitForNotificationWithTimeout(
+      absl::Milliseconds(1000)));
   user_a.Stop();
   user_b.Stop();
   env_.Stop();

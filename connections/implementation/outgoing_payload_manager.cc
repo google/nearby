@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/str_cat.h"
@@ -44,7 +45,6 @@
 #include "connections/payload.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
@@ -261,25 +261,23 @@ Payload::Id OutgoingPayloadManager::CreateOutgoingPayload(
 }
 
 void OutgoingPayloadManager::CancelAllPayloadsAndWait() {
-  {
-    absl::MutexLock lock(mutex_);
-    int pending_outgoing_payloads = 0;
-    outgoing_pending_payloads_.ForEachPayload(
-        [&](OutgoingPendingPayload* pending) {
-          pending_outgoing_payloads++;
-          pending->MarkLocallyCanceledAndClose();
-        });
+  absl::MutexLock lock(mutex_);
+  int pending_outgoing_payloads = 0;
+  outgoing_pending_payloads_.ForEachPayload(
+      [&](OutgoingPendingPayload* pending) {
+        pending_outgoing_payloads++;
+        pending->MarkLocallyCanceledAndClose();
+      });
 
-    if (pending_outgoing_payloads) {
-      shutdown_barrier_ =
-          std::make_unique<CountDownLatch>(pending_outgoing_payloads);
-    }
-  }
-  if (shutdown_barrier_) {
+  pending_shutdown_payloads_ = pending_outgoing_payloads;
+  if (pending_shutdown_payloads_ > 0) {
     VLOG(1) << "PayloadManager: waiting for pending outgoing "
                "payloads; self="
             << this;
-    shutdown_barrier_->Await();
+    auto cond = [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+      return pending_shutdown_payloads_ == 0;
+    };
+    mutex_.Await(absl::Condition(&cond));
   }
 }
 
@@ -297,9 +295,9 @@ void OutgoingPayloadManager::StopTrackingAllPayloads() {
 bool OutgoingPayloadManager::NotifyShutdown() {
   absl::MutexLock lock(mutex_);
   if (!shutdown_->load()) return false;
-  if (!shutdown_barrier_) return false;
+  if (pending_shutdown_payloads_ <= 0) return false;
   VLOG(1) << "PayloadManager [shutdown mode]";
-  shutdown_barrier_->CountDown();
+  --pending_shutdown_payloads_;
   return true;
 }
 

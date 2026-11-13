@@ -22,10 +22,10 @@
 #include "gtest/gtest.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
@@ -112,7 +112,7 @@ TEST_F(WifiHotspotTest, ClientStaCanConnectToRemoteHotspot) {
   ASSERT_NE(remote_credentials, nullptr);
   server_socket.PopulateHotspotCredentials(*remote_credentials);
 
-  CountDownLatch accept_latch(1);
+  absl::Notification accept_latch;
   WifiHotspotSocket accepted_socket;
   SingleThreadExecutor server_executor;
   absl::Cleanup cleanup = [&server_socket, &accepted_socket,
@@ -126,7 +126,7 @@ TEST_F(WifiHotspotTest, ClientStaCanConnectToRemoteHotspot) {
   server_executor.Execute([&server_socket, &accepted_socket, &accept_latch]() {
     accepted_socket = server_socket.Accept();
     if (accepted_socket.IsValid()) {
-      accept_latch.CountDown();
+      accept_latch.Notify();
     }
   });
 
@@ -143,7 +143,8 @@ TEST_F(WifiHotspotTest, ClientStaCanConnectToRemoteHotspot) {
   ASSERT_TRUE(channel_result.has_value());
   std::unique_ptr<EndpointChannel> channel = std::move(channel_result.value());
   ASSERT_NE(channel, nullptr);
-  EXPECT_TRUE(accept_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      accept_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
 
   channel->Close();
   EXPECT_TRUE(wifi_hotspot_client->DisconnectWifiHotspot());

@@ -25,11 +25,11 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/mac_address.h"
@@ -79,8 +79,7 @@ TEST_P(BleMediumTest, CanConnectToService) {
   Uuid service_uuid(1234, 5678);
   std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
 
   BleServerSocket server_socket = ble_b.OpenServerSocket(service_id);
   EXPECT_TRUE(server_socket.IsValid());
@@ -101,10 +100,13 @@ TEST_P(BleMediumTest, CanConnectToService) {
                   BlePeripheral peripheral,
                   const BleAdvertisementData& advertisement_data) {
                 discovered_peripheral = std::move(peripheral);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   BleSocket socket_a;
   BleSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
@@ -147,8 +149,7 @@ TEST_P(BleMediumTest, CanConnectToServiceWithMultipleServices) {
   Uuid service_uuid(1234, 5678);
   std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
 
   BleServerSocket server_socket = ble_b.OpenServerSocket(service_id);
   EXPECT_TRUE(server_socket.IsValid());
@@ -169,10 +170,13 @@ TEST_P(BleMediumTest, CanConnectToServiceWithMultipleServices) {
                   BlePeripheral peripheral,
                   const BleAdvertisementData& advertisement_data) {
                 discovered_peripheral = std::move(peripheral);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   BleSocket socket_a;
   BleSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
@@ -218,7 +222,7 @@ TEST_P(BleMediumTest, CanDiscoverMultipleServices) {
   Uuid service_uuid_b(1234, 5679);
   std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   // Start advertising on adapter a
   BleAdvertisementData advertising_data_a;
@@ -249,12 +253,14 @@ TEST_P(BleMediumTest, CanDiscoverMultipleServices) {
              if (advertisement_data.service_data.contains(service_uuid_b)) {
                found_service_b = true;
              }
-             if (found_service_a && found_service_b) {
-               found_latch.CountDown();
+             if (found_service_a && found_service_b &&
+                 !found_latch.HasBeenNotified()) {
+               found_latch.Notify();
              }
            }});
 
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   env_.Stop();
 }
 
@@ -269,8 +275,7 @@ TEST_P(BleMediumTest, CanCancelConnect) {
   Uuid service_uuid(1234, 5678);
   std::string service_id(kServiceIDA);
   ByteArray advertisement_bytes((std::string(kAdvertisementString)));
-  CountDownLatch found_latch(1);
-  CountDownLatch lost_latch(1);
+  absl::Notification found_latch;
 
   BleServerSocket server_socket = ble_b.OpenServerSocket(service_id);
   EXPECT_TRUE(server_socket.IsValid());
@@ -291,10 +296,13 @@ TEST_P(BleMediumTest, CanCancelConnect) {
                   BlePeripheral peripheral,
                   const BleAdvertisementData& advertisement_data) {
                 discovered_peripheral = std::move(peripheral);
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       });
-  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(
+      found_latch.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   BleSocket socket_a;
   BleSocket socket_b;
   EXPECT_FALSE(socket_a.IsValid());
@@ -359,7 +367,7 @@ TEST_F(BleMediumTest, CanStartFastScanningAndFastAdvertising) {
   BleMedium ble_b(adapter_b);
   Uuid service_uuid(1234, 5678);
   ByteArray advertisement_bytes((std::string(kAdvertisementString)));
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   EXPECT_TRUE(ble_a.StartScanning(
       service_uuid, kTxPowerLevel,
@@ -367,7 +375,9 @@ TEST_F(BleMediumTest, CanStartFastScanningAndFastAdvertising) {
           .advertisement_found_cb =
               [&found_latch](BlePeripheral peripheral,
                              const BleAdvertisementData& advertisement_data) {
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
@@ -388,7 +398,7 @@ TEST_F(BleMediumTest, CanStartFastScanningAndFastAdvertising) {
 
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_b.GetImpl()).value().is_advertising);
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
   EXPECT_FALSE(env_.GetBleMediumStatus(*ble_a.GetImpl()).value().is_scanning);
@@ -406,7 +416,7 @@ TEST_F(BleMediumTest, CanStartScanningAndAdvertising) {
   Uuid service_uuid(1234, 5678);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   EXPECT_TRUE(ble_a.StartScanning(
       service_uuid, kTxPowerLevel,
@@ -414,7 +424,9 @@ TEST_F(BleMediumTest, CanStartScanningAndAdvertising) {
           .advertisement_found_cb =
               [&found_latch](BlePeripheral peripheral,
                              const BleAdvertisementData& advertisement_data) {
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
       }));
 
@@ -435,7 +447,7 @@ TEST_F(BleMediumTest, CanStartScanningAndAdvertising) {
 
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_b.GetImpl()).value().is_advertising);
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_TRUE(ble_a.StopScanning());
   EXPECT_TRUE(ble_b.StopAdvertising());
 
@@ -454,7 +466,7 @@ TEST_F(BleMediumTest, StartThenStopAsyncScanning) {
   BluetoothAdapter adapter_a;
   BleMedium ble_a(adapter_a);
   Uuid service_uuid(1234, 5678);
-  CountDownLatch found_latch_a(1);
+  absl::Notification found_latch_a;
 
   std::unique_ptr<api::ble::BleMedium::ScanningSession> scanning_session_a =
       ble_a.StartScanning(
@@ -463,7 +475,9 @@ TEST_F(BleMediumTest, StartThenStopAsyncScanning) {
               .advertisement_found_cb =
                   [&](api::ble::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
-                found_latch_a.CountDown();
+                if (!found_latch_a.HasBeenNotified()) {
+                  found_latch_a.Notify();
+                }
               },
           });
 
@@ -479,8 +493,8 @@ TEST_F(BleMediumTest, CanStartMultipleAsyncScanning) {
   BleMedium ble_a(adapter_a);
   BleMedium ble_b(adapter_b);
   Uuid service_uuid(1234, 5678);
-  CountDownLatch found_latch_a(1);
-  CountDownLatch found_latch_b(1);
+  absl::Notification found_latch_a;
+  absl::Notification found_latch_b;
 
   std::unique_ptr<api::ble::BleMedium::ScanningSession> scanning_session_a =
       ble_a.StartScanning(
@@ -489,7 +503,9 @@ TEST_F(BleMediumTest, CanStartMultipleAsyncScanning) {
               .advertisement_found_cb =
                   [&](api::ble::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
-                found_latch_a.CountDown();
+                if (!found_latch_a.HasBeenNotified()) {
+                  found_latch_a.Notify();
+                }
               },
           });
   std::unique_ptr<api::ble::BleMedium::ScanningSession> scanning_session_b =
@@ -499,7 +515,9 @@ TEST_F(BleMediumTest, CanStartMultipleAsyncScanning) {
               .advertisement_found_cb =
                   [&](api::ble::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
-                found_latch_b.CountDown();
+                if (!found_latch_b.HasBeenNotified()) {
+                  found_latch_b.Notify();
+                }
               },
           });
 
@@ -523,7 +541,7 @@ TEST_F(BleMediumTest, CanStartAsyncScanningAndAdvertising) {
   Uuid service_uuid(1234, 5678);
   ByteArray advertisement_bytes{std::string(kAdvertisementString)};
   ByteArray advertisement_header_bytes{std::string(kAdvertisementHeaderString)};
-  CountDownLatch found_latch(1);
+  absl::Notification found_latch;
 
   std::unique_ptr<api::ble::BleMedium::ScanningSession> scanning_session =
       ble_a.StartScanning(
@@ -532,7 +550,9 @@ TEST_F(BleMediumTest, CanStartAsyncScanningAndAdvertising) {
               .advertisement_found_cb =
                   [&](api::ble::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
-                found_latch.CountDown();
+                if (!found_latch.HasBeenNotified()) {
+                  found_latch.Notify();
+                }
               },
           });
 
@@ -546,7 +566,7 @@ TEST_F(BleMediumTest, CanStartAsyncScanningAndAdvertising) {
 
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_a.GetImpl()).value().is_scanning);
   EXPECT_TRUE(env_.GetBleMediumStatus(*ble_b.GetImpl()).value().is_advertising);
-  EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(found_latch.WaitForNotificationWithTimeout(kWaitDuration));
   EXPECT_OK(scanning_session->stop_scanning());
 
   EXPECT_TRUE(ble_b.StopAdvertising());
@@ -675,19 +695,19 @@ TEST_F(BleMediumTest, GattClientNotifiedWhenServerDisconnects) {
   std::unique_ptr<GattServer> gatt_server =
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
   ASSERT_NE(gatt_server, nullptr);
-  CountDownLatch disconnected_latch(1);
+  absl::Notification disconnected_latch;
   // Start GattClient
   MacAddress mac_address = adapter_a.GetAddress();
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BlePeripheral(ble_b, mac_address.address()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{.disconnected_cb = [&]() {
-        disconnected_latch.CountDown();
+        disconnected_latch.Notify();
       }});
   ASSERT_NE(gatt_client, nullptr);
 
   gatt_server->Stop();
 
-  disconnected_latch.Await();
+  disconnected_latch.WaitForNotification();
   env_.Stop();
 }
 

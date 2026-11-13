@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
@@ -40,7 +41,6 @@
 #include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
@@ -519,54 +519,59 @@ void BwuManager::OnIncomingFrame(OfflineFrame& frame,
           OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
         });
   } else {
-    CountDownLatch latch(1);
-    RunOnBwuManagerThread("bwu-on-incoming-frame", [this, client, endpoint_id,
-                                                    bwu_frame, &latch]() {
-      OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
-      latch.CountDown();
-    });
-    latch.Await();
+    absl::Notification notification;
+    RunOnBwuManagerThread(
+        "bwu-on-incoming-frame",
+        [this, client, endpoint_id, bwu_frame, &notification]() {
+          OnBwuNegotiationFrame(client, bwu_frame, endpoint_id);
+          notification.Notify();
+        });
+    notification.WaitForNotification();
   }
 }
 
-void BwuManager::OnEndpointDisconnect(ClientProxy* client,
-                                      const std::string& service_id,
-                                      const std::string& endpoint_id,
-                                      CountDownLatch barrier,
-                                      DisconnectionReason reason) {
+void BwuManager::OnEndpointDisconnect(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& endpoint_id,
+    std::shared_ptr<absl::Notification> barrier, DisconnectionReason reason) {
   LOG(INFO) << "BwuManager has processed endpoint disconnection for endpoint "
             << endpoint_id << " with reason "
             << DisconnectionReason_Name(reason);
-  RunOnBwuManagerThread("bwu-on-endpoint-disconnect", [this, client, service_id,
-                                                       endpoint_id,
-                                                       barrier]() mutable {
-    Medium medium = GetBwuMediumForEndpoint(endpoint_id);
-    BwuHandler* handler = GetHandlerForMedium(medium);
-    if (handler) {
-      handler->OnEndpointDisconnect(client, endpoint_id);
-    }
+  RunOnBwuManagerThread(
+      "bwu-on-endpoint-disconnect",
+      [this, client, service_id, endpoint_id,
+       barrier = std::move(barrier)]() {
+        Medium medium = GetBwuMediumForEndpoint(endpoint_id);
+        BwuHandler* handler = GetHandlerForMedium(medium);
+        if (handler) {
+          handler->OnEndpointDisconnect(client, endpoint_id);
+        }
 
-    auto item = previous_endpoint_channels_.extract(endpoint_id);
-    if (!item.empty()) {
-      auto old_channel = item.mapped();
-      if (old_channel != nullptr) {
-        old_channel->Close(DisconnectionReason::SHUTDOWN);
-      }
-    }
-    in_progress_upgrades_.erase(endpoint_id);
-    endpoint_role_switch_states_.erase(endpoint_id);
-    retry_delays_.erase(endpoint_id);
-    CancelRetryUpgradeAlarm(endpoint_id);
-    successfully_upgraded_endpoints_.erase(endpoint_id);
+        auto item = previous_endpoint_channels_.extract(endpoint_id);
+        if (!item.empty()) {
+          auto old_channel = item.mapped();
+          if (old_channel != nullptr) {
+            old_channel->Close(DisconnectionReason::SHUTDOWN);
+          }
+        }
+        in_progress_upgrades_.erase(endpoint_id);
+        endpoint_role_switch_states_.erase(endpoint_id);
+        retry_delays_.erase(endpoint_id);
+        CancelRetryUpgradeAlarm(endpoint_id);
+        successfully_upgraded_endpoints_.erase(endpoint_id);
 
-    // Note(nohle): I'm skeptical of the "<= 1", which seems like it should be
-    // "== 0". Luckily, we will enable the flag by default, and it won't matter.
-    if (FeatureFlags::GetInstance().GetFlags().support_multiple_bwu_mediums ||
-        channel_manager_->GetConnectedEndpointsCount() <= 1) {
-      RevertBwuMediumForEndpoint(service_id, endpoint_id);
-    }
-    barrier.CountDown();
-  });
+        // Note(nohle): I'm skeptical of the "<= 1", which seems like it should
+        // be
+        // "== 0". Luckily, we will enable the flag by default, and it won't
+        // matter.
+        if (FeatureFlags::GetInstance()
+                .GetFlags()
+                .support_multiple_bwu_mediums ||
+            channel_manager_->GetConnectedEndpointsCount() <= 1) {
+          RevertBwuMediumForEndpoint(service_id, endpoint_id);
+        }
+        barrier->Notify();
+      });
 }
 
 void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
@@ -622,10 +627,10 @@ void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,
 }
 
 bool BwuManager::IsUpgradeOngoing(const std::string& endpoint_id) {
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnBwuManagerThread("is_upgrade_ongoing",
-                        [&latch]() { latch.CountDown(); });
-  latch.Await();
+                        [&notification]() { notification.Notify(); });
+  notification.WaitForNotification();
   return in_progress_upgrades_.contains(endpoint_id);
 }
 

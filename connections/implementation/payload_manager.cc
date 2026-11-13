@@ -15,12 +15,14 @@
 #include "connections/implementation/payload_manager.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -29,7 +31,6 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "connections/status.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "proto/connections_enums.pb.h"
 
@@ -82,15 +83,16 @@ PayloadManager::~PayloadManager() {
   VLOG(1) << "PayloadManager: turn down payload executors; self=" << this;
   outgoing_payload_manager_.ShutdownExecutors();
 
-  CountDownLatch stop_latch(1);
+  absl::Notification stop_notification;
   // Clear our tracked pending payloads.
-  RunOnStatusUpdateThread("~payload-manager", [this, &stop_latch]() {
-    VLOG(1) << "PayloadManager: stop tracking payloads; self=" << this;
-    incoming_payload_manager_.StopTrackingAllPayloads();
-    outgoing_payload_manager_.StopTrackingAllPayloads();
-    stop_latch.CountDown();
-  });
-  stop_latch.Await();
+  RunOnStatusUpdateThread(
+      "~payload-manager", [this, &stop_notification]() {
+        VLOG(1) << "PayloadManager: stop tracking payloads; self=" << this;
+        incoming_payload_manager_.StopTrackingAllPayloads();
+        outgoing_payload_manager_.StopTrackingAllPayloads();
+        stop_notification.Notify();
+      });
+  stop_notification.WaitForNotification();
 
   VLOG(1) << "PayloadManager: turn down notification executor; self=" << this;
   // Stop all the ongoing Runnables (as gracefully as possible).
@@ -163,15 +165,17 @@ void PayloadManager::OnIncomingFrame(
 
 void PayloadManager::OnEndpointDisconnect(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, CountDownLatch barrier,
+    const std::string& endpoint_id,
+    std::shared_ptr<absl::Notification> barrier,
     location::nearby::proto::connections::DisconnectionReason reason) {
   if (shutdown_.load()) {
-    barrier.CountDown();
+    barrier->Notify();
     return;
   }
   RunOnStatusUpdateThread(
       "payload-manager-on-disconnect",
-      [this, client, endpoint_id, barrier, reason]() mutable {
+      [this, client, endpoint_id, barrier = std::move(barrier),
+       reason]() {
         // Iterate through all our payloads and look for payloads associated
         // with this endpoint.
         PayloadStatus payload_status;
@@ -204,7 +208,7 @@ void PayloadManager::OnEndpointDisconnect(
         outgoing_payload_manager_.OnEndpointDisconnect(
             client, endpoint_id, payload_status, operation_result_code);
 
-        barrier.CountDown();
+        barrier->Notify();
       });
 }
 

@@ -144,6 +144,7 @@ cc_test(
         "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],

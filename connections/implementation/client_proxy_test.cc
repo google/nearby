@@ -28,6 +28,8 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -53,7 +55,6 @@
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -1484,28 +1485,29 @@ TEST_F(ClientProxyTest, TestGetSetLocalEndpointInfo) {
 }
 
 TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
-  CountDownLatch result_latch(2);
-  CountDownLatch bwu_latch(1);
-  CountDownLatch disconnect_latch(1);
-  CountDownLatch init_latch(1);
+  absl::BlockingCounter result_latch(2);
+  absl::Notification bwu_latch;
+  absl::Notification disconnect_latch;
+  absl::Notification init_latch;
   client1()->StartedListeningForIncomingConnections(
       service_id_, Strategy::kP2pCluster,
       {
           .initiated_cb =
               [&init_latch](const NearbyDevice&,
                             const v3::InitialConnectionInfo&) {
-                init_latch.CountDown();
+                init_latch.Notify();
               },
-          .result_cb = [&result_latch](
-                           const NearbyDevice&,
-                           v3::ConnectionResult) { result_latch.CountDown(); },
+          .result_cb =
+              [&result_latch](const NearbyDevice&, v3::ConnectionResult) {
+                result_latch.DecrementCount();
+              },
           .disconnected_cb =
               [&disconnect_latch](const NearbyDevice&) {
-                disconnect_latch.CountDown();
+                disconnect_latch.Notify();
               },
           .bandwidth_changed_cb =
               [&bwu_latch](const NearbyDevice&, v3::BandwidthInfo) {
-                bwu_latch.CountDown();
+                bwu_latch.Notify();
               },
       },
       {});
@@ -1515,10 +1517,10 @@ TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
   listener.disconnected_cb("endpoint-id");
   listener.rejected_cb("endpoint-id", {Status::Value::kConnectionRejected});
   listener.bandwidth_changed_cb("endpoint-id", Medium::WIFI_LAN);
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(init_latch.Await().Ok());
-  EXPECT_TRUE(bwu_latch.Await().Ok());
-  EXPECT_TRUE(disconnect_latch.Await().Ok());
+  result_latch.Wait();
+  init_latch.WaitForNotification();
+  bwu_latch.WaitForNotification();
+  disconnect_latch.WaitForNotification();
 }
 
 TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedAdvertising) {

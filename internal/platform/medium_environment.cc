@@ -29,11 +29,11 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
@@ -128,7 +128,7 @@ void MediumEnvironment::Sync(bool enable_notifications) {
   LOG(INFO) << "MediumEnvironment::sync=" << enable_notifications;
   int count = 0;
   do {
-    CountDownLatch latch(1);
+    absl::Notification notification;
     count = job_count_ + 1;
     // We are about to schedule one last job.
     // When it is done, counter must be equal to count.
@@ -136,8 +136,9 @@ void MediumEnvironment::Sync(bool enable_notifications) {
     // it will be pending after us.
     // If we want to ensure we are completely idle, then we have to
     // repeat sync, until this becomes true.
-    RunOnMediumEnvironmentThread([&latch]() { latch.CountDown(); });
-    latch.Await();
+    RunOnMediumEnvironmentThread(
+        [&notification]() { notification.Notify(); });
+    notification.WaitForNotification();
   } while (count < job_count_);
   LOG(INFO) << "MediumEnvironment::Sync(): done [count=" << count << "]";
 }
@@ -151,10 +152,10 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
     api::BluetoothAdapter& adapter, api::BluetoothDevice& adapter_device,
     std::string name, bool enabled, api::BluetoothAdapter::ScanMode mode) {
   if (!enabled_) return;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([this, &adapter, &adapter_device,
                                 name = std::move(name), enabled, mode,
-                                &latch]() {
+                                &notification]() {
     LOG(INFO) << "[adapter=" << &adapter << ", device=" << &adapter_device
               << "] update: name=" << ", enabled=" << enabled
               << ", mode=" << int32_t(mode);
@@ -175,9 +176,9 @@ void MediumEnvironment::OnBluetoothAdapterChangedState(
     } else {
       bluetooth_adapters_.erase(&adapter);
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 void MediumEnvironment::OnBluetoothDeviceStateChanged(
@@ -235,28 +236,29 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
 api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
     MacAddress mac_address) {
   api::BluetoothDevice* device = nullptr;
-  CountDownLatch latch(1);
-  RunOnMediumEnvironmentThread([this, &device, &latch, &mac_address]() {
-    LOG(INFO) << " Looking for: " << mac_address.ToString();
-    for (auto& item : bluetooth_mediums_) {
-      auto* adapter = item.second.adapter;
-      if (!adapter) continue;
-      LOG(INFO) << " Adapter: " << adapter->GetMacAddress().ToString();
-      if (adapter->GetMacAddress() == mac_address) {
-        device = bluetooth_adapters_[adapter];
-        break;
-      }
-    }
-    latch.CountDown();
-  });
-  latch.Await();
+  absl::Notification notification;
+  RunOnMediumEnvironmentThread(
+      [this, &device, &notification, &mac_address]() {
+        LOG(INFO) << " Looking for: " << mac_address.ToString();
+        for (auto& item : bluetooth_mediums_) {
+          auto* adapter = item.second.adapter;
+          if (!adapter) continue;
+          LOG(INFO) << " Adapter: " << adapter->GetMacAddress().ToString();
+          if (adapter->GetMacAddress() == mac_address) {
+            device = bluetooth_adapters_[adapter];
+            break;
+          }
+        }
+        notification.Notify();
+      });
+  notification.WaitForNotification();
   return device;
 }
 
 api::ble::BleMedium* MediumEnvironment::FindBleMedium(
     api::ble::BlePeripheral::UniqueId id) {
   api::ble::BleMedium* device = nullptr;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   LOG(INFO) << "FindBleMedium " << id;
   RunOnMediumEnvironmentThread([&]() {
     for (auto& item : ble_mediums_) {
@@ -266,9 +268,9 @@ api::ble::BleMedium* MediumEnvironment::FindBleMedium(
         break;
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (device == nullptr) {
     LOG(INFO) << "FindBleMedium, not found: " << id;
   }
@@ -278,7 +280,7 @@ api::ble::BleMedium* MediumEnvironment::FindBleMedium(
 api::ble::BlePeripheral MediumEnvironment::FindBlePeripheral(
     api::ble::BlePeripheral::UniqueId id) {
   api::ble::BlePeripheral peripheral;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     for (auto& item : ble_mediums_) {
       if (item.second.ble_peripheral_id == id) {
@@ -286,9 +288,9 @@ api::ble::BlePeripheral MediumEnvironment::FindBlePeripheral(
         break;
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (!peripheral.IsSet()) {
     LOG(INFO) << "FindBlePeripheral, not found: " << id;
   }
@@ -494,14 +496,15 @@ void MediumEnvironment::UpdateBluetoothMedium(
 void MediumEnvironment::UnregisterBluetoothMedium(
     api::BluetoothClassicMedium& medium) {
   if (!enabled_) return;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     auto item = bluetooth_mediums_.extract(&medium);
-    latch.CountDown();
-    if (item.empty()) return;
-    LOG(INFO) << "Unregistered Bluetooth medium:" << &medium;
+    if (!item.empty()) {
+      LOG(INFO) << "Unregistered Bluetooth medium:" << &medium;
+    }
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 void MediumEnvironment::RegisterBleMedium(
@@ -650,22 +653,22 @@ MediumEnvironment::GetBleMediumStatus(const api::ble::BleMedium& medium) {
   if (!enabled_) return std::nullopt;
 
   std::optional<MediumEnvironment::BleMediumStatus> result;
-  CountDownLatch latch(1);
+  absl::Notification notification;
 
-  RunOnMediumEnvironmentThread([this, &medium, &latch, &result]() {
+  RunOnMediumEnvironmentThread([this, &medium, &notification, &result]() {
     auto it = ble_mediums_.find(&medium);
     if (it == ble_mediums_.end()) {
       result = std::nullopt;
-      latch.CountDown();
+      notification.Notify();
       return;
     }
     BleMediumContext& context = it->second;
 
     result = BleMediumStatus{.is_advertising = context.advertising,
                              .is_scanning = context.scanning};
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return result;
 }
 
@@ -923,7 +926,7 @@ void MediumEnvironment::UnregisterAwdlMedium(api::AwdlMedium& medium) {
 api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
     const std::string& ip_address, int port) {
   api::WifiLanMedium* result = nullptr;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     for (auto& medium_info : wifi_lan_mediums_) {
       auto* medium_found = medium_info.first;
@@ -933,21 +936,21 @@ api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
         if (ip_address == service_info.GetIPAddress() &&
             port == service_info.GetPort()) {
           result = medium_found;
-          latch.CountDown();
+          notification.Notify();
           return;
         }
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return result;
 }
 
 api::AwdlMedium* MediumEnvironment::GetAwdlMedium(const std::string& ip_address,
                                                   int port) {
   api::AwdlMedium* result = nullptr;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     for (auto& medium_info : awdl_mediums_) {
       auto* medium_found = medium_info.first;
@@ -957,14 +960,14 @@ api::AwdlMedium* MediumEnvironment::GetAwdlMedium(const std::string& ip_address,
         if (ip_address == service_info.GetIPAddress() &&
             port == service_info.GetPort()) {
           result = medium_found;
-          latch.CountDown();
+          notification.Notify();
           return;
         }
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return result;
 }
 
@@ -1004,10 +1007,10 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
     bool enabled) {
   if (!enabled_) return;
 
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread(
       [this, &medium, wifi_direct_credentials = wifi_direct_credentials, is_go,
-       enabled, &latch]() {
+       enabled, &notification]() {
         std::string role_status = absl::StrFormat(
             "; %s is %s", is_go ? "Group Owner" : "Group Client",
             is_go ? (enabled ? "Started" : "Stopped")
@@ -1040,9 +1043,9 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
             continue;
           }
         }
-        latch.CountDown();
+        notification.Notify();
       });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 bool MediumEnvironment::IsWifiDirectMediumsEmpty() {
@@ -1098,10 +1101,10 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
     const HotspotCredentials* hotspot_credentials, bool is_ap, bool enabled) {
   if (!enabled_) return;
 
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([this, &medium,
                                 hotspot_credentials = hotspot_credentials,
-                                is_ap, enabled, &latch]() {
+                                is_ap, enabled, &notification]() {
     std::string role_status =
         absl::StrFormat("; %s is %s", is_ap ? "SoftAP" : "STA",
                         is_ap ? (enabled ? "Started" : "Stopped")
@@ -1133,9 +1136,9 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
         continue;
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 void MediumEnvironment::UnregisterWifiHotspotMedium(
@@ -1216,14 +1219,14 @@ void MediumEnvironment::RegisterGattServer(
 
 void MediumEnvironment::UnregisterGattServer(api::ble::BleMedium& medium) {
   if (!enabled_) return;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     auto it = ble_mediums_.find(&medium);
     if (it == ble_mediums_.end()) {
       LOG(INFO) << "Unregister GattServer failed. There is no "
                    "medium registered on medium:"
                 << &medium;
-      latch.CountDown();
+      notification.Notify();
       return;
     }
     auto& context = it->second;
@@ -1231,16 +1234,16 @@ void MediumEnvironment::UnregisterGattServer(api::ble::BleMedium& medium) {
               << context.ble_peripheral_id << " on medium:" << &medium;
     context.gatt_server = nullptr;
     context.ble_peripheral_id = 0LL;
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 Borrowable<api::ble::GattServer*> MediumEnvironment::GetGattServer(
     api::ble::BlePeripheral::UniqueId peripheral_id) {
   Borrowable<api::ble::GattServer*> result;
   bool found_server = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     for (const auto& medium_info : ble_mediums_) {
       const BleMediumContext& remote_context = medium_info.second;
@@ -1253,9 +1256,9 @@ Borrowable<api::ble::GattServer*> MediumEnvironment::GetGattServer(
         result = *(remote_context.gatt_server);
       }
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (!found_server) {
     LOG(INFO) << "GetGattServer failed. No GATT server for " << peripheral_id;
   }
@@ -1265,30 +1268,30 @@ Borrowable<api::ble::GattServer*> MediumEnvironment::GetGattServer(
 void MediumEnvironment::ConfigBluetoothPairingContext(
     api::BluetoothDevice* device, api::PairingParams pairing_params) {
   if (!enabled_) return;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     BluetoothPairingContext pairing_context;
     pairing_context.pairing_params = std::move(pairing_params);
     devices_pairing_contexts_[device] = std::move(pairing_context);
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
 }
 
 bool MediumEnvironment::SetPairingState(api::BluetoothDevice* device,
                                         bool paired) {
   if (!enabled_) return false;
   bool updated = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     auto it = devices_pairing_contexts_.find(device);
     if (it != devices_pairing_contexts_.end()) {
       it->second.is_paired = paired;
       updated = true;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return updated;
 }
 
@@ -1297,16 +1300,16 @@ bool MediumEnvironment::SetPairingResult(
     std::optional<api::BluetoothPairingCallback::PairingError> error) {
   if (!enabled_) return false;
   bool notified = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     auto it = devices_pairing_contexts_.find(device);
     if (it != devices_pairing_contexts_.end()) {
       it->second.pairing_error = error;
       notified = true;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return notified;
 }
 
@@ -1314,7 +1317,7 @@ bool MediumEnvironment::InitiatePairing(
     api::BluetoothDevice* remote_device,
     api::BluetoothPairingCallback pairing_cb) {
   if (!enabled_) return false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   bool initiated = false;
   BluetoothPairingContext* pairing_context = nullptr;
   RunOnMediumEnvironmentThread([&]() mutable {
@@ -1323,9 +1326,9 @@ bool MediumEnvironment::InitiatePairing(
       pairing_context = &it->second;
       initiated = true;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (!initiated) return false;
   pairing_context->pairing_callback = std::move(pairing_cb);
   pairing_context->pairing_callback.on_pairing_initiated_cb(
@@ -1336,7 +1339,7 @@ bool MediumEnvironment::InitiatePairing(
 bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
   if (!enabled_) return false;
   bool finshed = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   BluetoothPairingContext* pairing_context = nullptr;
   RunOnMediumEnvironmentThread([&]() {
     auto it = devices_pairing_contexts_.find(device);
@@ -1344,9 +1347,9 @@ bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
       finshed = true;
       pairing_context = &it->second;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (pairing_context->pairing_error.has_value()) {
     pairing_context->pairing_callback.on_pairing_error_cb(
         pairing_context->pairing_error.value());
@@ -1360,7 +1363,7 @@ bool MediumEnvironment::FinishPairing(api::BluetoothDevice* device) {
 bool MediumEnvironment::CancelPairing(api::BluetoothDevice* device) {
   if (!enabled_) return false;
   bool canceled = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   BluetoothPairingContext* pairing_context = nullptr;
   RunOnMediumEnvironmentThread([&]() {
     auto it = devices_pairing_contexts_.find(device);
@@ -1368,9 +1371,9 @@ bool MediumEnvironment::CancelPairing(api::BluetoothDevice* device) {
       canceled = true;
       pairing_context = &it->second;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   if (!canceled) return false;
   pairing_context->pairing_callback.on_pairing_error_cb(
       api::BluetoothPairingCallback::PairingError::kAuthCanceled);
@@ -1380,15 +1383,15 @@ bool MediumEnvironment::CancelPairing(api::BluetoothDevice* device) {
 bool MediumEnvironment::IsPaired(api::BluetoothDevice* device) {
   if (!enabled_) return false;
   bool is_paired = false;
-  CountDownLatch latch(1);
+  absl::Notification notification;
   RunOnMediumEnvironmentThread([&]() {
     auto it = devices_pairing_contexts_.find(device);
     if (it != devices_pairing_contexts_.end()) {
       is_paired = it->second.is_paired;
     }
-    latch.CountDown();
+    notification.Notify();
   });
-  latch.Await();
+  notification.WaitForNotification();
   return is_paired;
 }
 

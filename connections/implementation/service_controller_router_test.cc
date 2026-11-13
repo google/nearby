@@ -27,7 +27,9 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -55,7 +57,6 @@
 #include "internal/interop/authentication_status.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {
@@ -851,10 +852,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   // Testing callback wrapping as well.
-  CountDownLatch initiated_latch(1);
-  CountDownLatch result_latch(2);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch bandwidth_changed_latch(1);
+  absl::Notification initiated_latch;
+  absl::BlockingCounter result_latch(2);
+  absl::Notification disconnected_latch;
+  absl::Notification bandwidth_changed_latch;
   RequestConnectionV3(
       &client_, kRemoteDevice,
       v3::ConnectionRequestInfo{
@@ -865,20 +866,20 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
                                      const v3::InitialConnectionInfo& info) {
                     EXPECT_EQ(info.authentication_status,
                               AuthenticationStatus::kSuccess);
-                    initiated_latch.CountDown();
+                    initiated_latch.Notify();
                   },
               .result_cb =
                   [&result_latch](const NearbyDevice&, v3::ConnectionResult) {
-                    result_latch.CountDown();
+                    result_latch.DecrementCount();
                   },
               .disconnected_cb =
                   [&disconnected_latch](const NearbyDevice&) {
-                    disconnected_latch.CountDown();
+                    disconnected_latch.Notify();
                   },
               .bandwidth_changed_cb =
                   [&bandwidth_changed_latch](const NearbyDevice&,
                                              v3::BandwidthInfo) {
-                    bandwidth_changed_latch.CountDown();
+                    bandwidth_changed_latch.Notify();
                   }},
       },
       [this](Status status) {
@@ -888,10 +889,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionCalledV3) {
         cond_.SignalAll();
       },
       true);
-  EXPECT_TRUE(initiated_latch.Await().Ok());
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
+  initiated_latch.WaitForNotification();
+  result_latch.Wait();
+  disconnected_latch.WaitForNotification();
+  bandwidth_changed_latch.WaitForNotification();
 }
 
 TEST_F(ServiceControllerRouterTest,
@@ -908,10 +909,10 @@ TEST_F(ServiceControllerRouterTest,
   auto local_device =
       v3::ConnectionsDevice(client_.GetLocalEndpointId(), kRequestorName, {});
   // Testing callback wrapping as well.
-  CountDownLatch initiated_latch(1);
-  CountDownLatch result_latch(2);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch bandwidth_changed_latch(1);
+  absl::Notification initiated_latch;
+  absl::BlockingCounter result_latch(2);
+  absl::Notification disconnected_latch;
+  absl::Notification bandwidth_changed_latch;
 
   RequestConnectionV3(
       &client_, kRemoteDevice,
@@ -923,20 +924,20 @@ TEST_F(ServiceControllerRouterTest,
                                      const v3::InitialConnectionInfo& info) {
                     EXPECT_EQ(info.authentication_status,
                               AuthenticationStatus::kFailure);
-                    initiated_latch.CountDown();
+                    initiated_latch.Notify();
                   },
               .result_cb =
                   [&result_latch](const NearbyDevice&, v3::ConnectionResult) {
-                    result_latch.CountDown();
+                    result_latch.DecrementCount();
                   },
               .disconnected_cb =
                   [&disconnected_latch](const NearbyDevice&) {
-                    disconnected_latch.CountDown();
+                    disconnected_latch.Notify();
                   },
               .bandwidth_changed_cb =
                   [&bandwidth_changed_latch](const NearbyDevice&,
                                              v3::BandwidthInfo) {
-                    bandwidth_changed_latch.CountDown();
+                    bandwidth_changed_latch.Notify();
                   }},
       },
       [this](Status status) {
@@ -946,10 +947,10 @@ TEST_F(ServiceControllerRouterTest,
         cond_.SignalAll();
       },
       true, true, true, AuthenticationStatus::kFailure);
-  EXPECT_TRUE(initiated_latch.Await().Ok());
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
+  initiated_latch.WaitForNotification();
+  result_latch.Wait();
+  disconnected_latch.WaitForNotification();
+  bandwidth_changed_latch.WaitForNotification();
 }
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
@@ -964,10 +965,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
   // Establish connection.
   auto local_device = FakeNearbyDevice();
   // Testing callback wrapping as well.
-  CountDownLatch initiated_latch(1);
-  CountDownLatch result_latch(2);
-  CountDownLatch disconnected_latch(1);
-  CountDownLatch bandwidth_changed_latch(1);
+  absl::Notification initiated_latch;
+  absl::BlockingCounter result_latch(2);
+  absl::Notification disconnected_latch;
+  absl::Notification bandwidth_changed_latch;
   RequestConnectionV3(
       &client_, kRemoteDevice,
       v3::ConnectionRequestInfo{
@@ -976,20 +977,20 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
               .initiated_cb =
                   [&initiated_latch](const NearbyDevice&,
                                      const v3::InitialConnectionInfo&) {
-                    initiated_latch.CountDown();
+                    initiated_latch.Notify();
                   },
               .result_cb =
                   [&result_latch](const NearbyDevice&, v3::ConnectionResult) {
-                    result_latch.CountDown();
+                    result_latch.DecrementCount();
                   },
               .disconnected_cb =
                   [&disconnected_latch](const NearbyDevice&) {
-                    disconnected_latch.CountDown();
+                    disconnected_latch.Notify();
                   },
               .bandwidth_changed_cb =
                   [&bandwidth_changed_latch](const NearbyDevice&,
                                              v3::BandwidthInfo) {
-                    bandwidth_changed_latch.CountDown();
+                    bandwidth_changed_latch.Notify();
                   }},
       },
       [this](Status status) {
@@ -999,10 +1000,10 @@ TEST_F(ServiceControllerRouterTest, RequestConnectionV3FakeDevice) {
         cond_.SignalAll();
       },
       true, true, false);
-  EXPECT_TRUE(initiated_latch.Await().Ok());
-  EXPECT_TRUE(result_latch.Await().Ok());
-  EXPECT_TRUE(disconnected_latch.Await().Ok());
-  EXPECT_TRUE(bandwidth_changed_latch.Await().Ok());
+  initiated_latch.WaitForNotification();
+  result_latch.Wait();
+  disconnected_latch.WaitForNotification();
+  bandwidth_changed_latch.WaitForNotification();
 }
 
 TEST_F(ServiceControllerRouterTest, RequestConnectionV3TwiceFails) {

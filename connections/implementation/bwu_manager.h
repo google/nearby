@@ -22,6 +22,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -34,7 +35,6 @@
 #include "connections/medium_selector.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
@@ -101,7 +101,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void OnEndpointDisconnect(ClientProxy* client_proxy,
                             const std::string& service_id,
                             const std::string& endpoint_id,
-                            CountDownLatch barrier,
+                            std::shared_ptr<absl::Notification> barrier,
                             DisconnectionReason reason) override;
 
   void Shutdown();
@@ -231,9 +231,6 @@ class BwuManager : public EndpointManager::FrameProcessor {
           ClientIntroduction& introduction);
   bool ReadClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   bool WriteClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
-  void ProcessEndpointDisconnection(ClientProxy* client,
-                                    const std::string& endpoint_id,
-                                    CountDownLatch* barrier);
   void ProcessUpgradeFailureEvent(
       ClientProxy* client, const std::string& endpoint_id,
       const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
