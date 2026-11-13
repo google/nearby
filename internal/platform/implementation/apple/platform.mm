@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/ble.h"
-#include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
@@ -122,10 +121,6 @@ std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool 
 std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
     std::uint32_t initial_value) {
   return std::make_unique<apple::AtomicUint32>(initial_value);
-}
-
-std::unique_ptr<CountDownLatch> ImplementationPlatform::CreateCountDownLatch(std::int32_t count) {
-  return std::make_unique<apple::CountDownLatch>(count);
 }
 
 std::unique_ptr<RecursiveMutex> ImplementationPlatform::CreateRecursiveMutex() {

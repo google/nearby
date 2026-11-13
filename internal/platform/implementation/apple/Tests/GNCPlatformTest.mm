@@ -261,11 +261,6 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqual(atomic_uint32->Get(), 123);
 }
 
-- (void)testCreateCountDownLatch {
-  auto count_down_latch = nearby::api::ImplementationPlatform::CreateCountDownLatch(1);
-  XCTAssertNotEqual(count_down_latch.get(), nullptr);
-}
-
 - (void)testCreateRecursiveMutex {
   auto mutex = nearby::api::ImplementationPlatform::CreateRecursiveMutex();
   XCTAssertNotEqual(mutex.get(), nullptr);
