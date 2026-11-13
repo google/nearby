@@ -26,6 +26,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -58,16 +59,18 @@ class IncomingFramesReader
           callback,
       absl::Duration timeout) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Reads a frame of type `frame_type` from `connection`. `callback` is called
-  // on the `service thread` with the frame read from connection or nullopt if
-  // connection socket is closed or `timeout` units of time have passed.  If
-  // timeout has occurred, the `is_timeout` parameter will be true.  Set
-  // `timeout` to absl::ZeroDuration() to disable timeout.
+  // Reads a frame matching any type in `frame_types` from `connection` (or any
+  // frame if `frame_types` is empty). `callback` is called on the `service
+  // thread` with the frame read from connection or nullopt if connection socket
+  // is closed or `timeout` units of time have passed. If timeout has occurred,
+  // the `is_timeout` parameter will be true. Set `timeout` to
+  // absl::ZeroDuration() to disable timeout.
   //
   // Note: Callers are expected wait for |callback| to be run before scheduling
   // subsequent calls to ReadFrame(..).
   virtual void ReadFrame(
-      nearby::sharing::service::proto::V1Frame::FrameType frame_type,
+      absl::Span<const nearby::sharing::service::proto::V1Frame::FrameType>
+          frame_types,
       absl::AnyInvocable<
           void(bool is_timeout,
                std::optional<nearby::sharing::service::proto::V1Frame>)>
@@ -80,8 +83,8 @@ class IncomingFramesReader
 
  private:
   struct ReadFrameInfo {
-    std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
-        frame_type;
+    std::vector<nearby::sharing::service::proto::V1Frame::FrameType>
+        frame_types;
     absl::AnyInvocable<void(
         bool is_timeout,
         std::optional<nearby::sharing::service::proto::V1Frame>)>
@@ -95,8 +98,8 @@ class IncomingFramesReader
       std::unique_ptr<nearby::sharing::service::proto::V1Frame> frame);
 
   void AddNewRequest(
-      std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
-          frame_type,
+      absl::Span<const nearby::sharing::service::proto::V1Frame::FrameType>
+          frame_types,
       absl::AnyInvocable<
           void(bool is_timeout,
                std::optional<nearby::sharing::service::proto::V1Frame>)>
@@ -109,8 +112,8 @@ class IncomingFramesReader
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnTimeout();
   std::unique_ptr<nearby::sharing::service::proto::V1Frame> PopCachedFrame(
-      std::optional<nearby::sharing::service::proto::V1Frame::FrameType>
-          frame_type) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      absl::Span<const nearby::sharing::service::proto::V1Frame::FrameType>
+          frame_types) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   TaskRunner& service_thread_;
   NearbyConnection* const connection_;

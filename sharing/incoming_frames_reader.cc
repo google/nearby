@@ -20,13 +20,18 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
@@ -39,6 +44,16 @@ namespace {
 using FrameType = ::nearby::sharing::service::proto::V1Frame_FrameType;
 using V1Frame = ::nearby::sharing::service::proto::V1Frame;
 using Frame = ::nearby::sharing::service::proto::Frame;
+
+std::string FormatFrameTypes(absl::Span<const FrameType> frame_types) {
+  return absl::StrCat(
+      "[",
+      absl::StrJoin(frame_types, ", ",
+                    [](std::string* out, FrameType frame_type) {
+                      absl::StrAppend(out, V1Frame::FrameType_Name(frame_type));
+                    }),
+      "]");
+}
 
 std::unique_ptr<V1Frame> DecodeV1Frame(const std::vector<uint8_t>& data) {
   auto frame = std::make_unique<Frame>();
@@ -78,18 +93,18 @@ IncomingFramesReader::~IncomingFramesReader() {
 void IncomingFramesReader::ReadFrame(
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
-  AddNewRequest(std::nullopt, std::move(callback), timeout);
+  AddNewRequest({}, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::ReadFrame(
-    FrameType frame_type,
+    absl::Span<const FrameType> frame_types,
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
-  AddNewRequest(frame_type, std::move(callback), timeout);
+  AddNewRequest(frame_types, std::move(callback), timeout);
 }
 
 void IncomingFramesReader::AddNewRequest(
-    std::optional<FrameType> frame_type,
+    absl::Span<const FrameType> frame_types,
     absl::AnyInvocable<void(bool is_timeout, std::optional<V1Frame>)> callback,
     absl::Duration timeout) {
   {
@@ -100,10 +115,12 @@ void IncomingFramesReader::AddNewRequest(
       timeout_timer_.reset();
     }
     // Check in the cache for frame.
-    std::unique_ptr<V1Frame> cached_frame = PopCachedFrame(frame_type);
+    std::unique_ptr<V1Frame> cached_frame = PopCachedFrame(frame_types);
     if (cached_frame == nullptr) {
-      next_read_frame_info_ = ReadFrameInfo{.frame_type = frame_type,
-                                            .callback = std::move(callback)};
+      next_read_frame_info_ =
+          ReadFrameInfo{.frame_types = std::vector<FrameType>(
+                            frame_types.begin(), frame_types.end()),
+                        .callback = std::move(callback)};
       if (timeout != absl::ZeroDuration()) {
         timeout_timer_ = std::make_unique<ThreadTimer>(
             service_thread_, "frame_reader_timeout", timeout,
@@ -187,11 +204,13 @@ void IncomingFramesReader::OnDataReadFromConnection(
       // Drop the frame if no one is waiting.
       return;
     }
-    if (next_read_frame_info_->frame_type.has_value() &&
-        *next_read_frame_info_->frame_type != frame_type) {
-      LOG(WARNING) << __func__ << ": Failed to read frame of type "
-                   << *next_read_frame_info_->frame_type
-                   << ", but got frame of type " << frame_type
+    if (!next_read_frame_info_->frame_types.empty() &&
+        !absl::c_linear_search(next_read_frame_info_->frame_types,
+                               frame_type)) {
+      LOG(WARNING) << __func__ << ": Failed to read frame of types "
+                   << FormatFrameTypes(next_read_frame_info_->frame_types)
+                   << ", but got frame of type "
+                   << V1Frame::FrameType_Name(frame_type)
                    << ". Cached for later.";
       cached_frames_.push_back(std::move(frame));
       cached_frame = true;
@@ -223,22 +242,23 @@ void IncomingFramesReader::ClosePendingRead(bool is_timeout) {
 }
 
 std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
-    std::optional<V1Frame::FrameType> frame_type) {
+    absl::Span<const V1Frame::FrameType> frame_types) {
   VLOG(1) << __func__ << ": Fetching cached frame";
   if (cached_frames_.empty()) {
     return nullptr;
   }
-  if (!frame_type.has_value()) {
+  if (frame_types.empty()) {
     std::unique_ptr<V1Frame> frame = std::move(cached_frames_.front());
     cached_frames_.pop_front();
     return frame;
   }
-  VLOG(1) << __func__ << ": Requested frame type - " << *frame_type;
+  VLOG(1) << __func__ << ": Requested frame types - "
+          << FormatFrameTypes(frame_types);
 
   auto iter =
       std::find_if(cached_frames_.begin(), cached_frames_.end(),
-                   [frame_type = *frame_type](std::unique_ptr<V1Frame>& frame) {
-                     return frame->type() == frame_type;
+                   [frame_types](std::unique_ptr<V1Frame>& frame) {
+                     return absl::c_linear_search(frame_types, frame->type());
                    });
 
   if (iter == cached_frames_.end()) return nullptr;

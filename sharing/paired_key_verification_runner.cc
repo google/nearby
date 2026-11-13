@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -85,8 +86,8 @@ std::vector<uint8_t> PadPrefix(char prefix, std::vector<uint8_t> bytes) {
 std::ostream& operator<<(
     std::ostream& out,
     const PairedKeyVerificationRunner::PairedKeyVerificationResult& obj) {
-  out << static_cast<std::underlying_type<
-      PairedKeyVerificationRunner::PairedKeyVerificationResult>::type>(obj);
+  out << static_cast<std::underlying_type_t<
+      PairedKeyVerificationRunner::PairedKeyVerificationResult>>(obj);
   return out;
 }
 
@@ -119,8 +120,13 @@ void PairedKeyVerificationRunner::Run(
   verification_result_ = PairedKeyVerificationResult::kSuccess;
 
   SendPairedKeyEncryptionFrame();
+  static constexpr std::array<V1Frame::FrameType, 2>
+      kEncryptionOrCancelFrameTypes = {
+          V1Frame::PAIRED_KEY_ENCRYPTION,
+          V1Frame::CANCEL,
+      };
   frames_reader_.ReadFrame(
-      V1Frame::PAIRED_KEY_ENCRYPTION,
+      kEncryptionOrCancelFrameTypes,
       [&, runner = GetWeakPtr()](bool is_timeout,
                                  std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
@@ -138,6 +144,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
   if (!frame.has_value()) {
     LOG(WARNING) << __func__ << ": Failed to read remote paired key encryption";
     std::move(callback_)(PairedKeyVerificationResult::kFail,
+                         OSType::UNKNOWN_OS_TYPE);
+    return;
+  }
+  if (frame->type() == V1Frame::CANCEL) {
+    LOG(INFO) << __func__
+              << ": Remote peer cancelled during paired key encryption read.";
+    std::move(callback_)(PairedKeyVerificationResult::kCancelled,
                          OSType::UNKNOWN_OS_TYPE);
     return;
   }
@@ -174,8 +187,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
 
   SendPairedKeyResultFrame(local_result);
 
+  static constexpr std::array<V1Frame::FrameType, 2> kResultOrCancelFrameTypes =
+      {
+          V1Frame::PAIRED_KEY_RESULT,
+          V1Frame::CANCEL,
+      };
   frames_reader_.ReadFrame(
-      V1Frame::PAIRED_KEY_RESULT,
+      kResultOrCancelFrameTypes,
       [this, runner = GetWeakPtr()](bool is_timeout,
                                     std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
@@ -193,6 +211,13 @@ void PairedKeyVerificationRunner::OnReadPairedKeyResultFrame(
   if (!frame.has_value()) {
     LOG(WARNING) << __func__ << ": Failed to read remote paired key result";
     std::move(callback_)(PairedKeyVerificationResult::kFail,
+                         OSType::UNKNOWN_OS_TYPE);
+    return;
+  }
+  if (frame->type() == V1Frame::CANCEL) {
+    LOG(INFO) << __func__
+              << ": Remote peer cancelled during paired key result read.";
+    std::move(callback_)(PairedKeyVerificationResult::kCancelled,
                          OSType::UNKNOWN_OS_TYPE);
     return;
   }
@@ -231,6 +256,7 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
       break;
 
     case PairedKeyVerificationResult::kFail:
+    case PairedKeyVerificationResult::kCancelled:
       result_frame->set_status(PairedKeyResultFrame::FAIL);
       break;
   }
@@ -385,6 +411,7 @@ void PairedKeyVerificationRunner::ApplyResult(
       // Success does not change final result.
       break;
     case PairedKeyVerificationResult::kFail:
+    case PairedKeyVerificationResult::kCancelled:
       // If new result is kFail, then the whole transaction failed.
       verification_result_ = PairedKeyVerificationResult::kFail;
       break;

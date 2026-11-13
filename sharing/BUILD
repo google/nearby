@@ -179,11 +179,15 @@ cc_library(
         "//internal/platform:types",
         "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -203,6 +207,7 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -561,6 +566,7 @@ cc_test(
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -592,6 +598,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )

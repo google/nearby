@@ -346,7 +346,7 @@ bool OutgoingShareSession::AcceptTransfer(
           .build());
   VLOG(1) << "Waiting for response frame from " << share_target().id;
   frames_reader()->ReadFrame(
-      nearby::sharing::service::proto::V1Frame::RESPONSE,
+      {nearby::sharing::service::proto::V1Frame::RESPONSE},
       [callback = std::move(response_callback)](bool is_timeout,
                                                 std::optional<V1Frame> frame) {
         if (!frame.has_value()) {
@@ -674,9 +674,9 @@ void OutgoingShareSession::StartPeerBinding(
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .build());
   frames_reader()->ReadFrame(
-      nearby::sharing::service::proto::V1Frame::BINDINGS,
-      [callback = std::move(callback)](
-          bool is_timeout, std::optional<V1Frame> frame) mutable {
+      {nearby::sharing::service::proto::V1Frame::BINDINGS},
+      [callback = std::move(callback)](bool is_timeout,
+                                       std::optional<V1Frame> frame) mutable {
         BindingResponse failure_response;
         failure_response.set_status(BindingResponse::FAILURE);
         if (!frame.has_value()) {
