@@ -1734,6 +1734,56 @@ public class GNCWiFiAwareMedium: NSObject {
   }
 
   #if canImport(UIKit)
+    /// The publishing pairing UI presented by this instance, while it is still alive.
+    ///
+    /// Kept so the UI can be taken down when the pairing attempt it belongs to is abandoned (for
+    /// example the transfer finished over BLE before the user entered the PIN). Otherwise the sheet
+    /// stays on screen until Apple's own pairing session times out.
+    @MainActor weak var presentedPublishingViewController: UIViewController?
+
+    /// The subscribing pairing UI (PIN entry) presented by this instance, while it is still alive.
+    /// See `presentedPublishingViewController`.
+    @MainActor weak var presentedSubscribingViewController: UIViewController?
+
+    /// Dismisses `viewController` if it is still presented, then calls `completion`.
+    ///
+    /// Dismissal goes through the view controller's own presenter rather than the current top view
+    /// controller, so that nothing the host app presented above or below it is affected.
+    @MainActor
+    private func dismissPairingViewController(
+      _ viewController: UIViewController?, role: String, completion: @escaping () -> Void
+    ) {
+      guard let viewController,
+        let presenter = viewController.presentingViewController,
+        !viewController.isBeingDismissed
+      else {
+        completion()
+        return
+      }
+      logger.info("dismissing \(role) pairing UI")
+      presenter.dismiss(animated: true, completion: completion)
+    }
+
+    /// Dismisses the publishing pairing UI, if it is still showing, then calls `completion`.
+    ///
+    /// The dismissal tracker attached to the UI still fires, so the regular dismissal path runs
+    /// as if the user had closed it.
+    @MainActor
+    @objc public func dismissAwarePublishingView(completion: @escaping () -> Void) {
+      let viewController = presentedPublishingViewController
+      presentedPublishingViewController = nil
+      dismissPairingViewController(viewController, role: "publishing", completion: completion)
+    }
+
+    /// Dismisses the subscribing pairing UI (PIN entry), if it is still showing, then calls
+    /// `completion`. See `dismissAwarePublishingView(completion:)`.
+    @MainActor
+    @objc public func dismissAwareSubscribingView(completion: @escaping () -> Void) {
+      let viewController = presentedSubscribingViewController
+      presentedSubscribingViewController = nil
+      dismissPairingViewController(viewController, role: "subscribing", completion: completion)
+    }
+
     @MainActor
     private func findTopViewController(controller: UIViewController? = nil) -> UIViewController? {
       let controller =
@@ -1788,6 +1838,7 @@ public class GNCWiFiAwareMedium: NSObject {
         return
       }
       topVC.present(paringVC, animated: true, completion: nil)
+      presentedPublishingViewController = paringVC
     }
 
     @available(iOS 26.0, *)
@@ -1835,6 +1886,7 @@ public class GNCWiFiAwareMedium: NSObject {
         return
       }
       topVC.present(pickerVC, animated: true, completion: nil)
+      presentedSubscribingViewController = pickerVC
     }
   #else
     @objc public func showAwarePublishingViewAtTop(
@@ -1848,6 +1900,14 @@ public class GNCWiFiAwareMedium: NSObject {
       serviceName: String, completion: @escaping () -> Void
     ) {
       self.logger.info("showAwareSubscribingViewAtTop not supported on this platform")
+      completion()
+    }
+
+    @objc public func dismissAwarePublishingView(completion: @escaping () -> Void) {
+      completion()
+    }
+
+    @objc public func dismissAwareSubscribingView(completion: @escaping () -> Void) {
       completion()
     }
   #endif
