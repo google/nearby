@@ -445,6 +445,9 @@ static NSError *AlreadyScanningError() {
     strongSelf->_connectionTimeoutBlock = nil;
 
     // Perform timeout actions
+    [strongSelf->_centralManager cancelPeripheralConnection:peripheral];
+    [strongSelf->_gattConnectionCompletionHandlers removeObjectForKey:peripheral.identifier];
+    [strongSelf->_l2capStreamCompletionHandlers removeObjectForKey:peripheral.identifier];
     if (callback) {
       callback([NSError errorWithDomain:GNCBLEErrorDomain
                                    code:GNCBLEErrorBlePerperipheralConnectionTimeout
