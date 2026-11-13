@@ -798,5 +798,162 @@ TEST(OfflineFramesTest, MediumMetadataWFDAuthTypesToWFDAuthTypes) {
       MediumMetadataWFDAuthTypesToWFDAuthTypes(empty_medium_metadata).empty());
 }
 
+TEST(OfflineFramesTest,
+     ForConnectionRequestConnectionsPopulatesSupports6GhzWhenFlagEnabled) {
+  ConnectionInfo connection_info{std::string(kEndpointId),
+                                 ByteArray{std::string(kEndpointName)},
+                                 kNonce,
+                                 kSupports5ghz,
+                                 std::string(kBssid),
+                                 kApFrequency,
+                                 std::vector<Medium, std::allocator<Medium>>(
+                                     kMediums.begin(), kMediums.end()),
+                                 kKeepAliveIntervalMillis,
+                                 kKeepAliveTimeoutMillis};
+  connection_info.supports_6_ghz = true;
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  auto disabled_response =
+      FromBytes(ForConnectionRequestConnections({}, connection_info));
+  ASSERT_TRUE(disabled_response.ok());
+  EXPECT_FALSE(disabled_response.result()
+                   .v1()
+                   .connection_request()
+                   .medium_metadata()
+                   .has_supports_6_ghz());
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  auto enabled_true_response =
+      FromBytes(ForConnectionRequestConnections({}, connection_info));
+  ASSERT_TRUE(enabled_true_response.ok());
+  EXPECT_TRUE(enabled_true_response.result()
+                  .v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .has_supports_6_ghz());
+  EXPECT_TRUE(enabled_true_response.result()
+                  .v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .supports_6_ghz());
+
+  connection_info.supports_6_ghz = false;
+  auto enabled_false_response =
+      FromBytes(ForConnectionRequestConnections({}, connection_info));
+  ASSERT_TRUE(enabled_false_response.ok());
+  EXPECT_TRUE(enabled_false_response.result()
+                  .v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .has_supports_6_ghz());
+  EXPECT_FALSE(enabled_false_response.result()
+                   .v1()
+                   .connection_request()
+                   .medium_metadata()
+                   .supports_6_ghz());
+
+  NearbyFlags::GetInstance().ResetOverridedValues();  // NOTYPO
+}
+
+TEST(OfflineFramesTest,
+     ForConnectionRequestPresencePopulatesSupports6GhzWhenFlagEnabled) {
+  ConnectionInfo connection_info{std::string(kEndpointId),
+                                 ByteArray{std::string(kEndpointName)},
+                                 kNonce,
+                                 kSupports5ghz,
+                                 std::string(kBssid),
+                                 kApFrequency,
+                                 std::vector<Medium, std::allocator<Medium>>(
+                                     kMediums.begin(), kMediums.end()),
+                                 kKeepAliveIntervalMillis,
+                                 kKeepAliveTimeoutMillis};
+  connection_info.supports_6_ghz = true;
+  location::nearby::connections::PresenceDevice presence_device;
+  presence_device.set_endpoint_id("ABC");
+  presence_device.set_endpoint_type(
+      location::nearby::connections::PRESENCE_ENDPOINT);
+  presence_device.set_device_name("TEST DEVICE");
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  auto disabled_response =
+      FromBytes(ForConnectionRequestPresence(presence_device, connection_info));
+  ASSERT_TRUE(disabled_response.ok());
+  EXPECT_FALSE(disabled_response.result()
+                   .v1()
+                   .connection_request()
+                   .medium_metadata()
+                   .has_supports_6_ghz());
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  auto enabled_response =
+      FromBytes(ForConnectionRequestPresence(presence_device, connection_info));
+  ASSERT_TRUE(enabled_response.ok());
+  EXPECT_TRUE(enabled_response.result()
+                  .v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .has_supports_6_ghz());
+  EXPECT_TRUE(enabled_response.result()
+                  .v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .supports_6_ghz());
+
+  NearbyFlags::GetInstance().ResetOverridedValues();  // NOTYPO
+}
+
+TEST(OfflineFramesTest, ForBwuPathRequestPopulatesSupports6GhzWhenFlagEnabled) {
+  std::vector<Medium> mediums = {Medium::WIFI_HOTSPOT};
+  MediumRole medium_role;
+  medium_role.set_support_wifi_hotspot_client(true);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  auto disabled_response = FromBytes(
+      ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role,
+                        /*supports_5_ghz=*/true, /*supports_6_ghz=*/true));
+  ASSERT_TRUE(disabled_response.ok());
+  EXPECT_FALSE(disabled_response.result()
+                   .v1()
+                   .bandwidth_upgrade_negotiation()
+                   .upgrade_path_info()
+                   .upgrade_path_request()
+                   .medium_meta_data()
+                   .has_supports_6_ghz());
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  auto enabled_response = FromBytes(
+      ForBwuPathRequest(Medium::WIFI_HOTSPOT, mediums, medium_role,
+                        /*supports_5_ghz=*/true, /*supports_6_ghz=*/true));
+  ASSERT_TRUE(enabled_response.ok());
+  const auto& metadata = enabled_response.result()
+                             .v1()
+                             .bandwidth_upgrade_negotiation()
+                             .upgrade_path_info()
+                             .upgrade_path_request()
+                             .medium_meta_data();
+  EXPECT_TRUE(metadata.has_supports_6_ghz());
+  EXPECT_TRUE(metadata.supports_6_ghz());
+
+  NearbyFlags::GetInstance().ResetOverridedValues();  // NOTYPO
+}
+
 }  // namespace
 }  // namespace nearby::connections::parser

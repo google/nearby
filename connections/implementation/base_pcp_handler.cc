@@ -106,6 +106,8 @@ using ::securegcm::UKey2Handshake;
 
 constexpr int kEndpointCancelAlarmTimeout = 10;
 constexpr int kConnectionTokenLength = 8;
+constexpr std::int32_t kWifi6GhzMinFrequencyMhz = 5925;
+constexpr std::int32_t kWifi6GhzMaxFrequencyMhz = 7125;
 
 std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
   switch (status) {
@@ -955,12 +957,21 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   connection_info.local_endpoint_info = info.endpoint_info;
   connection_info.nonce = Prng().NextInt32();
   if (mediums_->GetWifi().IsAvailable()) {
-    connection_info.supports_5_ghz =
-        mediums_->GetWifi().GetCapability().supports_5_ghz;
-
-    api::WifiInformation& wifi_info = mediums_->GetWifi().GetInformation();
+    const api::WifiCapability& wifi_capability =
+        mediums_->GetWifi().GetCapability();
+    const api::WifiInformation& wifi_info =
+        mediums_->GetWifi().GetInformation();
+    connection_info.supports_5_ghz = wifi_capability.supports_5_ghz;
     connection_info.bssid = wifi_info.bssid;
     connection_info.ap_frequency = wifi_info.ap_frequency;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kPopulateSupports6GhzInMediumMetadata)) {
+      connection_info.supports_6_ghz =
+          wifi_capability.supports_6_ghz ||
+          (wifi_info.ap_frequency >= kWifi6GhzMinFrequencyMhz &&
+           wifi_info.ap_frequency <= kWifi6GhzMaxFrequencyMhz);
+    }
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableDynamicRoleSwitch)) {
@@ -970,6 +981,7 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     }
     LOG(INFO) << "Query for WIFI information: is_supports_5_ghz="
               << connection_info.supports_5_ghz
+              << "; is_supports_6_ghz=" << connection_info.supports_6_ghz
               << "; bssid=" << connection_info.bssid
               << "; ap_frequency=" << connection_info.ap_frequency << "Mhz";
   }
@@ -2225,6 +2237,11 @@ Exception BasePcpHandler::OnIncomingConnection(
   const MediumMetadata& medium_metadata = connection_request.medium_metadata();
   ConnectionInfo& connection_info = connection_options.connection_info;
   connection_info.supports_5_ghz = medium_metadata.supports_5_ghz();
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata)) {
+    connection_info.supports_6_ghz = medium_metadata.supports_6_ghz();
+  }
   connection_info.bssid = medium_metadata.bssid();
   connection_info.ap_frequency = medium_metadata.ap_frequency();
   if (medium_metadata.has_medium_role()) {
@@ -2234,7 +2251,9 @@ Exception BasePcpHandler::OnIncomingConnection(
     LOG(INFO)
         << connection_request.endpoint_id()
         << "'s WIFI information: is_supports_5_ghz="
-        << connection_info.supports_5_ghz << "; bssid=" << connection_info.bssid
+        << connection_info.supports_5_ghz
+        << "; is_supports_6_ghz=" << connection_info.supports_6_ghz
+        << "; bssid=" << connection_info.bssid
         << "; ap_frequency=" << connection_info.ap_frequency
         << "Mhz; support_wifi_direct_group_owner="
         << medium_metadata.medium_role().support_wifi_direct_group_owner()
@@ -2256,6 +2275,7 @@ Exception BasePcpHandler::OnIncomingConnection(
     LOG(INFO) << connection_request.endpoint_id()
               << "'s WIFI information: is_supports_5_ghz="
               << connection_info.supports_5_ghz
+              << "; is_supports_6_ghz=" << connection_info.supports_6_ghz
               << "; bssid=" << connection_info.bssid
               << "; ap_frequency=" << connection_info.ap_frequency
               << "Mhz; has no mediumRole";

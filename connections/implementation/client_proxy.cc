@@ -924,6 +924,21 @@ bool ClientProxy::Is5GHzSupported(const std::string& endpoint_id) const {
   return false;
 }
 
+bool ClientProxy::Is6GHzSupported(const std::string& endpoint_id) const {
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata)) {
+    return false;
+  }
+  MutexLock lock(&mutex_);
+
+  const ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->first.connection_options.connection_info.supports_6_ghz;
+  }
+  return false;
+}
+
 std::string ClientProxy::GetBssid(const std::string& endpoint_id) const {
   MutexLock lock(&mutex_);
 

@@ -3684,5 +3684,351 @@ TEST_F(BasePcpHandlerTest,
   ASSERT_TRUE(attempt_logged.WaitForNotificationWithTimeout(absl::Seconds(5)));
 }
 
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionPopulatesSupports6GhzFromWifiCapability) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  env_.Start();
+  Mediums m;
+  m.GetWifi().GetCapability().supports_6_ghz = true;
+  m.GetWifi().GetInformation().ap_frequency = 5230;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler,
+                 BooleanMediumSelector{.bluetooth = true});
+
+  auto channel_pair = SetupConnectionForConnectFailure(Medium::BLUETOOTH);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  location::nearby::connections::OfflineFrame captured_request;
+  EXPECT_CALL(*channel_a, Write(_))
+      .WillOnce([&captured_request](absl::string_view data) {
+        auto frame = parser::FromBytes(data);
+        EXPECT_TRUE(frame.ok());
+        if (frame.ok()) {
+          captured_request = frame.result();
+        }
+        return Exception{Exception::kSuccess};
+      })
+      .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+        return channel->DoWrite(data);
+      });
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, Medium::BLUETOOTH);
+
+  EXPECT_TRUE(captured_request.v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .has_supports_6_ghz());
+  EXPECT_TRUE(captured_request.v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .supports_6_ghz());
+
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest,
+       RequestConnectionInfersSupports6GhzFrom6GhzApFrequency) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  env_.Start();
+  Mediums m;
+  m.GetWifi().GetCapability().supports_6_ghz = false;
+  m.GetWifi().GetInformation().ap_frequency = 5955;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler,
+                 BooleanMediumSelector{.bluetooth = true});
+
+  auto channel_pair = SetupConnectionForConnectFailure(Medium::BLUETOOTH);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  location::nearby::connections::OfflineFrame captured_request;
+  EXPECT_CALL(*channel_a, Write(_))
+      .WillOnce([&captured_request](absl::string_view data) {
+        auto frame = parser::FromBytes(data);
+        EXPECT_TRUE(frame.ok());
+        if (frame.ok()) {
+          captured_request = frame.result();
+        }
+        return Exception{Exception::kSuccess};
+      })
+      .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+        return channel->DoWrite(data);
+      });
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, Medium::BLUETOOTH);
+
+  EXPECT_TRUE(captured_request.v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .has_supports_6_ghz());
+  EXPECT_TRUE(captured_request.v1()
+                  .connection_request()
+                  .medium_metadata()
+                  .supports_6_ghz());
+
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, RequestConnectionOmitsSupports6GhzWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  env_.Start();
+  Mediums m;
+  m.GetWifi().GetCapability().supports_6_ghz = true;
+  m.GetWifi().GetInformation().ap_frequency = 5955;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler,
+                 BooleanMediumSelector{.bluetooth = true});
+
+  auto channel_pair = SetupConnectionForConnectFailure(Medium::BLUETOOTH);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  location::nearby::connections::OfflineFrame captured_request;
+  EXPECT_CALL(*channel_a, Write(_))
+      .WillOnce([&captured_request](absl::string_view data) {
+        auto frame = parser::FromBytes(data);
+        EXPECT_TRUE(frame.ok());
+        if (frame.ok()) {
+          captured_request = frame.result();
+        }
+        return Exception{Exception::kSuccess};
+      })
+      .WillRepeatedly([channel = channel_a.get()](absl::string_view data) {
+        return channel->DoWrite(data);
+      });
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, Medium::BLUETOOTH);
+
+  EXPECT_FALSE(captured_request.v1()
+                   .connection_request()
+                   .medium_metadata()
+                   .has_supports_6_ghz());
+  EXPECT_FALSE(captured_request.v1()
+                   .connection_request()
+                   .medium_metadata()
+                   .supports_6_ghz());
+
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, FillConnectionInfoEvaluates6GhzFrequencyBoundaries) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  ConnectionRequestInfo request_info{
+      .endpoint_info = ByteArray("EndpointInfo"),
+  };
+  ConnectionOptions connection_options;
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  m.GetWifi().GetCapability().supports_6_ghz = false;
+
+  m.GetWifi().GetInformation().ap_frequency = 5924;
+  EXPECT_FALSE(
+      pcp_handler
+          .FillConnectionInfo(client_.get(), request_info, connection_options)
+          .supports_6_ghz);
+
+  m.GetWifi().GetInformation().ap_frequency = 5925;
+  EXPECT_TRUE(
+      pcp_handler
+          .FillConnectionInfo(client_.get(), request_info, connection_options)
+          .supports_6_ghz);
+
+  m.GetWifi().GetInformation().ap_frequency = 7125;
+  EXPECT_TRUE(
+      pcp_handler
+          .FillConnectionInfo(client_.get(), request_info, connection_options)
+          .supports_6_ghz);
+
+  m.GetWifi().GetInformation().ap_frequency = 7126;
+  EXPECT_FALSE(
+      pcp_handler
+          .FillConnectionInfo(client_.get(), request_info, connection_options)
+          .supports_6_ghz);
+
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest,
+       OnIncomingConnectionParsesSupports6GhzWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      true);
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  StartAdvertising(client_.get(), &pcp_handler,
+                   BooleanMediumSelector{.bluetooth = true});
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  constexpr absl::string_view kEndpointId = "ABCD";
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
+  std::shared_ptr<MockEndpointChannel> client_channel =
+      std::move(channel_pair.first);
+  auto& server_channel = channel_pair.second;
+
+  absl::Notification initiated_notification;
+  EXPECT_CALL(mock_connection_listener_.initiated_cb,
+              Call(std::string(kEndpointId), _))
+      .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
+        initiated_notification.Notify();
+      });
+
+  location::nearby::connections::OfflineFrame request_frame;
+  request_frame.set_version(location::nearby::connections::OfflineFrame::V1);
+  request_frame.mutable_v1()->set_type(
+      location::nearby::connections::V1Frame::CONNECTION_REQUEST);
+  auto* connection_request =
+      request_frame.mutable_v1()->mutable_connection_request();
+  connection_request->set_endpoint_id(kEndpointId);
+  connection_request->set_endpoint_name("remote_endpoint_name");
+  connection_request->set_nonce(12345);
+  connection_request->mutable_medium_metadata()->set_supports_6_ghz(true);
+  client_channel->Write(request_frame.SerializeAsString());
+
+  ClientProxy remote_client;
+  EncryptionRunner remote_crypto;
+  remote_crypto.StartClient(&remote_client, std::string(kEndpointId),
+                            client_channel, {});
+
+  ASSERT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  ASSERT_TRUE(
+      initiated_notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
+
+  EXPECT_TRUE(client_->Is6GHzSupported(std::string(kEndpointId)));
+
+  client_channel->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest,
+       OnIncomingConnectionIgnoresSupports6GhzWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kPopulateSupports6GhzInMediumMetadata,
+      false);
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  StartAdvertising(client_.get(), &pcp_handler,
+                   BooleanMediumSelector{.bluetooth = true});
+  EXPECT_CALL(pcp_handler, CanReceiveIncomingConnection)
+      .WillRepeatedly(Return(true));
+
+  constexpr absl::string_view kEndpointId = "ABCD";
+  auto channel_pair =
+      SetupConnection(Medium::BLUETOOTH, /*drop_first_write=*/false);
+  std::shared_ptr<MockEndpointChannel> client_channel =
+      std::move(channel_pair.first);
+  auto& server_channel = channel_pair.second;
+
+  absl::Notification initiated_notification;
+  EXPECT_CALL(mock_connection_listener_.initiated_cb,
+              Call(std::string(kEndpointId), _))
+      .WillOnce([&](const std::string&, const ConnectionResponseInfo&) {
+        initiated_notification.Notify();
+      });
+
+  location::nearby::connections::OfflineFrame request_frame;
+  request_frame.set_version(location::nearby::connections::OfflineFrame::V1);
+  request_frame.mutable_v1()->set_type(
+      location::nearby::connections::V1Frame::CONNECTION_REQUEST);
+  auto* connection_request =
+      request_frame.mutable_v1()->mutable_connection_request();
+  connection_request->set_endpoint_id(kEndpointId);
+  connection_request->set_endpoint_name("remote_endpoint_name");
+  connection_request->set_nonce(12345);
+  connection_request->mutable_medium_metadata()->set_supports_6_ghz(true);
+  client_channel->Write(request_frame.SerializeAsString());
+
+  ClientProxy remote_client;
+  EncryptionRunner remote_crypto;
+  remote_crypto.StartClient(&remote_client, std::string(kEndpointId),
+                            client_channel, {});
+
+  ASSERT_TRUE(pcp_handler
+                  .OnIncomingConnection(
+                      client_.get(), ByteArray("remote_endpoint_name"),
+                      std::move(server_channel), Medium::BLUETOOTH,
+                      NearbyDevice::Type::kConnectionsDevice)
+                  .Ok());
+  ASSERT_TRUE(
+      initiated_notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
+
+  EXPECT_FALSE(client_->Is6GHzSupported(std::string(kEndpointId)));
+
+  client_channel->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace nearby::connections

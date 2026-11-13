@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -64,6 +65,9 @@ using ::location::nearby::proto::connections::ConnectionAttemptType;
 using ::location::nearby::proto::connections::DisconnectionReason;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::nearby::analytics::AnalyticsRecorder;
+
+constexpr std::int32_t kWifi6GhzMinFrequencyMhz = 5925;
+constexpr std::int32_t kWifi6GhzMaxFrequencyMhz = 7125;
 
 // Returns true if `role` looks like an Android peer that was busy hosting a
 // Wi-Fi Direct group or a Wi-Fi hotspot when it wrote its
@@ -369,12 +373,26 @@ void BwuManager::RequestRoleSwitchForEndpoint(ClientProxy* client,
   // recorded with `OUTGOING` and `is_role_switched=true` in
   // `ProcessBwuPathAvailableEvent`. Record `OnBandwidthUpgradeStarted` here
   // only if writing `UPGRADE_PATH_REQUEST` fails immediately.
+  bool supports_6_ghz = false;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kPopulateSupports6GhzInMediumMetadata) &&
+      mediums_->GetWifi().IsAvailable()) {
+    const api::WifiCapability& wifi_capability =
+        mediums_->GetWifi().GetCapability();
+    const api::WifiInformation& wifi_info =
+        mediums_->GetWifi().GetInformation();
+    supports_6_ghz = wifi_capability.supports_6_ghz ||
+                     (wifi_info.ap_frequency >= kWifi6GhzMinFrequencyMhz &&
+                      wifi_info.ap_frequency <= kWifi6GhzMaxFrequencyMhz);
+  }
   if (!channel
            ->Write(parser::ForBwuPathRequest(
                proposed_medium,
                client->GetUpgradeMediums(endpoint_id).GetMediums(true),
                GetLocalMediumRole(client),
-               mediums_->GetWifi().GetCapability().supports_5_ghz))
+               mediums_->GetWifi().GetCapability().supports_5_ghz,
+               supports_6_ghz))
            .Ok()) {
     LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
                << endpoint_id << " to medium "

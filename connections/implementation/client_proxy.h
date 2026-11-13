@@ -208,6 +208,8 @@ class ClientProxy final {
   BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
   // Returns if this endpoint support 5G for WIFI.
   bool Is5GHzSupported(const std::string& endpoint_id) const;
+  // Returns if this endpoint supports 6G for WIFI.
+  bool Is6GHzSupported(const std::string& endpoint_id) const;
   // Returns BSSID for this endpoint.
   std::string GetBssid(const std::string& endpoint_id) const;
   // Returns WIFI Frequency for this endpoint.
