@@ -136,7 +136,7 @@ IncomingShareSession::ProcessIntroduction(
   payload_to_file_index_map_.reserve(
       introduction_frame.file_metadata_size() + app_file_count);
   for (const auto& file : introduction_frame.file_metadata()) {
-    if (file.size() <= 0) {
+    if (file.size() < 0) {
       LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     }
