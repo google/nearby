@@ -100,8 +100,9 @@ constexpr absl::string_view kTestEndpointId = "REMOTETEST";
 
 constexpr std::array<char, 6> kFakeMacAddress = {'a', 'b', 'c', 'd', 'e', 'f'};
 
-// Computes the connection token the way Android's
-// PcpManager#getHashedConnectionToken() does: the first 8 characters of the
+// Computes the legacy connection token the way Android's
+// PcpManager#getHashedConnectionToken() does when
+// `hash_raw_connection_token_bytes` is disabled: the first 8 characters of the
 // URL-safe Base64 SHA-256 hash of Java's Arrays.toString(byte[]) applied to the
 // raw UKEY2 authentication token, e.g. "[0, 127, -128, -1]".
 std::string ComputeAndroidConnectionToken(const ByteArray& raw_auth_token) {
@@ -113,6 +114,18 @@ std::string ComputeAndroidConnectionToken(const ByteArray& raw_auth_token) {
   std::string java_string =
       absl::StrCat("[", absl::StrJoin(java_bytes, ", "), "]");
   return Base64Utils::Encode(Crypto::Sha256(java_string)).substr(0, 8);
+}
+
+// Computes the connection token directly from the raw UKEY2 authentication
+// token bytes: the first 8 characters of the URL-safe Base64 SHA-256 hash of
+// `raw_auth_token`. `Crypto::Sha256` returns an empty `ByteArray` on empty
+// input, so empty inputs return the standard SHA-256("") Base64-URL prefix.
+std::string ComputeRawConnectionToken(const ByteArray& raw_auth_token) {
+  if (raw_auth_token.Empty()) {
+    return "47DEQpj8";
+  }
+  return Base64Utils::Encode(Crypto::Sha256(raw_auth_token.AsStringView()))
+      .substr(0, 8);
 }
 
 constexpr BooleanMediumSelector kTestCases[] = {
@@ -225,9 +238,10 @@ class MockPcpHandler : public BasePcpHandler {
 
   ~MockPcpHandler() override { Shutdown(); }
 
-  // Expose protected inner types of a base type for mocking.
+  // Expose protected inner types and helpers of a base type for testing.
   using BasePcpHandler::ConnectImplResult;
   using BasePcpHandler::DiscoveredEndpoint;
+  using BasePcpHandler::GetHashedConnectionToken;
   using BasePcpHandler::StartOperationResult;
 
   MOCK_METHOD(Strategy, GetStrategy, (), (const, override));
@@ -1344,10 +1358,14 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   env_.Stop();
 }
 
-// Verifies that the connection token registered for a new connection is derived
-// from the raw UKEY2 authentication token the same way Android derives it, so
-// that both sides of a cross-platform connection log the same token.
+// Verifies that when `kHashRawConnectionTokenBytes` is disabled, the connection
+// token registered for a new connection matches Android's legacy
+// Arrays.toString(byte[]) token derivation.
 TEST_P(BasePcpHandlerTest, RequestConnectionSetsAndroidCompatibleToken) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      false);
   env_.Start();
   Mediums m;
   EndpointChannelManager ecm;
@@ -1371,6 +1389,48 @@ TEST_P(BasePcpHandlerTest, RequestConnectionSetsAndroidCompatibleToken) {
       last_connection_response_info_.raw_authentication_token;
   ASSERT_FALSE(raw_auth_token.Empty());
   EXPECT_EQ(client_->GetConnectionToken("1234"),
+            ComputeAndroidConnectionToken(raw_auth_token));
+
+  channel_b->Close();
+  bwu.Shutdown();
+  pcp_handler.DisconnectFromEndpointManager();
+  env_.Stop();
+}
+
+// Verifies that when `kHashRawConnectionTokenBytes` is enabled, the connection
+// token registered for a new connection is derived by hashing the raw UKEY2
+// authentication token bytes directly.
+TEST_P(BasePcpHandlerTest,
+       RequestConnectionHashesRawTokenBytesWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      true);
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartDiscovery(client_.get(), &pcp_handler);
+  auto mediums = pcp_handler.GetDiscoveryMediums(client_.get());
+  auto connect_medium = mediums[mediums.size() - 1];
+  auto channel_pair = SetupConnection(connect_medium);
+  auto& channel_a = channel_pair.first;
+  std::shared_ptr<MockEndpointChannel> channel_b =
+      std::move(channel_pair.second);
+  EXPECT_CALL(*channel_a, CloseImpl).Times(1);
+  EXPECT_CALL(*channel_b, CloseImpl).Times(1);
+  EXPECT_CALL(mock_connection_listener_.rejected_cb, Call).Times(AtLeast(0));
+  RequestConnection("1234", std::move(channel_a), channel_b, client_.get(),
+                    &pcp_handler, connect_medium);
+
+  const ByteArray& raw_auth_token =
+      last_connection_response_info_.raw_authentication_token;
+  ASSERT_FALSE(raw_auth_token.Empty());
+  EXPECT_EQ(client_->GetConnectionToken("1234"),
+            ComputeRawConnectionToken(raw_auth_token));
+  EXPECT_NE(client_->GetConnectionToken("1234"),
             ComputeAndroidConnectionToken(raw_auth_token));
 
   channel_b->Close();
@@ -3624,22 +3684,87 @@ constexpr char kRawAuthToken[] =
     "\x00\x01\x7f\x80\x81\xfe\xff\x10\x20\x30\x40\x50\x60\x70\x90\xa0"
     "\xb0\xc0\xd0\xe0\xf0\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb";
 
-// Pins ComputeAndroidConnectionToken() (used to check the token produced by
-// RequestConnection() above) to the value Android's
-// PcpManager#getHashedConnectionToken() derives from the same raw token: the
-// first 8 characters of the URL-safe Base64 SHA-256 hash of
-// "[0, 1, 127, -128, -127, -2, -1, 16, 32, ..., -86, -69]".
-TEST(BasePcpHandlerConnectionTokenTest, ComputeTokenMatchesAndroid) {
-  EXPECT_EQ(ComputeAndroidConnectionToken(
-                ByteArray(kRawAuthToken, sizeof(kRawAuthToken) - 1)),
-            "4Ys-bOWN");
+class BasePcpHandlerConnectionTokenTest : public ::testing::Test {
+ protected:
+  void TearDown() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kHashRawConnectionTokenBytes,
+        false);
+  }
+};
+
+// Pins GetHashedConnectionToken() when `kHashRawConnectionTokenBytes` is
+// disabled to the value Android's PcpManager#getHashedConnectionToken() derives
+// from the same raw token: the first 8 characters of the URL-safe Base64
+// SHA-256 hash of "[0, 1, 127, -128, -127, -2, -1, 16, 32, ..., -86, -69]".
+TEST_F(BasePcpHandlerConnectionTokenTest, ComputeTokenMatchesAndroid) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      false);
+  const ByteArray token(kRawAuthToken, sizeof(kRawAuthToken) - 1);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(token), "4Ys-bOWN");
+  EXPECT_EQ(ComputeAndroidConnectionToken(token), "4Ys-bOWN");
 }
 
 // Verifies that an empty raw token is formatted as "[]", like Java's
-// Arrays.toString(new byte[0]).
-TEST(BasePcpHandlerConnectionTokenTest,
-     ComputeTokenMatchesAndroidForEmptyToken) {
+// Arrays.toString(new byte[0]), when `kHashRawConnectionTokenBytes` is
+// disabled.
+TEST_F(BasePcpHandlerConnectionTokenTest,
+       ComputeTokenMatchesAndroidForEmptyToken) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      false);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(ByteArray()), "T1PNoYwr");
   EXPECT_EQ(ComputeAndroidConnectionToken(ByteArray()), "T1PNoYwr");
+}
+
+// Pins GetHashedConnectionToken() when `kHashRawConnectionTokenBytes` is
+// enabled to the value Android's PcpManager#getHashedConnectionToken() derives
+// from the raw bytes of `kRawAuthToken`.
+TEST_F(BasePcpHandlerConnectionTokenTest, ComputeRawTokenMatchesAndroid) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      true);
+  const ByteArray token(kRawAuthToken, sizeof(kRawAuthToken) - 1);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(token), "9VWR9vRO");
+  EXPECT_EQ(ComputeRawConnectionToken(token), "9VWR9vRO");
+}
+
+// Verifies that hashing an empty raw token directly produces the first 8
+// characters of SHA-256("") in URL-safe Base64, matching Android when
+// `hash_raw_connection_token_bytes` is enabled.
+TEST_F(BasePcpHandlerConnectionTokenTest,
+       ComputeRawTokenMatchesAndroidForEmptyToken) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      true);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(ByteArray()), "47DEQpj8");
+  EXPECT_EQ(ComputeRawConnectionToken(ByteArray()), "47DEQpj8");
+}
+
+// Verifies the 4-byte signed/unsigned boundary test vector shared with
+// Android's PcpManagerTest under both flag states.
+TEST_F(BasePcpHandlerConnectionTokenTest,
+       HashesRawBytesWhenFlagEnabledAndArraysToStringWhenDisabled) {
+  constexpr char kFourByteToken[] = "\x01\x02\xff\x7f";
+  const ByteArray token(kFourByteToken, sizeof(kFourByteToken) - 1);
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      true);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(token), "8H2TPdP4");
+
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kHashRawConnectionTokenBytes,
+      false);
+  EXPECT_EQ(MockPcpHandler::GetHashedConnectionToken(token), "Gm7gGoBL");
 }
 
 TEST_F(BasePcpHandlerTest,

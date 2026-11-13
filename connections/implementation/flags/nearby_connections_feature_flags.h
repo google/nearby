@@ -117,20 +117,23 @@ constexpr auto kFixClientSessionLogging =
 // unavailable in UpdateAdvertisingOptionsImpl (b/574971059).
 constexpr auto kFixWifiLanServiceInfoSerialization =
     flags::Flag<bool>(kConfigPackage, "45871083", true);
+// When true, hashes raw connection token bytes directly instead of formatting
+// them like Java Arrays.toString(byte[]) (b/574970776).
+constexpr auto kHashRawConnectionTokenBytes =
+    flags::Flag<bool>(kConfigPackage, "45891424", false);
 // Default max transmit packet size for medium.
 constexpr auto kMediumDefaultMaxTransmitPacketSize =
     flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
-// When true, only populate AdvertisingMetadata and DiscoveryMetadata capability
-// fields when measured, rather than defaulting unmeasured capabilities to
-// false/0.
+// When true, only populate measured capability fields on AdvertisingMetadata
+// and DiscoveryMetadata rather than defaulting unmeasured fields to false/0.
 constexpr auto kOmitUnmeasuredAdvDisCapabilities =
     flags::Flag<bool>(kConfigPackage, "45868908", true);
-// When true, populate ConnectionAttemptMetadataParams with
-// operation_result_code in BasePcpHandler::LogConnectionAttemptFailure even
-// when endpoint_channel is null.
+// When true, LogConnectionAttemptFailure populates
+// ConnectionAttemptMetadataParams with operation_result_code even when
+// endpoint_channel is null.
 constexpr auto kPreserveNullChannelAttemptResultCode =
     flags::Flag<bool>(kConfigPackage, "45868906", false);
 // When true, LogicalConnection records EstablishedConnections in chronological
