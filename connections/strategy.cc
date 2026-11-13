@@ -18,19 +18,25 @@ namespace nearby {
 namespace connections {
 
 const Strategy Strategy::kNone = {Strategy::ConnectionType::kNone,
-                                  Strategy::TopologyType::kUnknown};
+                                  Strategy::TopologyType::kUnknown,
+                                  /*requires_encryption=*/false};
 const Strategy Strategy::kP2pCluster{Strategy::ConnectionType::kPointToPoint,
-                                     Strategy::TopologyType::kManyToMany};
+                                     Strategy::TopologyType::kManyToMany,
+                                     /*requires_encryption=*/true};
 const Strategy Strategy::kP2pStar{Strategy::ConnectionType::kPointToPoint,
-                                  Strategy::TopologyType::kOneToMany};
+                                  Strategy::TopologyType::kOneToMany,
+                                  /*requires_encryption=*/true};
 const Strategy Strategy::kP2pPointToPoint{
-    Strategy::ConnectionType::kPointToPoint, Strategy::TopologyType::kOneToOne};
+    Strategy::ConnectionType::kPointToPoint, Strategy::TopologyType::kOneToOne,
+    /*requires_encryption=*/false};
 
 bool Strategy::IsNone() const { return *this == kNone; }
 
 bool Strategy::IsValid() const {
   return *this == kP2pStar || *this == kP2pCluster || *this == kP2pPointToPoint;
 }
+
+bool Strategy::RequiresEncryption() const { return requires_encryption_; }
 
 std::string Strategy::GetName() const {
   if (*this == Strategy::kP2pCluster) {

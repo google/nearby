@@ -828,9 +828,24 @@ void BwuManager::OnIncomingConnection(
 
         // Use the introductory client information sent over to run the upgrade
         // protocol.
+        bool enable_encryption = !introduction.supports_disabling_encryption();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                config_package_nearby::nearby_connections_feature::
+                    kEnforceBwuIncomingEncryptionPolicy)) {
+          // Enforce encryption if either the local advertising or discovery
+          // strategy requires it (such as kP2pCluster or kP2pStar).
+          const Strategy advertising_strategy =
+              mapped_client->GetAdvertisingOptions().strategy;
+          const Strategy discovery_strategy =
+              mapped_client->GetDiscoveryOptions().strategy;
+          bool local_requires_encryption =
+              advertising_strategy.RequiresEncryption() ||
+              discovery_strategy.RequiresEncryption();
+          enable_encryption = local_requires_encryption ||
+                              !introduction.supports_disabling_encryption();
+        }
         RunUpgradeProtocol(mapped_client, endpoint_id,
-                           std::move(connection->channel),
-                           !introduction.supports_disabling_encryption());
+                           std::move(connection->channel), enable_encryption);
       });
 }
 
@@ -1074,11 +1089,11 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   }
 
   in_progress_upgrades_.emplace(endpoint_id, client);
-  bool local_supports_disabling =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint ||
-       client->GetDiscoveryOptions().strategy == Strategy::kP2pPointToPoint);
-  bool enable_encryption = !upgrade_path_info.supports_disabling_encryption() ||
-                           !local_supports_disabling;
+  bool local_requires_encryption =
+      client->GetAdvertisingOptions().strategy.RequiresEncryption() ||
+      client->GetDiscoveryOptions().strategy.RequiresEncryption();
+  bool enable_encryption = local_requires_encryption ||
+                           !upgrade_path_info.supports_disabling_encryption();
   RunUpgradeProtocol(client, endpoint_id, std::move(channel),
                      enable_encryption);
 }
@@ -1186,8 +1201,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
                                             : "client proxy");
 
   bool local_supports_disabling =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint ||
-       client->GetDiscoveryOptions().strategy == Strategy::kP2pPointToPoint);
+      !client->GetAdvertisingOptions().strategy.RequiresEncryption() &&
+      !client->GetDiscoveryOptions().strategy.RequiresEncryption();
   if (!new_channel
            ->Write(parser::ForBwuIntroduction(
                client->GetLocalEndpointId(), last_local_endpoint_id,

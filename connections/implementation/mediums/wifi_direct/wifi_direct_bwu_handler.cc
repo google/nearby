@@ -115,7 +115,7 @@ std::string WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   }
 
   bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+      !client->GetAdvertisingOptions().strategy.RequiresEncryption();
   return parser::ForBwuWifiDirectPathAvailable(
       ssid, password, port, freq,
       /* supports_disabling_encryption */ disabling_encryption, gateway,

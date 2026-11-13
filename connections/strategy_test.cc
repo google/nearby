@@ -33,6 +33,13 @@ TEST(StrategyTest, IsNoneWorks) {
   EXPECT_FALSE(Strategy::kP2pPointToPoint.IsNone());
 }
 
+TEST(StrategyTest, RequiresEncryptionWorks) {
+  EXPECT_FALSE(Strategy().RequiresEncryption());
+  EXPECT_TRUE(Strategy::kP2pCluster.RequiresEncryption());
+  EXPECT_TRUE(Strategy::kP2pStar.RequiresEncryption());
+  EXPECT_FALSE(Strategy::kP2pPointToPoint.RequiresEncryption());
+}
+
 TEST(StrategyTest, CompareWorks) {
   EXPECT_EQ(Strategy::kP2pCluster, Strategy::kP2pCluster);
   EXPECT_EQ(Strategy::kP2pStar, Strategy::kP2pStar);

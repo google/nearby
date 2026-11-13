@@ -85,9 +85,11 @@ class FakeEndpointChannel : public EndpointChannel {
   std::string GetName() const override { return "fake-channel-" + service_id_; }
   Medium GetMedium() const override { return medium_; }
   int GetMaxTransmitPacketSize() const override { return 512; }
-  void EnableEncryption(std::shared_ptr<EncryptionContext> context) override {}
-  void DisableEncryption() override {}
-  bool IsEncrypted() override { return false; }
+  void EnableEncryption(std::shared_ptr<EncryptionContext> context) override {
+    is_encrypted_ = (context != nullptr);
+  }
+  void DisableEncryption() override { is_encrypted_ = false; }
+  bool IsEncrypted() override { return is_encrypted_; }
   ExceptionOr<ByteArray> TryDecrypt(const ByteArray& data) override {
     return Exception::kFailed;
   }
@@ -130,6 +132,7 @@ class FakeEndpointChannel : public EndpointChannel {
   absl::Time write_timestamp_ = absl::InfinitePast();
   bool is_closed_ = false;
   bool is_paused_ = false;
+  bool is_encrypted_ = false;
   location::nearby::proto::connections::DisconnectionReason
       disconnection_reason_;
   std::string local_endpoint_id_;

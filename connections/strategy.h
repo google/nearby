@@ -38,6 +38,9 @@ class Strategy {
   // false otherwise.
   bool IsValid() const;
 
+  // Returns true, if strategy requires encryption, false otherwise.
+  bool RequiresEncryption() const;
+
   // Returns a string representing given strategy, for every valid strategy.
   std::string GetName() const;
 
@@ -57,10 +60,14 @@ class Strategy {
     kOneToMany = 2,
     kManyToMany = 3,
   };
-  constexpr Strategy(ConnectionType connection_type, TopologyType topology_type)
-      : connection_type_(connection_type), topology_type_(topology_type) {}
+  constexpr Strategy(ConnectionType connection_type, TopologyType topology_type,
+                     bool requires_encryption)
+      : connection_type_(connection_type),
+        topology_type_(topology_type),
+        requires_encryption_(requires_encryption) {}
   ConnectionType connection_type_;
   TopologyType topology_type_;
+  bool requires_encryption_;
 };
 
 }  // namespace connections

@@ -151,7 +151,7 @@ std::string WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     credentials.set_port(last_service_address.port);
   }
   bool disabling_encryption =
-      (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
+      !client->GetAdvertisingOptions().strategy.RequiresEncryption();
   return parser::ForBwuWifiHotspotPathAvailable(
       std::move(credentials),
       /* supports_disabling_encryption */ disabling_encryption);

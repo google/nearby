@@ -27,7 +27,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
 #include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/mock_analytics_recorder.h"
 #include "connections/implementation/bwu_handler.h"
@@ -43,6 +45,7 @@
 #include "connections/implementation/service_id_constants.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/strategy.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -3355,6 +3358,154 @@ TEST_F(BwuManagerTest,
 
   UnRegisterChannelForEndpoint(kEndpointId1);
   UnRegisterChannelForEndpoint(kEndpointId2);
+}
+
+class BwuManagerIncomingEncryptionPolicyTest
+    : public BwuManagerTest,
+      public ::testing::WithParamInterface<Strategy> {};
+
+TEST_P(BwuManagerIncomingEncryptionPolicyTest,
+       OnIncomingConnection_EnforcesStrategyEncryptionPolicy) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceBwuIncomingEncryptionPolicy,
+      true);
+  Strategy strategy = GetParam();
+  client_.StartedAdvertising(std::string(kServiceIdA), strategy, {},
+                             /*mediums=*/{},
+                             /*operation_result_with_medium=*/{},
+                             AdvertisingOptions{{.strategy = strategy}});
+  auto initial_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId1),
+                                  std::move(initial_channel));
+  ASSERT_TRUE(ecm_.EncryptChannelForEndpoint(
+      std::string(kEndpointId1),
+      EndpointChannel::EncryptionContext::FromSavedSession(
+          "\x01" + std::string(72, 'A'))));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_HOTSPOT);
+  ASSERT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+
+  const auto& init_call =
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().back();
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WIFI_HOTSPOT, *init_call.service_id);
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(parser::ForBwuIntroduction(
+          *init_call.endpoint_id, /*last_endpoint_id=*/"",
+          /*supports_disabling_encryption=*/true))));
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
+
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  bool expected_encrypted = strategy.RequiresEncryption();
+  EXPECT_EQ(upgraded_channel_raw->IsEncrypted(), expected_encrypted);
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+INSTANTIATE_TEST_SUITE_P(BwuManagerIncomingEncryptionPolicyTests,
+                         BwuManagerIncomingEncryptionPolicyTest,
+                         ::testing::Values(Strategy::kP2pCluster,
+                                           Strategy::kP2pStar,
+                                           Strategy::kP2pPointToPoint));
+
+TEST_F(BwuManagerTest,
+       OnIncomingConnection_ClusterStrategy_FlagDisabledAllowsDowngrade) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceBwuIncomingEncryptionPolicy,
+      false);
+  client_.StartedAdvertising(
+      std::string(kServiceIdA), Strategy::kP2pCluster, {}, /*mediums=*/{},
+      /*operation_result_with_medium=*/{},
+      AdvertisingOptions{{.strategy = Strategy::kP2pCluster}});
+  auto initial_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId1),
+                                  std::move(initial_channel));
+  ASSERT_TRUE(ecm_.EncryptChannelForEndpoint(
+      std::string(kEndpointId1),
+      EndpointChannel::EncryptionContext::FromSavedSession(
+          "\x01" + std::string(72, 'A'))));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_HOTSPOT);
+  ASSERT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+
+  const auto& init_call =
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().back();
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WIFI_HOTSPOT, *init_call.service_id);
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(parser::ForBwuIntroduction(
+          *init_call.endpoint_id, /*last_endpoint_id=*/"",
+          /*supports_disabling_encryption=*/true))));
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
+
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  EXPECT_FALSE(upgraded_channel_raw->IsEncrypted());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
+}
+
+TEST_F(BwuManagerTest,
+       OnIncomingConnection_MismatchedStrategies_EnforcesEncryption) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceBwuIncomingEncryptionPolicy,
+      true);
+  client_.StartedAdvertising(
+      std::string(kServiceIdA), Strategy::kP2pPointToPoint, {}, /*mediums=*/{},
+      /*operation_result_with_medium=*/{},
+      AdvertisingOptions{{.strategy = Strategy::kP2pPointToPoint}});
+  client_.StartedDiscovery(
+      std::string(kServiceIdA), Strategy::kP2pCluster, {}, /*mediums=*/{},
+      /*operation_result_with_medium=*/{},
+      DiscoveryOptions{{.strategy = Strategy::kP2pCluster}});
+  auto initial_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId1),
+                                  std::move(initial_channel));
+  ASSERT_TRUE(ecm_.EncryptChannelForEndpoint(
+      std::string(kEndpointId1),
+      EndpointChannel::EncryptionContext::FromSavedSession(
+          "\x01" + std::string(72, 'A'))));
+
+  bwu_manager_->InitiateBwuForEndpoint(&client_, std::string(kEndpointId1),
+                                       Medium::WIFI_HOTSPOT);
+  ASSERT_EQ(fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().size(),
+            1u);
+
+  const auto& init_call =
+      fake_wifi_hotspot_bwu_handler_->handle_initialize_calls().back();
+  auto upgraded_channel = std::make_unique<FakeEndpointChannel>(
+      Medium::WIFI_HOTSPOT, *init_call.service_id);
+  FakeEndpointChannel* upgraded_channel_raw = upgraded_channel.get();
+  upgraded_channel->set_read_output(
+      ExceptionOr<ByteArray>(ByteArray(parser::ForBwuIntroduction(
+          *init_call.endpoint_id, /*last_endpoint_id=*/"",
+          /*supports_disabling_encryption=*/true))));
+  auto connection = std::make_unique<BwuHandler::IncomingSocketConnection>(
+      std::move(upgraded_channel));
+
+  bwu_manager_->InvokeOnIncomingConnectionForTesting(&client_,
+                                                     std::move(connection));
+
+  EXPECT_TRUE(upgraded_channel_raw->IsEncrypted());
+
+  UnRegisterChannelForEndpoint(kEndpointId1);
 }
 
 }  // namespace
