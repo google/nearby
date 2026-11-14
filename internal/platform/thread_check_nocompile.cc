@@ -40,25 +40,24 @@ void TestExecute_MissingMethodAnnotation() {
 }
 #endif  // TEST_EXECUTE_MISSING_METHOD_ANNOTATION
 
-#ifdef TEST_SUBMIT_MISSING_METHOD_ANNOTATION
+#ifdef TEST_DELAYED_EXECUTE_MISSING_METHOD_ANNOTATION
 struct ThreadCheckTestClass {
   SingleThreadExecutor executor;
   int value ABSL_GUARDED_BY(executor) = 0;
 
-  int getValue() { return value; }
+  void incValue() { value++; }
 };
 
-void TestSubmit_MissingMethodAnnotation() {
+void TestDelayedExecute_MissingMethodAnnotation() {
   ThreadCheckTestClass test_class;
-  Future<int> future;
 
-  test_class.executor.Submit<int>(
+  test_class.executor.DelayedExecute(
+      absl::ZeroDuration(),
       [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
-        return ExceptionOr<int>{test_class.getValue()};
-      },
-      &future);
+        test_class.incValue();
+      });
 }
-#endif  // TEST_SUBMIT_MISSING_METHOD_ANNOTATION
+#endif  // TEST_DELAYED_EXECUTE_MISSING_METHOD_ANNOTATION
 
 #ifdef TEST_SCHEDULE_MISSING_METHOD_ANNOTATION
 struct ThreadCheckTestClass {
