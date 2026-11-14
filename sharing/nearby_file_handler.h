@@ -18,11 +18,10 @@
 #include <stdint.h>
 
 #include <functional>
-#include <memory>
 #include <vector>
 
 #include "internal/base/file_path.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace sharing {
@@ -33,15 +32,14 @@ class NearbyFileHandler {
  public:
   using DeleteFilesFromDiskCallback = std::function<void()>;
 
-  // Pass in a TaskRunner to use for testing.
-  explicit NearbyFileHandler(std::unique_ptr<TaskRunner> runner = nullptr);
-  ~NearbyFileHandler();
+  NearbyFileHandler() = default;
+  ~NearbyFileHandler() = default;
 
   void DeleteFilesFromDisk(std::vector<FilePath> file_paths,
                            DeleteFilesFromDiskCallback callback);
 
  private:
-  std::unique_ptr<TaskRunner> sequenced_task_runner_;
+  SingleThreadExecutor executor_;
 };
 
 }  // namespace sharing

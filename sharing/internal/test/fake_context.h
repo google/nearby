@@ -20,10 +20,12 @@
 #include <memory>
 
 #include "internal/platform/clock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -44,7 +46,8 @@ class FakeContext : public Context {
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
-  std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
+  std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
+      const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
 
@@ -59,8 +62,8 @@ class FakeContext : public Context {
     return fake_fast_initiation_manager_.get();
   }
 
-  FakeTaskRunner* last_sequenced_task_runner() const {
-    return last_sequenced_task_runner_;
+  TestSingleThreadExecutor* last_single_thread_executor() const {
+    return last_single_thread_executor_;
   }
 
  private:
@@ -68,7 +71,7 @@ class FakeContext : public Context {
   std::unique_ptr<FakeConnectivityManager> fake_connectivity_manager_;
   std::unique_ptr<FakeBluetoothAdapter> fake_bluetooth_adapter_;
   std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
-  mutable FakeTaskRunner* last_sequenced_task_runner_ = nullptr;
+  mutable TestSingleThreadExecutor* last_single_thread_executor_ = nullptr;
 };
 
 }  // namespace nearby

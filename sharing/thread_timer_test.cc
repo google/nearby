@@ -21,24 +21,24 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 
 namespace nearby::sharing {
 namespace {
 
 class ThreadTimerTest : public ::testing::Test {
  public:
-  ThreadTimerTest() : task_runner_(&fake_clock_, 1) {}
+  ThreadTimerTest() : task_runner_(&fake_clock_) {}
 
   void Sync(absl::Duration timeout) {
     absl::Notification notification;
-    task_runner_.PostTask([&notification]() { notification.Notify(); });
+    task_runner_.Execute([&notification]() { notification.Notify(); });
     notification.WaitForNotificationWithTimeout(timeout);
   }
 
  protected:
   FakeClock fake_clock_;
-  FakeTaskRunner task_runner_;
+  TestSingleThreadExecutor task_runner_;
 };
 
 TEST_F(ThreadTimerTest, TimerFires) {

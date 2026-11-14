@@ -24,6 +24,7 @@ cc_library(
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
+        "test_single_thread_executor.cc",
     ],
     hdrs = [
         "fake_clock.h",
@@ -33,6 +34,7 @@ cc_library(
         "fake_single_thread_executor.h",
         "fake_task_runner.h",
         "fake_timer.h",
+        "test_single_thread_executor.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -63,6 +65,7 @@ cc_test(
         "fake_http_client_test.cc",
         "fake_task_runner_test.cc",
         "fake_timer_test.cc",
+        "test_single_thread_executor_test.cc",
     ],
     shard_count = 8,
     deps = [

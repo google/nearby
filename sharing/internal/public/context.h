@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "internal/platform/clock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
@@ -43,7 +44,8 @@ class Context {
   virtual ConnectivityManager* GetConnectivityManager() const = 0;
   virtual sharing::api::BluetoothAdapter& GetBluetoothAdapter() const = 0;
   virtual api::FastInitiationManager& GetFastInitiationManager() const = 0;
-  virtual std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const = 0;
+  virtual std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
+      const = 0;
 
   // Creates task runner concurrently. |concurrent_count| is the maximum
   // count of tasks running at the same time.

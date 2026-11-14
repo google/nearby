@@ -15,9 +15,18 @@
 #ifndef PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/submittable_executor.h"
+#include "internal/platform/timer.h"
 
 namespace nearby {
 
@@ -30,9 +39,25 @@ class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
   using Platform = api::ImplementationPlatform;
   SingleThreadExecutor()
       : SubmittableExecutor(Platform::CreateSingleThreadExecutor()) {}
-  ~SingleThreadExecutor() override = default;
-  SingleThreadExecutor(SingleThreadExecutor&&) = default;
-  SingleThreadExecutor& operator=(SingleThreadExecutor&&) = default;
+  SingleThreadExecutor(const SingleThreadExecutor&) = delete;
+  SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
+  ~SingleThreadExecutor() override;
+
+  bool DelayedExecute(absl::Duration delay, absl::AnyInvocable<void()> task)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+ protected:
+  virtual std::unique_ptr<Timer> CreateTimer();
+
+ private:
+  void DoShutdown() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  mutable absl::Mutex mutex_;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
+      ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 // Moves the object to `executor` and destroys it there.

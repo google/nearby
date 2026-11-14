@@ -35,7 +35,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
@@ -245,7 +245,7 @@ class NearbyShareCertificateManagerImpl
   absl_nonnull std::unique_ptr<NearbyShareScheduler>
       account_info_update_scheduler_;
 
-  std::unique_ptr<TaskRunner> executor_;
+  std::unique_ptr<SingleThreadExecutor> executor_;
   absl::Mutex join_time_mutex_;
   // Set to the transaction timestamp of the last successful pairing if
   // available.  This is returned from the phone in the BindingResponse message.

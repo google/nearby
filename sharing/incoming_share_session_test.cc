@@ -41,7 +41,7 @@
 #include "internal/base/file_path.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/certificates/test_util.h"
@@ -194,7 +194,7 @@ class IncomingShareSessionTest : public ::testing::Test {
   }
 
   FakeClock clock_;
-  FakeTaskRunner task_runner_{&clock_, 1};
+  TestSingleThreadExecutor task_runner_{&clock_};
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
                                                        &mock_event_logger_};

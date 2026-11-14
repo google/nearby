@@ -27,7 +27,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/thread_timer.h"
@@ -38,7 +38,7 @@ namespace nearby::sharing {
 class IncomingFramesReader
     : public std::enable_shared_from_this<IncomingFramesReader> {
  public:
-  IncomingFramesReader(TaskRunner& service_thread,
+  IncomingFramesReader(SingleThreadExecutor& service_thread,
                        NearbyConnection* connection);
   virtual ~IncomingFramesReader();
   IncomingFramesReader(const IncomingFramesReader&) = delete;
@@ -115,7 +115,7 @@ class IncomingFramesReader
       absl::Span<const nearby::sharing::service::proto::V1Frame::FrameType>
           frame_types) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  TaskRunner& service_thread_;
+  SingleThreadExecutor& service_thread_;
   NearbyConnection* const connection_;
 
   absl::Mutex mutex_;

@@ -20,14 +20,14 @@
 
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/exception.h"
-#include "internal/platform/future.h"
 
 namespace nearby {
+namespace {
 
 TEST(SingleThreadExecutorTest, ConsructorDestructorWorks) {
   SingleThreadExecutor executor;
@@ -94,15 +94,6 @@ TEST(SingleThreadExecutorTest, JobsExecuteInOrder) {
   EXPECT_EQ(results, (std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
 }
 
-TEST(SingleThreadExecutorTest, CanSubmit) {
-  SingleThreadExecutor executor;
-  Future<bool> future;
-  bool submitted =
-      executor.Submit<bool>([]() { return ExceptionOr<bool>{true}; }, &future);
-  EXPECT_TRUE(submitted);
-  EXPECT_TRUE(future.Get().result());
-}
-
 TEST(SingleThreadExecutorTest, ShutdownWaitsForRunningTasks) {
   SingleThreadExecutor executor;
   std::atomic_int value = 0;
@@ -153,22 +144,83 @@ TEST(SingleThreadExecutorTest, ThreadCheck_ExecuteRunnable) {
       });
 }
 
-TEST(SingleThreadExecutorTest, ThreadCheck_SubmitCallable) {
-  ThreadCheckTestClass test_class;
-  test_class.executor.Execute(
-      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
-        test_class.incValue();
-      });
-  Future<int> future;
+TEST(SingleThreadExecutorTest, DelayedExecute) {
+  SingleThreadExecutor executor;
+  std::atomic_bool first_task_started = false;
+  absl::BlockingCounter counter(2);
 
-  bool submitted = test_class.executor.Submit<int>(
-      [&test_class]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
-        return ExceptionOr<int>{test_class.getValue()};
-      },
-      &future);
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(100), [&]() {
+    first_task_started.store(true, std::memory_order_seq_cst);
+    counter.DecrementCount();
+  }));
 
-  EXPECT_TRUE(submitted);
-  EXPECT_EQ(future.Get().result(), 1);
+  executor.Execute([&]() {
+    EXPECT_FALSE(first_task_started.load(std::memory_order_seq_cst));
+    counter.DecrementCount();
+  });
+
+  counter.Wait();
+  EXPECT_TRUE(first_task_started.load(std::memory_order_seq_cst));
 }
 
+TEST(SingleThreadExecutorTest, TwoDelayedExecuteTasks) {
+  SingleThreadExecutor executor;
+  std::atomic_bool first_task_started = false;
+  absl::BlockingCounter counter(2);
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(500), [&]() {
+    first_task_started.store(true, std::memory_order_seq_cst);
+    counter.DecrementCount();
+  }));
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(1), [&]() {
+    EXPECT_FALSE(first_task_started.load(std::memory_order_seq_cst));
+    counter.DecrementCount();
+  }));
+
+  counter.Wait();
+  EXPECT_TRUE(first_task_started.load(std::memory_order_seq_cst));
+}
+
+TEST(SingleThreadExecutorTest, DelayedExecuteEmptyTask) {
+  SingleThreadExecutor executor;
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(100), nullptr));
+}
+
+TEST(SingleThreadExecutorTest, DelayedExecuteAfterShutdownFails) {
+  SingleThreadExecutor executor;
+  executor.Shutdown();
+
+  EXPECT_FALSE(executor.DelayedExecute(
+      absl::Milliseconds(50), [&]() { FAIL() << "Task should not run"; }));
+}
+
+TEST(SingleThreadExecutorTest, ShutdownCancelsPendingDelayedExecute) {
+  SingleThreadExecutor executor;
+  std::atomic_bool called = false;
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::Seconds(10), [&]() {
+    called.store(true, std::memory_order_seq_cst);
+  }));
+  executor.Shutdown();
+
+  EXPECT_FALSE(called.load(std::memory_order_seq_cst));
+}
+
+TEST(SingleThreadExecutorTest, ThreadCheck_DelayedExecuteRunnable) {
+  ThreadCheckTestClass test_class;
+  absl::Notification notification;
+
+  EXPECT_TRUE(test_class.executor.DelayedExecute(
+      absl::Milliseconds(10),
+      [&test_class,
+       &notification]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(test_class.executor) {
+        test_class.incValue();
+        EXPECT_EQ(test_class.getValue(), 1);
+        notification.Notify();
+      }));
+  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
+}
+
+}  // namespace
 }  // namespace nearby

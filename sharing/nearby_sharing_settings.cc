@@ -30,7 +30,7 @@
 #include "internal/base/files.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -73,7 +73,8 @@ ShowNotificationStatus GetNotificationStatus(
 }  // namespace
 
 NearbyShareSettings::NearbyShareSettings(
-    TaskRunner* absl_nonnull task_runner, nearby::Clock* absl_nonnull clock,
+    SingleThreadExecutor* absl_nonnull task_runner,
+    nearby::Clock* absl_nonnull clock,
     nearby::api::DeviceInfo& device_info, PreferenceManager& preference_manager,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     analytics::AnalyticsRecorder* analytics_recorder)
