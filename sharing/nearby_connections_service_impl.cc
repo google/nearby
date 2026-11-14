@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "location/nearby/analytics/cpp/logging/event_logger.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -61,6 +60,7 @@ using ::nearby::connections::PayloadType;
 using ::nearby::connections::ServiceControllerRouter;
 
 using NcAdvertisingOptions = ::nearby::connections::AdvertisingOptions;
+using NcConnectionListener = ::nearby::connections::ConnectionListener;
 using NcConnectionOptions = ::nearby::connections::ConnectionOptions;
 using NcDiscoveryListener = ::nearby::connections::DiscoveryListener;
 using NcDiscoveryOptions = ::nearby::connections::DiscoveryOptions;
@@ -72,6 +72,48 @@ using NcStatus = ::nearby::connections::Status;
 
 Core* GetService(NearbyConnectionsServiceImpl::HANDLE handle) {
   return reinterpret_cast<Core*>(handle);
+}
+
+// Adapts a sharing `NearbyConnectionsService::ConnectionListener` to a
+// `nearby::connections::ConnectionListener`, keeping the listener alive via
+// `std::shared_ptr` across asynchronous Core callbacks.
+NcConnectionListener ToNcConnectionListener(
+    NearbyConnectionsService::ConnectionListener listener) {
+  auto shared_listener =
+      std::make_shared<NearbyConnectionsService::ConnectionListener>(
+          std::move(listener));
+  NcConnectionListener nc_listener;
+  nc_listener.initiated_cb =
+      [shared_listener](const std::string& endpoint_id,
+                        const ConnectionResponseInfo& info) {
+        ConnectionInfo connection_info;
+        connection_info.authentication_token = info.authentication_token;
+        connection_info.endpoint_info = std::vector<uint8_t>(
+            info.remote_endpoint_info.begin(), info.remote_endpoint_info.end());
+        connection_info.is_incoming_connection = info.is_incoming_connection;
+        connection_info.raw_authentication_token = std::vector<uint8_t>(
+            info.raw_authentication_token.begin(),
+            info.raw_authentication_token.end());
+        shared_listener->initiated_cb(endpoint_id, connection_info);
+      };
+  nc_listener.accepted_cb = [shared_listener](const std::string& endpoint_id) {
+    shared_listener->accepted_cb(endpoint_id);
+  };
+  nc_listener.rejected_cb = [shared_listener](const std::string& endpoint_id,
+                                              NcStatus status) {
+    shared_listener->rejected_cb(endpoint_id, ConvertToStatus(status));
+  };
+  nc_listener.disconnected_cb =
+      [shared_listener](const std::string& endpoint_id) {
+        shared_listener->disconnected_cb(endpoint_id);
+      };
+  nc_listener.bandwidth_changed_cb =
+      [shared_listener = std::move(shared_listener)](
+          const std::string& endpoint_id, NcMedium medium) {
+        shared_listener->bandwidth_changed_cb(endpoint_id,
+                                              static_cast<Medium>(medium));
+      };
+  return nc_listener;
 }
 
 }  // namespace
@@ -99,8 +141,6 @@ void NearbyConnectionsServiceImpl::StartAdvertising(
     const AdvertisingOptions& advertising_options,
     ConnectionListener advertising_listener,
     std::function<void(Status status)> callback) {
-  advertising_listener_ = std::move(advertising_listener);
-
   NcAdvertisingOptions options{};
   options.strategy = ConvertToServiceStrategy(advertising_options.strategy);
   options.allowed.ble = advertising_options.allowed_mediums.ble;
@@ -121,39 +161,8 @@ void NearbyConnectionsServiceImpl::StartAdvertising(
   ConnectionRequestInfo connection_request_info;
   connection_request_info.endpoint_info =
       ByteArray(std::string(endpoint_info.begin(), endpoint_info.end()));
-  connection_request_info.listener.initiated_cb =
-      [&](const std::string& endpoint_id,
-          const ConnectionResponseInfo& info) {
-        ConnectionInfo connection_info;
-        connection_info.authentication_token = info.authentication_token;
-        std::string remote_end_point = std::string(info.remote_endpoint_info);
-        connection_info.endpoint_info = std::vector<uint8_t>(
-            remote_end_point.begin(), remote_end_point.end());
-        connection_info.is_incoming_connection = info.is_incoming_connection;
-        std::string raw_authentication_token =
-            std::string(info.raw_authentication_token);
-        connection_info.raw_authentication_token = std::vector<uint8_t>(
-            raw_authentication_token.begin(), raw_authentication_token.end());
-        advertising_listener_.initiated_cb(endpoint_id, connection_info);
-      };
-  connection_request_info.listener.accepted_cb =
-      [&](const std::string& endpoint_id) {
-        advertising_listener_.accepted_cb(endpoint_id);
-      };
-  connection_request_info.listener.rejected_cb =
-      [&](const std::string& endpoint_info, NcStatus status) {
-        advertising_listener_.rejected_cb(endpoint_info,
-                                          ConvertToStatus(status));
-      };
-  connection_request_info.listener.disconnected_cb =
-      [&](const std::string& endpoint_info) {
-        advertising_listener_.disconnected_cb(endpoint_info);
-      };
-  connection_request_info.listener.bandwidth_changed_cb =
-      [&](const std::string& endpoint_id, NcMedium medium) {
-        advertising_listener_.bandwidth_changed_cb(endpoint_id,
-                                                   static_cast<Medium>(medium));
-      };
+  connection_request_info.listener =
+      ToNcConnectionListener(std::move(advertising_listener));
 
   GetService(service_handle_)
       ->StartAdvertising(service_id, options,
@@ -170,7 +179,8 @@ void NearbyConnectionsServiceImpl::StartDiscovery(
     absl::string_view service_id, const DiscoveryOptions& discovery_options,
     DiscoveryListener discovery_listener,
     std::function<void(Status status)> callback) {
-  discovery_listener_ = std::move(discovery_listener);
+  auto shared_listener =
+      std::make_shared<DiscoveryListener>(std::move(discovery_listener));
 
   NcDiscoveryOptions options{};
   options.strategy = ConvertToServiceStrategy(discovery_options.strategy);
@@ -195,24 +205,27 @@ void NearbyConnectionsServiceImpl::StartDiscovery(
   }
 
   NcDiscoveryListener listener;
-  listener.endpoint_found_cb = [this](const std::string& endpoint_id,
-                                      const ByteArray& endpoint_info,
-                                      const std::string& service_id) {
+  listener.endpoint_found_cb = [shared_listener](
+                                   const std::string& endpoint_id,
+                                   const ByteArray& endpoint_info,
+                                   const std::string& service_id) {
     std::string endpoint_info_data = std::string(endpoint_info);
-    discovery_listener_.endpoint_found_cb(
+    shared_listener->endpoint_found_cb(
         endpoint_id,
         DiscoveredEndpointInfo(std::vector<uint8_t>(endpoint_info_data.begin(),
                                                     endpoint_info_data.end()),
                                service_id));
   };
-  listener.endpoint_lost_cb = [this](const std::string& endpoint_id) {
-    discovery_listener_.endpoint_lost_cb(endpoint_id);
-  };
-  listener.endpoint_distance_changed_cb = [this](const std::string& endpoint_id,
-                                                 NcDistanceInfo distance_info) {
-    discovery_listener_.endpoint_distance_changed_cb(
-        endpoint_id, static_cast<DistanceInfo>(distance_info));
-  };
+  listener.endpoint_lost_cb =
+      [shared_listener](const std::string& endpoint_id) {
+        shared_listener->endpoint_lost_cb(endpoint_id);
+      };
+  listener.endpoint_distance_changed_cb =
+      [shared_listener = std::move(shared_listener)](
+          const std::string& endpoint_id, NcDistanceInfo distance_info) {
+        shared_listener->endpoint_distance_changed_cb(
+            endpoint_id, static_cast<DistanceInfo>(distance_info));
+      };
 
   GetService(service_handle_)
       ->StartDiscovery(service_id, options, std::move(listener),
@@ -229,7 +242,6 @@ void NearbyConnectionsServiceImpl::RequestConnection(
     absl::string_view endpoint_id, const ConnectionOptions& connection_options,
     ConnectionListener connection_listener,
     std::function<void(Status status)> callback) {
-  connection_listener_ = std::move(connection_listener);
   NcConnectionOptions options{};
   options.allowed.ble = connection_options.allowed_mediums.ble;
   options.allowed.bluetooth = connection_options.allowed_mediums.bluetooth;
@@ -257,39 +269,8 @@ void NearbyConnectionsServiceImpl::RequestConnection(
   ConnectionRequestInfo connection_request_info;
   connection_request_info.endpoint_info =
       ByteArray(std::string(endpoint_info.begin(), endpoint_info.end()));
-  connection_request_info.listener.initiated_cb =
-      [&](const std::string& endpoint_id,
-          const ConnectionResponseInfo& info) {
-        ConnectionInfo connection_info;
-        connection_info.authentication_token = info.authentication_token;
-        std::string remote_end_point = std::string(info.remote_endpoint_info);
-        connection_info.endpoint_info = std::vector<uint8_t>(
-            remote_end_point.begin(), remote_end_point.end());
-        connection_info.is_incoming_connection = info.is_incoming_connection;
-        std::string raw_authentication_token =
-            std::string(info.raw_authentication_token);
-        connection_info.raw_authentication_token = std::vector<uint8_t>(
-            raw_authentication_token.begin(), raw_authentication_token.end());
-        connection_listener_.initiated_cb(endpoint_id, connection_info);
-      };
-  connection_request_info.listener.accepted_cb =
-      [&](const std::string& endpoint_id) {
-        connection_listener_.accepted_cb(endpoint_id);
-      };
-  connection_request_info.listener.rejected_cb =
-      [&](const std::string& endpoint_info, NcStatus status) {
-        connection_listener_.rejected_cb(endpoint_info,
-                                         ConvertToStatus(status));
-      };
-  connection_request_info.listener.disconnected_cb =
-      [&](const std::string& endpoint_info) {
-        connection_listener_.disconnected_cb(endpoint_info);
-      };
-  connection_request_info.listener.bandwidth_changed_cb =
-      [&](const std::string& endpoint_id, NcMedium medium) {
-        connection_listener_.bandwidth_changed_cb(endpoint_id,
-                                                  static_cast<Medium>(medium));
-      };
+  connection_request_info.listener =
+      ToNcConnectionListener(std::move(connection_listener));
 
   GetService(service_handle_)
       ->RequestConnection(endpoint_id, std::move(connection_request_info),
@@ -330,21 +311,17 @@ void NearbyConnectionsServiceImpl::AcceptConnection(
     absl::string_view service_id, absl::string_view endpoint_id,
     PayloadListener payload_listener,
     std::function<void(Status status)> callback) {
-  payload_listeners_.emplace(endpoint_id, std::move(payload_listener));
+  auto shared_listener =
+      std::make_shared<PayloadListener>(std::move(payload_listener));
   NcPayloadListener service_payload_listener{
       .payload_cb =
-          [&](absl::string_view endpoint_id, NcPayload payload) {
-            auto payload_listener = payload_listeners_.find(endpoint_id);
-            if (payload_listener == payload_listeners_.end()) {
-              return;
-            }
-
+          [shared_listener](absl::string_view endpoint_id, NcPayload payload) {
             VLOG(1) << "payload callback id=" << payload.GetId();
 
             switch (payload.GetType()) {
               case PayloadType::kBytes:
               case PayloadType::kFile:
-                payload_listener->second.payload_cb(
+                shared_listener->payload_cb(
                     endpoint_id, ConvertToPayload(std::move(payload)));
                 break;
               default:
@@ -353,19 +330,15 @@ void NearbyConnectionsServiceImpl::AcceptConnection(
             }
           },
       .payload_progress_cb =
-          [&](absl::string_view endpoint_id,
-              const PayloadProgressInfo& info) {
+          [shared_listener = std::move(shared_listener)](
+              absl::string_view endpoint_id, const PayloadProgressInfo& info) {
             PayloadTransferUpdate transfer_update;
             transfer_update.bytes_transferred = info.bytes_transferred;
             transfer_update.payload_id = info.payload_id;
             transfer_update.status = static_cast<PayloadStatus>(info.status);
             transfer_update.total_bytes = info.total_bytes;
             VLOG(1) << "payload transfer update id=" << info.payload_id;
-            auto payload_listener = payload_listeners_.find(endpoint_id);
-            if (payload_listener != payload_listeners_.end()) {
-              payload_listener->second.payload_progress_cb(endpoint_id,
-                                                           transfer_update);
-            }
+            shared_listener->payload_progress_cb(endpoint_id, transfer_update);
           }};
 
   GetService(service_handle_)

@@ -51,7 +51,7 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
       context_->CreateSequencedTaskRunner();
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
-          service_thread.get(), context_.get(),
+          service_thread.get(), context_->GetConnectivityManager(),
           sharing_platform.GetDeviceInfo(), event_logger);
 
   nearby_share_client_factory_ =

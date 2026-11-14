@@ -37,6 +37,7 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -45,7 +46,6 @@
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
-#include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_service.h"
@@ -143,7 +143,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
 
     nearby_connections_manager_ =
         std::make_unique<NearbyConnectionsManagerImpl>(
-            &fake_task_runner_, &fake_context_, fake_connectivity_manager_,
+            &fake_task_runner_, fake_connectivity_manager_,
             fake_device_info_, std::move(nearby_connections_service));
   }
 
@@ -157,7 +157,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
     fake_connectivity_manager_.SetInternetConnected(internet_connected);
   }
   void Fastforward(absl::Duration duration) {
-    fake_context_.fake_clock()->FastForward(duration);
+    fake_clock_.FastForward(duration);
   }
 
   void Sync() {
@@ -430,8 +430,8 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
   }
 
-  nearby::FakeContext fake_context_;
-  FakeTaskRunner fake_task_runner_{fake_context_.fake_clock(), 1};
+  nearby::FakeClock fake_clock_;
+  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
   nearby::FakeDeviceInfo fake_device_info_;
   nearby::FakeConnectivityManager fake_connectivity_manager_;
   bool should_use_web_rtc_ = false;
@@ -469,6 +469,7 @@ TEST_F(NearbyConnectionsManagerImplTest, DiscoveryFlow) {
       .Times(0);
   listener_remote.endpoint_found_cb(
       kEndpointId, DiscoveredEndpointInfo(endpoint_info, kServiceId));
+  Sync();
 
   // Invoking OnEndpointLost over remote will invoke OnEndpointLost.
   absl::Notification lost_notification;
@@ -481,6 +482,7 @@ TEST_F(NearbyConnectionsManagerImplTest, DiscoveryFlow) {
   // Invoking OnEndpointLost over remote on same endpointId will do nothing.
   EXPECT_CALL(discovery_listener, OnEndpointLost(testing::_)).Times(0);
   listener_remote.endpoint_lost_cb(kEndpointId);
+  Sync();
 
   // After OnEndpointLost the same endpointId can be discovered again.
   absl::Notification discovered_notification2;
@@ -2077,6 +2079,628 @@ TEST_F(NearbyConnectionsManagerImplTest, OverrideSavePath) {
 
   nearby_connections_manager_->OverrideSavePath(kRemoteEndpointId,
                                                 FilePath("/tmp/test"));
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ConnectAcceptedReentrantCallbacksDoNotDeadlock) {
+  const std::vector<uint8_t> local_endpoint_info(std::begin(kEndpointInfo),
+                                                 std::end(kEndpointInfo));
+  const std::vector<uint8_t> remote_endpoint_info(
+      std::begin(kRemoteEndpointInfo), std::end(kRemoteEndpointInfo));
+  const std::vector<uint8_t> raw_authentication_token(
+      std::begin(kRawAuthenticationToken), std::end(kRawAuthenticationToken));
+  const std::vector<uint8_t> byte_payload(std::begin(kBytePayload),
+                                          std::end(kBytePayload));
+
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  EXPECT_CALL(*nearby_connections_, RequestConnection)
+      .WillOnce([&](absl::string_view service_id,
+                    const std::vector<uint8_t>& endpoint_info,
+                    absl::string_view endpoint_id,
+                    ConnectionOptions connection_options,
+                    NearbyConnectionsService::ConnectionListener listener,
+                    std::function<void(Status status)> callback) {
+        connection_listener_remote = std::move(listener);
+        std::move(callback)(Status::kSuccess);
+      });
+  EXPECT_CALL(*nearby_connections_, AcceptConnection)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    NearbyConnectionsService::PayloadListener listener,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+      });
+
+  absl::Notification send_notification;
+  EXPECT_CALL(*nearby_connections_, SendPayload)
+      .WillOnce([&](absl::string_view service_id,
+                    absl::Span<const std::string> endpoint_ids,
+                    std::unique_ptr<Payload> payload,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+        send_notification.Notify();
+      });
+
+  absl::Notification connected_notification;
+  std::optional<std::vector<uint8_t>> observed_token;
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
+      TransportType::kHighQuality,
+      [&](absl::string_view endpoint_id, NearbyConnection* connection,
+          Status status) {
+        EXPECT_NE(connection, nullptr);
+        EXPECT_EQ(status, Status::kSuccess);
+        observed_token =
+            nearby_connections_manager_->GetRawAuthenticationToken(endpoint_id);
+        nearby_connections_manager_->Send(
+            endpoint_id, std::make_unique<Payload>(byte_payload),
+            std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
+        connected_notification.Notify();
+      });
+
+  ConnectionInfo connection_info;
+  connection_info.authentication_token = kAuthenticationToken;
+  connection_info.raw_authentication_token = raw_authentication_token;
+  connection_info.endpoint_info = remote_endpoint_info;
+  connection_info.is_incoming_connection = false;
+
+  connection_listener_remote.initiated_cb(kRemoteEndpointId, connection_info);
+  connection_listener_remote.accepted_cb(kRemoteEndpointId);
+
+  EXPECT_TRUE(connected_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_TRUE(send_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_EQ(observed_token, raw_authentication_token);
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ConnectRejectedAndResetReentrantDisconnectDoesNotDeadlock) {
+  const std::vector<uint8_t> local_endpoint_info(std::begin(kEndpointInfo),
+                                                 std::end(kEndpointInfo));
+  const std::vector<uint8_t> remote_endpoint_info(
+      std::begin(kRemoteEndpointInfo), std::end(kRemoteEndpointInfo));
+  const std::vector<uint8_t> raw_authentication_token(
+      std::begin(kRawAuthenticationToken), std::end(kRawAuthenticationToken));
+
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  EXPECT_CALL(*nearby_connections_, RequestConnection)
+      .Times(2)
+      .WillRepeatedly([&](absl::string_view service_id,
+                          const std::vector<uint8_t>& endpoint_info,
+                          absl::string_view endpoint_id,
+                          ConnectionOptions connection_options,
+                          NearbyConnectionsService::ConnectionListener listener,
+                          std::function<void(Status status)> callback) {
+        connection_listener_remote = std::move(listener);
+        std::move(callback)(Status::kSuccess);
+      });
+  EXPECT_CALL(*nearby_connections_, AcceptConnection)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    NearbyConnectionsService::PayloadListener listener,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+      });
+
+  // 1. Test re-entrant Disconnect() inside rejected_cb.
+  absl::Notification rejected_notification;
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
+      TransportType::kHighQuality,
+      [&](absl::string_view endpoint_id, NearbyConnection* connection,
+          Status status) {
+        EXPECT_EQ(connection, nullptr);
+        EXPECT_EQ(status, Status::kConnectionRejected);
+        nearby_connections_manager_->Disconnect(endpoint_id);
+        rejected_notification.Notify();
+      });
+
+  ConnectionInfo connection_info;
+  connection_info.authentication_token = kAuthenticationToken;
+  connection_info.raw_authentication_token = raw_authentication_token;
+  connection_info.endpoint_info = remote_endpoint_info;
+  connection_info.is_incoming_connection = false;
+
+  connection_listener_remote.initiated_cb(kRemoteEndpointId, connection_info);
+  connection_listener_remote.rejected_cb(kRemoteEndpointId,
+                                         Status::kConnectionRejected);
+  EXPECT_TRUE(rejected_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+
+  // 2. Test re-entrant Disconnect() inside Shutdown() / Reset(), and verify
+  // pending outgoing connections are disconnected in NearbyConnectionsService.
+  absl::Notification pending_disconnect_notification;
+  EXPECT_CALL(*nearby_connections_, DisconnectFromEndpoint)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        std::move(callback)(Status::kSuccess);
+        pending_disconnect_notification.Notify();
+      });
+
+  absl::Notification reset_notification;
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
+      TransportType::kHighQuality,
+      [&](absl::string_view endpoint_id, NearbyConnection* connection,
+          Status status) {
+        EXPECT_EQ(connection, nullptr);
+        EXPECT_EQ(status, Status::kReset);
+        nearby_connections_manager_->Disconnect(endpoint_id);
+        reset_notification.Notify();
+      });
+
+  nearby_connections_manager_->Shutdown();
+  EXPECT_TRUE(pending_disconnect_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_TRUE(reset_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       OnDisconnectedReentrantClearIncomingPayloadsDoesNotDeadlock) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  testing::NiceMock<MockIncomingConnectionListener>
+      incoming_connection_listener;
+  StartAdvertising(connection_listener_remote, incoming_connection_listener);
+
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  NearbyConnection* connection = OnIncomingConnection(
+      connection_listener_remote, incoming_connection_listener,
+      payload_listener_remote);
+  ASSERT_NE(connection, nullptr);
+
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->RegisterPayloadStatusListener(
+      kPayloadId, payload_listener->GetWeakPtr());
+  const std::vector<uint8_t> byte_payload(std::begin(kBytePayload),
+                                          std::end(kBytePayload));
+  payload_listener_remote.payload_cb(kRemoteEndpointId,
+                                     Payload(kPayloadId, byte_payload));
+  ASSERT_NE(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
+            nullptr);
+
+  absl::Notification disconnect_notification;
+  connection->SetDisconnectionListener([&]() {
+    EXPECT_NE(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
+              nullptr);
+    nearby_connections_manager_->ClearIncomingPayloads();
+    disconnect_notification.Notify();
+  });
+
+  connection_listener_remote.disconnected_cb(kRemoteEndpointId);
+  EXPECT_TRUE(disconnect_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
+            nullptr);
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       OnIncomingConnectionReentrantDisconnectAndClearDoesNotDeadlock) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  testing::NiceMock<MockIncomingConnectionListener>
+      incoming_connection_listener;
+  StartAdvertising(connection_listener_remote, incoming_connection_listener);
+
+  EXPECT_CALL(*nearby_connections_, AcceptConnection)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    NearbyConnectionsService::PayloadListener listener,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+      });
+  absl::Notification disconnect_from_endpoint_notification;
+  EXPECT_CALL(*nearby_connections_, DisconnectFromEndpoint)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+        disconnect_from_endpoint_notification.Notify();
+      });
+
+  absl::Notification incoming_notification;
+  EXPECT_CALL(incoming_connection_listener, OnIncomingConnection)
+      .WillOnce([&](absl::string_view endpoint_id,
+                    absl::Span<const uint8_t> endpoint_info,
+                    NearbyConnection* connection) {
+        EXPECT_NE(connection, nullptr);
+        nearby_connections_manager_->ClearIncomingPayloads();
+        nearby_connections_manager_->Disconnect(endpoint_id);
+        incoming_notification.Notify();
+      });
+
+  ConnectionInfo connection_info;
+  connection_info.authentication_token = kAuthenticationToken;
+  connection_info.raw_authentication_token = std::vector<uint8_t>(
+      std::begin(kRawAuthenticationToken), std::end(kRawAuthenticationToken));
+  connection_info.endpoint_info = std::vector<uint8_t>(
+      std::begin(kRemoteEndpointInfo), std::end(kRemoteEndpointInfo));
+  connection_info.is_incoming_connection = true;
+
+  connection_listener_remote.initiated_cb(kRemoteEndpointId, connection_info);
+  connection_listener_remote.accepted_cb(kRemoteEndpointId);
+
+  EXPECT_TRUE(incoming_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_TRUE(disconnect_from_endpoint_notification
+                  .WaitForNotificationWithTimeout(kSynchronizationTimeOut));
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ShutdownStopsDiscoveryListenerCallbacks) {
+  const std::vector<uint8_t> endpoint_info(std::begin(kEndpointInfo),
+                                           std::end(kEndpointInfo));
+  NearbyConnectionsService::DiscoveryListener listener_remote;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener;
+  StartDiscovery(listener_remote, discovery_listener);
+
+  nearby_connections_manager_->Shutdown();
+
+  EXPECT_CALL(discovery_listener, OnEndpointDiscovered).Times(0);
+  EXPECT_CALL(discovery_listener, OnEndpointLost).Times(0);
+  listener_remote.endpoint_found_cb(
+      kEndpointId, DiscoveredEndpointInfo(endpoint_info, kServiceId));
+  listener_remote.endpoint_lost_cb(kEndpointId);
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ControlFrameReadCallbackReentrantCallsDoNotDeadlock) {
+  const std::vector<uint8_t> byte_payload(std::begin(kBytePayload),
+                                          std::end(kBytePayload));
+  NearbyConnectionsService::DiscoveryListener discovery_listener_remote;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener;
+  StartDiscovery(discovery_listener_remote, discovery_listener);
+
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  NearbyConnection* nearby_connection =
+      Connect(connection_listener_remote, payload_listener_remote,
+              ConnectionResponse::kAccepted);
+  ASSERT_NE(nearby_connection, nullptr);
+
+  absl::Notification send_notification;
+  EXPECT_CALL(*nearby_connections_, SendPayload)
+      .WillOnce([&](absl::string_view service_id,
+                    absl::Span<const std::string> endpoint_ids,
+                    std::unique_ptr<Payload> payload,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+        send_notification.Notify();
+      });
+
+  absl::Notification read_notification;
+  nearby_connection->Read([&](std::optional<std::vector<uint8_t>> bytes) {
+    ASSERT_TRUE(bytes.has_value());
+    EXPECT_EQ(*bytes, byte_payload);
+    EXPECT_TRUE(nearby_connections_manager_
+                    ->GetRawAuthenticationToken(kRemoteEndpointId)
+                    .has_value());
+    nearby_connections_manager_->Send(
+        kRemoteEndpointId, std::make_unique<Payload>(byte_payload),
+        std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
+    read_notification.Notify();
+  });
+
+  payload_listener_remote.payload_cb(kRemoteEndpointId,
+                                     Payload(kPayloadId, byte_payload));
+  payload_listener_remote.payload_progress_cb(
+      kRemoteEndpointId,
+      PayloadTransferUpdate(kPayloadId, PayloadStatus::kSuccess, kTotalSize,
+                            /*bytes_transferred=*/kTotalSize));
+
+  EXPECT_TRUE(read_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_TRUE(send_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       DiscoveryCallbacksRunOnTaskRunnerAndRespectStopAndRestart) {
+  const std::vector<uint8_t> endpoint_info(std::begin(kEndpointInfo),
+                                           std::end(kEndpointInfo));
+  NearbyConnectionsService::DiscoveryListener listener_remote;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener;
+  StartDiscovery(listener_remote, discovery_listener);
+
+  // 1. Queued discovery callbacks are suppressed if StopDiscovery() runs on
+  // the callback task runner before they execute.
+  EXPECT_CALL(discovery_listener, OnEndpointDiscovered).Times(0);
+  EXPECT_CALL(discovery_listener, OnEndpointLost).Times(0);
+  absl::Notification block_runner;
+  absl::Notification runner_blocked;
+  fake_task_runner_.PostTask([&]() {
+    runner_blocked.Notify();
+    block_runner.WaitForNotification();
+    nearby_connections_manager_->StopDiscovery();
+  });
+  ASSERT_TRUE(
+      runner_blocked.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
+  listener_remote.endpoint_found_cb(
+      kEndpointId, DiscoveredEndpointInfo(endpoint_info, kServiceId));
+  listener_remote.endpoint_lost_cb(kEndpointId);
+  block_runner.Notify();
+  Sync();
+
+  // 2. Starting discovery again stops the previous listener, and re-entrant
+  // StopDiscovery() inside OnEndpointDiscovered does not self-deadlock.
+  NearbyConnectionsService::DiscoveryListener listener_remote_2;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener_2;
+  StartDiscovery(listener_remote_2, discovery_listener_2);
+
+  NearbyConnectionsService::DiscoveryListener listener_remote_3;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener_3;
+  StartDiscovery(listener_remote_3, discovery_listener_3);
+
+  EXPECT_CALL(discovery_listener_2, OnEndpointDiscovered).Times(0);
+  listener_remote_2.endpoint_found_cb(
+      kEndpointId, DiscoveredEndpointInfo(endpoint_info, kServiceId));
+  Sync();
+
+  absl::Notification reentrant_stop_done;
+  EXPECT_CALL(discovery_listener_3, OnEndpointDiscovered)
+      .WillOnce([&](absl::string_view, absl::Span<const uint8_t>) {
+        nearby_connections_manager_->StopDiscovery();
+        reentrant_stop_done.Notify();
+      });
+  listener_remote_3.endpoint_found_cb(
+      kEndpointId, DiscoveredEndpointInfo(endpoint_info, kServiceId));
+  EXPECT_TRUE(reentrant_stop_done.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       TransferManagerSendPayloadReentrantCallsDoNotDeadlock) {
+  NearbyConnectionsService::DiscoveryListener discovery_listener_remote;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener;
+  StartDiscovery(discovery_listener_remote, discovery_listener);
+
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  ASSERT_NE(Connect(connection_listener_remote, payload_listener_remote,
+                    ConnectionResponse::kAccepted),
+            nullptr);
+
+  // Upgrade medium to high quality so TransferManager sends synchronously.
+  connection_listener_remote.bandwidth_changed_cb(kRemoteEndpointId,
+                                                  Medium::kWifiLan);
+
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  InitializeTemporaryFile(file);
+  auto payload = std::make_unique<Payload>(file);
+  payload->id = kPayloadId;
+
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  absl::Notification status_notification;
+  EXPECT_CALL(*payload_listener, OnStatusUpdate)
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
+        EXPECT_EQ(update->payload_id, kPayloadId);
+        status_notification.Notify();
+      });
+
+  EXPECT_CALL(*nearby_connections_, SendPayload)
+      .WillOnce([&](absl::string_view service_id,
+                    absl::Span<const std::string> endpoint_ids,
+                    std::unique_ptr<Payload> sent_payload,
+                    std::function<void(Status status)> callback) {
+        // Re-entrantly call back into manager during SendPayload.
+        EXPECT_TRUE(nearby_connections_manager_
+                        ->GetRawAuthenticationToken(kRemoteEndpointId)
+                        .has_value());
+        payload_listener_remote.payload_progress_cb(
+            kRemoteEndpointId,
+            PayloadTransferUpdate(kPayloadId, PayloadStatus::kSuccess,
+                                  kTotalSize, kTotalSize));
+        std::move(callback)(Status::kSuccess);
+      });
+
+  nearby_connections_manager_->Send(kRemoteEndpointId, std::move(payload),
+                                    payload_listener->GetWeakPtr());
+  EXPECT_TRUE(status_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+}
+
+TEST_F(NearbyConnectionsManagerImplTest, StartAdvertisingConnectionRejected) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  testing::NiceMock<MockIncomingConnectionListener>
+      incoming_connection_listener;
+  StartAdvertising(connection_listener_remote, incoming_connection_listener);
+
+  EXPECT_CALL(*nearby_connections_, AcceptConnection)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    NearbyConnectionsService::PayloadListener listener,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        std::move(callback)(Status::kSuccess);
+      });
+  EXPECT_CALL(incoming_connection_listener, OnIncomingConnection).Times(0);
+
+  const std::vector<uint8_t> raw_authentication_token(
+      std::begin(kRawAuthenticationToken), std::end(kRawAuthenticationToken));
+  ConnectionInfo connection_info;
+  connection_info.authentication_token = kAuthenticationToken;
+  connection_info.raw_authentication_token = raw_authentication_token;
+  connection_info.endpoint_info = std::vector<uint8_t>(
+      std::begin(kRemoteEndpointInfo), std::end(kRemoteEndpointInfo));
+  connection_info.is_incoming_connection = true;
+
+  connection_listener_remote.initiated_cb(kRemoteEndpointId, connection_info);
+  EXPECT_EQ(
+      nearby_connections_manager_->GetRawAuthenticationToken(kRemoteEndpointId),
+      raw_authentication_token);
+
+  connection_listener_remote.rejected_cb(kRemoteEndpointId,
+                                         Status::kConnectionRejected);
+  Sync();
+
+  EXPECT_EQ(
+      nearby_connections_manager_->GetRawAuthenticationToken(kRemoteEndpointId),
+      std::nullopt);
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ConnectRequestConnectionFailureCancelsTransferManagerAndDisconnects) {
+  const std::vector<uint8_t> local_endpoint_info(std::begin(kEndpointInfo),
+                                                 std::end(kEndpointInfo));
+  std::function<void(Status status)> request_connection_callback;
+  EXPECT_CALL(*nearby_connections_, RequestConnection)
+      .WillOnce([&](absl::string_view service_id,
+                    const std::vector<uint8_t>& endpoint_info,
+                    absl::string_view endpoint_id,
+                    ConnectionOptions connection_options,
+                    NearbyConnectionsService::ConnectionListener listener,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(endpoint_info, local_endpoint_info);
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        request_connection_callback = std::move(callback);
+      });
+
+  absl::Notification connect_done;
+  NearbyConnection* observed_connection = nullptr;
+  Status observed_status = Status::kSuccess;
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
+      TransportType::kHighQuality,
+      [&](absl::string_view endpoint_id, NearbyConnection* connection,
+          Status status) {
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        observed_connection = connection;
+        observed_status = status;
+        connect_done.Notify();
+      });
+  ASSERT_TRUE(request_connection_callback);
+
+  // Queue a file payload so the high-quality TransferManager starts its medium
+  // upgrade timeout timer before RequestConnection fails.
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  InitializeTemporaryFile(file);
+  auto payload = std::make_unique<Payload>(file);
+  payload->id = kPayloadId;
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->Send(kRemoteEndpointId, std::move(payload),
+                                    payload_listener->GetWeakPtr());
+
+  EXPECT_CALL(*nearby_connections_, SendPayload).Times(0);
+  absl::Notification disconnect_called;
+  EXPECT_CALL(*nearby_connections_, DisconnectFromEndpoint)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        std::move(callback)(Status::kSuccess);
+        disconnect_called.Notify();
+      });
+
+  std::move(request_connection_callback)(Status::kError);
+
+  EXPECT_TRUE(disconnect_called.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+  EXPECT_TRUE(
+      connect_done.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
+  EXPECT_EQ(observed_connection, nullptr);
+  EXPECT_EQ(observed_status, Status::kUnknown);
+
+  // Advancing past the TransferManager timeout must not trigger a delayed send.
+  Fastforward(TransferManager::kMediumUpgradeTimeout);
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       DestructorWithoutShutdownCancelsActiveTransferManager) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  ASSERT_NE(Connect(connection_listener_remote, payload_listener_remote,
+                    ConnectionResponse::kAccepted),
+            nullptr);
+
+  // Start an active TransferManager timer by sending a file payload while on a
+  // low-quality medium.
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  InitializeTemporaryFile(file);
+  auto payload = std::make_unique<Payload>(file);
+  payload->id = kPayloadId;
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->Send(kRemoteEndpointId, std::move(payload),
+                                    payload_listener->GetWeakPtr());
+  EXPECT_CALL(*nearby_connections_, SendPayload).Times(0);
+
+  // Block the callback task runner while expiring the TransferManager timer,
+  // then destroy NearbyConnectionsManagerImpl without calling Shutdown().
+  // ~NearbyConnectionsManagerImpl() must cancel TransferManager synchronously
+  // so the queued timer task does not dereference freed `this`.
+  absl::Notification block_runner;
+  absl::Notification runner_blocked;
+  fake_task_runner_.PostTask([&]() {
+    runner_blocked.Notify();
+    block_runner.WaitForNotification();
+  });
+  ASSERT_TRUE(
+      runner_blocked.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
+
+  Fastforward(TransferManager::kMediumUpgradeTimeout);
+  nearby_connections_ = nullptr;
+  nearby_connections_manager_.reset();
+
+  block_runner.Notify();
+  Sync();
+}
+
+TEST_F(NearbyConnectionsManagerImplTest,
+       ReconnectCancelsPreviousActiveTransferManager) {
+  NearbyConnectionsService::ConnectionListener connection_listener_remote;
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  ASSERT_NE(Connect(connection_listener_remote, payload_listener_remote,
+                    ConnectionResponse::kAccepted),
+            nullptr);
+
+  FilePath file = Files::GetTemporaryDirectory().append(FilePath("file.jpg"));
+  InitializeTemporaryFile(file);
+  auto payload = std::make_unique<Payload>(file);
+  payload->id = kPayloadId;
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->Send(kRemoteEndpointId, std::move(payload),
+                                    payload_listener->GetWeakPtr());
+
+  // Re-initiating Connect() for the same endpoint before OnDisconnected() runs
+  // must cancel and replace the previous TransferManager so its timer cannot
+  // flush stale pending payloads.
+  EXPECT_CALL(*nearby_connections_, SendPayload).Times(0);
+  absl::Notification second_request_notification;
+  EXPECT_CALL(*nearby_connections_, RequestConnection)
+      .WillOnce([&](absl::string_view service_id,
+                    const std::vector<uint8_t>& endpoint_info,
+                    absl::string_view endpoint_id,
+                    ConnectionOptions connection_options,
+                    NearbyConnectionsService::ConnectionListener listener,
+                    std::function<void(Status status)> callback) {
+        std::move(callback)(Status::kSuccess);
+        second_request_notification.Notify();
+      });
+
+  const std::vector<uint8_t> local_endpoint_info(std::begin(kEndpointInfo),
+                                                 std::end(kEndpointInfo));
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
+      TransportType::kHighQuality,
+      [](absl::string_view, NearbyConnection*, Status) {});
+  EXPECT_TRUE(second_request_notification.WaitForNotificationWithTimeout(
+      kSynchronizationTimeOut));
+
+  Fastforward(TransferManager::kMediumUpgradeTimeout);
+  Sync();
 }
 
 }  // namespace NearbyConnectionsManagerUnitTests

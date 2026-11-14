@@ -881,8 +881,11 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     auto endpoint_info = std::make_unique<DiscoveredEndpointInfo>(
         CreateTestEndpointInfo(), kServiceId);
-    fake_nearby_connections_manager_->OnEndpointFound(kEndpointId,
-                                                      std::move(endpoint_info));
+    sharing_service_task_runner_->PostTask(
+        [this, endpoint_info = std::move(endpoint_info)]() mutable {
+          fake_nearby_connections_manager_->OnEndpointFound(
+              kEndpointId, std::move(endpoint_info));
+        });
     FlushTesting();
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                              /*success=*/true, for_self_share);
@@ -1096,9 +1099,12 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void FindInvalidEndpoint(absl::string_view endpoint_id) {
-    fake_nearby_connections_manager_->OnEndpointFound(
-        endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
-                         CreateInvalidTestEndpointInfo(), kServiceId));
+    sharing_service_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          fake_nearby_connections_manager_->OnEndpointFound(
+              endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
+                               CreateInvalidTestEndpointInfo(), kServiceId));
+        });
     FlushTesting();
   }
 
@@ -1108,14 +1114,20 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void FindEndpointWithVendorId(absl::string_view endpoint_id,
                                 uint8_t vendor_id) {
-    fake_nearby_connections_manager_->OnEndpointFound(
-        endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
-                         CreateTestEndpointInfo(vendor_id), kServiceId));
+    sharing_service_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id), vendor_id]() {
+          fake_nearby_connections_manager_->OnEndpointFound(
+              endpoint_id, std::make_unique<DiscoveredEndpointInfo>(
+                               CreateTestEndpointInfo(vendor_id), kServiceId));
+        });
     FlushTesting();
   }
 
   void LoseEndpoint(absl::string_view endpoint_id) {
-    fake_nearby_connections_manager_->OnEndpointLost(endpoint_id);
+    sharing_service_task_runner_->PostTask(
+        [this, endpoint_id = std::string(endpoint_id)]() {
+          fake_nearby_connections_manager_->OnEndpointLost(endpoint_id);
+        });
     FlushTesting();
   }
 
@@ -1590,10 +1602,7 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_NE(share_target.device_id, kEndpointId);
         EXPECT_EQ(share_target.full_name, kTestMetadataFullName);
       });
-  fake_nearby_connections_manager_->OnEndpointFound(
-      kEndpointId, std::make_unique<DiscoveredEndpointInfo>(
-                       CreateTestEndpointInfo(), kServiceId));
-  FlushTesting();
+  FindEndpoint(kEndpointId);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/true);
   // Register another send surface, which will automatically catch up
@@ -1638,10 +1647,7 @@ TEST_F(NearbySharingServiceImplTest, RegisterSendSurfaceEmptyCertificate) {
         EXPECT_EQ(share_target.device_id, kEndpointId);
         EXPECT_FALSE(share_target.full_name);
       });
-  fake_nearby_connections_manager_->OnEndpointFound(
-      kEndpointId, std::make_unique<DiscoveredEndpointInfo>(
-                       CreateTestEndpointInfo(), kServiceId));
-  FlushTesting();
+  FindEndpoint(kEndpointId);
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/false);
   // Register another send surface, which will automatically catch up

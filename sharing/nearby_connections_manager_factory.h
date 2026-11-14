@@ -18,9 +18,10 @@
 #include <memory>
 
 #include "location/nearby/analytics/cpp/logging/event_logger.h"
+#include "absl/base/nullability.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/task_runner.h"
-#include "sharing/internal/public/context.h"
+#include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_manager.h"
 
 namespace nearby::sharing {
@@ -32,7 +33,8 @@ class NearbyConnectionsManagerFactory {
   // for NearSharingServiec need to be scheduled.  This is usually the thread
   // that NearbySharingService is running on.
   static std::unique_ptr<NearbyConnectionsManager> CreateConnectionsManager(
-      nearby::TaskRunner* connections_callback_task_runner, Context* context,
+      nearby::TaskRunner* absl_nonnull connections_callback_task_runner,
+      ConnectivityManager* absl_nonnull connectivity_manager,
       nearby::api::DeviceInfo& device_info,
       nearby::analytics::EventLogger* event_logger = nullptr);
 

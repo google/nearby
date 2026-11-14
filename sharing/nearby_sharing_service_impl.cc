@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdlib>
 #include <ctime>
 #include <functional>
@@ -1338,20 +1339,25 @@ void NearbySharingServiceImpl::OnVisibilityChanged(
 
 // NearbyShareCertificateManager::Observer:
 void NearbySharingServiceImpl::OnPublicCertificatesDownloaded() {
-  if (!is_scanning_ || discovered_advertisements_to_retry_map_.empty()) {
-    return;
-  }
+  RunOnNearbySharingServiceThread(
+      "on_public_certificates_downloaded", [this]() {
+        if (!is_scanning_.load(std::memory_order_seq_cst) ||
+            discovered_advertisements_to_retry_map_.empty()) {
+          return;
+        }
 
-  LOG(INFO) << __func__ << ": Public certificates downloaded while scanning. "
-            << "Retrying decryption with "
-            << discovered_advertisements_to_retry_map_.size()
-            << " previously discovered advertisements.";
-  const auto map_copy = discovered_advertisements_to_retry_map_;
-  discovered_advertisements_to_retry_map_.clear();
-  for (const auto& id_info_pair : map_copy) {
-    discovered_advertisements_retried_set_.insert(id_info_pair.first);
-    OnEndpointDiscovered(id_info_pair.first, id_info_pair.second);
-  }
+        LOG(INFO) << __func__
+                  << ": Public certificates downloaded while scanning. "
+                     "Retrying decryption with "
+                  << discovered_advertisements_to_retry_map_.size()
+                  << " previously discovered advertisements.";
+        const auto map_copy = discovered_advertisements_to_retry_map_;
+        discovered_advertisements_to_retry_map_.clear();
+        for (const auto& id_info_pair : map_copy) {
+          discovered_advertisements_retried_set_.insert(id_info_pair.first);
+          OnEndpointDiscovered(id_info_pair.first, id_info_pair.second);
+        }
+      });
 }
 
 void NearbySharingServiceImpl::OnPrivateCertificatesChanged() {
@@ -1391,29 +1397,19 @@ void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
 // NearbyConnectionsManager::DiscoveryListener:
 void NearbySharingServiceImpl::OnEndpointDiscovered(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info) {
-  // The calling thread may already be completed when calling lambda. We
-  // make a local copy of calling parameter to avoid possible memory
-  // issue.
-  std::vector<uint8_t> endpoint_info_copy{endpoint_info.begin(),
-                                          endpoint_info.end()};
   absl::Time start_time = context_->GetClock()->Now();
-  RunOnNearbySharingServiceThread(
-      "on_endpoint_discovered",
+  AddEndpointDiscoveryEvent(
       [this, start_time, endpoint_id = std::string(endpoint_id),
-       endpoint_info_copy = std::move(endpoint_info_copy)]() {
-        AddEndpointDiscoveryEvent([this, start_time, endpoint_id,
-                                   endpoint_info_copy]() {
-          HandleEndpointDiscovered(start_time, endpoint_id, endpoint_info_copy);
-        });
+       endpoint_info =
+           std::vector<uint8_t>(endpoint_info.begin(), endpoint_info.end())]() {
+        HandleEndpointDiscovered(start_time, endpoint_id, endpoint_info);
       });
 }
 
 void NearbySharingServiceImpl::OnEndpointLost(absl::string_view endpoint_id) {
-  RunOnNearbySharingServiceThread(
-      "on_endpoint_lost", [this, endpoint_id = std::string(endpoint_id)]() {
-        AddEndpointDiscoveryEvent(
-            [this, endpoint_id]() { HandleEndpointLost(endpoint_id); });
-      });
+  AddEndpointDiscoveryEvent([this, endpoint_id = std::string(endpoint_id)]() {
+    HandleEndpointLost(endpoint_id);
+  });
 }
 
 void NearbySharingServiceImpl::OnLockStateChanged(bool locked) {

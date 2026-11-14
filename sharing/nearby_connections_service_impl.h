@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "location/nearby/analytics/cpp/logging/event_logger.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -98,10 +97,6 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
  private:
   HANDLE service_handle_ = nullptr;
   nearby::ConnectivityManager& connectivity_manager_;
-  ConnectionListener advertising_listener_;
-  DiscoveryListener discovery_listener_;
-  ConnectionListener connection_listener_;
-  absl::flat_hash_map<std::string, PayloadListener> payload_listeners_;
 };
 
 }  // namespace sharing
