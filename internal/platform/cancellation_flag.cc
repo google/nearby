@@ -13,13 +13,52 @@
 // limitations under the License.
 
 #include "internal/platform/cancellation_flag.h"
+
+#include <cassert>
 #include <memory>
 
+#include "absl/base/attributes.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/feature_flags.h"
 
 namespace nearby {
+namespace {
+
+// Tracks the CancellationFlag instances currently executing their Cancel() loop
+// on the current thread so re-entrant Cancel() calls from within a listener
+// callback do not deadlock waiting on the outer Cancel() frame.
+class ActiveCancelScope {
+ public:
+  explicit ActiveCancelScope(const CancellationFlag* flag)
+      : flag_(flag), parent_(active_cancel_scope_) {
+    active_cancel_scope_ = this;
+  }
+
+  ~ActiveCancelScope() { active_cancel_scope_ = parent_; }
+
+  static bool IsCancellingOnCurrentThread(const CancellationFlag* flag) {
+    for (const ActiveCancelScope* scope = active_cancel_scope_;
+         scope != nullptr; scope = scope->parent_) {
+      if (scope->flag_ == flag) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+ private:
+  const CancellationFlag* const flag_;
+  const ActiveCancelScope* const parent_;
+  ABSL_CONST_INIT static thread_local const ActiveCancelScope*
+      active_cancel_scope_;
+};
+
+ABSL_CONST_INIT thread_local const ActiveCancelScope*
+    ActiveCancelScope::active_cancel_scope_ = nullptr;
+
+}  // namespace
 
 CancellationFlag::CancellationFlag() {
   mutex_ = std::make_unique<absl::Mutex>();
@@ -32,6 +71,7 @@ CancellationFlag::CancellationFlag(bool cancelled) {
 
 CancellationFlag::~CancellationFlag() {
   absl::MutexLock lock(*mutex_);
+  pending_cancel_listeners_.clear();
   listeners_.clear();
 }
 
@@ -41,19 +81,48 @@ void CancellationFlag::Cancel() {
     return;
   }
 
-  absl::flat_hash_set<CancelListener *> listeners;
   {
     absl::MutexLock lock(*mutex_);
-    if (cancelled_) {
-      // Someone already cancelled. Return immediately.
+    const bool already_cancelled = cancelled_;
+    if (!already_cancelled) {
+      cancelled_ = true;
+      pending_cancel_listeners_ = listeners_;
+    }
+    if (in_cancel_) {
+      if (!ActiveCancelScope::IsCancellingOnCurrentThread(this)) {
+        auto is_not_in_cancel = [this]() ABSL_SHARED_LOCKS_REQUIRED(*mutex_) {
+          return !in_cancel_;
+        };
+        mutex_->Await(absl::Condition(&is_not_in_cancel));
+      }
       return;
     }
-    cancelled_ = true;
-
-    listeners = listeners_;
+    if (already_cancelled) {
+      return;
+    }
+    in_cancel_ = true;
   }
 
-  for (auto *listener : listeners) {
+  // Invoke listeners outside the lock so callbacks can query Cancelled(),
+  // re-enter Cancel() (even after Uncancel()), or acquire external locks
+  // without lock-order inversion. Track `active_listener_` so
+  // UnregisterOnCancelListener() on another thread waits if that specific
+  // listener is currently executing.
+  ActiveCancelScope cancel_scope(this);
+  while (true) {
+    CancelListener* listener = nullptr;
+    {
+      absl::MutexLock lock(*mutex_);
+      active_listener_ = nullptr;
+      if (!cancelled_ || pending_cancel_listeners_.empty()) {
+        in_cancel_ = false;
+        break;
+      }
+      auto it = pending_cancel_listeners_.begin();
+      listener = *it;
+      pending_cancel_listeners_.erase(it);
+      active_listener_ = listener;
+    }
     (*listener)();
   }
 }
@@ -68,6 +137,7 @@ void CancellationFlag::Uncancel() {
     absl::MutexLock lock(*mutex_);
     assert(cancelled_);
     cancelled_ = false;
+    pending_cancel_listeners_.clear();
   }
 }
 
@@ -89,9 +159,26 @@ void CancellationFlag::RegisterOnCancelListener(CancelListener *listener) {
 }
 
 void CancellationFlag::UnregisterOnCancelListener(CancelListener *listener) {
+  if (listener == nullptr) {
+    return;
+  }
   absl::MutexLock lock(*mutex_);
 
   listeners_.erase(listener);
+  pending_cancel_listeners_.erase(listener);
+  // If `listener` is currently executing on another thread inside `Cancel()`,
+  // wait for it to finish before returning so `~CancellationFlagListener()`
+  // does not destroy `listener_` while `(*listener)()` is still running.
+  // A listener callback must not destroy its own `CancellationFlagListener`
+  // synchronously from inside its own invocation, as that would destroy the
+  // executing `absl::AnyInvocable` while still on the call stack.
+  if (active_listener_ == listener) {
+    auto is_listener_inactive =
+        [this, listener]() ABSL_SHARED_LOCKS_REQUIRED(*mutex_) {
+          return active_listener_ != listener;
+        };
+    mutex_->Await(absl::Condition(&is_listener_inactive));
+  }
 }
 
 }  // namespace nearby

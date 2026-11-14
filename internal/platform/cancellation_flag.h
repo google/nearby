@@ -29,6 +29,13 @@ namespace nearby {
 class CancellationFlag {
  public:
   // The listener for cancellation.
+  // Note: A CancelListener callback must not synchronously destroy or
+  // unregister its own `CancellationFlagListener` while executing, as doing
+  // so would destroy the executing callable while still on the call stack and
+  // deadlock waiting for the active callback to complete.
+  // In addition, callers must not destroy a `CancellationFlagListener` while
+  // holding any lock that its `CancelListener` callback acquires, as
+  // unregistration waits for an in-flight callback to finish.
   using CancelListener = absl::AnyInvocable<void()>;
 
   CancellationFlag();
@@ -69,8 +76,11 @@ class CancellationFlag {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // The un-registration erases the pointer of caller's listener callback from
-  // `listeners_`. This is paired to RegisterOnCancelListener which is
-  // guaranteed to be called under `CancellationFlagListener`.
+  // `listeners_` and waits if `listener` is currently executing on another
+  // thread inside `Cancel()`. This is paired to RegisterOnCancelListener which
+  // is guaranteed to be called under `CancellationFlagListener`.
+  // Precondition: Must not be called synchronously from within `listener`'s own
+  // invocation on the cancelling thread.
   void UnregisterOnCancelListener(CancelListener *listener)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -81,6 +91,10 @@ class CancellationFlag {
 
   std::unique_ptr<absl::Mutex> mutex_;
   bool cancelled_ ABSL_GUARDED_BY(mutex_) = false;
+  bool in_cancel_ ABSL_GUARDED_BY(mutex_) = false;
+  const CancelListener* active_listener_ ABSL_GUARDED_BY(mutex_) = nullptr;
+  absl::flat_hash_set<CancelListener*> pending_cancel_listeners_
+      ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<CancelListener *> ABSL_GUARDED_BY(mutex_) listeners_;
 };
 

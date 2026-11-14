@@ -455,8 +455,12 @@ cc_test(
         ":base",
         ":cancellation_flag",
         ":test_util",
+        ":types",
         "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -15,12 +15,18 @@
 #ifndef PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
 #define PLATFORM_BASE_CANCELLATION_FLAG_LISTENER_H_
 
+#include <utility>
+
 #include "internal/platform/cancellation_flag.h"
 
 namespace nearby {
 
 // An RAII mechanism to register CancelListener over a life cycle of medium
 // class.
+// Note: A `CancellationFlagListener` must not be destroyed synchronously from
+// within its own `CancelListener` callback during `CancellationFlag::Cancel()`,
+// and must not be destroyed while holding any lock that its `CancelListener`
+// callback acquires.
 class CancellationFlagListener {
  public:
   CancellationFlagListener(CancellationFlag* flag,
@@ -29,6 +35,9 @@ class CancellationFlagListener {
     flag_->RegisterOnCancelListener(&listener_);
   }
 
+  // Unregisters the listener and blocks if the callback is currently executing
+  // on another thread. Must not be invoked synchronously from within
+  // `listener_` itself, or while holding any lock acquired by `listener_`.
   ~CancellationFlagListener() { flag_->UnregisterOnCancelListener(&listener_); }
 
  private:
