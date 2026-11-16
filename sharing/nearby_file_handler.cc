@@ -15,37 +15,25 @@
 #include "sharing/nearby_file_handler.h"
 
 #include <stdint.h>
+
 #include <functional>
-#include <memory>
 #include <utility>
 #include <vector>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
-#include "internal/platform/task_runner.h"
-#include "internal/platform/task_runner_impl.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby {
 namespace sharing {
 
-NearbyFileHandler::NearbyFileHandler(std::unique_ptr<TaskRunner> runner) {
-  if (runner) {
-    sequenced_task_runner_ = std::move(runner);
-  } else {
-    sequenced_task_runner_ = std::make_unique<TaskRunnerImpl>(1);
-  }
-}
-
-NearbyFileHandler::~NearbyFileHandler() = default;
-
 void NearbyFileHandler::DeleteFilesFromDisk(
     std::vector<FilePath> file_paths, DeleteFilesFromDiskCallback callback) {
-  sequenced_task_runner_->PostTask([callback = std::move(callback),
-                                    file_paths = std::move(file_paths)]() {
+  executor_.Execute([callback = std::move(callback),
+                     file_paths = std::move(file_paths)]() {
     // wait 1 second to make the file being released from another process.
     absl::SleepFor(absl::Seconds(1));
     for (const auto& file_path : file_paths) {
