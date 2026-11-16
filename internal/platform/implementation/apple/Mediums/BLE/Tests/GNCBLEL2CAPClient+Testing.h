@@ -25,19 +25,6 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNCBLEL2CAPClient (Testing) <GNCPeripheralDelegate>
 
 /**
- * Initializes the L2CAP client with a provided queue and request disconnection handler.
- *
- * This is only exposed for testing and can be used to inject a fake peripheral.
- *
- * @param queue The queue to run on, this must match the queue that the peripheral's delegate is
- *              running on. Defaults to the main queue when @c nil.
- * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
- *                                    connection to the peripheral should be cancelled.
- */
-- (instancetype)initWithQueue:(nullable dispatch_queue_t)queue
-    requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
-
-/**
  * Closes the L2CAP channel and disconnects the peripheral.
  *
  * This is only exposed for testing.

@@ -694,4 +694,98 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
   }
 }
 
+- (void)testGATTDisconnectDoesNotCancelConnectionWhileL2CAPIsActive {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                    peripheralManager:fakePeripheralManager
+                                                                queue:dispatch_get_main_queue()];
+  GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+
+  __block GNCBLEGATTClient *gattClient = nil;
+  XCTestExpectation *gattExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"GATT connected"];
+  [medium connectToGATTServerForPeripheral:peripheral
+                      disconnectionHandler:nil
+                         completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
+                           gattClient = client;
+                           [gattExpectation fulfill];
+                         }];
+  [self waitForExpectations:@[ gattExpectation ] timeout:3];
+  XCTAssertNotNil(gattClient);
+
+  __block GNCBLEL2CAPClient *capturedL2CAPClient = nil;
+  capturedL2CAPClient =
+      [[GNCBLEL2CAPClient alloc] initWithQueue:dispatch_get_main_queue()
+                   requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull p){
+                       // Forward through medium's normal L2CAP disconnect by using default client
+                       // in the next test; here we test GATT disconnect while L2CAP is active.
+                   }];
+  // Use medium's default L2CAP client by not calling setL2CAPClient:.
+  (void)capturedL2CAPClient;
+
+  XCTestExpectation *l2capExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"L2CAP opened"];
+  [medium openL2CAPChannelWithPSM:123
+                       peripheral:peripheral
+                completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                  XCTAssertNil(error);
+                  [l2capExpectation fulfill];
+                }];
+  [self waitForExpectations:@[ l2capExpectation ] timeout:3];
+
+  // Disconnecting GATT while L2CAP is active must NOT cancel the peripheral connection.
+  [gattClient disconnect];
+  XCTestExpectation *drainExpectation = [[XCTestExpectation alloc] initWithDescription:@"Drain"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [drainExpectation fulfill];
+  });
+  [self waitForExpectations:@[ drainExpectation ] timeout:3];
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.count, 0u);
+}
+
+- (void)testL2CAPDisconnectDoesNotCancelConnectionWhileGATTIsActiveAndCancelsAfterGATTDisconnect {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                    peripheralManager:fakePeripheralManager
+                                                                queue:dispatch_get_main_queue()];
+  GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+
+  __block GNCBLEGATTClient *gattClient = nil;
+  XCTestExpectation *gattExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"GATT connected"];
+  XCTestExpectation *disconnectExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Peripheral canceled"];
+  [medium connectToGATTServerForPeripheral:peripheral
+      disconnectionHandler:^{
+        [disconnectExpectation fulfill];
+      }
+      completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
+        gattClient = client;
+        [gattExpectation fulfill];
+      }];
+  [self waitForExpectations:@[ gattExpectation ] timeout:3];
+
+  peripheral.openL2CAPChannelError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
+  XCTestExpectation *l2capFailExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"L2CAP failed"];
+  [medium openL2CAPChannelWithPSM:123
+                       peripheral:peripheral
+                completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                  XCTAssertNotNil(error);
+                  [l2capFailExpectation fulfill];
+                }];
+  [self waitForExpectations:@[ l2capFailExpectation ] timeout:3];
+
+  // L2CAP failure must NOT cancel the peripheral connection while GATT is active.
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.count, 0u);
+
+  // Disconnecting GATT once no L2CAP claim remains MUST cancel the peripheral connection.
+  [gattClient disconnect];
+  [self waitForExpectations:@[ disconnectExpectation ] timeout:3];
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.count, 1u);
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.firstObject, peripheral);
+}
+
 @end

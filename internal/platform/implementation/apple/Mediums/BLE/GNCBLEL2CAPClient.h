@@ -51,6 +51,17 @@ typedef void (^GNCRequestDisconnectionHandler)(id<GNCPeripheral> peripheral);
     (GNCRequestDisconnectionHandler)requestDisconnectionHandler;
 
 /**
+ * Initializes the L2CAP client with a specified queue and request disconnection handler.
+ *
+ * @param queue The serial queue on which callbacks and delegate methods run, or @c nil for the main
+ *              queue.
+ * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
+ *                                    connection to the peripheral should be cancelled.
+ */
+- (instancetype)initWithQueue:(nullable dispatch_queue_t)queue
+    requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
+
+/**
  * Opens a L2CAP channel with the @c PSM.
  *
  * @param PSM The PSM to use for opening the L2CAP channel.

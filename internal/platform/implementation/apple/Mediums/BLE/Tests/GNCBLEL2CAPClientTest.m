@@ -25,6 +25,28 @@
 
 static const NSTimeInterval kTestTimeout = 1.0;
 
+@interface GNCFakeGATTDelegate : NSObject <GNCPeripheralDelegate>
+@property(nonatomic) BOOL didDiscoverServicesCalled;
+@property(nonatomic) BOOL didDiscoverCharacteristicsCalled;
+@property(nonatomic) BOOL didUpdateValueCalled;
+@end
+
+@implementation GNCFakeGATTDelegate
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral didDiscoverServices:(nullable NSError *)error {
+  _didDiscoverServicesCalled = YES;
+}
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didDiscoverCharacteristicsForService:(CBService *)service
+                                   error:(nullable NSError *)error {
+  _didDiscoverCharacteristicsCalled = YES;
+}
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
+                              error:(nullable NSError *)error {
+  _didUpdateValueCalled = YES;
+}
+@end
+
 @interface GNCBLEL2CAPClientTest : XCTestCase
 @property(nonatomic) GNCFakePeripheral *fakePeripheral;
 @property(nonatomic) GNCBLEL2CAPClient *l2capClient;
@@ -188,6 +210,37 @@ static const NSTimeInterval kTestTimeout = 1.0;
 
   [self waitForExpectations:@[ expectation, self.requestDisconnectionHandlerExpectation ]
                     timeout:kTestTimeout];
+}
+
+- (void)testDelegateRestoredAndGATTCallbacksForwardedDuringOpen {
+  GNCFakeGATTDelegate *gattDelegate = [[GNCFakeGATTDelegate alloc] init];
+  self.fakePeripheral.peripheralDelegate = gattDelegate;
+  self.fakePeripheral.delegateDelay = 0.05;
+
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"L2CAP channel open completed"];
+  [self.l2capClient openL2CAPChannelWithPSM:123
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
+                            XCTAssertNil(error);
+                            [expectation fulfill];
+                          }];
+
+  XCTAssertEqual(self.fakePeripheral.peripheralDelegate, self.l2capClient);
+  [self.fakePeripheral.peripheralDelegate gnc_peripheral:self.fakePeripheral
+                                     didDiscoverServices:nil];
+  [self.fakePeripheral.peripheralDelegate gnc_peripheral:self.fakePeripheral
+                    didDiscoverCharacteristicsForService:(CBService *)[[NSObject alloc] init]
+                                                   error:nil];
+  [self.fakePeripheral.peripheralDelegate gnc_peripheral:self.fakePeripheral
+                         didUpdateValueForCharacteristic:(CBCharacteristic *)[[NSObject alloc] init]
+                                                   error:nil];
+  XCTAssertTrue(gattDelegate.didDiscoverServicesCalled);
+  XCTAssertTrue(gattDelegate.didDiscoverCharacteristicsCalled);
+  XCTAssertTrue(gattDelegate.didUpdateValueCalled);
+
+  [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
+  XCTAssertEqual(self.fakePeripheral.peripheralDelegate, gattDelegate);
 }
 
 @end

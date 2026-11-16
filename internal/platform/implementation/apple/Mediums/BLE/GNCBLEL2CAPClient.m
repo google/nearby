@@ -30,6 +30,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
 @implementation GNCBLEL2CAPClient {
   dispatch_queue_t _queue;
   id<GNCPeripheral> _peripheral;
+  id<GNCPeripheralDelegate> _previousPeripheralDelegate;
   GNCOpenL2CAPStreamCompletionHandler _completionHandler;
   GNCRequestDisconnectionHandler _requestDisconnectionHandler;
 
@@ -61,6 +62,9 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
               completionHandler:(GNCOpenL2CAPStreamCompletionHandler)completionHandler {
   GNCLoggerInfo(@"[NEARBY] openL2CAPChannelWithPSM = %d", PSM);
   _peripheral = peripheral;
+  if (peripheral.peripheralDelegate != self) {
+    _previousPeripheralDelegate = peripheral.peripheralDelegate;
+  }
   _peripheral.peripheralDelegate = self;
   _completionHandler = [completionHandler copy];
   [_peripheral openL2CAPChannel:(CBL2CAPPSM)PSM];
@@ -69,9 +73,9 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
 - (void)disconnect {
   dispatch_async(_queue, ^{
     id<GNCPeripheral> localPeripheral = _peripheral;
-    _requestDisconnectionHandler(localPeripheral);
+    [self restorePeripheralDelegateIfNeededForPeripheral:localPeripheral];
     _peripheral = nil;
-    _peripheral.peripheralDelegate = nil;
+    _requestDisconnectionHandler(localPeripheral);
   });
 }
 
@@ -84,6 +88,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
   GNCLoggerDebug(
       @"[NEARBY] didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
       channel, channel.inputStream, channel.outputStream, error);
+  [self restorePeripheralDelegateIfNeededForPeripheral:peripheral];
   // TODO: b/399815436 - channel.inputStream is null when doing testing. Refactor tests in the
   // future.
   if (error || (channel && (!channel.inputStream || !channel.outputStream))) {
@@ -118,6 +123,36 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
   }
 }
 
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral didDiscoverServices:(nullable NSError *)error {
+  if ([_previousPeripheralDelegate
+          respondsToSelector:@selector(gnc_peripheral:didDiscoverServices:)]) {
+    [_previousPeripheralDelegate gnc_peripheral:peripheral didDiscoverServices:error];
+  }
+}
+
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didDiscoverCharacteristicsForService:(CBService *)service
+                                   error:(nullable NSError *)error {
+  if ([_previousPeripheralDelegate
+          respondsToSelector:@selector(
+                                 gnc_peripheral:didDiscoverCharacteristicsForService:error:)]) {
+    [_previousPeripheralDelegate gnc_peripheral:peripheral
+           didDiscoverCharacteristicsForService:service
+                                          error:error];
+  }
+}
+
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
+                              error:(nullable NSError *)error {
+  if ([_previousPeripheralDelegate
+          respondsToSelector:@selector(gnc_peripheral:didUpdateValueForCharacteristic:error:)]) {
+    [_previousPeripheralDelegate gnc_peripheral:peripheral
+                didUpdateValueForCharacteristic:characteristic
+                                          error:error];
+  }
+}
+
 #pragma mark - CBPeripheralDelegate
 
 - (void)peripheral:(CBPeripheral *)peripheral
@@ -130,7 +165,30 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
   });
 }
 
+- (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(nullable NSError *)error {
+  [self gnc_peripheral:peripheral didDiscoverServices:error];
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral
+    didDiscoverCharacteristicsForService:(CBService *)service
+                                   error:(nullable NSError *)error {
+  [self gnc_peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral
+    didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
+                              error:(nullable NSError *)error {
+  [self gnc_peripheral:peripheral didUpdateValueForCharacteristic:characteristic error:error];
+}
+
 #pragma mark Private
+
+- (void)restorePeripheralDelegateIfNeededForPeripheral:(id<GNCPeripheral>)peripheral {
+  if (peripheral.peripheralDelegate == self) {
+    peripheral.peripheralDelegate = _previousPeripheralDelegate;
+  }
+  _previousPeripheralDelegate = nil;
+}
 
 - (void)closeL2CAPChannel {
   [_l2CAPStream tearDown];
