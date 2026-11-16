@@ -15,9 +15,18 @@
 #ifndef PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_PUBLIC_SINGLE_THREAD_EXECUTOR_H_
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
 #include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/submittable_executor.h"
+#include "internal/platform/timer.h"
 
 namespace nearby {
 
@@ -32,7 +41,41 @@ class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
       : SubmittableExecutor(Platform::CreateSingleThreadExecutor()) {}
   SingleThreadExecutor(const SingleThreadExecutor&) = delete;
   SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
-  ~SingleThreadExecutor() override = default;
+  ~SingleThreadExecutor() override;
+
+  // Schedules `task` to execute on the worker thread after `delay` (clamped to
+  // `[0, INT_MAX]` milliseconds). Returns `true` if `task` is empty or was
+  // scheduled; returns `false` if the executor has been shut down or timer
+  // creation fails. Pending delayed tasks that have not yet fired are cancelled
+  // on `Shutdown()` or destruction.
+  bool DelayedExecute(absl::Duration delay, absl::AnyInvocable<void()> task)
+      ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
+
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
+
+ private:
+  // Shared via `std::shared_ptr` so in-flight timer callbacks on platforms
+  // whose `Timer::Stop()` does not block can safely check `closed` without
+  // dereferencing a destroyed `SingleThreadExecutor`, while `DoShutdown()`
+  // waits for `active_operations` to reach 0 before shutting down the worker.
+  struct TimerState {
+    static bool AllOperationsDone(TimerState* state)
+        ABSL_SHARED_LOCKS_REQUIRED(state->mutex) {
+      return state->active_operations == 0;
+    }
+
+    absl::Mutex mutex;
+    absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map
+        ABSL_GUARDED_BY(mutex);
+    uint64_t next_timer_id ABSL_GUARDED_BY(mutex) = 0;
+    int active_operations ABSL_GUARDED_BY(mutex) = 0;
+    bool closed ABSL_GUARDED_BY(mutex) = false;
+  };
+
+  void DoShutdown() ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
+
+  const std::shared_ptr<TimerState> timer_state_ =
+      std::make_shared<TimerState>();
 };
 
 // Moves the object to `executor` and destroys it there.
