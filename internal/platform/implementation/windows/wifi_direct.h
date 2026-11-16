@@ -275,7 +275,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   absl::flat_hash_map<winrt::hstring,
                       std::unique_ptr<WifiDirectDeviceDiscovered>>
-      connection_requested_devices_by_id_;
+      connection_requested_devices_by_id_ ABSL_GUARDED_BY(mutex_);
   WifiDirectCredentials* credentials_go_ = nullptr;
   absl::CondVar is_ip_address_ready_;
   std::string remote_device_name_;
@@ -317,7 +317,9 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   void OnConnectionStatusChanged(
       winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice const& sender,
       winrt::Windows::Foundation::IInspectable const& e);
-  // IAsyncOperation<bool> RequestPairDeviceAsync(
+  // Pairs the target Wi-Fi Direct peer using `config_method` and
+  // `group_owner_intent` (Wi-Fi P2P Group Owner negotiation intent in [0, 15],
+  // where a higher value indicates a stronger preference to become the GO).
   bool RequestPairDeviceAsync(
       winrt::Windows::Devices::Enumeration::DeviceInformationPairing pairing,
       int group_owner_intent,
@@ -328,6 +330,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
 
   std::unique_ptr<absl::Notification> connection_latch_;
   mutable absl::Mutex mutex_;
+  bool is_watcher_stopped_ ABSL_GUARDED_BY(mutex_) = false;
 
   absl::flat_hash_map<winrt::hstring,
                       std::unique_ptr<WifiDirectDeviceDiscovered>>
