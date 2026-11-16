@@ -604,10 +604,10 @@ void EndpointManager::RegisterEndpoint(
                                                      channel);
 
         EndpointState& endpoint_state =
-            endpoints_
-                .emplace(endpoint_id,
-                         EndpointState(endpoint_id, channel_manager_))
-                .first->second;
+            *endpoints_
+                 .emplace(endpoint_id, std::make_unique<EndpointState>(
+                                           endpoint_id, channel_manager_))
+                 .first->second;
 
         LOG(INFO) << "Starting workers: endpoint " << endpoint_id;
         // For every endpoint, there's normally only one Read handler instance
@@ -1008,9 +1008,7 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
 EndpointManager::EndpointState::~EndpointState() {
   // We must unregister the endpoint first to signal the runnables that they
   // should exit their loops. SingleThreadExecutor destructors will wait for
-  // the workers to finish. |channel_manager_| is null after moved from this
-  // object (in move constructor) which prevents unregistering the channel
-  // prematurely.
+  // the workers to finish.
   if (channel_manager_) {
     VLOG(1) << "EndpointState destructor " << endpoint_id_;
     channel_manager_->UnregisterChannelForEndpoint(
@@ -1019,9 +1017,9 @@ EndpointManager::EndpointState::~EndpointState() {
   }
 
   // Make sure the KeepAlive thread isn't blocking shutdown.
-  if (keep_alive_waiter_mutex_ && keep_alive_waiter_) {
-    absl::MutexLock lock(*keep_alive_waiter_mutex_);
-    keep_alive_waiter_->SignalAll();
+  {
+    absl::MutexLock lock(keep_alive_waiter_mutex_);
+    keep_alive_waiter_.SignalAll();
   }
 }
 
@@ -1031,12 +1029,11 @@ void EndpointManager::EndpointState::StartEndpointReader(Runnable&& runnable) {
 
 void EndpointManager::EndpointState::StartEndpointKeepAliveManager(
     absl::AnyInvocable<void(absl::Mutex*, absl::CondVar*)> runnable) {
-  keep_alive_thread_.Execute(
-      "keep-alive", [runnable = std::move(runnable),
-                     keep_alive_waiter_mutex = keep_alive_waiter_mutex_.get(),
-                     keep_alive_waiter = keep_alive_waiter_.get()]() mutable {
-        runnable(keep_alive_waiter_mutex, keep_alive_waiter);
-      });
+  keep_alive_thread_.Execute("keep-alive", [this,
+                                            runnable =
+                                                std::move(runnable)]() mutable {
+    runnable(&keep_alive_waiter_mutex_, &keep_alive_waiter_);
+  });
 }
 
 void EndpointManager::RunOnEndpointManagerThread(const std::string& name,

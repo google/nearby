@@ -42,17 +42,9 @@ inline int GetCurrentTid() { return api::GetCurrentTid(); }
 class ABSL_LOCKABLE SubmittableExecutor : public api::SubmittableExecutor,
                                           public Lockable {
  public:
+  SubmittableExecutor(const SubmittableExecutor&) = delete;
+  SubmittableExecutor& operator=(const SubmittableExecutor&) = delete;
   ~SubmittableExecutor() override { DoShutdown(); }
-  SubmittableExecutor(SubmittableExecutor&& other) { *this = std::move(other); }
-  SubmittableExecutor& operator=(SubmittableExecutor&& other)
-      ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(mutex_);
-    {
-      absl::MutexLock other_lock(other.mutex_);
-      impl_ = std::move(other.impl_);
-    }
-    return *this;
-  }
   virtual void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
