@@ -18,6 +18,7 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
@@ -419,8 +420,8 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
     XCTestExpectation *expectation =
         [[XCTestExpectation alloc] initWithDescription:@"Stop advertising."];
 
-    // Stop advertising is fully covered with @c GNCBLEGATTServer tests. We are only testing stopping
-    // without having started which tests the code paths relevant to @c GNCBLEMedium.
+    // Stop advertising is fully covered with @c GNCBLEGATTServer tests. We are only testing
+    // stopping without having started which tests the code paths relevant to @c GNCBLEMedium.
     [medium stopAdvertisingWithCompletionHandler:^(NSError *error) {
       XCTAssertNil(error);
       [expectation fulfill];
@@ -488,11 +489,12 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
                      requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
                      }];
     [medium setL2CAPClient:l2capClient];
-    [medium openL2CAPChannelWithPSM:123
-                         peripheral:fakePeripheral
-                  completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
-                    [expectation fulfill];
-                  }];
+    [medium
+        openL2CAPChannelWithPSM:123
+                     peripheral:fakePeripheral
+              completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                [expectation fulfill];
+              }];
 
     [self waitForExpectations:@[ expectation ] timeout:3];
   }
@@ -552,6 +554,80 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 
     [self waitForExpectations:@[ expectation ] timeout:3];
   }
+}
+
+- (void)testConnectToGATTServerTimeoutCancelsConnectionAndClearsHandler {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
+      true);
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  fakeCentralManager.shouldPendConnectPeripheral = YES;
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                    peripheralManager:fakePeripheralManager
+                                                                queue:dispatch_get_main_queue()];
+  [medium setPeripheralConnectTimeout:0.05];
+  GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+  XCTestExpectation *timeoutExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"GATT connect timeout."];
+  __block NSUInteger completionCallCount = 0;
+
+  [medium connectToGATTServerForPeripheral:peripheral
+                      disconnectionHandler:nil
+                         completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
+                           completionCallCount++;
+                           XCTAssertNil(client);
+                           XCTAssertNotNil(error);
+                           XCTAssertEqualObjects(error.domain, GNCBLEErrorDomain);
+                           XCTAssertEqual(error.code, GNCBLEErrorBlePerperipheralConnectionTimeout);
+                           [timeoutExpectation fulfill];
+                         }];
+
+  [self waitForExpectations:@[ timeoutExpectation ] timeout:3];
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.count, 1u);
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.firstObject, peripheral);
+
+  // Simulate a late connection callback and verify the removed handler is not invoked again.
+  [fakeCentralManager simulateCentralManagerDidConnectPeripheral:peripheral];
+  XCTAssertEqual(completionCallCount, 1u);
+}
+
+- (void)testOpenL2CAPChannelTimeoutCancelsConnectionAndClearsHandler {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  fakeCentralManager.shouldPendConnectPeripheral = YES;
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                    peripheralManager:fakePeripheralManager
+                                                                queue:dispatch_get_main_queue()];
+  [medium setPeripheralConnectTimeout:0.05];
+  GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+  GNCBLEL2CAPClient *l2capClient =
+      [[GNCBLEL2CAPClient alloc] initWithQueue:nil
+                   requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull p){
+                   }];
+  [medium setL2CAPClient:l2capClient];
+  XCTestExpectation *timeoutExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"L2CAP connect timeout."];
+  __block NSUInteger completionCallCount = 0;
+
+  [medium openL2CAPChannelWithPSM:123
+                       peripheral:peripheral
+                completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                  completionCallCount++;
+                  XCTAssertNil(stream);
+                  XCTAssertNotNil(error);
+                  XCTAssertEqualObjects(error.domain, GNCBLEErrorDomain);
+                  XCTAssertEqual(error.code, GNCBLEErrorBlePerperipheralConnectionTimeout);
+                  [timeoutExpectation fulfill];
+                }];
+
+  [self waitForExpectations:@[ timeoutExpectation ] timeout:3];
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.count, 1u);
+  XCTAssertEqual(fakeCentralManager.canceledPeripherals.firstObject, peripheral);
+
+  // Simulate a late connection callback and verify the removed L2CAP handler is not invoked again.
+  [fakeCentralManager simulateCentralManagerDidConnectPeripheral:peripheral];
+  XCTAssertEqual(completionCallCount, 1u);
 }
 
 - (void)testDisconnect {

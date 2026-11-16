@@ -25,6 +25,7 @@
   CBManagerState _state;
   NSArray<CBUUID *> *_serviceUUIDs;
   NSDictionary<NSUUID *, GNCFakePeripheral *> *_peripherals;
+  NSMutableArray<id<GNCPeripheral>> *_canceledPeripherals;
 }
 
 @synthesize centralDelegate;
@@ -33,6 +34,7 @@
   self = [super init];
   if (self) {
     _state = CBManagerStateUnknown;
+    _canceledPeripherals = [NSMutableArray array];
     // Add a fake peripheral
     NSUUID *identifier =
         [[NSUUID alloc] initWithUUIDString:@"11111111-1111-1111-1111-111111111111"];
@@ -54,6 +56,9 @@
 
 - (void)connectPeripheral:(id<GNCPeripheral>)peripheral
                   options:(nullable NSDictionary<NSString *, id> *)options {
+  if (_shouldPendConnectPeripheral) {
+    return;
+  }
   if (_didFailToConnectPeripheralError) {
     [centralDelegate gnc_centralManager:self
              didFailToConnectPeripheral:peripheral
@@ -64,6 +69,7 @@
 }
 
 - (void)cancelPeripheralConnection:(id<GNCPeripheral>)peripheral {
+  [_canceledPeripherals addObject:peripheral];
   [centralDelegate gnc_centralManager:self didDisconnectPeripheral:peripheral error:nil];
 }
 
@@ -84,6 +90,14 @@
 
 - (NSArray<CBUUID *> *)serviceUUIDs {
   return _serviceUUIDs;
+}
+
+- (NSArray<id<GNCPeripheral>> *)canceledPeripherals {
+  return [_canceledPeripherals copy];
+}
+
+- (void)simulateCentralManagerDidConnectPeripheral:(id<GNCPeripheral>)peripheral {
+  [centralDelegate gnc_centralManager:self didConnectPeripheral:peripheral];
 }
 
 - (void)simulateCentralManagerDidUpdateState:(CBManagerState)fakeState {

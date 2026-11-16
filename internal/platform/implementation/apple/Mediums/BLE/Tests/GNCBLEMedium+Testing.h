@@ -41,8 +41,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDictionary<CBUUID *, NSData *> *)decodeAdvertisementData:
     (NSDictionary<NSString *, id> *)advertisementData;
 
-
 - (void)setL2CAPClient:(GNCBLEL2CAPClient *)l2capClient;
+
+- (void)setPeripheralConnectTimeout:(NSTimeInterval)timeout;
 
 @end
 

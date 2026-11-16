@@ -89,6 +89,9 @@ static NSError *AlreadyScanningError() {
 
   // The block to call when the BLE connection times out.
   dispatch_block_t _connectionTimeoutBlock;
+
+  // The timeout duration for peripheral connection attempts.
+  NSTimeInterval _peripheralConnectTimeout;
 }
 
 - (instancetype)init {
@@ -124,6 +127,7 @@ static NSError *AlreadyScanningError() {
     _scanningServiceUUIDs = [NSMutableArray array];
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
     _l2capPSM = 0;
+    _peripheralConnectTimeout = kPeripheralConnectTimeout;
   }
   return self;
 }
@@ -289,7 +293,7 @@ static NSError *AlreadyScanningError() {
     strongSelf->_l2capPSM = 0;
     if (GNCFeatureFlags.bleL2capEnabled) {
       [strongSelf connectToPeripheral:remotePeripheral
-          withTimeout:kPeripheralConnectTimeout
+          withTimeout:strongSelf->_peripheralConnectTimeout
           options:@{}
           timeoutCallback:^(NSError *error) {
             if (completionHandler) {
@@ -359,7 +363,7 @@ static NSError *AlreadyScanningError() {
     // called.
     // TODO: b/419127415 - Investigate the root cause of this problem.
     [strongSelf connectToPeripheral:remotePeripheral
-        withTimeout:kPeripheralConnectTimeout
+        withTimeout:strongSelf->_peripheralConnectTimeout
         options:@{}
         timeoutCallback:^(NSError *error) {
           if (completionHandler) {
@@ -373,6 +377,11 @@ static NSError *AlreadyScanningError() {
 // delegate methods on the main queue.
 - (void)setL2CAPClient:(GNCBLEL2CAPClient *)l2capClient {
   _l2capClient = l2capClient;
+}
+
+// This is private and should only be used for tests.
+- (void)setPeripheralConnectTimeout:(NSTimeInterval)timeout {
+  _peripheralConnectTimeout = timeout;
 }
 
 #pragma mark - Internal
@@ -445,6 +454,10 @@ static NSError *AlreadyScanningError() {
     strongSelf->_connectionTimeoutBlock = nil;
 
     // Perform timeout actions
+    NSUUID *peripheralIdentifier = peripheral.identifier;
+    [strongSelf->_centralManager cancelPeripheralConnection:peripheral];
+    [strongSelf->_gattConnectionCompletionHandlers removeObjectForKey:peripheralIdentifier];
+    [strongSelf->_l2capStreamCompletionHandlers removeObjectForKey:peripheralIdentifier];
     if (callback) {
       callback([NSError errorWithDomain:GNCBLEErrorDomain
                                    code:GNCBLEErrorBlePerperipheralConnectionTimeout

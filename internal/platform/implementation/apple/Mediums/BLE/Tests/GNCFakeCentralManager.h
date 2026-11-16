@@ -35,6 +35,24 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, nullable, readwrite) NSError *didFailToConnectPeripheralError;
 
 /**
+ * When @c YES, @c connectPeripheral:options: leaves the connection pending without invoking a
+ * delegate callback so timeout behavior can be tested.
+ */
+@property(nonatomic, readwrite) BOOL shouldPendConnectPeripheral;
+
+/** Peripherals passed to @c cancelPeripheralConnection:. */
+@property(nonatomic, readonly) NSArray<id<GNCPeripheral>> *canceledPeripherals;
+
+/**
+ * Simulates a peripheral connection event.
+ *
+ * Calls the @c gnc_centralManager:didConnectPeripheral: delegate method.
+ *
+ * @param peripheral The connected peripheral.
+ */
+- (void)simulateCentralManagerDidConnectPeripheral:(id<GNCPeripheral>)peripheral;
+
+/**
  * Simulates a state update event.
  *
  * Updates the central manager state to the provided value and calls the
