@@ -14,16 +14,12 @@
 
 #include "sharing/internal/test/fake_context.h"
 
-#include <stdint.h>
-
 #include <memory>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_task_runner.h"
 #include "internal/test/fake_timer.h"
 #include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
@@ -65,11 +61,6 @@ std::unique_ptr<SingleThreadExecutor> FakeContext::CreateSingleThreadExecutor()
   auto executor = std::make_unique<TestSingleThreadExecutor>(fake_clock_.get());
   last_single_thread_executor_ = executor.get();
   return executor;
-}
-
-std::unique_ptr<TaskRunner> FakeContext::CreateConcurrentTaskRunner(
-    uint32_t concurrent_count) const {
-  return std::make_unique<FakeTaskRunner>(fake_clock_.get(), concurrent_count);
 }
 
 }  // namespace nearby

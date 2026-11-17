@@ -15,13 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_CONTEXT_IMPL_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_CONTEXT_IMPL_H_
 
-#include <stdint.h>
-
 #include <memory>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
@@ -43,8 +40,6 @@ class ContextImpl : public Context {
   api::FastInitiationManager& GetFastInitiationManager() const override;
   std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
       const override;
-  std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
-      uint32_t concurrent_count) const override;
 
  private:
   nearby::sharing::api::SharingPlatform& platform_;

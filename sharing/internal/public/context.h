@@ -15,13 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_CONTEXT_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_CONTEXT_H_
 
-#include <stdint.h>
-
 #include <memory>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
@@ -46,11 +43,6 @@ class Context {
   virtual api::FastInitiationManager& GetFastInitiationManager() const = 0;
   virtual std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
       const = 0;
-
-  // Creates task runner concurrently. |concurrent_count| is the maximum
-  // count of tasks running at the same time.
-  virtual std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
-      uint32_t concurrent_count) const = 0;
 };
 
 }  // namespace nearby

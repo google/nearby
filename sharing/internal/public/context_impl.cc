@@ -14,15 +14,11 @@
 
 #include "sharing/internal/public/context_impl.h"
 
-#include <stdint.h>
-
 #include <memory>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/clock_impl.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner.h"
-#include "internal/platform/task_runner_impl.h"
 #include "internal/platform/timer.h"
 #include "internal/platform/timer_impl.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
@@ -62,13 +58,6 @@ api::FastInitiationManager& ContextImpl::GetFastInitiationManager() const {
 std::unique_ptr<SingleThreadExecutor> ContextImpl::CreateSingleThreadExecutor()
     const {
   return std::make_unique<SingleThreadExecutor>();
-}
-
-std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(
-    uint32_t concurrent_count) const {
-  std::unique_ptr<TaskRunner> task_runner =
-      std::make_unique<TaskRunnerImpl>(concurrent_count);
-  return task_runner;
 }
 
 }  // namespace nearby

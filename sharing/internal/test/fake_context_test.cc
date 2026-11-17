@@ -25,7 +25,6 @@ TEST(FakeContext, TestAccessMockContext) {
   EXPECT_NE(context.CreateTimer(), nullptr);
   EXPECT_NE(context.GetConnectivityManager(), nullptr);
   EXPECT_NE(context.CreateSingleThreadExecutor(), nullptr);
-  EXPECT_NE(context.CreateConcurrentTaskRunner(5), nullptr);
 }
 
 }  // namespace

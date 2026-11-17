@@ -15,13 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_CONTEXT_H_
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_CONTEXT_H_
 
-#include <stdint.h>
-
 #include <memory>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/test_single_thread_executor.h"
@@ -47,8 +44,6 @@ class FakeContext : public Context {
   api::FastInitiationManager& GetFastInitiationManager() const override;
   std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
       const override;
-  std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
-      uint32_t concurrent_count) const override;
 
   FakeClock* fake_clock() const { return fake_clock_.get(); }
   FakeConnectivityManager* fake_connectivity_manager() const {
