@@ -25,7 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
@@ -47,7 +47,7 @@ using ::testing::SizeIs;
 class OutgoingTargetsManagerTest : public ::testing::Test {
  protected:
   OutgoingTargetsManagerTest()
-      : service_thread_(&clock_, /*count=*/1),
+      : service_thread_(&clock_),
         analytics_recorder_(/*vendor_id=*/0,
                             /*event_logger=*/nullptr),
         outgoing_targets_manager_(
@@ -59,7 +59,7 @@ class OutgoingTargetsManagerTest : public ::testing::Test {
             transfer_update_callback_.AsStdFunction()) {}
 
   FakeClock clock_;
-  FakeTaskRunner service_thread_;
+  TestSingleThreadExecutor service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
   analytics::AnalyticsRecorderImpl analytics_recorder_;
   testing::MockFunction<void(const ShareTarget&)>

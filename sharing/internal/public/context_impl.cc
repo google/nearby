@@ -20,6 +20,7 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/clock_impl.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/task_runner_impl.h"
 #include "internal/platform/timer.h"
@@ -58,9 +59,9 @@ api::FastInitiationManager& ContextImpl::GetFastInitiationManager() const {
   return platform_.GetFastInitiationManager();
 }
 
-std::unique_ptr<TaskRunner> ContextImpl::CreateSequencedTaskRunner() const {
-  std::unique_ptr<TaskRunner> task_runner = std::make_unique<TaskRunnerImpl>(1);
-  return task_runner;
+std::unique_ptr<SingleThreadExecutor> ContextImpl::CreateSingleThreadExecutor()
+    const {
+  return std::make_unique<SingleThreadExecutor>();
 }
 
 std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(

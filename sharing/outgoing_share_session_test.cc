@@ -38,7 +38,7 @@
 #include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -162,7 +162,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
 
  protected:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor fake_task_runner_{&fake_clock_};
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_{/*vendor_id=*/0,
                                                        &mock_event_logger_};

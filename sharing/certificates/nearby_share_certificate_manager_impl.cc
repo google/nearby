@@ -53,6 +53,7 @@
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -258,7 +259,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 VLOG(1)
                     << "Private certificate expiration scheduler is called.";
-                executor_->PostTask([this]() {
+                executor_->Execute([this]() {
                   private_certificate_expiration_scheduler_->HandleResult(
                       RefreshPrivateCertificatesInExecutor(
                           /*force_upload=*/false));
@@ -274,7 +275,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 VLOG(1)
                     << ": Public certificate expiration scheduler is called.";
-                executor_->PostTask([this]() {
+                executor_->Execute([this]() {
                   public_certificate_expiration_scheduler_->HandleResult(
                       RemoveExpiredPublicCertificatesInExecutor());
                 });
@@ -289,7 +290,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 VLOG(1)
                     << "Upload local device certificates scheduler is called.";
-                executor_->PostTask([this]() {
+                executor_->Execute([this]() {
                   force_contacts_update_scheduler_->HandleResult(
                       UploadDeviceCertificatesInExecutor(
                           certificate_storage_->GetPrivateCertificates(),
@@ -306,7 +307,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 LOG(INFO)
                     << "Download public certificates scheduler is called.";
-                executor_->PostTask([this]() {
+                executor_->Execute([this]() {
                   download_public_certificates_scheduler_->HandleResult(
                       DownloadPublicCertificatesInExecutor());
                 });
@@ -319,12 +320,12 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               PrefNames::kSchedulerGetAccountInfo,
               [this]() {
                 LOG(INFO) << "Get account info scheduler is called.";
-                executor_->PostTask([this]() {
+                executor_->Execute([this]() {
                   account_info_update_scheduler_->HandleResult(
                       UpdateAccountInfoInExecutor());
                 });
               })),
-      executor_(context->CreateSequencedTaskRunner()) {
+      executor_(context->CreateSingleThreadExecutor()) {
   local_device_data_manager_->AddObserver(this);
 }
 
@@ -553,7 +554,7 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
 }
 
 void NearbyShareCertificateManagerImpl::RegeneratePrivateCertificates() {
-  executor_->PostTask([this]() {
+  executor_->Execute([this]() {
     LOG(INFO) << "Regenerating private certificates in executor.";
     certificate_storage_->ClearPrivateCertificates();
     private_certificate_expiration_scheduler_->HandleResult(
@@ -948,7 +949,7 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
   if (force_upload) {
     force_contacts_update_scheduler_->MakeImmediateRequest();
   } else {
-    executor_->PostTask([this]() {
+    executor_->Execute([this]() {
       VLOG(1) << "Begin UploadDeviceCertificatesInExecutor";
       UploadDeviceCertificatesInExecutor(
           certificate_storage_->GetPrivateCertificates(),
@@ -985,7 +986,7 @@ void NearbyShareCertificateManagerImpl::AddBindingToPublicCertificate(
 }
 
 void NearbyShareCertificateManagerImpl::ForceUploadPrivateCertificates() {
-  executor_->PostTask([this]() {
+  executor_->Execute([this]() {
     private_certificate_expiration_scheduler_->HandleResult(
         RefreshPrivateCertificatesInExecutor(/*force_upload=*/true));
   });

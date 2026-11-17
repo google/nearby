@@ -25,7 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/thread_timer.h"
 
@@ -40,7 +40,7 @@ class TransferManager {
   // Used to wait for the medium upgrade.
   static constexpr absl::Duration kMediumUpgradeTimeout = absl::Seconds(10);
 
-  TransferManager(TaskRunner* absl_nonnull runner,
+  TransferManager(SingleThreadExecutor* absl_nonnull runner,
                   absl::string_view endpoint_id,
                   absl::AnyInvocable<void(absl::string_view endpoint_id,
                                           std::unique_ptr<Payload> payload)>
@@ -57,7 +57,7 @@ class TransferManager {
  private:
   void StopWaitingForHighQualityMedium() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  TaskRunner& runner_;
+  SingleThreadExecutor& runner_;
   const std::string endpoint_id_;
   absl::AnyInvocable<void(absl::string_view endpoint_id,
                             std::unique_ptr<Payload> payload)>

@@ -23,7 +23,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby::sharing {
@@ -39,7 +39,7 @@ namespace nearby::sharing {
 template <typename T>
 class WorkerQueue {
  public:
-  explicit WorkerQueue(TaskRunner* task_runner)
+  explicit WorkerQueue(SingleThreadExecutor* task_runner)
       : task_runner_(task_runner),
         run_data_(std::make_shared<RunData>()) {
     run_data_->is_stopped = false;
@@ -128,7 +128,7 @@ class WorkerQueue {
       return;
     }
     VLOG(1) << "Scheduling callback";
-    task_runner_->PostTask([run_data = run_data_]() {
+    task_runner_->Execute([run_data = run_data_]() {
       {
         absl::MutexLock lock(run_data->running_mutex);
         run_data->is_running = true;
@@ -143,7 +143,7 @@ class WorkerQueue {
     });
   }
 
-  TaskRunner* const task_runner_ = nullptr;
+  SingleThreadExecutor* const task_runner_ = nullptr;
   std::shared_ptr<RunData> run_data_;
   // Tracks whether Start() has been called.
   std::atomic<bool> is_started_ = false;

@@ -21,7 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby::sharing {
 
@@ -35,7 +35,7 @@ namespace nearby::sharing {
 // This class is thread-safe.
 class ThreadTimer {
  public:
-  explicit ThreadTimer(TaskRunner& task_runner, std::string name,
+  explicit ThreadTimer(SingleThreadExecutor& task_runner, std::string name,
                        absl::Duration delay, absl::AnyInvocable<void()> task);
   ~ThreadTimer();
 

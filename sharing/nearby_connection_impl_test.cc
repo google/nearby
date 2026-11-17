@@ -22,7 +22,7 @@
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/proto/wire_format.pb.h"
 
@@ -31,7 +31,7 @@ namespace {
 
 TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, 1);
+  TestSingleThreadExecutor fake_task_runner(&fake_clock);
   FakeDeviceInfo device_info;
   bool called = false;
 
@@ -55,7 +55,7 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
 
 TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, 1);
+  TestSingleThreadExecutor fake_task_runner(&fake_clock);
   FakeDeviceInfo device_info;
   std::optional<nearby::sharing::service::proto::V1Frame> frame_result;
 

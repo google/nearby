@@ -31,10 +31,10 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -143,7 +143,7 @@ const absl::Duration kTimeout = absl::Seconds(1);
 
 class MockIncomingFramesReader : public IncomingFramesReader {
  public:
-  MockIncomingFramesReader(TaskRunner& service_thread,
+  MockIncomingFramesReader(SingleThreadExecutor& service_thread,
                            NearbyConnection* connection)
       : IncomingFramesReader(service_thread, connection) {}
 
@@ -355,7 +355,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor fake_task_runner_{&fake_clock_};
   FakeDeviceInfo fake_device_info_;
   FakeNearbyConnectionsManager fake_connections_manager_;
   NearbyConnectionImpl connection_;

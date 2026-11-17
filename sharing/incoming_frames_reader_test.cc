@@ -29,7 +29,7 @@
 #include "absl/types/span.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -110,7 +110,7 @@ class IncomingFramesReaderTest : public testing::Test {
   ~IncomingFramesReaderTest() override = default;
 
   void SetUp() override {
-    fake_task_runner_.PostTask(
+    fake_task_runner_.Execute(
         [this]() { service_thread_id_ = std::this_thread::get_id(); });
     Sync();
     ASSERT_NE(service_thread_id_, std::this_thread::get_id());
@@ -138,7 +138,7 @@ class IncomingFramesReaderTest : public testing::Test {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor fake_task_runner_{&fake_clock_};
   std::thread::id service_thread_id_;
   FakeDeviceInfo fake_device_info_;
   std::unique_ptr<NearbyConnectionImpl> nearby_connection_;

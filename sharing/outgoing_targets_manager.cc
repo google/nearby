@@ -30,7 +30,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -47,7 +47,8 @@
 namespace nearby::sharing {
 
 OutgoingTargetsManager::OutgoingTargetsManager(
-    Clock* absl_nonnull clock, TaskRunner* absl_nonnull service_thread,
+    Clock* absl_nonnull clock,
+    SingleThreadExecutor* absl_nonnull service_thread,
     NearbyConnectionsManager* absl_nonnull connections_manager,
     analytics::AnalyticsRecorder* analytics_recorder,
     absl::AnyInvocable<void(const ShareTarget&)>

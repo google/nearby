@@ -23,18 +23,18 @@
 #include "absl/debugging/leak_check.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby::sharing {
 
-ThreadTimer::ThreadTimer(TaskRunner& task_runner, std::string name,
+ThreadTimer::ThreadTimer(SingleThreadExecutor& task_runner, std::string name,
                          absl::Duration delay, absl::AnyInvocable<void()> task)
     : name_(std::move(name)) {
   auto run_cnt = std::make_unique<std::atomic<int8_t>>(0);
   // Do not capture any member variables in the lambda. as the object may be
   // deleted before the task is run.
-  if (task_runner.PostDelayedTask(
+  if (task_runner.DelayedExecute(
           delay, [run_cnt = run_cnt.get(), task = std::move(task),
                   name = name_]() mutable {
             if (run_cnt->fetch_add(1) == 0) {

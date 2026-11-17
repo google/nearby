@@ -34,7 +34,7 @@
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/advertisement.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
@@ -149,7 +149,7 @@ std::string PayloadStatusToString(PayloadStatus status) {
 }  // namespace
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
-    TaskRunner* absl_nonnull connections_callback_task_runner,
+    SingleThreadExecutor* absl_nonnull connections_callback_task_runner,
     ConnectivityManager& connectivity_manager,
     nearby::api::DeviceInfo& device_info,
     absl_nonnull std::unique_ptr<NearbyConnectionsService>
@@ -338,7 +338,7 @@ NearbyConnectionsManagerImpl::CreateTransferManager(
       raw_tm, [runner = &connections_callback_task_runner_](
                   TransferManager* transfer_manager) {
         std::unique_ptr<TransferManager> owned(transfer_manager);
-        runner->PostTask([owned = std::move(owned)]() {});
+        runner->Execute([owned = std::move(owned)]() {});
       });
 }
 
@@ -351,20 +351,20 @@ NearbyConnectionsManagerImpl::CreateConnectionListener() {
         OnConnectionInitiated(endpoint_id, connection_info);
       };
   connection_listener.accepted_cb = [this](absl::string_view endpoint_id) {
-    connections_callback_task_runner_.PostTask(
+    connections_callback_task_runner_.Execute(
         [this, endpoint_id = std::string(endpoint_id)]() {
           OnConnectionAccepted(endpoint_id);
         });
   };
   connection_listener.rejected_cb = [this](absl::string_view endpoint_id,
                                            Status status) {
-    connections_callback_task_runner_.PostTask(
+    connections_callback_task_runner_.Execute(
         [this, endpoint_id = std::string(endpoint_id), status]() {
           OnConnectionRejected(endpoint_id, status);
         });
   };
   connection_listener.disconnected_cb = [this](absl::string_view endpoint_id) {
-    connections_callback_task_runner_.PostTask(
+    connections_callback_task_runner_.Execute(
         [this, endpoint_id = std::string(endpoint_id)]() {
           OnDisconnected(endpoint_id);
         });
@@ -398,7 +398,6 @@ void NearbyConnectionsManagerImpl::Connect(
           ShouldEnableWifiHotspot(connectivity_manager_));
   VLOG(1) << __func__ << ": " << "data_usage=" << static_cast<int>(data_usage)
           << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);
-
   std::shared_ptr<TransferManager> new_transfer_manager;
   if (IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality)) {
     new_transfer_manager = CreateTransferManager(endpoint_id);
@@ -534,7 +533,7 @@ void NearbyConnectionsManagerImpl::DisconnectFromEndpoint(
                 << " attempted over Nearby Connections with result: "
                 << ConnectionsStatusToString(status);
 
-        connections_callback_task_runner_.PostTask([this, endpoint_id]() {
+        connections_callback_task_runner_.Execute([this, endpoint_id]() {
           OnDisconnected(endpoint_id);
           {
             absl::MutexLock lock(mutex_);
@@ -677,7 +676,7 @@ void NearbyConnectionsManagerImpl::UpgradeBandwidth(
 }
 
 NearbyConnectionsManagerImpl::DiscoveryListenerState::DiscoveryListenerState(
-    TaskRunner& task_runner, DiscoveryListener* absl_nonnull listener)
+    SingleThreadExecutor& task_runner, DiscoveryListener* absl_nonnull listener)
     : task_runner_(task_runner), listener_(listener) {}
 
 void NearbyConnectionsManagerImpl::DiscoveryListenerState::StopDiscovery() {
@@ -688,8 +687,8 @@ void NearbyConnectionsManagerImpl::DiscoveryListenerState::StopDiscovery() {
 
 void NearbyConnectionsManagerImpl::DiscoveryListenerState::OnEndpointFound(
     absl::string_view endpoint_id, const DiscoveredEndpointInfo& info) {
-  task_runner_.PostTask([state = shared_from_this(),
-                         endpoint_id = std::string(endpoint_id), info]() {
+  task_runner_.Execute([state = shared_from_this(),
+                        endpoint_id = std::string(endpoint_id), info]() {
     DiscoveryListener* listener = nullptr;
     {
       absl::MutexLock lock(state->state_mutex_);
@@ -720,8 +719,8 @@ void NearbyConnectionsManagerImpl::DiscoveryListenerState::OnEndpointFound(
 
 void NearbyConnectionsManagerImpl::DiscoveryListenerState::OnEndpointLost(
     absl::string_view endpoint_id) {
-  task_runner_.PostTask([state = shared_from_this(),
-                         endpoint_id = std::string(endpoint_id)]() {
+  task_runner_.Execute([state = shared_from_this(),
+                        endpoint_id = std::string(endpoint_id)]() {
     DiscoveryListener* listener = nullptr;
     {
       absl::MutexLock lock(state->state_mutex_);
@@ -1012,7 +1011,7 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
   }
 
   if (control_frame_bytes.has_value()) {
-    connections_callback_task_runner_.PostTask(
+    connections_callback_task_runner_.Execute(
         [this, endpoint_id = std::string(endpoint_id),
          bytes = std::move(*control_frame_bytes)]() mutable {
           NearbyConnectionImpl* connection_ptr = nullptr;

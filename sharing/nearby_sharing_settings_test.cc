@@ -31,7 +31,7 @@
 #include "internal/base/files.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/public/pref_names.h"
@@ -121,7 +121,7 @@ class NearbyShareSettingsTest : public ::testing::Test {
  public:
   NearbyShareSettingsTest()
       : local_device_data_manager_(kDefaultDeviceName),
-        fake_task_runner_(&fake_clock_, /*count=*/1) {
+        fake_task_runner_(&fake_clock_) {
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     nearby_share_settings_ = std::make_unique<NearbyShareSettings>(
         &fake_task_runner_, &fake_clock_, fake_device_info_,
@@ -167,7 +167,7 @@ class NearbyShareSettingsTest : public ::testing::Test {
   nearby::FakePreferenceManager preference_manager_;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager_;
   FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_;
+  TestSingleThreadExecutor fake_task_runner_;
   FakeNearbyShareSettingsObserver observer_;
   std::unique_ptr<NearbyShareSettings> nearby_share_settings_;
 };
@@ -423,7 +423,7 @@ TEST_F(NearbyShareSettingsTest, SetSyncBindingPerfs_Success) {
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
   // Create Nearby Share settings dependencies.
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, /*count=*/1);
+  TestSingleThreadExecutor fake_task_runner(&fake_clock);
   FakeDeviceInfo fake_device_info;
   FakePreferenceManager preference_manager;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager(
@@ -452,7 +452,7 @@ TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_FutureTimer) {
   // Create Nearby Share settings dependencies.
   FakeClock fake_clock;
-  FakeTaskRunner fake_task_runner(&fake_clock, /*count=*/1);
+  TestSingleThreadExecutor fake_task_runner(&fake_clock);
   FakeDeviceInfo fake_device_info;
   FakePreferenceManager preference_manager;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager(

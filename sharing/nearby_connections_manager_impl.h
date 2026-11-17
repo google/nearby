@@ -30,7 +30,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connection_impl.h"
@@ -47,7 +47,8 @@ namespace sharing {
 class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
  public:
   explicit NearbyConnectionsManagerImpl(
-      nearby::TaskRunner* absl_nonnull connections_callback_task_runner,
+      nearby::SingleThreadExecutor* absl_nonnull
+          connections_callback_task_runner,
       nearby::ConnectivityManager& connectivity_manager,
       nearby::api::DeviceInfo& device_info,
       absl_nonnull std::unique_ptr<NearbyConnectionsService>
@@ -122,7 +123,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   class DiscoveryListenerState
       : public std::enable_shared_from_this<DiscoveryListenerState> {
    public:
-    DiscoveryListenerState(nearby::TaskRunner& task_runner,
+    DiscoveryListenerState(nearby::SingleThreadExecutor& task_runner,
                            DiscoveryListener* absl_nonnull listener);
 
     void StopDiscovery() ABSL_LOCKS_EXCLUDED(state_mutex_);
@@ -133,7 +134,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
         ABSL_LOCKS_EXCLUDED(state_mutex_);
 
    private:
-    nearby::TaskRunner& task_runner_;
+    nearby::SingleThreadExecutor& task_runner_;
     absl::Mutex state_mutex_;
     DiscoveryListener* listener_ ABSL_GUARDED_BY(state_mutex_);
     absl::flat_hash_set<std::string> discovered_endpoints_
@@ -188,7 +189,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void ClearIncomingPayloadsLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  nearby::TaskRunner& connections_callback_task_runner_;
+  nearby::SingleThreadExecutor& connections_callback_task_runner_;
   nearby::ConnectivityManager& connectivity_manager_;
   nearby::api::DeviceInfo& device_info_;
   const absl_nonnull std::unique_ptr<NearbyConnectionsService>

@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
@@ -74,7 +75,7 @@ bool SingleThreadExecutor::DelayedExecute(absl::Duration delay,
   uint64_t timer_id = timer_state_->next_timer_id++;
   int delay_ms = static_cast<int>(std::clamp<int64_t>(
       absl::ToInt64Milliseconds(delay), 0, std::numeric_limits<int>::max()));
-  std::unique_ptr<Timer> timer = std::make_unique<TimerImpl>();
+  absl_nonnull std::unique_ptr<Timer> timer = CreateTimer();
   if (timer->Start(delay_ms, 0,
                    [this, state = timer_state_, timer_id,
                     task = std::move(task)]() mutable {
@@ -107,6 +108,10 @@ bool SingleThreadExecutor::DelayedExecute(absl::Duration delay,
   }
 
   return false;
+}
+
+absl_nonnull std::unique_ptr<Timer> SingleThreadExecutor::CreateTimer() {
+  return std::make_unique<TimerImpl>();
 }
 
 }  // namespace nearby

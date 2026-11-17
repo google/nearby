@@ -32,7 +32,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -68,7 +68,7 @@ std::unique_ptr<V1Frame> DecodeV1Frame(const std::vector<uint8_t>& data) {
 
 }  // namespace
 
-IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
+IncomingFramesReader::IncomingFramesReader(SingleThreadExecutor& service_thread,
                                            NearbyConnection* connection)
     : service_thread_(service_thread), connection_(connection) {
   DCHECK(connection);
@@ -83,7 +83,7 @@ IncomingFramesReader::~IncomingFramesReader() {
     timeout_timer_.reset();
   }
   if (next_read_frame_info.has_value()) {
-    service_thread_.PostTask(
+    service_thread_.Execute(
         [callback = std::move(next_read_frame_info->callback)]() mutable {
           std::move(callback)(/*is_timeout=*/false, std::nullopt);
         });
@@ -149,7 +149,7 @@ void IncomingFramesReader::AddNewRequest(
 void IncomingFramesReader::MakeFrameCallbackOnServiceThread(
     absl::AnyInvocable<void(bool, std::optional<V1Frame>)> callback,
     std::unique_ptr<V1Frame> frame) {
-  service_thread_.PostTask(
+  service_thread_.Execute(
       [callback = std::move(callback), frame = std::move(frame)]() mutable {
         std::move(callback)(/*is_timeout=*/false, std::move(*frame));
       });
@@ -166,7 +166,7 @@ void IncomingFramesReader::ReadNextFrame() {
         if (!bytes.has_value()) {
           LOG(WARNING) << __func__ << ": Failed to read frame";
           // Schedule ClosePendingRead on service thread.
-          frame_reader->service_thread_.PostTask(
+          frame_reader->service_thread_.Execute(
               [reader = frame_reader->GetWeakPtr()]() {
                 auto frame_reader = reader.lock();
                 if (frame_reader == nullptr) {

@@ -26,7 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
 #include "sharing/nearby_connections_types.h"
@@ -80,7 +80,7 @@ class PayloadTrackerTest : public ::testing::Test {
 
  private:
   FakeClock fake_clock_;
-  FakeTaskRunner task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor task_runner_{&fake_clock_};
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
   std::unique_ptr<AttachmentContainer> container_;
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;

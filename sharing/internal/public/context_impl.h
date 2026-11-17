@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "internal/platform/clock.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
@@ -40,7 +41,8 @@ class ContextImpl : public Context {
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
-  std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
+  std::unique_ptr<SingleThreadExecutor> CreateSingleThreadExecutor()
+      const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
 

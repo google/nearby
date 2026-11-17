@@ -19,6 +19,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -52,6 +53,9 @@ class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
       ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
 
   void Shutdown() override ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
+
+ protected:
+  virtual absl_nonnull std::unique_ptr<Timer> CreateTimer();
 
  private:
   // Shared via `std::shared_ptr` so in-flight timer callbacks on platforms

@@ -27,7 +27,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_format.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/constants.h"
@@ -110,7 +110,7 @@ AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
   }
 }
 
-ShareSession::ShareSession(Clock* clock, TaskRunner& service_thread,
+ShareSession::ShareSession(Clock* clock, SingleThreadExecutor& service_thread,
                            NearbyConnectionsManager* connections_manager,
                            analytics::AnalyticsRecorder& analytics_recorder,
                            std::string endpoint_id,

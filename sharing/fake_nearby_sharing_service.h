@@ -32,7 +32,7 @@
 #include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -157,7 +157,7 @@ class FakeNearbySharingService : public NearbySharingService {
   FakeNearbyConnectionsManager& fake_nearby_connections_manager() {
     return connections_manager_;
   }
-  FakeTaskRunner& fake_task_runner() { return service_thread_; }
+  TestSingleThreadExecutor& service_thread() { return service_thread_; }
   analytics::AnalyticsRecorderImpl& analytics_recorder() {
     return analytics_recorder_;
   }
@@ -204,7 +204,7 @@ class FakeNearbySharingService : public NearbySharingService {
   ObserverList<TransferUpdateCallback> foreground_receive_transfer_callbacks_;
   ObserverList<TransferUpdateCallback> background_receive_transfer_callbacks_;
   FakeClock clock_;
-  FakeTaskRunner service_thread_;
+  TestSingleThreadExecutor service_thread_;
   FakeNearbyConnectionsManager connections_manager_;
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorderImpl analytics_recorder_;

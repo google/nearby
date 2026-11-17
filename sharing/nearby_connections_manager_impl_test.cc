@@ -39,7 +39,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
 #include "sharing/fake_nearby_connections_service.h"
@@ -431,7 +431,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
   }
 
   nearby::FakeClock fake_clock_;
-  FakeTaskRunner fake_task_runner_{&fake_clock_, 1};
+  TestSingleThreadExecutor fake_task_runner_{&fake_clock_};
   nearby::FakeDeviceInfo fake_device_info_;
   nearby::FakeConnectivityManager fake_connectivity_manager_;
   bool should_use_web_rtc_ = false;
@@ -2413,7 +2413,7 @@ TEST_F(NearbyConnectionsManagerImplTest,
   EXPECT_CALL(discovery_listener, OnEndpointLost).Times(0);
   absl::Notification block_runner;
   absl::Notification runner_blocked;
-  fake_task_runner_.PostTask([&]() {
+  fake_task_runner_.Execute([&]() {
     runner_blocked.Notify();
     block_runner.WaitForNotification();
     nearby_connections_manager_->StopDiscovery();
@@ -2641,7 +2641,7 @@ TEST_F(NearbyConnectionsManagerImplTest,
   // so the queued timer task does not dereference freed `this`.
   absl::Notification block_runner;
   absl::Notification runner_blocked;
-  fake_task_runner_.PostTask([&]() {
+  fake_task_runner_.Execute([&]() {
     runner_blocked.Notify();
     block_runner.WaitForNotification();
   });

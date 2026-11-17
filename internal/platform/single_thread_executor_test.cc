@@ -15,16 +15,20 @@
 #include "internal/platform/single_thread_executor.h"
 
 #include <atomic>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/timer.h"
 
 namespace nearby {
 namespace {
@@ -300,6 +304,30 @@ TEST(SingleThreadExecutorTest, ThreadCheck_DelayedExecuteRunnable) {
         notification.Notify();
       }));
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
+}
+
+class FailingTimer : public Timer {
+ public:
+  bool Start(int delay, int period,
+             absl::AnyInvocable<void()> callback) override {
+    return false;
+  }
+  void Stop() override {}
+  bool IsRunning() override { return false; }
+};
+
+class FailingTimerSingleThreadExecutor : public SingleThreadExecutor {
+ protected:
+  absl_nonnull std::unique_ptr<Timer> CreateTimer() override {
+    return std::make_unique<FailingTimer>();
+  }
+};
+
+TEST(SingleThreadExecutorTest, DelayedExecuteTimerStartFailureReturnsFalse) {
+  FailingTimerSingleThreadExecutor executor;
+
+  EXPECT_FALSE(executor.DelayedExecute(
+      absl::Milliseconds(10), []() { FAIL() << "Task should not run"; }));
 }
 
 }  // namespace

@@ -19,7 +19,7 @@
 
 #include "location/nearby/analytics/cpp/logging/event_logger.h"
 #include "location/nearby/sharing/lib/rpc/grpc_async_client_factory.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
@@ -47,8 +47,8 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
 
   context_ =
       std::make_unique<ContextImpl>(sharing_platform);
-  std::unique_ptr<TaskRunner> service_thread =
-      context_->CreateSequencedTaskRunner();
+  std::unique_ptr<SingleThreadExecutor> service_thread =
+      context_->CreateSingleThreadExecutor();
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
           service_thread.get(), context_->GetConnectivityManager(),

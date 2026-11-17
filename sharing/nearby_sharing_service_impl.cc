@@ -54,7 +54,7 @@
 #include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
 #include "sharing/advertisement_capabilities.h"
@@ -269,7 +269,7 @@ sync::SyncBinding::SourceDeviceType ShareTargetTypeToSourceDeviceType(
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
-    std::unique_ptr<TaskRunner> service_thread, Context* context,
+    std::unique_ptr<SingleThreadExecutor> service_thread, Context* context,
     SharingPlatform& sharing_platform,
     nearby::sharing::api::IdentityRpcClient* absl_nonnull
         nearby_identity_client,
@@ -3389,7 +3389,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThread(
   LOG(INFO) << __func__ << ": Scheduled to run task " << task_name
             << " on API thread.";
 
-  service_thread_->PostTask(
+  service_thread_->Execute(
       [this, is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
        task_name = std::string(task_name), task = std::move(task)]() mutable {
         std::shared_ptr<bool> is_shutting = is_shutting_down.lock();
@@ -3418,7 +3418,7 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
 
   LOG(INFO) << __func__ << ": Scheduled to run delayed task " << task_name
             << " on API thread.";
-  service_thread_->PostDelayedTask(
+  service_thread_->DelayedExecute(
       delay,
       [is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
        task_name = std::string(task_name), task = std::move(task)]() mutable {

@@ -28,7 +28,7 @@
 #include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
@@ -46,7 +46,7 @@ namespace nearby::sharing {
 class IncomingShareSession : public ShareSession {
  public:
   IncomingShareSession(
-      Clock* clock, TaskRunner& service_thread,
+      Clock* clock, SingleThreadExecutor& service_thread,
       NearbyConnectionsManager* connections_manager,
       analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,

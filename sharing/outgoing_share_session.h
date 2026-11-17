@@ -28,7 +28,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/task_runner.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
@@ -48,7 +48,7 @@ namespace nearby::sharing {
 class OutgoingShareSession : public ShareSession {
  public:
   OutgoingShareSession(
-      Clock* clock, TaskRunner& service_thread,
+      Clock* clock, SingleThreadExecutor& service_thread,
       NearbyConnectionsManager* connections_manager,
       analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,
