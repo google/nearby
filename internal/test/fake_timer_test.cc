@@ -17,8 +17,8 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/logging.h"
-#include "internal/test/fake_task_runner.h"
+#include "internal/platform/single_thread_executor.h"
+#include "internal/test/fake_clock.h"
 
 namespace nearby {
 namespace {
@@ -154,14 +154,14 @@ TEST(FakeTimer, WaitForRunningTask) {
   bool finish = false;
   FakeClock clock;
   FakeTimer timer1(&clock);
-  FakeTaskRunner task_runner{&clock, 1};
+  SingleThreadExecutor executor;
 
   timer1.Start(50, 0, [&]() {
     absl::SleepFor(absl::Milliseconds(2000));
     finish = true;
   });
 
-  task_runner.PostTask([&]() {
+  executor.Execute([&]() {
     absl::SleepFor(absl::Milliseconds(10));
     timer1.Stop();
     EXPECT_TRUE(finish);
