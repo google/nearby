@@ -44,6 +44,7 @@ objc_library(
         "GNCMBleUtilsTest.m",
         "GNCMConnectionsTest.m",
         "GNCMFakeConnection.mm",
+        "GNCPeripheralDelegateMultiplexerTest.m",
         "GNCPeripheralManagerMultiplexerTest.m",
         "GNCPeripheralManagerTest.m",
         "GNCPeripheralTest.m",
