@@ -47,6 +47,7 @@ static const NSTimeInterval kTestTimeout = 1.0;
 }
 
 - (void)tearDown {
+  self.fakePeripheral.peripheralDelegate = nil;
   self.fakePeripheral = nil;
   self.l2capClient = nil;
   [super tearDown];
@@ -157,6 +158,10 @@ static const NSTimeInterval kTestTimeout = 1.0;
                           }];
 
   [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
+  self.fakePeripheral.peripheralDelegate = nil;
+  self.fakePeripheral = nil;
+  self.l2capClient = nil;
+  [fakeStreams tearDown];
 }
 
 - (void)testDidOpenL2CAPChannelCalledTwice {
@@ -165,10 +170,10 @@ static const NSTimeInterval kTestTimeout = 1.0;
   self.requestDisconnectionHandlerExpectation =
       [self expectationWithDescription:@"Request disconnection handler should be called"];
   uint16_t psm = 123;
-  GNCBLEL2CAPFakeInputOutputStream *fakeStreams =
+  GNCBLEL2CAPFakeInputOutputStream *firstFakeStreams =
       [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1];
-  self.fakePeripheral.channelInputStream = fakeStreams.inputStream;
-  self.fakePeripheral.channelOutputStream = fakeStreams.outputStream;
+  self.fakePeripheral.channelInputStream = firstFakeStreams.inputStream;
+  self.fakePeripheral.channelOutputStream = firstFakeStreams.outputStream;
 
   [self.l2capClient openL2CAPChannelWithPSM:psm
                                  peripheral:self.fakePeripheral
@@ -178,16 +183,23 @@ static const NSTimeInterval kTestTimeout = 1.0;
                             [expectation fulfill];
                           }];
 
-  // Calling gnc_peripheral again to simulate channel opened again.
+  // Calling gnc_peripheral again with a new channel and stream pair to simulate channel reopening.
+  GNCBLEL2CAPFakeInputOutputStream *secondFakeStreams =
+      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1];
   CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
-  [channel setValue:fakeStreams.inputStream forKey:@"inputStream"];
-  [channel setValue:fakeStreams.outputStream forKey:@"outputStream"];
+  [channel setValue:secondFakeStreams.inputStream forKey:@"inputStream"];
+  [channel setValue:secondFakeStreams.outputStream forKey:@"outputStream"];
   [self.l2capClient peripheral:(CBPeripheral *)self.fakePeripheral
            didOpenL2CAPChannel:channel
                          error:nil];
 
   [self waitForExpectations:@[ expectation, self.requestDisconnectionHandlerExpectation ]
                     timeout:kTestTimeout];
+  self.fakePeripheral.peripheralDelegate = nil;
+  self.fakePeripheral = nil;
+  self.l2capClient = nil;
+  [firstFakeStreams tearDown];
+  [secondFakeStreams tearDown];
 }
 
 @end

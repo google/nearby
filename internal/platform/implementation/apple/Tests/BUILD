@@ -112,13 +112,12 @@ objc_library(
         "GNCFakeNotificationCenter.h",
     ],
     deps = [
-        ":PlatformTestsLibrary",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple:GNCNotificationCenter",
         "//internal/platform/implementation/apple:app_lifecycle_monitor",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:UIKit",
         "//third_party/apple_frameworks:XCTest",
-        "@com_google_googletest//:gtest",
     ],
 )
 
