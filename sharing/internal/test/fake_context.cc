@@ -18,9 +18,7 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
-#include "internal/test/fake_timer.h"
 #include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
@@ -39,10 +37,6 @@ FakeContext::FakeContext()
           std::make_unique<FakeFastInitiationManager>()) {}
 
 Clock* FakeContext::GetClock() const { return fake_clock_.get(); }
-
-std::unique_ptr<Timer> FakeContext::CreateTimer() {
-  return std::make_unique<FakeTimer>(fake_clock_.get());
-}
 
 ConnectivityManager* FakeContext::GetConnectivityManager() const {
   return fake_connectivity_manager_.get();

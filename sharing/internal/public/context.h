@@ -19,7 +19,6 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -36,8 +35,6 @@ class Context {
   virtual ~Context() = default;
 
   virtual Clock* GetClock() const = 0;
-  virtual std::unique_ptr<Timer> CreateTimer() = 0;
-
   virtual ConnectivityManager* GetConnectivityManager() const = 0;
   virtual sharing::api::BluetoothAdapter& GetBluetoothAdapter() const = 0;
   virtual api::FastInitiationManager& GetFastInitiationManager() const = 0;

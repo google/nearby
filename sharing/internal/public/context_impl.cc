@@ -19,8 +19,6 @@
 #include "internal/platform/clock.h"
 #include "internal/platform/clock_impl.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
-#include "internal/platform/timer_impl.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -38,10 +36,6 @@ ContextImpl::ContextImpl(SharingPlatform& platform)
           std::make_unique<ConnectivityManagerImpl>(platform_)) {}
 
 Clock* ContextImpl::GetClock() const { return clock_.get(); }
-
-std::unique_ptr<Timer> ContextImpl::CreateTimer() {
-  return std::make_unique<TimerImpl>();
-}
 
 ConnectivityManager* ContextImpl::GetConnectivityManager() const {
   return connectivity_manager_.get();

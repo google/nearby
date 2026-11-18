@@ -19,7 +19,6 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
@@ -38,7 +37,6 @@ class FakeContext : public Context {
   ~FakeContext() override = default;
 
   Clock* GetClock() const override;
-  std::unique_ptr<Timer> CreateTimer() override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;

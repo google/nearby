@@ -19,7 +19,6 @@
 
 #include "internal/platform/clock.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -34,7 +33,6 @@ class ContextImpl : public Context {
   ~ContextImpl() override = default;
 
   Clock* GetClock() const override;
-  std::unique_ptr<Timer> CreateTimer() override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
