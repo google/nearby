@@ -316,7 +316,8 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      profile_path, nearby_identity_client, &sync_manager_);
+      profile_path, nearby_identity_client, &sync_manager_,
+      std::make_unique<SingleThreadExecutor>());
 
   certificate_manager_->AddObserver(this);
   context_->GetConnectivityManager()->RegisterLanListener(

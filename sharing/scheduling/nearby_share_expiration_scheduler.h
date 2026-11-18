@@ -18,8 +18,10 @@
 #include <functional>
 #include <optional>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
@@ -41,6 +43,7 @@ class NearbyShareExpirationScheduler : public NearbyShareSchedulerBase {
   NearbyShareExpirationScheduler(
       Context* context,
       nearby::sharing::api::PreferenceManager& preference_manager,
+      SingleThreadExecutor* absl_nonnull executor,
       ExpirationTimeFunctor expiration_time_functor, bool retry_failures,
       bool require_connectivity, absl::string_view pref_name,
       OnRequestCallback on_request_callback);

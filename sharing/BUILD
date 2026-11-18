@@ -215,6 +215,7 @@ cc_library(
     name = "thread_timer",
     srcs = ["thread_timer.cc"],
     hdrs = ["thread_timer.h"],
+    visibility = ["//sharing:__subpackages__"],
     deps = [
         "//internal/platform:types",
         "//sharing/internal/public:logging",

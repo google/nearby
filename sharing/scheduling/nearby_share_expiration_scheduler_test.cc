@@ -19,6 +19,7 @@
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
 
@@ -42,9 +43,14 @@ class NearbyShareExpirationSchedulerTest : public ::testing::Test {
     preference_manager_.Remove(kTestPrefName);
 
     scheduler_ = std::make_unique<NearbyShareExpirationScheduler>(
-        &fake_context_, preference_manager_, callback_,
+        &fake_context_, preference_manager_, &task_runner_, callback_,
         /*retry_failures=*/true, /*require_connectivity=*/true, kTestPrefName,
         nullptr);
+  }
+
+  void TearDown() override {
+    task_runner_.Execute([this]() { scheduler_.reset(); });
+    task_runner_.Sync();
   }
 
   absl::Time Now() const { return fake_context_.GetClock()->Now(); }
@@ -52,6 +58,7 @@ class NearbyShareExpirationSchedulerTest : public ::testing::Test {
   // Fast-forwards mock time by |delta| and fires relevant timers.
   void FastForward(absl::Duration delta) {
     fake_context_.fake_clock()->FastForward(delta);
+    task_runner_.Sync();
   }
 
   absl::Time expiration_time_ = absl::InfiniteFuture();
@@ -60,10 +67,11 @@ class NearbyShareExpirationSchedulerTest : public ::testing::Test {
  private:
   nearby::FakePreferenceManager preference_manager_;
   nearby::FakeContext fake_context_;
-  std::unique_ptr<NearbyShareExpirationScheduler> scheduler_ = nullptr;
+  TestSingleThreadExecutor task_runner_{fake_context_.fake_clock()};
   NearbyShareExpirationScheduler::ExpirationTimeFunctor callback_ = [&]() {
     return expiration_time_;
   };
+  std::unique_ptr<NearbyShareExpirationScheduler> scheduler_ = nullptr;
 };
 
 TEST_F(NearbyShareExpirationSchedulerTest, ExpirationRequest) {

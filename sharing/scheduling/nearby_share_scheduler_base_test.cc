@@ -22,9 +22,14 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/base/nullability.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
@@ -48,14 +53,15 @@ class NearbyShareSchedulerBaseForTest : public NearbyShareSchedulerBase {
  public:
   NearbyShareSchedulerBaseForTest(Context* context,
                                   PreferenceManager& preference_manager,
+                                  SingleThreadExecutor* absl_nonnull executor,
                                   absl::Duration time_until_recurring_request,
                                   bool retry_failures,
                                   bool require_connectivity,
                                   absl::string_view pref_name,
                                   OnRequestCallback callback)
-      : NearbyShareSchedulerBase(context, preference_manager, retry_failures,
-                                 require_connectivity, pref_name,
-                                 std::move(callback)),
+      : NearbyShareSchedulerBase(context, preference_manager, executor,
+                                 retry_failures, require_connectivity,
+                                 pref_name, std::move(callback)),
         time_until_recurring_request_(time_until_recurring_request) {}
 
   ~NearbyShareSchedulerBaseForTest() override = default;
@@ -75,32 +81,46 @@ class NearbyShareSchedulerBaseTest : public ::testing::Test {
 
   void SetUp() override { preference_manager_.Remove(kTestPrefName); }
 
+  void TearDown() override { DestroyScheduler(); }
+
+  void RunOnTaskRunner(absl::AnyInvocable<void()> task) {
+    task_runner_.Execute([&task]() { std::move(task)(); });
+    task_runner_.Sync();
+  }
+
   void CreateScheduler(bool retry_failures, bool require_connectivity,
                        absl::Duration time_until_recurring_request =
                            kTestTimeUntilRecurringRequest) {
-    scheduler_ = std::make_unique<NearbyShareSchedulerBaseForTest>(
-        &fake_context_, preference_manager_, time_until_recurring_request,
-        retry_failures, require_connectivity, kTestPrefName, callback_);
+    RunOnTaskRunner([&]() {
+      scheduler_ = std::make_unique<NearbyShareSchedulerBaseForTest>(
+          &fake_context_, preference_manager_, &task_runner_,
+          time_until_recurring_request, retry_failures, require_connectivity,
+          kTestPrefName, callback_);
+    });
   }
 
-  void DestroyScheduler() { scheduler_.reset(); }
+  void DestroyScheduler() {
+    RunOnTaskRunner([&]() { scheduler_.reset(); });
+  }
 
   void StartScheduling() {
-    scheduler_->Start();
+    RunOnTaskRunner([&]() { scheduler_->Start(); });
     EXPECT_TRUE(scheduler_->is_running());
   }
 
   void StopScheduling() {
-    scheduler_->Stop();
+    RunOnTaskRunner([&]() { scheduler_->Stop(); });
     EXPECT_FALSE(scheduler_->is_running());
   }
 
   // Fast-forwards mock time by |delta| and fires relevant timers.
   void FastForward(absl::Duration delta) {
     fake_context_.fake_clock()->FastForward(delta);
+    task_runner_.Sync();
   }
 
   void RunPendingRequest() {
+    task_runner_.Sync();
     EXPECT_FALSE(scheduler_->IsWaitingForResult());
     std::optional<absl::Duration> time_until_next_request =
         scheduler_->GetTimeUntilNextRequestForTest();
@@ -115,7 +135,7 @@ class NearbyShareSchedulerBaseTest : public ::testing::Test {
     size_t num_failures = scheduler_->GetNumConsecutiveFailures();
     std::optional<absl::Time> last_success_time =
         scheduler_->GetLastSuccessTime();
-    scheduler_->HandleResult(success);
+    RunOnTaskRunner([&]() { scheduler_->HandleResult(success); });
     EXPECT_FALSE(scheduler_->IsWaitingForResult());
     EXPECT_EQ(scheduler_->GetNumConsecutiveFailures(),
               success ? 0 : num_failures + 1);
@@ -133,10 +153,11 @@ class NearbyShareSchedulerBaseTest : public ::testing::Test {
   nearby::FakePreferenceManager preference_manager_;
   nearby::FakeContext fake_context_;
   size_t on_request_call_count_ = 0;
-  std::unique_ptr<NearbyShareSchedulerBaseForTest> scheduler_;
   NearbyShareScheduler::OnRequestCallback callback_ = [&]() {
     ++on_request_call_count_;
   };
+  TestSingleThreadExecutor task_runner_{fake_context_.fake_clock()};
+  std::unique_ptr<NearbyShareSchedulerBaseForTest> scheduler_;
 };
 
 TEST_F(NearbyShareSchedulerBaseTest, ImmediateRequest) {
@@ -411,7 +432,7 @@ TEST_F(NearbyShareSchedulerBaseTest, InternetConnectivityChange) {
   fake_context_.fake_connectivity_manager()->SetInternetConnected(false);
   CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
   StartScheduling();
-  scheduler()->MakeImmediateRequest();
+  RunOnTaskRunner([&]() { scheduler()->MakeImmediateRequest(); });
   ASSERT_NO_FATAL_FAILURE(RunPendingRequest());
   EXPECT_EQ(on_request_call_count(), 0);
 
@@ -419,6 +440,118 @@ TEST_F(NearbyShareSchedulerBaseTest, InternetConnectivityChange) {
   ASSERT_NO_FATAL_FAILURE(RunPendingRequest());
   EXPECT_EQ(on_request_call_count(), 1);
 }
+
+TEST_F(NearbyShareSchedulerBaseTest,
+       CancelOnWorkerThreadPreventsQueuedCallback) {
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+
+  // Block task_runner_ while FakeClock advances so the ThreadTimer expiration
+  // task is queued right behind this task on task_runner_. Cancelling on
+  // task_runner_ must still prevent the queued expiration task from firing.
+  absl::Notification blocker_started;
+  absl::Notification allow_cancel;
+  task_runner_.Execute([&]() {
+    blocker_started.Notify();
+    allow_cancel.WaitForNotification();
+    scheduler()->Stop();
+  });
+  blocker_started.WaitForNotification();
+
+  fake_context_.fake_clock()->FastForward(kTestTimeUntilRecurringRequest);
+  allow_cancel.Notify();
+  task_runner_.Sync();
+
+  EXPECT_EQ(on_request_call_count(), 0u);
+  EXPECT_FALSE(scheduler()->IsWaitingForResult());
+}
+
+TEST_F(NearbyShareSchedulerBaseTest,
+       DestroySchedulerOnWorkerThreadWithPendingTimer) {
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(false);
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+
+  // Queue an internet-connectivity restore task followed immediately by
+  // scheduler destruction on task_runner_, while task_runner_ remains active.
+  absl::Notification blocker_started;
+  absl::Notification unblock;
+  task_runner_.Execute([&]() {
+    blocker_started.Notify();
+    unblock.WaitForNotification();
+  });
+  blocker_started.WaitForNotification();
+
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(true);
+  task_runner_.Execute([this]() { scheduler_.reset(); });
+  unblock.Notify();
+  task_runner_.Sync();
+
+  FastForward(kTestTimeUntilRecurringRequest);
+  EXPECT_EQ(on_request_call_count(), 0u);
+}
+
+TEST_F(NearbyShareSchedulerBaseTest,
+       QueuedConnectivityRestoreAfterDestroyIsIgnored) {
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(false);
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+  RunOnTaskRunner([&]() { scheduler()->MakeImmediateRequest(); });
+
+  // While task_runner_ is blocked, enqueue scheduler destruction ahead of the
+  // internet-connectivity restore callback so the queued restore task runs
+  // after ~NearbyShareSchedulerBase() has set is_destroyed_ = true.
+  absl::Notification blocker_started;
+  absl::Notification unblock;
+  task_runner_.Execute([&]() {
+    blocker_started.Notify();
+    unblock.WaitForNotification();
+  });
+  blocker_started.WaitForNotification();
+
+  task_runner_.Execute([this]() { scheduler_.reset(); });
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(true);
+  unblock.Notify();
+  task_runner_.Sync();
+
+  FastForward(kTestTimeUntilRecurringRequest);
+  EXPECT_EQ(on_request_call_count(), 0u);
+}
+
+TEST_F(NearbyShareSchedulerBaseTest, DestroySchedulerInsideCallback) {
+  callback_ = [this]() {
+    ++on_request_call_count_;
+    scheduler_.reset();
+  };
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+  RunOnTaskRunner([&]() { scheduler()->MakeImmediateRequest(); });
+
+  ASSERT_NO_FATAL_FAILURE(RunPendingRequest());
+  EXPECT_EQ(on_request_call_count(), 1u);
+  EXPECT_EQ(scheduler(), nullptr);
+}
+
+TEST_F(NearbyShareSchedulerBaseTest, SynchronousHandleResultInsideCallback) {
+  callback_ = [this]() {
+    ++on_request_call_count_;
+    scheduler()->HandleResult(/*success=*/true);
+  };
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+
+  // First recurring request fires and synchronously calls HandleResult(true),
+  // which must arm the next recurring timer without OnTimerFired clobbering it.
+  FastForward(kTestTimeUntilRecurringRequest);
+  EXPECT_EQ(on_request_call_count(), 1u);
+  EXPECT_FALSE(scheduler()->IsWaitingForResult());
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
+            kTestTimeUntilRecurringRequest);
+
+  FastForward(kTestTimeUntilRecurringRequest);
+  EXPECT_EQ(on_request_call_count(), 2u);
+}
+
 }  // namespace
 }  // namespace sharing
 }  // namespace nearby

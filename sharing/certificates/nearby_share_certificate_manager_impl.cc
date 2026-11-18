@@ -209,8 +209,10 @@ NearbyShareCertificateManagerImpl::Factory::Create(
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     const FilePath& profile_path,
     nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client,
-    nearby::sharing::SyncManager* absl_nonnull sync_manager) {
+    nearby::sharing::SyncManager* absl_nonnull sync_manager,
+    absl_nonnull std::unique_ptr<SingleThreadExecutor> executor) {
   DCHECK(context);
+  DCHECK(executor != nullptr);
 
   if (test_factory_) {
     return test_factory_->CreateInstance(context, local_device_data_manager,
@@ -223,7 +225,8 @@ NearbyShareCertificateManagerImpl::Factory::Create(
       context, sharing_platform.GetPreferenceManager(),
       sharing_platform.GetAccountManager(),
       sharing_platform.CreatePublicCertificateDatabase(database_path),
-      local_device_data_manager, identity_client, sync_manager));
+      local_device_data_manager, identity_client, sync_manager,
+      std::move(executor)));
 }
 
 // static
@@ -240,49 +243,47 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
     std::unique_ptr<PublicCertificateDatabase> public_certificate_database,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
     nearby::sharing::api::IdentityRpcClient* absl_nonnull identity_client,
-    nearby::sharing::SyncManager* absl_nonnull sync_manager)
+    nearby::sharing::SyncManager* absl_nonnull sync_manager,
+    absl_nonnull std::unique_ptr<SingleThreadExecutor> executor)
     : context_(context),
       account_manager_(account_manager),
       local_device_data_manager_(local_device_data_manager),
       preference_manager_(preference_manager),
       nearby_identity_client_(identity_client),
       sync_manager_(*sync_manager),
+      executor_(std::move(executor)),
       certificate_storage_(NearbyShareCertificateStorageImpl::Factory::Create(
           preference_manager, std::move(public_certificate_database))),
       private_certificate_expiration_scheduler_(
           NearbyShareSchedulerFactory::CreateExpirationScheduler(
-              context, preference_manager,
-              [&] { return NextPrivateCertificateExpirationTime(); },
+              context, preference_manager, executor_.get(),
+              [this] { return NextPrivateCertificateExpirationTime(); },
               /*retry_failures=*/true,
               /*require_connectivity=*/false,
               PrefNames::kSchedulerPrivateCertificateExpiration,
               [this]() {
                 VLOG(1)
                     << "Private certificate expiration scheduler is called.";
-                executor_->Execute([this]() {
-                  private_certificate_expiration_scheduler_->HandleResult(
-                      RefreshPrivateCertificatesInExecutor(
-                          /*force_upload=*/false));
-                });
+                private_certificate_expiration_scheduler_->HandleResult(
+                    RefreshPrivateCertificatesInExecutor(
+                        /*force_upload=*/false));
               })),
       public_certificate_expiration_scheduler_(
           NearbyShareSchedulerFactory::CreateExpirationScheduler(
-              context, preference_manager,
-              [&] { return NextPublicCertificateExpirationTime(); },
+              context, preference_manager, executor_.get(),
+              [this] { return NextPublicCertificateExpirationTime(); },
               /*retry_failures=*/true,
               /*require_connectivity=*/false,
               PrefNames::kSchedulerPublicCertificateExpiration,
               [this]() {
                 VLOG(1)
                     << ": Public certificate expiration scheduler is called.";
-                executor_->Execute([this]() {
-                  public_certificate_expiration_scheduler_->HandleResult(
-                      RemoveExpiredPublicCertificatesInExecutor());
-                });
+                public_certificate_expiration_scheduler_->HandleResult(
+                    RemoveExpiredPublicCertificatesInExecutor());
               })),
       force_contacts_update_scheduler_(
           NearbyShareSchedulerFactory::CreatePeriodicScheduler(
-              context, preference_manager,
+              context, preference_manager, executor_.get(),
               kNearbyShareLocalCertificateUploadPeriod,
               /*retry_failures=*/true,
               /*require_connectivity=*/true,
@@ -290,16 +291,14 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 VLOG(1)
                     << "Upload local device certificates scheduler is called.";
-                executor_->Execute([this]() {
-                  force_contacts_update_scheduler_->HandleResult(
-                      UploadDeviceCertificatesInExecutor(
-                          certificate_storage_->GetPrivateCertificates(),
-                          /*force_update_contacts=*/true));
-                });
+                force_contacts_update_scheduler_->HandleResult(
+                    UploadDeviceCertificatesInExecutor(
+                        certificate_storage_->GetPrivateCertificates(),
+                        /*force_update_contacts=*/true));
               })),
       download_public_certificates_scheduler_(
           NearbyShareSchedulerFactory::CreatePeriodicScheduler(
-              context, preference_manager,
+              context, preference_manager, executor_.get(),
               kNearbySharePublicCertificateDownloadPeriod,
               /*retry_failures=*/true,
               /*require_connectivity=*/true,
@@ -307,30 +306,35 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [this]() {
                 LOG(INFO)
                     << "Download public certificates scheduler is called.";
-                executor_->Execute([this]() {
-                  download_public_certificates_scheduler_->HandleResult(
-                      DownloadPublicCertificatesInExecutor());
-                });
+                download_public_certificates_scheduler_->HandleResult(
+                    DownloadPublicCertificatesInExecutor());
               })),
       account_info_update_scheduler_(
           NearbyShareSchedulerFactory::CreatePeriodicScheduler(
-              context_, preference_manager_, kGetAccountInfoPeriod,
+              context_, preference_manager_, executor_.get(),
+              kGetAccountInfoPeriod,
               /*retry_failures=*/true,
               /*require_connectivity=*/true,
               PrefNames::kSchedulerGetAccountInfo,
               [this]() {
                 LOG(INFO) << "Get account info scheduler is called.";
-                executor_->Execute([this]() {
-                  account_info_update_scheduler_->HandleResult(
-                      UpdateAccountInfoInExecutor());
-                });
-              })),
-      executor_(context->CreateSingleThreadExecutor()) {
+                account_info_update_scheduler_->HandleResult(
+                    UpdateAccountInfoInExecutor());
+              })) {
+  DCHECK(executor_ != nullptr);
   local_device_data_manager_->AddObserver(this);
 }
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
   local_device_data_manager_->RemoveObserver(this);
+  executor_->Execute([this]() {
+    private_certificate_expiration_scheduler_->Stop();
+    public_certificate_expiration_scheduler_->Stop();
+    force_contacts_update_scheduler_->Stop();
+    download_public_certificates_scheduler_->Stop();
+    account_info_update_scheduler_->Stop();
+  });
+  executor_->Shutdown();
 }
 
 std::string NearbyShareCertificateManagerImpl::GetId() {
@@ -464,12 +468,15 @@ bool NearbyShareCertificateManagerImpl::UpdatePublicCertificates(
   NotifyPublicCertificatesDownloaded();
 
   // Recompute the expiration timer to account for new certificates.
-  public_certificate_expiration_scheduler_->Reschedule();
+  executor_->Execute(
+      [this]() { public_certificate_expiration_scheduler_->Reschedule(); });
   return true;
 }
 
 void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
-  download_public_certificates_scheduler_->MakeImmediateRequest();
+  executor_->Execute([this]() {
+    download_public_certificates_scheduler_->MakeImmediateRequest();
+  });
 }
 
 bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
@@ -714,19 +721,23 @@ void NearbyShareCertificateManagerImpl::ClearPublicCertificates(
 }
 
 void NearbyShareCertificateManagerImpl::OnStartScheduledTasks() {
-  private_certificate_expiration_scheduler_->Start();
-  public_certificate_expiration_scheduler_->Start();
-  force_contacts_update_scheduler_->Start();
-  download_public_certificates_scheduler_->Start();
-  account_info_update_scheduler_->Start();
+  executor_->Execute([this]() {
+    private_certificate_expiration_scheduler_->Start();
+    public_certificate_expiration_scheduler_->Start();
+    force_contacts_update_scheduler_->Start();
+    download_public_certificates_scheduler_->Start();
+    account_info_update_scheduler_->Start();
+  });
 }
 
 void NearbyShareCertificateManagerImpl::OnStopScheduledTasks() {
-  private_certificate_expiration_scheduler_->Stop();
-  public_certificate_expiration_scheduler_->Stop();
-  force_contacts_update_scheduler_->Stop();
-  download_public_certificates_scheduler_->Stop();
-  account_info_update_scheduler_->Stop();
+  executor_->Execute([this]() {
+    private_certificate_expiration_scheduler_->Stop();
+    public_certificate_expiration_scheduler_->Stop();
+    force_contacts_update_scheduler_->Stop();
+    download_public_certificates_scheduler_->Stop();
+    account_info_update_scheduler_->Stop();
+  });
 }
 
 std::optional<NearbySharePrivateCertificate>

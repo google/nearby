@@ -15,8 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_ON_DEMAND_SCHEDULER_H_
 #define THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_ON_DEMAND_SCHEDULER_H_
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
@@ -32,8 +34,9 @@ class NearbyShareOnDemandScheduler : public NearbyShareSchedulerBase {
   NearbyShareOnDemandScheduler(
       Context* context,
       nearby::sharing::api::PreferenceManager& preference_manager,
-      bool retry_failures, bool require_connectivity,
-      absl::string_view pref_name, OnRequestCallback callback);
+      SingleThreadExecutor* absl_nonnull executor, bool retry_failures,
+      bool require_connectivity, absl::string_view pref_name,
+      OnRequestCallback callback);
 
   ~NearbyShareOnDemandScheduler() override;
 

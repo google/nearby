@@ -18,15 +18,19 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
 
+#include "absl/base/nullability.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "absl/time/time.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -34,6 +38,7 @@
 #include "sharing/scheduling/format.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
 #include "sharing/scheduling/nearby_share_scheduler_fields.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -48,17 +53,19 @@ constexpr absl::Duration kMaxRetryDelay = absl::Hours(1);
 
 NearbyShareSchedulerBase::NearbyShareSchedulerBase(
     Context* context, PreferenceManager& preference_manager,
-    bool retry_failures, bool require_connectivity, absl::string_view pref_name,
+    SingleThreadExecutor* absl_nonnull executor, bool retry_failures,
+    bool require_connectivity, absl::string_view pref_name,
     OnRequestCallback callback)
     : NearbyShareScheduler(std::move(callback)),
       connectivity_manager_(context->GetConnectivityManager()),
       preference_manager_(preference_manager),
+      executor_(executor),
       clock_(context->GetClock()),
       retry_failures_(retry_failures),
       require_connectivity_(require_connectivity),
       pref_name_(pref_name),
       connection_listener_name_(absl::Substitute("scheduler-$0", pref_name_)) {
-  timer_ = context->CreateTimer();
+  DCHECK(executor_ != nullptr);
 
   // On startup, set a pending immediate request if the pref service indicates
   // that there was an in-progress request or a pending immediate request at the
@@ -79,8 +86,17 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
 
   if (require_connectivity_) {
     connectivity_manager_->RegisterInternetListener(
-        connection_listener_name_, [this](bool is_internet_connected) {
-          OnInternetConnectivityChanged(is_internet_connected);
+        connection_listener_name_,
+        [this, is_destroyed = is_destroyed_](bool is_internet_connected) {
+          if (!is_internet_connected) {
+            return;
+          }
+          executor_->Execute([this, is_destroyed]() {
+            if (is_destroyed->load(std::memory_order_seq_cst)) {
+              return;
+            }
+            OnInternetConnectivityChanged(true);
+          });
         });
   }
 }
@@ -90,10 +106,12 @@ NearbyShareSchedulerBase::~NearbyShareSchedulerBase() {
     connectivity_manager_->UnregisterInternetListener(
         connection_listener_name_);
   }
+  is_destroyed_->store(true, std::memory_order_seq_cst);
+  timer_.reset();
 }
 
 void NearbyShareSchedulerBase::MakeImmediateRequest() {
-  timer_->Stop();
+  timer_.reset();
   SetHasPendingImmediateRequest(true);
   Reschedule();
 }
@@ -119,16 +137,16 @@ void NearbyShareSchedulerBase::HandleResult(bool success) {
 void NearbyShareSchedulerBase::Reschedule() {
   if (!is_running()) return;
 
-  timer_->Stop();
+  timer_.reset();
 
   absl::Duration delay = GetTimeUntilNextRequest();
   if (delay == absl::InfiniteDuration()) {
     LOG(INFO) << "Task \"" << pref_name_ << "\"" << " not scheduled";
   } else {
-    int64_t delay_milliseconds = absl::ToInt64Milliseconds(delay);
     LOG(INFO) << "Task \"" << pref_name_ << "\"" << " scheduled in " << delay;
-    timer_->Start(delay_milliseconds, /*period=*/0,
-                  [this]() { OnTimerFired(); });
+    timer_ = std::make_unique<ThreadTimer>(
+        *executor_, absl::StrCat("scheduler_", pref_name_), delay,
+        [this]() { OnTimerFired(); });
   }
   PrintSchedulerState(delay);
 }
@@ -183,7 +201,7 @@ size_t NearbyShareSchedulerBase::GetNumConsecutiveFailures() const {
 
 void NearbyShareSchedulerBase::OnStart() { Reschedule(); }
 
-void NearbyShareSchedulerBase::OnStop() { timer_->Stop(); }
+void NearbyShareSchedulerBase::OnStop() { timer_.reset(); }
 
 void NearbyShareSchedulerBase::OnInternetConnectivityChanged(
     bool is_internet_connected) {
@@ -269,6 +287,7 @@ absl::Duration NearbyShareSchedulerBase::TimeUntilRetry(absl::Time now) const {
 }
 
 void NearbyShareSchedulerBase::OnTimerFired() {
+  timer_.reset();
   if (!is_running()) {
     LOG(DFATAL) << "Timer fired after stop for scheduler: " << pref_name_;
     return;

@@ -44,6 +44,7 @@
 #include "third_party/gloop/util/time/protoutil.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/mac_address.h"
+#include "internal/test/test_single_thread_executor.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -154,11 +155,15 @@ class NearbyShareCertificateManagerImplTest
   }
 
   void Initialize() {
+    auto executor =
+        std::make_unique<TestSingleThreadExecutor>(fake_context_.fake_clock());
+    executor_ = executor.get();
     // Setup Identity API.
     cert_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
         &fake_context_, mock_sharing_platform_,
         local_device_data_manager_.get(),
-        /*profile_path=*/{}, &identity_client_, &sync_manager_);
+        /*profile_path=*/{}, &identity_client_, &sync_manager_,
+        std::move(executor));
     cert_manager_->AddObserver(this);
 
     cert_store_ = cert_store_factory_.instances().back();
@@ -188,6 +193,7 @@ class NearbyShareCertificateManagerImplTest
     PopulatePrivateCertificates();
     PopulatePublicCertificates();
     cert_manager_->StartScheduledTasks();
+    Sync();
     EXPECT_TRUE(private_cert_exp_scheduler_->is_running());
     EXPECT_TRUE(public_cert_exp_scheduler_->is_running());
     EXPECT_TRUE(upload_scheduler_->is_running());
@@ -219,8 +225,7 @@ class NearbyShareCertificateManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(fake_context_.last_single_thread_executor()->SyncWithTimeout(
-        absl::Milliseconds(1000)));
+    EXPECT_TRUE(executor_->SyncWithTimeout(absl::Milliseconds(1000)));
   }
 
   void SetMockBluetoothAddress(MacAddress bluetooth_mac_address) {
@@ -579,6 +584,7 @@ class NearbyShareCertificateManagerImplTest
   FakeNearbyShareCertificateStorage::Factory cert_store_factory_;
   std::unique_ptr<FakeNearbyShareLocalDeviceDataManager>
       local_device_data_manager_;
+  TestSingleThreadExecutor* executor_ = nullptr;
   std::unique_ptr<NearbyShareCertificateManager> cert_manager_;
 };
 
@@ -1160,6 +1166,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   Initialize();
 
   cert_manager_->DownloadPublicCertificates();
+  Sync();
 
   EXPECT_EQ(download_scheduler_->num_immediate_requests(), 1);
 }
@@ -1167,6 +1174,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 TEST_F(NearbyShareCertificateManagerImplTest, StopScheduledTasks) {
   Initialize();
   cert_manager_->StopScheduledTasks();
+  Sync();
   EXPECT_FALSE(private_cert_exp_scheduler_->is_running());
   EXPECT_FALSE(public_cert_exp_scheduler_->is_running());
   EXPECT_FALSE(upload_scheduler_->is_running());

@@ -17,17 +17,20 @@
 
 #include <stddef.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
-#include "internal/platform/timer.h"
+#include "internal/platform/single_thread_executor.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
+#include "sharing/thread_timer.h"
 
 namespace nearby {
 namespace sharing {
@@ -47,6 +50,8 @@ namespace sharing {
 //
 // Derived classes must override TimeUntilRecurringRequest() to establish the
 // desired recurring request behavior of the scheduler.
+//
+// This class is thread-compatible. All methods must be called on |executor|.
 class NearbyShareSchedulerBase : public NearbyShareScheduler {
  public:
   ~NearbyShareSchedulerBase() override;
@@ -64,6 +69,8 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
 
  protected:
   // |context|: Nearby context, holding nearby common components.
+  // |preference_manager|: PreferenceManager used to persist scheduling data.
+  // |executor|: SingleThreadExecutor used to run timers and scheduler tasks.
   // |retry_failures|: Whether or not automatically retry failures using
   //     exponential backoff strategy.
   // |require_connectivity|: If true, the scheduler will not alert the owner of
@@ -74,8 +81,9 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   NearbyShareSchedulerBase(
       Context* context,
       nearby::sharing::api::PreferenceManager& preference_manager,
-      bool retry_failures, bool require_connectivity,
-      absl::string_view pref_name, OnRequestCallback callback);
+      SingleThreadExecutor* absl_nonnull executor, bool retry_failures,
+      bool require_connectivity, absl::string_view pref_name,
+      OnRequestCallback callback);
 
   // The time to wait until the next regularly recurring request.
   // Returns `InfiniteDuration` if there is no recurring request scheduled.
@@ -117,6 +125,7 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
 
   nearby::ConnectivityManager* const connectivity_manager_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
+  SingleThreadExecutor* absl_nonnull const executor_;
   const nearby::Clock* const clock_;
 
   const bool retry_failures_;
@@ -124,7 +133,9 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   const std::string pref_name_;
   const std::string connection_listener_name_;
 
-  std::unique_ptr<nearby::Timer> timer_;
+  std::shared_ptr<std::atomic<bool>> is_destroyed_ =
+      std::make_shared<std::atomic<bool>>(false);
+  std::unique_ptr<ThreadTimer> timer_;
 };
 
 }  // namespace sharing
