@@ -125,7 +125,6 @@ cc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
-        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

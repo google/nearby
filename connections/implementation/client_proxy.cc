@@ -73,7 +73,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/prng.h"
@@ -367,20 +366,6 @@ std::string ClientProxy::GetSavePath(absl::string_view endpoint_id) const {
     return item->first.save_path;
   }
   return "";
-}
-
-std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
-    const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
-  auto item = bluetooth_mac_addresses_.find(endpoint_id);
-  if (item != bluetooth_mac_addresses_.end()) return item->second;
-  return std::nullopt;
-}
-
-void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
-                                         MacAddress bluetooth_mac_address) {
-  MutexLock lock(&mutex_);
-  bluetooth_mac_addresses_[endpoint_id] = bluetooth_mac_address;
 }
 
 std::string ClientProxy::GenerateLocalEndpointId() {
@@ -1019,11 +1004,6 @@ std::string ClientProxy::GetLastLocalEndpointId() const {
   return last_local_endpoint_id_;
 }
 
-void ClientProxy::SetLastLocalEndpointId(absl::string_view endpoint_id) {
-  MutexLock lock(&mutex_);
-  last_local_endpoint_id_ = std::string(endpoint_id);
-}
-
 std::int32_t ClientProxy::GetNumOutgoingConnections() const {
   return GetMatchingEndpoints([](const Connection& connection) {
            return connection.status == Connection::kConnected &&
@@ -1045,15 +1025,6 @@ bool ClientProxy::IsIncomingConnection(const std::string& endpoint_id) const {
   const ConnectionPair* item = LookupConnection(endpoint_id);
   if (item != nullptr && item->first.status == Connection::kConnected) {
     return item->first.is_incoming;
-  }
-  return false;
-}
-
-bool ClientProxy::IsOutgoingConnection(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr && item->first.status == Connection::kConnected) {
-    return !item->first.is_incoming;
   }
   return false;
 }
@@ -1168,18 +1139,6 @@ bool ClientProxy::IsConnectionRejected(const std::string& endpoint_id) const {
       endpoint_id,
       static_cast<Connection::Status>(Connection::kLocalEndpointRejected |
                                       Connection::kRemoteEndpointRejected));
-}
-
-bool ClientProxy::LocalConnectionIsAccepted(std::string endpoint_id) const {
-  MutexLock lock(&mutex_);
-  return ConnectionStatusesContains(
-      endpoint_id, ClientProxy::Connection::kLocalEndpointAccepted);
-}
-
-bool ClientProxy::RemoteConnectionIsAccepted(std::string endpoint_id) const {
-  MutexLock lock(&mutex_);
-  return ConnectionStatusesContains(
-      endpoint_id, ClientProxy::Connection::kRemoteEndpointAccepted);
 }
 
 bool ClientProxy::AutoUpgradeBandwidth() const {
@@ -1331,15 +1290,6 @@ bool ClientProxy::IsSafeToDisconnectEnabled(absl::string_view endpoint_id) {
               .min_nc_version_supports_safe_to_disconnect);
 }
 
-bool ClientProxy::IsPayloadReceivedAckEnabled(absl::string_view endpoint_id) {
-  return IsSupportSafeToDisconnect() &&
-         GetRemoteSafeToDisconnectVersion(endpoint_id).has_value() &&
-         (GetRemoteSafeToDisconnectVersion(endpoint_id) >=
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .min_nc_version_supports_payload_received_ack);
-}
-
 void ClientProxy::CancelAllEndpoints() {
   MutexLock lock(&mutex_);
   for (const auto& item : cancellation_flags_) {
@@ -1413,7 +1363,6 @@ void ClientProxy::RemoveAllEndpoints() {
   // just remove without notifying.
   connections_.clear();
   cancellation_flags_.clear();
-  bluetooth_mac_addresses_.clear();
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
@@ -1561,18 +1510,6 @@ OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
       return OsInfo::CHROME_OS;
     case api::OSName::kAndroid:
       return OsInfo::ANDROID;
-  }
-}
-
-void ClientProxy::SetRemoteMultiplexSocketBitmask(
-    absl::string_view endpoint_id, int remote_multiplex_socket_bitmask) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    item->first.remote_multiplex_socket_bitmask =
-        remote_multiplex_socket_bitmask;
-    LOG(INFO) << "ClientProxy [SetRemoteMultiplexSocketBitmask]: "
-              << remote_multiplex_socket_bitmask;
   }
 }
 

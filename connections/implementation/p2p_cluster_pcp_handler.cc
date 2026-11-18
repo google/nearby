@@ -2151,7 +2151,6 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   VLOG(1) << "Client" << client->GetClientId()
           << " created Bluetooth endpoint channel to endpoint(id="
           << endpoint->endpoint_id << ").";
-  client->SetBluetoothMacAddress(endpoint->endpoint_id, device.GetAddress());
   return BasePcpHandler::ConnectImplResult{
       .medium = BLUETOOTH,
       .status = {Status::kSuccess},

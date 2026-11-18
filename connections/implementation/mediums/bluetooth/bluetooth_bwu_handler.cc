@@ -105,7 +105,6 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
           << service_id << ", " << mac_address.ToString()
           << ") while upgrading endpoint " << endpoint_id;
 
-  client->SetBluetoothMacAddress(endpoint_id, mac_address);
   return {std::move(channel_result.value())};
 }
 

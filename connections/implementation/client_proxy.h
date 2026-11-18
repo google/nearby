@@ -52,7 +52,6 @@
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/preferences_manager.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
@@ -94,10 +93,6 @@ class ClientProxy final {
   }
 
   std::string GetConnectionToken(const std::string& endpoint_id);
-  std::optional<MacAddress> GetBluetoothMacAddress(
-      const std::string& endpoint_id);
-  void SetBluetoothMacAddress(const std::string& endpoint_id,
-                              MacAddress bluetooth_mac_address);
   const NearbyDevice* GetLocalDevice();
   NearbyDeviceProvider* GetLocalDeviceProvider() {
     if (external_device_provider_ != nullptr) {
@@ -228,15 +223,12 @@ class ClientProxy final {
   // Returns true if there is at least one active WiFi Aware connection.
   bool HasWifiAwareConnection() const;
   std::string GetLastLocalEndpointId() const;
-  void SetLastLocalEndpointId(absl::string_view endpoint_id);
   // Returns the number of endpoints that are connected and outgoing.
   std::int32_t GetNumOutgoingConnections() const;
   // Returns the number of endpoints that are connected and incoming.
   std::int32_t GetNumIncomingConnections() const;
   // Returns true if endpoint is incoming connection.
   bool IsIncomingConnection(const std::string& endpoint_id) const;
-  // Returns true if endpoint is outgoing connection.
-  bool IsOutgoingConnection(const std::string& endpoint_id) const;
   // If true, then we're in the process of approving (or rejecting) a
   // connection. No payloads should be sent until isConnectedToEndpoint()
   // returns true.
@@ -274,8 +266,6 @@ class ClientProxy final {
   // Proxies to the client's PayloadListener::OnPayloadProgress() callback.
   void OnPayloadProgress(const std::string& endpoint_id,
                          const PayloadProgressInfo& info);
-  bool LocalConnectionIsAccepted(std::string endpoint_id) const;
-  bool RemoteConnectionIsAccepted(std::string endpoint_id) const;
 
   // Adds a CancellationFlag for endpoint id.
   void AddCancellationFlag(const std::string& endpoint_id);
@@ -345,11 +335,6 @@ class ClientProxy final {
       absl::string_view endpoint_id,
       const std::int32_t& safe_to_disconnect_version);
   bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
-  bool IsPayloadReceivedAckEnabled(absl::string_view endpoint_id);
-
-  // Sets the multiplex socket supports status for remote device.
-  void SetRemoteMultiplexSocketBitmask(absl::string_view endpoint_id,
-                                       int remote_multiplex_socket_bitmask);
 
   // Gets the WebRTC non cellular network status.
   bool GetWebRtcNonCellular();
@@ -416,12 +401,9 @@ class ClientProxy final {
     Status status{kPending};
     ConnectionListener connection_listener;
     ConnectionOptions connection_options;
-    DiscoveryOptions discovery_options;
-    AdvertisingOptions advertising_options;
     std::string connection_token;
     std::optional<location::nearby::connections::OsInfo> os_info;
     std::int32_t safe_to_disconnect_version;
-    std::int32_t remote_multiplex_socket_bitmask;
     std::string save_path;
     std::string device_name;
   };
@@ -535,9 +517,6 @@ class ClientProxy final {
 
   // Maps endpoint_id to endpoint connection state.
   absl::flat_hash_map<std::string, ConnectionPair> connections_;
-
-  // Maps endpoint_id to Bluetooth Mac Addresses.
-  absl::flat_hash_map<std::string, MacAddress> bluetooth_mac_addresses_;
 
   // A cache of endpoint ids that we've already notified the discoverer of. We
   // check this cache before calling onEndpointFound() so that we don't notify

@@ -257,7 +257,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
                 mock_discovery_payload_.payload_progress_cb.AsStdFunction(),
         });
     EXPECT_TRUE(client->HasLocalEndpointResponded(endpoint.id));
-    EXPECT_TRUE(client->LocalConnectionIsAccepted(endpoint.id));
+    EXPECT_FALSE(client->IsConnectionRejected(endpoint.id));
   }
 
   void OnDiscoveryConnectionRemoteAccepted(ClientProxy* client,
@@ -266,7 +266,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     EXPECT_FALSE(client->HasRemoteEndpointResponded(endpoint.id));
     client->RemoteEndpointAcceptedConnection(endpoint.id);
     EXPECT_TRUE(client->HasRemoteEndpointResponded(endpoint.id));
-    EXPECT_TRUE(client->RemoteConnectionIsAccepted(endpoint.id));
+    EXPECT_FALSE(client->IsConnectionRejected(endpoint.id));
   }
 
   void OnDiscoveryConnectionLocalRejected(ClientProxy* client,
@@ -275,7 +275,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     EXPECT_FALSE(client->HasLocalEndpointResponded(endpoint.id));
     client->LocalEndpointRejectedConnection(endpoint.id);
     EXPECT_TRUE(client->HasLocalEndpointResponded(endpoint.id));
-    EXPECT_FALSE(client->LocalConnectionIsAccepted(endpoint.id));
+    EXPECT_TRUE(client->IsConnectionRejected(endpoint.id));
   }
 
   void OnDiscoveryConnectionRemoteRejected(ClientProxy* client,
@@ -284,7 +284,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     EXPECT_FALSE(client->HasRemoteEndpointResponded(endpoint.id));
     client->RemoteEndpointRejectedConnection(endpoint.id);
     EXPECT_TRUE(client->HasRemoteEndpointResponded(endpoint.id));
-    EXPECT_FALSE(client->RemoteConnectionIsAccepted(endpoint.id));
+    EXPECT_TRUE(client->IsConnectionRejected(endpoint.id));
   }
 
   void OnDiscoveryConnectionAccepted(ClientProxy* client,
@@ -1890,10 +1890,8 @@ TEST_F(ClientProxyTest, IsUsingP2pMediumTests) {
   EXPECT_FALSE(client1()->IsUsingP2pMedium());
 }
 
-TEST_F(ClientProxyTest, GetAndSetLastLocalEndpointId) {
+TEST_F(ClientProxyTest, GetLastLocalEndpointIdStartsEmpty) {
   EXPECT_TRUE(client1()->GetLastLocalEndpointId().empty());
-  client1()->SetLastLocalEndpointId("TestEndpointID");
-  EXPECT_EQ(client1()->GetLastLocalEndpointId(), "TestEndpointID");
 }
 
 TEST_F(ClientProxyTest, ResetLocalEndpointId_OngoingConnectionReturnsEarly) {

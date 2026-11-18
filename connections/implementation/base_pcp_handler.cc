@@ -1800,11 +1800,6 @@ void BasePcpHandler::OnIncomingFrame(
           client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
         }
 
-        if (connection_response.has_multiplex_socket_bitmask()) {
-          client->SetRemoteMultiplexSocketBitmask(
-              endpoint_id, connection_response.multiplex_socket_bitmask());
-        }
-
         if (connection_response.has_safe_to_disconnect_version()) {
           LOG(INFO) << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
                     << "; Version = "
