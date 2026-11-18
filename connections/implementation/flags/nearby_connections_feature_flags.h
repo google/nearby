@@ -117,6 +117,10 @@ constexpr auto kFixBleServerSocketDeadlock =
 // ClientSession logs.
 constexpr auto kFixClientSessionLogging =
     flags::Flag<bool>(kConfigPackage, "45881786", false);
+// When true, flush unfinished connection requests on repeated requests or
+// disconnects and initialize an advertising phase for listen-only advertisers.
+constexpr auto kFixStaleAndListenOnlyConnectionRequests =
+    flags::Flag<bool>(kConfigPackage, "45868910", false);
 // When true, initializes WebRtcState to kUnconnectable when WebRTC is
 // unavailable in UpdateAdvertisingOptionsImpl (b/574971059).
 constexpr auto kFixWifiLanServiceInfoSerialization =
