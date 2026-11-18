@@ -2065,7 +2065,7 @@ location::nearby::connections::MediumRole BwuManager::GetLocalMediumRole(
   return client->GetLocalMediumRole(mediums_availability);
 }
 
-const location::nearby::connections::OsInfo& BwuManager::GetLocalOsInfo(
+location::nearby::connections::OsInfo BwuManager::GetLocalOsInfo(
     ClientProxy* client) const {
   return client->GetLocalOsInfo();
 }

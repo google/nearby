@@ -19,7 +19,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
@@ -52,9 +51,6 @@
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/preferences_manager.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
-#include "internal/platform/os_name.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby::connections {
@@ -73,39 +69,38 @@ class ClientProxy final {
   ClientProxy(const ClientProxy&) = delete;
   ClientProxy& operator=(const ClientProxy&) = delete;
 
-  std::int64_t GetClientId() const;
+  int64_t GetClientId() const { return client_id_; }
 
-  std::string GetLocalEndpointId();
-  std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
-  std::string GetLocalDeviceName() {
-    return local_device_name_;
+  std::string GetLocalEndpointId() ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetLocalEndpointInfo() const ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    return local_endpoint_info_;
   }
+  std::string GetLocalDeviceName() const { return local_device_name_; }
 
   // Override the base for received file attachments from a specific endpoint.
   // Returns true if the endpoint is found and the path is overridden.
-  bool OverrideSavePath(absl::string_view endpoint_id, absl::string_view path);
+  bool OverrideSavePath(absl::string_view endpoint_id, absl::string_view path)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Get the save path for a specific endpoint.  Returns empty string if
   // not set.
-  std::string GetSavePath(absl::string_view endpoint_id) const;
+  std::string GetSavePath(absl::string_view endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   analytics::AnalyticsRecorder& GetAnalyticsRecorder() const {
     return *analytics_recorder_;
   }
 
-  std::string GetConnectionToken(const std::string& endpoint_id);
-  const NearbyDevice* GetLocalDevice();
-  NearbyDeviceProvider* GetLocalDeviceProvider() {
-    if (external_device_provider_ != nullptr) {
-      return external_device_provider_;
-    }
-    return connections_device_provider_.get();
+  std::string GetConnectionToken(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  const NearbyDevice* GetLocalDevice() ABSL_LOCKS_EXCLUDED(mutex_);
+  NearbyDeviceProvider* GetLocalDeviceProvider() ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    return GetLocalDeviceProviderLocked();
   }
 
   // Clears all the runtime state of this client.
-  void Reset();
-
-  // Resets the local endpoint ID and sets the last local endpoint ID.
-  void ResetLocalEndpointId();
+  void Reset() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Marks this client as advertising with the given callbacks.
   void StartedAdvertising(
@@ -117,22 +112,26 @@ class ClientProxy final {
       const AdvertisingOptions& advertising_options = AdvertisingOptions{},
       std::optional<bool> is_extended_advertisement_supported = std::nullopt,
       std::optional<int> connected_ap_frequency = std::nullopt,
-      std::optional<bool> is_nfc_available = std::nullopt);
+      std::optional<bool> is_nfc_available = std::nullopt)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks this client as not advertising.
-  void StoppedAdvertising();
-  bool IsAdvertising() const;
-  std::string GetAdvertisingServiceId() const;
+  void StoppedAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsAdvertising() const ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetAdvertisingServiceId() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Marks this client as listening for incoming connections.
   void StartedListeningForIncomingConnections(
       absl::string_view service_id, Strategy strategy,
       v3::ConnectionListener listener,
-      const v3::ConnectionListeningOptions& options);
-  void StoppedListeningForIncomingConnections();
-  bool IsListeningForIncomingConnections() const;
-  std::string GetListeningForIncomingConnectionsServiceId() const;
+      const v3::ConnectionListeningOptions& options)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  void StoppedListeningForIncomingConnections() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsListeningForIncomingConnections() const ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetListeningForIncomingConnectionsServiceId() const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  ConnectionListener GetAdvertisingOrIncomingConnectionListener();
+  ConnectionListener GetAdvertisingOrIncomingConnectionListener()
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Marks this client as discovering with the given callback.
   void StartedDiscovery(
@@ -144,21 +143,26 @@ class ClientProxy final {
       const DiscoveryOptions& discovery_options = DiscoveryOptions{},
       std::optional<bool> is_extended_advertisement_supported = std::nullopt,
       std::optional<int> connected_ap_frequency = std::nullopt,
-      std::optional<bool> is_nfc_available = std::nullopt);
+      std::optional<bool> is_nfc_available = std::nullopt)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks this client as not discovering at all.
-  void StoppedDiscovery();
-  bool IsDiscoveringServiceId(const std::string& service_id) const;
-  bool IsDiscovering() const;
-  std::string GetDiscoveryServiceId() const;
+  void StoppedDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsDiscoveringServiceId(const std::string& service_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsDiscovering() const ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetDiscoveryServiceId() const ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void UpdateLocalEndpointInfo(absl::string_view endpoint_info) {
-    MutexLock lock(&mutex_);
+  void UpdateLocalEndpointInfo(absl::string_view endpoint_info)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
     local_endpoint_info_ = std::string(endpoint_info);
   }
-  void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options);
+  void UpdateAdvertisingOptions(const AdvertisingOptions& advertising_options)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void UpdateDiscoveryOptions(const DiscoveryOptions& discovery_options) {
-    MutexLock lock(&mutex_);
+  void UpdateDiscoveryOptions(const DiscoveryOptions& discovery_options)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
     discovery_options_ = discovery_options;
   }
 
@@ -166,10 +170,12 @@ class ClientProxy final {
   void OnEndpointFound(const std::string& service_id,
                        const std::string& endpoint_id,
                        const ByteArray& endpoint_info,
-                       location::nearby::proto::connections::Medium medium);
+                       location::nearby::proto::connections::Medium medium)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Proxies to the client's DiscoveryListener::OnEndpointLost() callback.
   void OnEndpointLost(const std::string& service_id,
-                      const std::string& endpoint_id);
+                      const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Triggered when client request connection to remote device.
   void OnRequestConnection(const Strategy& strategy,
@@ -181,126 +187,151 @@ class ClientProxy final {
                              const ConnectionResponseInfo& info,
                              const ConnectionOptions& connection_options,
                              const ConnectionListener& listener,
-                             const std::string& connection_token);
+                             const std::string& connection_token)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Proxies to the client's ConnectionListener::OnAccepted() callback.
-  void OnConnectionAccepted(const std::string& endpoint_id);
+  void OnConnectionAccepted(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Proxies to the client's ConnectionListener::OnRejected() callback.
   void OnConnectionRejected(const std::string& endpoint_id,
-                            const Status& status);
+                            const Status& status) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void OnBandwidthChanged(const std::string& endpoint_id, Medium new_medium);
+  void OnBandwidthChanged(const std::string& endpoint_id, Medium new_medium)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Removes the endpoint from this client's list of connected endpoints. If
   // notify is true, also calls the client's
   // ConnectionListener.disconnected_cb() callback.
-  void OnDisconnected(const std::string& endpoint_id, bool notify);
+  void OnDisconnected(const std::string& endpoint_id, bool notify)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns the medium we're currently connected to the endpoint over, or
   // UNKNOWN if we don't know or don't have a connection.
-  Medium GetConnectedMedium(const std::string& endpoint_id) const;
+  Medium GetConnectedMedium(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns all mediums eligible for upgrade.
-  BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
+  BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns if this endpoint support 5G for WIFI.
-  bool Is5GHzSupported(const std::string& endpoint_id) const;
+  bool Is5GHzSupported(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns BSSID for this endpoint.
-  std::string GetBssid(const std::string& endpoint_id) const;
+  std::string GetBssid(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns WIFI Frequency for this endpoint.
-  std::int32_t GetApFrequency(const std::string& endpoint_id) const;
+  std::int32_t GetApFrequency(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if it's safe to send payloads to this endpoint.
-  bool IsConnectedToEndpoint(const std::string& endpoint_id) const;
+  bool IsConnectedToEndpoint(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns all endpoints that can safely be sent payloads.
-  std::vector<std::string> GetConnectedEndpoints() const;
+  std::vector<std::string> GetConnectedEndpoints() const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns all endpoints that are still awaiting acceptance.
-  std::vector<std::string> GetPendingConnectedEndpoints() const;
-  // Returns true if there is at least one connected connection or one pending
-  // connection.
-  bool HasOngoingConnection() const;
-  // Returns true if there is at least one active WiFi Direct connection.
-  bool HasWifiDirectConnection() const;
-  // Returns true if there is at least one active WiFi Hotspot connection.
-  bool HasWifiHotspotConnection() const;
-  // Returns true if there is at least one active WiFi Aware connection.
-  bool HasWifiAwareConnection() const;
-  std::string GetLastLocalEndpointId() const;
+  std::vector<std::string> GetPendingConnectedEndpoints() const
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetLastLocalEndpointId() const ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns the number of endpoints that are connected and outgoing.
-  std::int32_t GetNumOutgoingConnections() const;
+  std::int32_t GetNumOutgoingConnections() const ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns the number of endpoints that are connected and incoming.
-  std::int32_t GetNumIncomingConnections() const;
+  std::int32_t GetNumIncomingConnections() const ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if endpoint is incoming connection.
-  bool IsIncomingConnection(const std::string& endpoint_id) const;
+  bool IsIncomingConnection(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // If true, then we're in the process of approving (or rejecting) a
   // connection. No payloads should be sent until isConnectedToEndpoint()
   // returns true.
-  bool HasPendingConnectionToEndpoint(const std::string& endpoint_id) const;
+  bool HasPendingConnectionToEndpoint(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if the local endpoint has already marked itself as
   // accepted/rejected.
-  bool HasLocalEndpointResponded(const std::string& endpoint_id) const;
+  bool HasLocalEndpointResponded(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if the remote endpoint has already marked themselves as
   // accepted/rejected.
-  bool HasRemoteEndpointResponded(const std::string& endpoint_id) const;
+  bool HasRemoteEndpointResponded(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks the local endpoint as having accepted the connection.
   void LocalEndpointAcceptedConnection(const std::string& endpoint_id,
-                                       PayloadListener listener);
+                                       PayloadListener listener)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks the local endpoint as having rejected the connection.
-  void LocalEndpointRejectedConnection(const std::string& endpoint_id);
+  void LocalEndpointRejectedConnection(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks the remote endpoint as having accepted the connection.
-  void RemoteEndpointAcceptedConnection(const std::string& endpoint_id);
+  void RemoteEndpointAcceptedConnection(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Marks the remote endpoint as having rejected the connection.
-  void RemoteEndpointRejectedConnection(const std::string& endpoint_id);
+  void RemoteEndpointRejectedConnection(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if both the local endpoint and the remote endpoint have
   // accepted the connection.
-  bool IsConnectionAccepted(const std::string& endpoint_id) const;
+  bool IsConnectionAccepted(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if either the local endpoint or the remote endpoint has
   // rejected the connection.
-  bool IsConnectionRejected(const std::string& endpoint_id) const;
+  bool IsConnectionRejected(const std::string& endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns true if the client should enforce topology constraints.
-  bool ShouldEnforceTopologyConstraints() const;
+  bool ShouldEnforceTopologyConstraints() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true, if connection party should attempt to upgrade itself to
   // use a higher bandwidth medium, if it is available.
-  bool AutoUpgradeBandwidth() const;
+  bool AutoUpgradeBandwidth() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Proxies to the client's PayloadListener::OnPayload() callback.
-  void OnPayload(const std::string& endpoint_id, Payload payload);
+  void OnPayload(const std::string& endpoint_id, Payload payload)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Proxies to the client's PayloadListener::OnPayloadProgress() callback.
   void OnPayloadProgress(const std::string& endpoint_id,
-                         const PayloadProgressInfo& info);
+                         const PayloadProgressInfo& info)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Adds a CancellationFlag for endpoint id.
-  void AddCancellationFlag(const std::string& endpoint_id);
+  void AddCancellationFlag(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Returns the CancellationFlag for endpoint id,
   std::shared_ptr<CancellationFlag> GetCancellationFlag(
-      const std::string& endpoint_id);
+      const std::string& endpoint_id) ABSL_LOCKS_EXCLUDED(mutex_);
   // Sets the CancellationFlag to true for endpoint id.
-  void CancelEndpoint(const std::string& endpoint_id);
+  void CancelEndpoint(const std::string& endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Cancels all CancellationFlags.
-  void CancelAllEndpoints();
-  AdvertisingOptions GetAdvertisingOptions() const;
-  DiscoveryOptions GetDiscoveryOptions() const;
-  v3::ConnectionListeningOptions GetListeningOptions() const;
+  void CancelAllEndpoints() ABSL_LOCKS_EXCLUDED(mutex_);
+  AdvertisingOptions GetAdvertisingOptions() const ABSL_LOCKS_EXCLUDED(mutex_);
+  DiscoveryOptions GetDiscoveryOptions() const ABSL_LOCKS_EXCLUDED(mutex_);
+  v3::ConnectionListeningOptions GetListeningOptions() const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Enters stable endpoint ID mode.
-  void EnterStableEndpointIdMode();
+  void EnterStableEndpointIdMode() ABSL_LOCKS_EXCLUDED(mutex_);
   // Cleans up any modifications in stable endpoint ID mode. The endpoint id
   // always rotates.
-  void ExitStableEndpointIdMode();
+  void ExitStableEndpointIdMode() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  std::string Dump();
+  std::string Dump() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  virtual const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
+  location::nearby::connections::OsInfo GetLocalOsInfo() const
+      ABSL_LOCKS_EXCLUDED(mutex_);
   std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
-      absl::string_view endpoint_id) const;
+      absl::string_view endpoint_id) const ABSL_LOCKS_EXCLUDED(mutex_);
   void SetLocalOsType(
-      const location::nearby::connections::OsInfo::OsType& os_type);
+      const location::nearby::connections::OsInfo::OsType& os_type)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void SetRemoteOsInfo(
       absl::string_view endpoint_id,
-      const location::nearby::connections::OsInfo& remote_os_info);
+      const location::nearby::connections::OsInfo& remote_os_info)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void SetRemoteDeviceName(absl::string_view endpoint_id,
-                           absl::string_view device_name);
-  std::string GetRemoteDeviceName(absl::string_view endpoint_id) const;
+                           absl::string_view device_name)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  std::string GetRemoteDeviceName(absl::string_view endpoint_id) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void RegisterDeviceProvider(NearbyDeviceProvider* provider) {
+  void RegisterDeviceProvider(NearbyDeviceProvider* provider)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
     external_device_provider_ = provider;
   }
 
@@ -308,48 +339,48 @@ class ClientProxy final {
   // Replaces any previously registered handler. The handler must not call
   // `RegisterEventHandler()` or `UnregisterEventHandler()` synchronously from
   // within the callback, as doing so will deadlock.
-  void RegisterEventHandler(ClientEventHandler handler);
+  void RegisterEventHandler(ClientEventHandler handler)
+      ABSL_LOCKS_EXCLUDED(event_handler_mutex_);
 
   // Unregisters the currently registered event handler and releases any
   // resources associated with it.
-  void UnregisterEventHandler();
+  void UnregisterEventHandler() ABSL_LOCKS_EXCLUDED(event_handler_mutex_);
 
   // Dispatches `event` to the registered handler and returns its decision.
   // Returns true if no handler is registered. Concurrent calls are serialized
   // by `event_handler_mutex_` (without holding `mutex_`) and block the calling
   // thread.
-  bool OnEvent(const ClientEvent& event);
+  bool OnEvent(const ClientEvent& event)
+      ABSL_LOCKS_EXCLUDED(event_handler_mutex_);
 
-  const bool& IsSupportSafeToDisconnect() const {
-    return supports_safe_to_disconnect_;
-  }
-
-  std::optional<std::int32_t> GetRemoteSafeToDisconnectVersion(
-      absl::string_view endpoint_id) const;
   void SetRemoteSafeToDisconnectVersion(
       absl::string_view endpoint_id,
-      const std::int32_t& safe_to_disconnect_version);
-  bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id);
+      const std::int32_t& safe_to_disconnect_version)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+  bool IsSafeToDisconnectEnabled(absl::string_view endpoint_id)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets the WebRTC non cellular network status.
-  bool GetWebRtcNonCellular();
+  bool GetWebRtcNonCellular() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Sets the WebRTC non cellular network status.
-  void SetWebRtcNonCellular(bool webrtc_non_cellular);
+  void SetWebRtcNonCellular(bool webrtc_non_cellular)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if DCT advertising/scanning is enabled.
-  bool IsDctEnabled() const;
+  bool IsDctEnabled() const { return is_dct_enabled_; }
 
   // Gets the DCT dedup value. This is used to dedup the same device name when
   // scanning for multiple devices.
   // It is 7 bits derived from the local endpoint ID.
-  uint8_t GetDctDedup() const;
+  uint8_t GetDctDedup() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Updates the DCT device name before advertising.
-  void UpdateDctDeviceName(absl::string_view device_name);
+  void UpdateDctDeviceName(absl::string_view device_name)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::optional<location::nearby::connections::MediumRole> GetMediumRole(
-      absl::string_view endpoint_id) const;
+      absl::string_view endpoint_id) const ABSL_LOCKS_EXCLUDED(mutex_);
 
   struct MediumsAvailability {
     bool is_wifi_direct_go_available = false;
@@ -360,17 +391,17 @@ class ClientProxy final {
   };
 
   location::nearby::connections::MediumRole GetLocalMediumRole(
-      const MediumsAvailability& mediums_availability) const;
+      const MediumsAvailability& mediums_availability) const
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool IsUsingP2pMedium() const;
+  bool IsUsingP2pMedium() const ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Forces client to regenerate a new local endpoint id.
-  void ClearCachedLocalEndpointId();
-
-  // Saves the client information to preferences.
-  void SaveClientInfoToPreferences();
+  void ClearCachedLocalEndpointId() ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  friend class ClientProxyTestPeer;
+
   struct Connection {
     // Status: may be either:
     // Connection::PENDING, or combination of
@@ -398,165 +429,263 @@ class ClientProxy final {
     ConnectionOptions connection_options;
     std::string connection_token;
     std::optional<location::nearby::connections::OsInfo> os_info;
-    std::int32_t safe_to_disconnect_version;
+    std::optional<std::int32_t> safe_to_disconnect_version;
     std::string save_path;
     std::string device_name;
+    std::shared_ptr<const PayloadListener> payload_listener;
   };
-  using ConnectionPair = std::pair<Connection, PayloadListener>;
 
   struct AdvertisingInfo {
     std::string service_id;
     ConnectionListener listener;
-    void Clear() { service_id.clear(); }
+    void Clear() {
+      service_id.clear();
+      listener = ConnectionListener{};
+    }
     bool IsEmpty() const { return service_id.empty(); }
   };
 
   struct DiscoveryInfo {
     std::string service_id;
-    DiscoveryListener listener;
-    void Clear() { service_id.clear(); }
+    std::shared_ptr<const DiscoveryListener> listener;
+    void Clear() {
+      service_id.clear();
+      listener.reset();
+    }
     bool IsEmpty() const { return service_id.empty(); }
   };
 
   struct ListeningInfo {
     std::string service_id;
-    v3::ConnectionListener listener;
-    void Clear() { service_id.clear(); }
+    std::shared_ptr<const v3::ConnectionListener> listener;
+    void Clear() {
+      service_id.clear();
+      listener.reset();
+    }
     bool IsEmpty() const { return service_id.empty(); }
   };
 
-  // `RemoveAllEndpoints` is expected to only be called during destruction of
-  // ClientProxy via `ClientProxy::Reset`, which makes destroying
-  // CancellationFlags safe here since we are destroying ClientProxy. Do not
-  // use CancellationFlags after `RemoveAllEndpoints` is called, since all
-  // flags now are referencing garbage memory.
-  void RemoveAllEndpoints();
+  std::string GetLocalEndpointIdLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  NearbyDeviceProvider* GetLocalDeviceProviderLocked() const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    if (external_device_provider_ != nullptr) {
+      return external_device_provider_;
+    }
+    return connections_device_provider_.get();
+  }
 
-  void OnSessionComplete();
+  bool IsAdvertisingLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return !advertising_info_.IsEmpty();
+  }
+  bool IsListeningForIncomingConnectionsLocked() const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return !listening_info_.IsEmpty();
+  }
+  bool IsDiscoveringLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return !discovery_info_.IsEmpty();
+  }
+  bool IsDiscoveringServiceIdLocked(const std::string& service_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return IsDiscoveringLocked() && service_id == discovery_info_.service_id;
+  }
+
+  void StoppedAdvertisingLocked(
+      std::vector<std::unique_ptr<CancelableAlarm>>& alarms_to_cancel,
+      ConnectionListener& removed_advertising_listener)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void StoppedDiscoveryLocked(
+      std::shared_ptr<const DiscoveryListener>& removed_discovery_listener)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void StoppedListeningForIncomingConnectionsLocked(
+      std::shared_ptr<const v3::ConnectionListener>& removed_listening_listener)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // `RemoveAllEndpointsLocked` is expected to only be called during reset or
+  // destruction of ClientProxy via `ClientProxy::Reset`, which makes clearing
+  // CancellationFlags safe here.
+  void RemoveAllEndpointsLocked(
+      absl::flat_hash_map<std::string, Connection>& removed_connections,
+      absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>&
+          removed_flags) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  void OnSessionCompleteLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool ConnectionStatusesContains(const std::string& endpoint_id,
-                                  Connection::Status status_to_match) const;
+                                  Connection::Status status_to_match) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void AppendConnectionStatus(const std::string& endpoint_id,
-                              Connection::Status status_to_append);
+                              Connection::Status status_to_append)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  const ConnectionPair* LookupConnection(absl::string_view endpoint_id) const;
-  ConnectionPair* LookupConnection(absl::string_view endpoint_id);
-  bool ConnectionStatusMatches(const std::string& endpoint_id,
-                               Connection::Status status) const;
+  const Connection* LookupConnection(absl::string_view endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  Connection* LookupConnection(absl::string_view endpoint_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsConnectedToEndpointLocked(const std::string& endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool HasPendingConnectionToEndpointLocked(
+      const std::string& endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool HasLocalEndpointRespondedLocked(const std::string& endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool HasRemoteEndpointRespondedLocked(const std::string& endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   std::vector<std::string> GetMatchingEndpoints(
-      absl::AnyInvocable<bool(const Connection&)> pred) const;
-  std::string GenerateLocalEndpointId();
+      absl::AnyInvocable<bool(const Connection&)> pred) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  std::string GenerateLocalEndpointId() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void ScheduleClearCachedEndpointIdAlarm();
-  void CancelClearCachedEndpointIdAlarm();
+  // Resets the local endpoint ID and sets the last local endpoint ID.
+  void ResetLocalEndpointId() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Returns true if there is at least one connected connection or one pending
+  // connection.
+  bool HasOngoingConnection() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return !connections_.empty();
+  }
+  bool HasWifiDirectConnection() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool HasWifiHotspotConnection() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool HasWifiAwareConnection() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool IsUsingP2pMediumLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    return HasWifiDirectConnection() || HasWifiHotspotConnection() ||
+           HasWifiAwareConnection();
+  }
 
-  location::nearby::connections::OsInfo::OsType OSNameToOsInfoType(
-      api::OSName osName);
+  bool IsSupportSafeToDisconnect() const {
+    return supports_safe_to_disconnect_;
+  }
+  std::optional<std::int32_t> GetRemoteSafeToDisconnectVersion(
+      absl::string_view endpoint_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::string ToString(PayloadProgressInfo::Status status) const;
+  void AddCancellationFlagLocked(const std::string& endpoint_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  std::shared_ptr<CancellationFlag> GetCancellationFlagToCancelLocked(
+      const std::string& endpoint_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::optional<std::string> GetEndpointIdForDct() const;
+  void ExitStableEndpointIdModeLocked(
+      std::vector<std::unique_ptr<CancelableAlarm>>& alarms_to_cancel)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  std::unique_ptr<CancelableAlarm> ScheduleClearCachedEndpointIdAlarmLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  std::unique_ptr<CancelableAlarm> CancelClearCachedEndpointIdAlarmLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void ClearCachedLocalEndpointIdForAlarm(uint64_t generation)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void InitializePreferencesManager();
-  void LoadClientInfoFromPreferences();
+  std::optional<std::string> GetEndpointIdForDct() const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  void InitializePreferencesManager() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void LoadClientInfoFromPreferences() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void SaveClientInfoToPreferences() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Immutable client configuration and services.
+  const bool is_dct_enabled_;
+  const int64_t client_id_;
+  const std::string local_device_name_;
+  const bool supports_safe_to_disconnect_;
+  // An analytics logger with |EventLogger| provided by client, which is default
+  // NoOpAnalyticsRecorder when constructed with nullptr.
+  const std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
+  const std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
+  // A default cancellation flag with isCancelled set to true.
+  const std::shared_ptr<CancellationFlag> default_cancellation_flag_ =
+      std::make_shared<CancellationFlag>(true);
+
+  mutable absl::Mutex mutex_;
   // The device name used for DCT advertising.
-  std::string dct_device_name_;
+  std::string dct_device_name_ ABSL_GUARDED_BY(mutex_);
   // The dedup value used for DCT advertising.
-  uint8_t dct_dedup_ = 0;
+  uint8_t dct_dedup_ ABSL_GUARDED_BY(mutex_) = 0;
   // The endpoint ID used for DCT advertising.
-  std::string dct_endpoint_id_;
+  std::string dct_endpoint_id_ ABSL_GUARDED_BY(mutex_);
 
-  mutable RecursiveMutex mutex_;
-  std::int64_t client_id_;
-  std::string local_endpoint_id_;
-  std::string local_endpoint_info_;
-  std::string last_local_endpoint_id_;
-  std::string local_device_name_;
+  std::string local_endpoint_id_ ABSL_GUARDED_BY(mutex_);
+  std::string local_endpoint_info_ ABSL_GUARDED_BY(mutex_);
+  std::string last_local_endpoint_id_ ABSL_GUARDED_BY(mutex_);
 
   // If advertising is in stable endpoint ID mode, the endpoint ID is stable
   // for 30s after advertising or disconnection. When stable_endpoint_id_mode_
   // is false, the endpoint id always rotates.
-  bool stable_endpoint_id_mode_ = false;
+  bool stable_endpoint_id_mode_ ABSL_GUARDED_BY(mutex_) = false;
 
   // Caches the endpoint id for stable endpoint ID mode.
-  std::string cached_endpoint_id_;
+  std::string cached_endpoint_id_ ABSL_GUARDED_BY(mutex_);
 
   ScheduledExecutor single_thread_executor_;
-  std::unique_ptr<CancelableAlarm> cached_endpoint_id_alarm_;
+  uint64_t cached_endpoint_id_alarm_generation_ ABSL_GUARDED_BY(mutex_) = 0;
+  std::unique_ptr<CancelableAlarm> cached_endpoint_id_alarm_
+      ABSL_GUARDED_BY(mutex_);
 
   // If not empty, we are currently advertising and accepting connection
   // requests for the given service_id.
-  AdvertisingInfo advertising_info_;
+  AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
 
   // If not empty, we are currently discovering for the given service_id.
-  DiscoveryInfo discovery_info_;
+  DiscoveryInfo discovery_info_ ABSL_GUARDED_BY(mutex_);
 
   // If not empty, we are currently listening for the given service_id.
-  ListeningInfo listening_info_;
+  ListeningInfo listening_info_ ABSL_GUARDED_BY(mutex_);
 
   // The active ClientProxy's advertising constraints. Empty()
   // returns true if the client hasn't started advertising false otherwise.
   // Note: this is not cleared when the client stops advertising because it
   // might still be useful downstream of advertising (eg: establishing
   // connections, performing bandwidth upgrades, etc.)
-  AdvertisingOptions advertising_options_;
+  AdvertisingOptions advertising_options_ ABSL_GUARDED_BY(mutex_);
 
   // The active ClientProxy's discovery constraints. Null if the client
   // hasn't started discovering. Note: this is not cleared when the client
   // stops discovering because it might still be useful downstream of
   // discovery (eg: connection speed, etc.)
-  DiscoveryOptions discovery_options_;
+  DiscoveryOptions discovery_options_ ABSL_GUARDED_BY(mutex_);
 
   // The active ClientProxy's listening constraints.
-  v3::ConnectionListeningOptions listening_options_;
+  v3::ConnectionListeningOptions listening_options_ ABSL_GUARDED_BY(mutex_);
 
   // Maps endpoint_id to endpoint connection state.
-  absl::flat_hash_map<std::string, ConnectionPair> connections_;
+  absl::flat_hash_map<std::string, Connection> connections_
+      ABSL_GUARDED_BY(mutex_);
 
   // A cache of endpoint ids that we've already notified the discoverer of. We
   // check this cache before calling onEndpointFound() so that we don't notify
   // the client multiple times for the same endpoint. This would otherwise
   // happen because some mediums (like Bluetooth) repeatedly give us the same
   // endpoints after each scan.
-  absl::flat_hash_set<std::string> discovered_endpoint_ids_;
+  absl::flat_hash_set<std::string> discovered_endpoint_ids_
+      ABSL_GUARDED_BY(mutex_);
 
   // Maps endpoint_id to CancellationFlag. CancellationFlags are passed around
   // as raw pointers to other classes in Nearby Connections, so it is important
   // that objects in this map are not cleared, even if they are cancelled.
   absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>
-      cancellation_flags_;
-  // A default cancellation flag with isCancelled set be true.
-  std::shared_ptr<CancellationFlag> default_cancellation_flag_ =
-      std::make_shared<CancellationFlag>(true);
-
-  // An app lifecycle monitor for monitoring the app lifecycle state.
-  std::unique_ptr<api::AppLifecycleMonitor> app_lifecycle_monitor_;
+      cancellation_flags_ ABSL_GUARDED_BY(mutex_);
 
   // A preferences manager for storing client-specific preferences.
-  std::unique_ptr<nearby::api::PreferencesManager> preferences_manager_;
+  std::unique_ptr<nearby::api::PreferencesManager> preferences_manager_
+      ABSL_GUARDED_BY(mutex_);
 
-  // An analytics logger with |EventLogger| provided by client, which is default
-  // nullptr as no-op.
-  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
-  std::unique_ptr<ErrorCodeRecorder> error_code_recorder_;
   // Local device OS information.
-  location::nearby::connections::OsInfo local_os_info_;
+  location::nearby::connections::OsInfo local_os_info_ ABSL_GUARDED_BY(mutex_);
   // For device providers not owned by Nearby connections (e.g. Nearby
   // Presence's DeviceProvider.)
-  NearbyDeviceProvider* external_device_provider_ = nullptr;
+  NearbyDeviceProvider* external_device_provider_ ABSL_GUARDED_BY(mutex_) =
+      nullptr;
   // For Nearby Connections' own device provider.
-  std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_;
+  std::unique_ptr<v3::ConnectionsDeviceProvider> connections_device_provider_
+      ABSL_GUARDED_BY(mutex_);
+  // Allowed to use WebRTC over non-cellular networks.
+  bool webrtc_non_cellular_ ABSL_GUARDED_BY(mutex_) = false;
+
   // Mutex serializing registration and invocation of `event_handler_`. Kept
   // separate from `mutex_` so `OnEvent` does not block other `ClientProxy`
   // operations or deadlock if the handler queries `ClientProxy`.
   mutable absl::Mutex event_handler_mutex_;
   // Handler for events that require a decision from the client.
   ClientEventHandler event_handler_ ABSL_GUARDED_BY(event_handler_mutex_);
-  bool supports_safe_to_disconnect_;
-  // Allowed to use WebRTC over non-cellular networks.
-  bool webrtc_non_cellular_ = false;
-  // Whether DCT is enabled.
-  bool is_dct_enabled_ = false;
+
+  // Declared last so background lifecycle callbacks stop before other members
+  // are destroyed.
+  std::unique_ptr<api::AppLifecycleMonitor> app_lifecycle_monitor_;
 };
 
 }  // namespace nearby::connections

@@ -272,7 +272,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
       const location::nearby::connections::MediumRole& remote_medium_role,
       Medium medium) const;
 
-  virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
+  virtual location::nearby::connections::OsInfo GetLocalOsInfo(
       ClientProxy* client) const;
 
   bool is_single_threaded_for_testing_ = false;
