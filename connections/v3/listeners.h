@@ -18,7 +18,9 @@
 #include <functional>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "connections/listeners.h"
+#include "connections/payload.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_result.h"
 #include "internal/interop/device.h"
@@ -46,7 +48,7 @@ struct ConnectionListener {
   // remote_device - The identifier for the remote endpoint.
   // info -  Other relevant information about the connection.
   absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          const v3::InitialConnectionInfo& info)>
+                          const v3::InitialConnectionInfo& info) const>
       initiated_cb =
           [](const NearbyDevice&, const v3::InitialConnectionInfo&) {};
 
@@ -68,15 +70,15 @@ struct ConnectionListener {
   // At this point service (re-)discovery may start again.
   //
   // remote_device - The identifier for the remote endpoint.
-  absl::AnyInvocable<void(const NearbyDevice& remote_device)> disconnected_cb =
-      [](const NearbyDevice&) {};
+  absl::AnyInvocable<void(const NearbyDevice& remote_device) const>
+      disconnected_cb = [](const NearbyDevice&) {};
 
   // Called when the connection's available bandwidth has changed.
   //
   // remote_device - The identifier for the remote endpoint.
   // bandwidth_info - Bandwidth info about the new medium that was upgraded to.
   absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          BandwidthInfo bandwidth_info)>
+                          BandwidthInfo bandwidth_info) const>
       bandwidth_changed_cb = [](const NearbyDevice&, BandwidthInfo) {};
 };
 
@@ -86,7 +88,7 @@ struct DiscoveryListener {
   // remote_device - The remote device that was discovered.
   // service_id    - The ID of the service advertised by the remote endpoint.
   absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          const absl::string_view service_id)>
+                          const absl::string_view service_id) const>
       endpoint_found_cb = [](const NearbyDevice&, const absl::string_view) {};
 
   // Called when a remote endpoint is no longer discoverable; only called for
@@ -94,15 +96,16 @@ struct DiscoveryListener {
   // #onEndpointFound(String, DiscoveredEndpointInfo)}.
   //
   // remote_device - The ID of the remote endpoint that was lost.
-  absl::AnyInvocable<void(const NearbyDevice& remote_device)> endpoint_lost_cb =
-      [](const NearbyDevice&) {};
+  absl::AnyInvocable<void(const NearbyDevice& remote_device) const>
+      endpoint_lost_cb = [](const NearbyDevice&) {};
 
   // Called when a remote endpoint is found with an updated distance.
   //
   // arguments:
   //   remote_device - The ID of the remote endpoint that was lost.
   //   info          - The distance info, encoded as enum value.
-  absl::AnyInvocable<void(const NearbyDevice& remote_device, DistanceInfo info)>
+  absl::AnyInvocable<void(const NearbyDevice& remote_device, DistanceInfo info)
+                         const>
       endpoint_distance_changed_cb = [](const NearbyDevice&, DistanceInfo) {};
 };
 
@@ -127,7 +130,7 @@ struct PayloadListener {
   // info -  The PayloadProgressInfo structure describing the status of
   //         the transfer.
   absl::AnyInvocable<void(const NearbyDevice& remote_device,
-                          const PayloadProgressInfo& info)>
+                          const PayloadProgressInfo& info) const>
       payload_progress_cb =
           [](const NearbyDevice&, const PayloadProgressInfo&) {};
 };

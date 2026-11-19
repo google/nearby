@@ -124,6 +124,7 @@ cc_test(
         ":core_types",
         "//connections/implementation:internal_test",
         "//connections/v3:v3_types",
+        "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",

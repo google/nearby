@@ -144,7 +144,7 @@ struct DiscoveryListener {
   // service_id    - The ID of the service advertised by the remote endpoint.
   absl::AnyInvocable<void(const std::string& endpoint_id,
                           const ByteArray& endpoint_info,
-                          const std::string& service_id)>
+                          const std::string& service_id) const>
       endpoint_found_cb =
           [](const std::string&, const ByteArray&, const std::string&) {};
 
@@ -153,15 +153,16 @@ struct DiscoveryListener {
   // #onEndpointFound(String, DiscoveredEndpointInfo)}.
   //
   // endpoint_id - The ID of the remote endpoint that was lost.
-  absl::AnyInvocable<void(const std::string& endpoint_id)> endpoint_lost_cb =
-      [](const std::string&) {};
+  absl::AnyInvocable<void(const std::string& endpoint_id) const>
+      endpoint_lost_cb = [](const std::string&) {};
 
   // Called when a remote endpoint is found with an updated distance.
   //
   // arguments:
   //   endpoint_id - The ID of the remote endpoint that was lost.
   //   info        - The distance info, encoded as enum value.
-  absl::AnyInvocable<void(const std::string& endpoint_id, DistanceInfo info)>
+  absl::AnyInvocable<void(const std::string& endpoint_id, DistanceInfo info)
+                         const>
       endpoint_distance_changed_cb = [](const std::string&, DistanceInfo) {};
 };
 
@@ -185,7 +186,7 @@ struct PayloadListener {
   // info -  The PayloadProgressInfo structure describing the status of
   //         the transfer.
   absl::AnyInvocable<void(absl::string_view endpoint_id,
-                          const PayloadProgressInfo& info)>
+                          const PayloadProgressInfo& info) const>
       payload_progress_cb =
           [](absl::string_view, const PayloadProgressInfo&) {};
 };

@@ -495,7 +495,7 @@ void ServiceControllerRouter::RequestConnectionV3(
                 },
             .bandwidth_changed_cb =
                 [this, v3_shared](const std::string& endpoint_id,
-                                  Medium medium) mutable {
+                                  Medium medium) {
                   v3::BandwidthInfo bandwidth_info = {
                       .quality = GetMediumQuality(medium),
                       .medium = medium,
@@ -554,7 +554,7 @@ void ServiceControllerRouter::AcceptConnectionV3(
             .payload_progress_cb =
                 [v3_cb = std::move(v3_listener.payload_progress_cb)](
                     absl::string_view endpoint_id,
-                    const PayloadProgressInfo& info) mutable {
+                    const PayloadProgressInfo& info) {
                   v3_cb(v3::ConnectionsDevice(endpoint_id, "", {}), info);
                 }};
 

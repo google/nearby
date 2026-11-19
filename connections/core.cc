@@ -325,22 +325,21 @@ void Core::StartDiscoveryV3(absl::string_view service_id,
       .endpoint_found_cb =
           [endpoint_found_cb = std::move(listener.endpoint_found_cb)](
               const std::string& endpoint_id, const ByteArray& endpoint_info,
-              const std::string& service_id) mutable {
+              const std::string& service_id) {
             auto remote_device = v3::ConnectionsDevice(
                 endpoint_id, endpoint_info.AsStringView(), {});
             endpoint_found_cb(remote_device, service_id);
           },
       .endpoint_lost_cb =
           [endpoint_lost_cb = std::move(listener.endpoint_lost_cb)](
-              const std::string& endpoint_id) mutable {
+              const std::string& endpoint_id) {
             auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
             endpoint_lost_cb(remote_device);
           },
       .endpoint_distance_changed_cb =
           [endpoint_distance_changed_cb =
                std::move(listener.endpoint_distance_changed_cb)](
-              const std::string& endpoint_id,
-              DistanceInfo distance_info) mutable {
+              const std::string& endpoint_id, DistanceInfo distance_info) {
             auto remote = v3::ConnectionsDevice(endpoint_id, "", {});
             endpoint_distance_changed_cb(remote, distance_info);
           },
