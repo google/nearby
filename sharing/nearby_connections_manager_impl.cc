@@ -592,13 +592,26 @@ void NearbyConnectionsManagerImpl::RegisterPayloadStatusListener(
   payload_status_listeners_.insert_or_assign(payload_id, listener);
 }
 
-const Payload* NearbyConnectionsManagerImpl::GetIncomingPayload(
+std::optional<FilePath>
+NearbyConnectionsManagerImpl::GetIncomingPayloadFilePath(
     int64_t payload_id) const {
   absl::MutexLock lock(mutex_);
   const auto it = incoming_payloads_.find(payload_id);
-  if (it == incoming_payloads_.end()) return nullptr;
+  if (it == incoming_payloads_.end()) return std::nullopt;
 
-  return it->second.get();
+  if (!it->second || !it->second->content.is_file()) return std::nullopt;
+  return it->second->content.file_payload.file_path;
+}
+
+std::optional<std::vector<uint8_t>>
+NearbyConnectionsManagerImpl::GetIncomingPayloadBytes(
+    int64_t payload_id) const {
+  absl::MutexLock lock(mutex_);
+  const auto it = incoming_payloads_.find(payload_id);
+  if (it == incoming_payloads_.end()) return std::nullopt;
+
+  if (!it->second || !it->second->content.is_bytes()) return std::nullopt;
+  return it->second->content.bytes_payload.bytes;
 }
 
 void NearbyConnectionsManagerImpl::Cancel(int64_t payload_id) {

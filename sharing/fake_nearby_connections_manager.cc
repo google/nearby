@@ -151,14 +151,28 @@ void FakeNearbyConnectionsManager::RegisterPayloadStatusListener(
   payload_status_listeners_[payload_id] = listener;
 }
 
-const Payload* FakeNearbyConnectionsManager::GetIncomingPayload(
+std::optional<FilePath>
+FakeNearbyConnectionsManager::GetIncomingPayloadFilePath(
     int64_t payload_id) const {
   DCHECK(!is_shutdown());
   absl::MutexLock lock(incoming_payloads_mutex_);
   auto it = incoming_payloads_.find(payload_id);
-  if (it == incoming_payloads_.end()) return nullptr;
+  if (it == incoming_payloads_.end()) return std::nullopt;
 
-  return it->second.get();
+  if (!it->second || !it->second->content.is_file()) return std::nullopt;
+  return it->second->content.file_payload.file_path;
+}
+
+std::optional<std::vector<uint8_t>>
+FakeNearbyConnectionsManager::GetIncomingPayloadBytes(
+    int64_t payload_id) const {
+  DCHECK(!is_shutdown());
+  absl::MutexLock lock(incoming_payloads_mutex_);
+  auto it = incoming_payloads_.find(payload_id);
+  if (it == incoming_payloads_.end()) return std::nullopt;
+
+  if (!it->second || !it->second->content.is_bytes()) return std::nullopt;
+  return it->second->content.bytes_payload.bytes;
 }
 
 void FakeNearbyConnectionsManager::Cancel(int64_t payload_id) {

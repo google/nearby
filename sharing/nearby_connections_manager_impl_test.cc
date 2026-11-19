@@ -1492,11 +1492,10 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingBytesPayload) {
   EXPECT_TRUE(payload_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
 
-  const Payload* payload =
-      nearby_connections_manager_->GetIncomingPayload(kPayloadId);
-  ASSERT_NE(payload, nullptr);
-  ASSERT_TRUE(payload->content.is_bytes());
-  EXPECT_EQ(payload->content.bytes_payload.bytes, expected_payload);
+  std::optional<std::vector<uint8_t>> payload_bytes =
+      nearby_connections_manager_->GetIncomingPayloadBytes(kPayloadId);
+  ASSERT_TRUE(payload_bytes.has_value());
+  EXPECT_EQ(*payload_bytes, expected_payload);
 }
 
 TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
@@ -1537,14 +1536,12 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
   EXPECT_TRUE(payload_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
 
-  const Payload* payload =
-      nearby_connections_manager_->GetIncomingPayload(kPayloadId);
-  ASSERT_NE(payload, nullptr);
-  ASSERT_TRUE(payload->content.is_file());
+  std::optional<FilePath> file_path =
+      nearby_connections_manager_->GetIncomingPayloadFilePath(kPayloadId);
+  ASSERT_TRUE(file_path.has_value());
   std::vector<uint8_t> payload_bytes(expected_payload.size());
-  std::ifstream payload_stream(
-      payload->content.file_payload.file_path.GetPath(),
-      std::ios::in | std::ios::binary);
+  std::ifstream payload_stream(file_path->GetPath(),
+                               std::ios::in | std::ios::binary);
   ASSERT_TRUE(payload_stream.good());
   payload_stream.read(reinterpret_cast<char*>(payload_bytes.data()),
                       payload_bytes.size());
@@ -1590,8 +1587,9 @@ TEST_F(NearbyConnectionsManagerImplTest, ClearIncomingPayloads) {
 
   nearby_connections_manager_->ClearIncomingPayloads();
 
-  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-            nullptr);
+  EXPECT_EQ(
+      nearby_connections_manager_->GetIncomingPayloadFilePath(kPayloadId),
+      std::nullopt);
 }
 
 /******************************************************************************/
@@ -2024,8 +2022,9 @@ TEST_F(NearbyConnectionsManagerImplTest,
 
   EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
-  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-            nullptr);
+  EXPECT_EQ(
+      nearby_connections_manager_->GetIncomingPayloadFilePath(kPayloadId),
+      std::nullopt);
   EXPECT_THAT(
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete(),
       ElementsAre(file));
@@ -2066,8 +2065,9 @@ TEST_F(NearbyConnectionsManagerImplTest,
 
   EXPECT_TRUE(cancel_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
-  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-            nullptr);
+  EXPECT_EQ(
+      nearby_connections_manager_->GetIncomingPayloadFilePath(kPayloadId),
+      std::nullopt);
   EXPECT_THAT(
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete(),
       ElementsAre(file));
@@ -2262,13 +2262,14 @@ TEST_F(NearbyConnectionsManagerImplTest,
                                           std::end(kBytePayload));
   payload_listener_remote.payload_cb(kRemoteEndpointId,
                                      Payload(kPayloadId, byte_payload));
-  ASSERT_NE(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-            nullptr);
+  ASSERT_NE(nearby_connections_manager_->GetIncomingPayloadBytes(kPayloadId),
+            std::nullopt);
 
   absl::Notification disconnect_notification;
   connection->SetDisconnectionListener([&]() {
-    EXPECT_NE(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-              nullptr);
+    EXPECT_NE(
+        nearby_connections_manager_->GetIncomingPayloadBytes(kPayloadId),
+        std::nullopt);
     nearby_connections_manager_->ClearIncomingPayloads();
     disconnect_notification.Notify();
   });
@@ -2276,8 +2277,8 @@ TEST_F(NearbyConnectionsManagerImplTest,
   connection_listener_remote.disconnected_cb(kRemoteEndpointId);
   EXPECT_TRUE(disconnect_notification.WaitForNotificationWithTimeout(
       kSynchronizationTimeOut));
-  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayload(kPayloadId),
-            nullptr);
+  EXPECT_EQ(nearby_connections_manager_->GetIncomingPayloadBytes(kPayloadId),
+            std::nullopt);
 }
 
 TEST_F(NearbyConnectionsManagerImplTest,

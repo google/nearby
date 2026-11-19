@@ -69,7 +69,10 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   void RegisterPayloadStatusListener(
       int64_t payload_id,
       std::weak_ptr<PayloadStatusListener> listener) override;
-  const Payload* GetIncomingPayload(int64_t payload_id) const override;
+  std::optional<FilePath> GetIncomingPayloadFilePath(
+      int64_t payload_id) const override;
+  std::optional<std::vector<uint8_t>> GetIncomingPayloadBytes(
+      int64_t payload_id) const override;
   void Cancel(int64_t payload_id) override;
   void ClearIncomingPayloads() override;
   std::optional<std::vector<uint8_t>> GetRawAuthenticationToken(

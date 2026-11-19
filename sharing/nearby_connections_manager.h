@@ -138,8 +138,15 @@ class NearbyConnectionsManager {
   virtual void RegisterPayloadStatusListener(
       int64_t payload_id, std::weak_ptr<PayloadStatusListener> listener) = 0;
 
-  // Gets the payload associated with `payload_id` if available.
-  virtual const Payload* GetIncomingPayload(int64_t payload_id) const = 0;
+  // If the payload associated with `payload_id` is a file, returns the file
+  // path.  Otherwise, returns nullopt.
+  virtual std::optional<FilePath> GetIncomingPayloadFilePath(
+      int64_t payload_id) const = 0;
+
+  // If the payload associated with `payload_id` is a bytes payload, returns
+  // the bytes.  Otherwise, returns nullopt.
+  virtual std::optional<std::vector<uint8_t>> GetIncomingPayloadBytes(
+      int64_t payload_id) const = 0;
 
   // Cancels a Payload currently in-flight to or from remote endpoints.
   virtual void Cancel(int64_t payload_id) = 0;

@@ -89,8 +89,8 @@ void IncomingShareSession::InvokeTransferUpdateCallback(
 
 std::optional<TransferMetadata::Status>
 IncomingShareSession::ProcessIntroduction(
-    const IntroductionFrame& introduction_frame,
-    FilePath destination_directory, const SyncManager& sync_manager,
+    const IntroductionFrame& introduction_frame, FilePath destination_directory,
+    const SyncManager& sync_manager,
     const nearby::api::DeviceInfo& device_info) {
   if (session_phase_ != SessionPhase::kUninitialized) {
     LOG(WARNING) << __func__
@@ -133,8 +133,8 @@ IncomingShareSession::ProcessIntroduction(
       introduction_frame.file_metadata_size() + app_file_count,
       introduction_frame.wifi_credentials_metadata_size());
   int file_index = 0;
-  payload_to_file_index_map_.reserve(
-      introduction_frame.file_metadata_size() + app_file_count);
+  payload_to_file_index_map_.reserve(introduction_frame.file_metadata_size() +
+                                     app_file_count);
   for (const auto& file : introduction_frame.file_metadata()) {
     if (file.size() < 0) {
       LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
@@ -355,16 +355,15 @@ void IncomingShareSession::UpdateFilePayloadPath(int64_t payload_id) {
     return;
   }
 
-  const Payload* incoming_payload =
-      connections_manager().GetIncomingPayload(payload_id);
-  if (!incoming_payload || !incoming_payload->content.is_file()) {
+  std::optional<FilePath> file_path =
+      connections_manager().GetIncomingPayloadFilePath(payload_id);
+  if (!file_path.has_value()) {
     VLOG(1) << "No payload found for file attachment: " << file.id();
     return;
   }
 
-  FilePath file_path = incoming_payload->content.file_payload.file_path;
-  VLOG(1) << __func__ << ": Updated file_path=" << file_path.ToString();
-  file.set_file_path(file_path);
+  VLOG(1) << __func__ << ": Updated file_path=" << file_path->ToString();
+  file.set_file_path(*file_path);
 }
 
 bool IncomingShareSession::UpdatePayloadContents() {
@@ -384,21 +383,19 @@ bool IncomingShareSession::UpdatePayloadContents() {
       LOG(WARNING) << "Payload id missing for text attachment: " << text.id();
       return false;
     }
-    const Payload* incoming_payload =
-        connections_manager().GetIncomingPayload(it->second);
-    if (!incoming_payload || !incoming_payload->content.is_bytes()) {
+    std::optional<std::vector<uint8_t>> bytes =
+        connections_manager().GetIncomingPayloadBytes(it->second);
+    if (!bytes.has_value()) {
       LOG(WARNING) << "No payload found for text attachment: " << text.id();
       return false;
     }
-
-    std::vector<uint8_t> bytes = incoming_payload->content.bytes_payload.bytes;
-    if (bytes.empty()) {
+    if (bytes->empty()) {
       LOG(WARNING) << "Incoming bytes is empty for text attachment: "
                    << text.id() << " with payload_id: " << it->second;
       return false;
     }
 
-    std::string text_body(bytes.begin(), bytes.end());
+    std::string text_body(bytes->begin(), bytes->end());
     text.set_text_body(text_body);
   }
 
@@ -415,24 +412,21 @@ bool IncomingShareSession::UpdatePayloadContents() {
       return false;
     }
 
-    const Payload* incoming_payload =
-        connections_manager().GetIncomingPayload(it->second);
-    if (!incoming_payload || !incoming_payload->content.is_bytes()) {
+    std::optional<std::vector<uint8_t>> bytes =
+        connections_manager().GetIncomingPayloadBytes(it->second);
+    if (!bytes.has_value()) {
       LOG(WARNING) << "No payload found for WiFi credentials: "
                    << wifi_credentials_attachment.id();
       return false;
     }
-
-    std::vector<uint8_t> bytes = incoming_payload->content.bytes_payload.bytes;
-    if (bytes.empty()) {
+    if (bytes->empty()) {
       LOG(WARNING) << "Incoming bytes is empty for WiFi credentials: "
                    << wifi_credentials_attachment.id()
                    << " with payload_id: " << it->second;
       return false;
     }
-
     WifiCredentials wifi_credentials;
-    if (!wifi_credentials.ParseFromArray(bytes.data(), bytes.size())) {
+    if (!wifi_credentials.ParseFromArray(bytes->data(), bytes->size())) {
       LOG(WARNING) << "Incoming bytes is invalid for WiFi credentials: "
                    << wifi_credentials_attachment.id()
                    << " with payload_id: " << it->second;
@@ -469,14 +463,14 @@ std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths() const {
       file_paths.push_back(file_path);
       continue;
     }
-    const Payload* incoming_payload =
-        connections_manager().GetIncomingPayload(it->second);
-    if (incoming_payload != nullptr && incoming_payload->content.is_file()) {
-      FilePath file_path = incoming_payload->content.file_payload.file_path;
-      VLOG(1) << __func__
-              << ": incoming_payload file_path=" << file_path.ToString();
-      file_paths.push_back(file_path);
+    std::optional<FilePath> file_path =
+        connections_manager().GetIncomingPayloadFilePath(it->second);
+    if (!file_path.has_value()) {
+      LOG(WARNING) << "No payload found for file attachment: " << file.id();
+      continue;
     }
+    VLOG(1) << __func__ << ": file_path=" << file_path->ToString();
+    file_paths.push_back(*file_path);
   }
   return file_paths;
 }
