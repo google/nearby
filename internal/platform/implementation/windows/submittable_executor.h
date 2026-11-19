@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "internal/platform/implementation/submittable_executor.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/runnable.h"
 
@@ -29,17 +29,11 @@ namespace windows {
 // Main interface to be used by platform as a base class for
 // - MultiThreadExecutorWrapper
 // - SingleThreadExecutorWrapper
-// Platform must override bool submit(absl::AnyInvocable<void()>) method.
-class SubmittableExecutor : public api::SubmittableExecutor {
+class SubmittableExecutor : public api::Executor {
  public:
   SubmittableExecutor();
   explicit SubmittableExecutor(int32_t max_concurrancy);
   ~SubmittableExecutor() override = default;
-
-  // Submit a callable (with no delay).
-  // Returns true, if callable was submitted, false otherwise.
-  // Callable is not submitted if shutdown is in progress.
-  bool DoSubmit(Runnable&& wrapped_callable) override;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
   void Execute(Runnable&& runnable) override;

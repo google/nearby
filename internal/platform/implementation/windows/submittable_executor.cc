@@ -28,18 +28,6 @@ SubmittableExecutor::SubmittableExecutor(int32_t max_concurrancy)
     : executor_(std::make_unique<nearby::windows::Executor>(max_concurrancy)),
       shut_down_(false) {}
 
-bool SubmittableExecutor::DoSubmit(Runnable&& wrapped_callable) {
-  if (!shut_down_) {
-    executor_->Execute(std::move(wrapped_callable));
-    return true;
-  }
-
-  LOG(ERROR) << "Error: " << __func__
-             << ": Attempt to DoSubmit on a shutdown executor.";
-
-  return false;
-}
-
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
 void SubmittableExecutor::Execute(Runnable&& runnable) {
   if (!shut_down_) {

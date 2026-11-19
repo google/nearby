@@ -20,12 +20,11 @@
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/runnable.h"
 
 using ::nearby::Runnable;
 using ::nearby::api::ImplementationPlatform;
-using SingleThreadExecutor = ::nearby::api::SubmittableExecutor;
+using SingleThreadExecutor = ::nearby::api::Executor;
 
 @interface GNCSingleThreadExecutorTest : XCTestCase
 @property(atomic) int counter;

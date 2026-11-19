@@ -41,6 +41,7 @@
 #include "internal/platform/implementation/apple/wifi_aware.h"
 #include "internal/platform/implementation/apple/wifi_hotspot.h"
 #include "internal/platform/implementation/apple/wifi_lan.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/payload_id.h"
@@ -145,11 +146,11 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::
 }
 
 // Java-like Executors
-std::unique_ptr<SubmittableExecutor> ImplementationPlatform::CreateSingleThreadExecutor() {
+std::unique_ptr<Executor> ImplementationPlatform::CreateSingleThreadExecutor() {
   return std::make_unique<apple::SingleThreadExecutor>();
 }
 
-std::unique_ptr<SubmittableExecutor> ImplementationPlatform::CreateMultiThreadExecutor(
+std::unique_ptr<Executor> ImplementationPlatform::CreateMultiThreadExecutor(
     int max_concurrency) {
   return std::make_unique<apple::MultiThreadExecutor>(max_concurrency);
 }

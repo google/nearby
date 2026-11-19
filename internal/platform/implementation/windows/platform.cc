@@ -45,12 +45,12 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/credential_storage.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
@@ -136,12 +136,12 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   return std::make_unique<windows::OutputFile>(file_path);
 }
 
-std::unique_ptr<SubmittableExecutor>
+std::unique_ptr<Executor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
   return std::make_unique<windows::SubmittableExecutor>();
 }
 
-std::unique_ptr<SubmittableExecutor>
+std::unique_ptr<Executor>
 ImplementationPlatform::CreateMultiThreadExecutor(
     std::int32_t max_concurrency) {
   return std::make_unique<windows::SubmittableExecutor>(max_concurrency);

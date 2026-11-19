@@ -18,7 +18,7 @@
 #include <atomic>
 
 #include "absl/time/clock.h"
-#include "internal/platform/implementation/submittable_executor.h"
+#include "internal/platform/implementation/executor.h"
 #include "nisaba/port/thread_pool.h"
 
 namespace nearby {
@@ -26,7 +26,7 @@ namespace g3 {
 
 // An Executor that reuses a fixed number of threads operating off a shared
 // unbounded queue.
-class MultiThreadExecutor : public api::SubmittableExecutor {
+class MultiThreadExecutor : public api::Executor {
  public:
   explicit MultiThreadExecutor(int max_parallelism)
       : thread_pool_(max_parallelism) {
@@ -36,11 +36,6 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
     if (!shutdown_) {
       thread_pool_.Schedule(std::move(runnable));
     }
-  }
-  bool DoSubmit(Runnable&& runnable) override {
-    if (shutdown_) return false;
-    thread_pool_.Schedule(std::move(runnable));
-    return true;
   }
   void Shutdown() override { DoShutdown(); }
   ~MultiThreadExecutor() override { DoShutdown(); }

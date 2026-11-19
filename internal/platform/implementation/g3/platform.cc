@@ -36,6 +36,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/g3/atomic_boolean.h"
 #include "internal/platform/implementation/g3/atomic_reference.h"
 #include "internal/platform/implementation/g3/awdl.h"
@@ -63,7 +64,6 @@
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/shared/file.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
@@ -90,12 +90,12 @@ int GetCurrentTid() {
   return LiveThread_Pthread_TID(my);
 }
 
-std::unique_ptr<SubmittableExecutor>
+std::unique_ptr<Executor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
   return std::make_unique<g3::SingleThreadExecutor>();
 }
 
-std::unique_ptr<SubmittableExecutor>
+std::unique_ptr<Executor>
 ImplementationPlatform::CreateMultiThreadExecutor(int max_concurrency) {
   return std::make_unique<g3::MultiThreadExecutor>(max_concurrency);
 }

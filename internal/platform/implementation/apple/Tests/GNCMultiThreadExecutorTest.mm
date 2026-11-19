@@ -20,12 +20,11 @@
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/runnable.h"
 
 using ::nearby::Runnable;
 using ::nearby::api::ImplementationPlatform;
-using MultiThreadExecutor = ::nearby::api::SubmittableExecutor;
+using MultiThreadExecutor = ::nearby::api::Executor;
 
 @interface GNCMultiThreadExecutorTest : XCTestCase
 @property(atomic) int counter;
@@ -55,34 +54,6 @@ using MultiThreadExecutor = ::nearby::api::SubmittableExecutor;
 
   // Check that the counter has the expected value after giving the runnables time to run.
   XCTAssertLessThanOrEqual(abs(self.counter - kIncrements), 0);
-}
-
-// Tests that the executor submits runnables as expected.
-- (void)testSubmit {
-  std::unique_ptr<MultiThreadExecutor> executor([self executor]);
-
-  // Submit two runnables that increment the counter.
-  const int kIncrements = 13;
-  for (int i = 0; i < kIncrements; i++) {
-    executor->DoSubmit([self]() { self.counter++; });
-    [NSThread sleepForTimeInterval:0.01];
-  }
-
-  // Check that the counter has the expected value after giving the runnables time to run.
-  XCTAssertLessThanOrEqual(abs(self.counter - kIncrements), 0);
-}
-
-// Tests that fails to submit when the executor is shut down.
-- (void)testFailtoSubmitAfterShutdown {
-  std::unique_ptr<MultiThreadExecutor> executor([self executor]);
-
-  executor->Shutdown();
-
-  XCTAssertFalse(executor->DoSubmit([self]() { self.counter++; }));
-
-  // Check that the counter has the expected value after giving the runnables time to run.
-  [NSThread sleepForTimeInterval:0.01];
-  XCTAssertEqual(self.counter, 0);
 }
 
 // Tests that when the executor is shut down, it waits for pending operations to finish, and no new

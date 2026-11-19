@@ -22,7 +22,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/executor.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/lockable.h"
 #include "internal/platform/monitored_runnable.h"
 #include "internal/platform/runnable.h"
@@ -59,25 +58,25 @@ class ABSL_LOCKABLE SubmittableExecutor : public api::Executor,
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_) override { DoShutdown(); }
 
  protected:
-  explicit SubmittableExecutor(std::unique_ptr<api::SubmittableExecutor> impl)
+  explicit SubmittableExecutor(std::unique_ptr<api::Executor> impl)
       : impl_(std::move(impl)) {}
 
  private:
   void DoShutdown() ABSL_LOCKS_EXCLUDED(mutex_) {
-    std::unique_ptr<api::SubmittableExecutor> executor = ReleaseExecutor();
+    std::unique_ptr<api::Executor> executor = ReleaseExecutor();
     if (executor) {
       executor->Shutdown();
     }
   }
 
-  std::unique_ptr<api::SubmittableExecutor> ReleaseExecutor()
+  std::unique_ptr<api::Executor> ReleaseExecutor()
       ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     return std::move(impl_);
   }
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<api::SubmittableExecutor> ABSL_GUARDED_BY(mutex_) impl_;
+  std::unique_ptr<api::Executor> ABSL_GUARDED_BY(mutex_) impl_;
 };
 
 }  // namespace nearby

@@ -31,6 +31,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/log_message.h"
@@ -38,7 +39,6 @@
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
@@ -105,8 +105,8 @@ class ImplementationPlatform {
       const char* file, int line, LogMessage::Severity severity);
 
   // Java-like Executors
-  static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();
-  static std::unique_ptr<SubmittableExecutor> CreateMultiThreadExecutor(
+  static std::unique_ptr<Executor> CreateSingleThreadExecutor();
+  static std::unique_ptr<Executor> CreateMultiThreadExecutor(
       std::int32_t max_concurrency);
   static std::unique_ptr<ScheduledExecutor> CreateScheduledExecutor();
 

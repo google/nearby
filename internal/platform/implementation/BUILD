@@ -33,7 +33,6 @@ cc_library(
         "output_file.h",
         "preferences_manager.h",
         "scheduled_executor.h",
-        "submittable_executor.h",
         "system_clock.h",
         "timer.h",
     ],

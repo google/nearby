@@ -30,9 +30,5 @@ void MultiThreadExecutor::Execute(Runnable&& runnable) {
   scheduled_executor_->Execute(std::move(runnable));
 }
 
-bool MultiThreadExecutor::DoSubmit(Runnable&& runnable) {
-  return scheduled_executor_->DoSubmit(std::move(runnable));
-}
-
 }  // namespace apple
 }  // namespace nearby

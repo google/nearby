@@ -16,13 +16,13 @@
 #define PLATFORM_IMPL_APPLE_MULTI_THREAD_EXECUTOR_H_
 
 #import "internal/platform/implementation/apple/scheduled_executor.h"
-#include "internal/platform/implementation/submittable_executor.h"
+#include "internal/platform/implementation/executor.h"
 #import "internal/platform/runnable.h"
 
 namespace nearby {
 namespace apple {
 
-class MultiThreadExecutor : public api::SubmittableExecutor {
+class MultiThreadExecutor : public api::Executor {
  public:
   explicit MultiThreadExecutor(int max_concurrency);
   ~MultiThreadExecutor() override = default;
@@ -30,10 +30,9 @@ class MultiThreadExecutor : public api::SubmittableExecutor {
   MultiThreadExecutor(const MultiThreadExecutor&) = delete;
   MultiThreadExecutor& operator=(const MultiThreadExecutor&) = delete;
 
-  // api::SubmittableExecutor:
+  // api::Executor:
   void Shutdown() override;
   void Execute(Runnable&& runnable) override;
-  bool DoSubmit(Runnable&& runnable) override;
 
  private:
   std::unique_ptr<ScheduledExecutor> scheduled_executor_;

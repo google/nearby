@@ -167,11 +167,9 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
   return cancelable;
 }
 
-void ScheduledExecutor::Execute(Runnable &&runnable) { DoSubmit(std::move(runnable)); }
-
-bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
+void ScheduledExecutor::Execute(Runnable &&runnable) {
   if (impl_.shuttingDown) {
-    return false;
+    return;
   }
 
   // Submit the runnable to the queue.
@@ -179,7 +177,6 @@ bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
   [impl_.queue addOperationWithBlock:^{
     ExecuteRunnable(local_runnable);
   }];
-  return true;
 }
 
 void ScheduledExecutor::Shutdown() {
