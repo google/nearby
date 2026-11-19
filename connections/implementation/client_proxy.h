@@ -304,11 +304,6 @@ class ClientProxy final {
     external_device_provider_ = provider;
   }
 
-  void RegisterConnectionsDeviceProvider(
-      std::unique_ptr<v3::ConnectionsDeviceProvider> provider) {
-    connections_device_provider_ = std::move(provider);
-  }
-
   // Registers a handler for events that require a decision from the client.
   // Replaces any previously registered handler. The handler must not call
   // `RegisterEventHandler()` or `UnregisterEventHandler()` synchronously from

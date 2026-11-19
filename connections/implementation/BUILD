@@ -123,6 +123,7 @@ cc_library(
         "//internal/interop:device",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:connection_info",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
         "//internal/platform:types",

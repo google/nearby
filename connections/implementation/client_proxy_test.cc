@@ -48,7 +48,6 @@
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
-#include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
@@ -551,16 +550,6 @@ TEST_F(ClientProxyTest, DumpString) {
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
-  EXPECT_NE(client1()->GetLocalEndpointId(), client2()->GetLocalEndpointId());
-}
-
-TEST_F(ClientProxyTest, GeneratedEndpointIdIsUniqueWithDeviceProvider) {
-  client1()->RegisterConnectionsDeviceProvider(
-      std::make_unique<v3::ConnectionsDeviceProvider>(
-          v3::ConnectionsDeviceProvider("", {})));
-  client2()->RegisterConnectionsDeviceProvider(
-      std::make_unique<v3::ConnectionsDeviceProvider>(
-          v3::ConnectionsDeviceProvider("", {})));
   EXPECT_NE(client1()->GetLocalEndpointId(), client2()->GetLocalEndpointId());
 }
 

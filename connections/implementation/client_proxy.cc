@@ -63,6 +63,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/connection_info.h"
 #ifndef NEARBY_CHROMIUM
 #include "internal/platform/implementation/device_info.h"
 #endif
@@ -331,10 +332,10 @@ const NearbyDevice* ClientProxy::GetLocalDevice() {
   if (external_device_provider_ == nullptr &&
       connections_device_provider_ == nullptr) {
     // TODO(b/285602283): Plug in actual endpoint info once available.
-    auto provider =
-        v3::ConnectionsDeviceProvider(GetLocalEndpointId(), "V3 endpoint", {});
-    RegisterConnectionsDeviceProvider(
-        std::make_unique<v3::ConnectionsDeviceProvider>(provider));
+    connections_device_provider_ =
+        std::make_unique<v3::ConnectionsDeviceProvider>(
+            GetLocalEndpointId(), "V3 endpoint",
+            std::vector<ConnectionInfoVariant>{});
   }
   return GetLocalDeviceProvider()->GetLocalDevice();
 }
