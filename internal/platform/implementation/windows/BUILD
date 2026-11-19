@@ -721,7 +721,6 @@ cc_library(
     srcs = [
         "platform.cc",
     ],
-    copts = ["-DNO_INTEL_PIE"],
     tags = ["windows"],
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
