@@ -45,11 +45,9 @@
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/credential_storage_impl.h"
 #include "internal/platform/implementation/g3/device_info.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/preferences_manager.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/implementation/g3/timer.h"
 #include "internal/platform/implementation/g3/wifi.h"
 #include "internal/platform/implementation/g3/wifi_aware.h"
@@ -64,6 +62,8 @@
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/implementation/shared/multi_thread_executor.h"
+#include "internal/platform/implementation/shared/single_thread_executor.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
@@ -74,8 +74,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/os_name.h"
 
-namespace nearby {
-namespace api {
+namespace nearby::api {
 
 std::string ImplementationPlatform::GetCustomSavePath(
     const std::string& save_path, const std::string& parent_folder,
@@ -92,12 +91,12 @@ int GetCurrentTid() {
 
 std::unique_ptr<Executor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
-  return std::make_unique<g3::SingleThreadExecutor>();
+  return std::make_unique<shared::SingleThreadExecutor>();
 }
 
 std::unique_ptr<Executor>
 ImplementationPlatform::CreateMultiThreadExecutor(int max_concurrency) {
-  return std::make_unique<g3::MultiThreadExecutor>(max_concurrency);
+  return std::make_unique<shared::MultiThreadExecutor>(max_concurrency);
 }
 
 std::unique_ptr<ScheduledExecutor>
@@ -222,5 +221,4 @@ ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
   return std::make_unique<g3::PreferencesManager>(FilePath(path));
 }
 
-}  // namespace api
-}  // namespace nearby
+}  // namespace nearby::api

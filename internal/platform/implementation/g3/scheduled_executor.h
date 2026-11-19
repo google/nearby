@@ -15,20 +15,20 @@
 #ifndef PLATFORM_IMPL_G3_SCHEDULED_EXECUTOR_H_
 #define PLATFORM_IMPL_G3_SCHEDULED_EXECUTOR_H_
 
-#include <atomic>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/btree_map.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/implementation/scheduled_executor.h"
+#include "internal/platform/implementation/shared/single_thread_executor.h"
 #include "internal/platform/runnable.h"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::g3 {
 
 // An Executor that reuses a fixed number of threads operating off a shared
 // unbounded queue.
@@ -46,14 +46,13 @@ class ScheduledExecutor final : public api::ScheduledExecutor {
 
  private:
   void RunReadyTasks();
-  SingleThreadExecutor executor_;
+  shared::SingleThreadExecutor executor_;
   std::string name_;
   absl::Mutex mutex_;
   absl::btree_multimap<absl::Time, std::unique_ptr<Runnable>> tasks_
       ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::g3
 
 #endif  // PLATFORM_IMPL_G3_SCHEDULED_EXECUTOR_H_

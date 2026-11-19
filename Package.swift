@@ -491,6 +491,7 @@ let package = Package(
         "internal/platform/implementation/apple/atomic_uint32_test.cc",
         "internal/platform/implementation/apple/webrtc_platform.mm",
         "internal/platform/implementation/shared/file_test.cc",
+        "internal/platform/implementation/shared/multi_thread_executor_test.cc",
         "internal/platform/implementation/wifi_utils_test.cc",
         "internal/platform/atomic_boolean_test.cc",
         "internal/platform/exception_test.cc",

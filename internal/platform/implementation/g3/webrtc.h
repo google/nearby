@@ -21,12 +21,11 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/shared/single_thread_executor.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "third_party/webrtc/files/stable/webrtc/api/peer_connection_interface.h"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::g3 {
 
 class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  public:
@@ -79,10 +78,9 @@ class WebRtcMedium : public api::WebRtcMedium {
 
  private:
   // Executor for handling calls to create a peer connection.
-  SingleThreadExecutor single_thread_executor_;
+  shared::SingleThreadExecutor single_thread_executor_;
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::g3
 
 #endif  // PLATFORM_IMPL_G3_WEBRTC_H_

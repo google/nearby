@@ -43,6 +43,39 @@ cc_library(
 )
 
 cc_library(
+    name = "executor",
+    hdrs = [
+        "multi_thread_executor.h",
+        "single_thread_executor.h",
+    ],
+    visibility = [
+        "//internal/platform/implementation:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform/implementation:types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_nisaba//nisaba/port:thread_pool",
+    ],
+)
+
+cc_test(
+    name = "multi_thread_executor_test",
+    size = "small",
+    srcs = ["multi_thread_executor_test.cc"],
+    deps = [
+        ":executor",
+        "//internal/platform:base",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],

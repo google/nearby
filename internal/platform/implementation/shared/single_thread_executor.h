@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
-#define PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
+#ifndef PLATFORM_IMPL_SHARED_SINGLE_THREAD_EXECUTOR_H_
+#define PLATFORM_IMPL_SHARED_SINGLE_THREAD_EXECUTOR_H_
 
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
+#include "internal/platform/implementation/shared/multi_thread_executor.h"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::shared {
 
 // An Executor that uses a single worker thread operating off an unbounded
 // queue.
@@ -28,7 +27,6 @@ class SingleThreadExecutor final : public MultiThreadExecutor {
   ~SingleThreadExecutor() override = default;
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::shared
 
-#endif  // PLATFORM_IMPL_G3_SINGLE_THREAD_EXECUTOR_H_
+#endif  // PLATFORM_IMPL_SHARED_SINGLE_THREAD_EXECUTOR_H_

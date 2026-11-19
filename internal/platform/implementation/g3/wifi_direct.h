@@ -24,20 +24,19 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::g3 {
 
 class WifiDirectMedium;
 
@@ -198,7 +197,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
       ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::g3
 
 #endif  // PLATFORM_IMPL_G3_WIFI_DIRECT_H_
