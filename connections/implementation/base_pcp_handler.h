@@ -423,6 +423,8 @@ class BasePcpHandler : public PcpHandler,
       location::nearby::proto::connections::ConnectionMode connection_mode =
           location::nearby::proto::connections::ConnectionMode::LEGACY);
 
+  static std::string GetHashedConnectionToken(const ByteArray& token_bytes);
+
   // Test only.
   int GetEndpointLostByMediumAlarmsCount() RUN_ON_PCP_HANDLER_THREAD() {
     return endpoint_lost_by_medium_alarms_.size();
