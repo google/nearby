@@ -59,8 +59,8 @@ constexpr auto kEnableBleMediumInjection =
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
-// Categorizes DCT operation result codes (5000..5061) as CATEGORY_DCT_ERROR in
-// AnalyticsRecorderImpl.
+// Categorizes DCT operation result codes (5000..5061) under
+// OperationResultCategory::CATEGORY_DCT_ERROR in AnalyticsRecorderImpl.
 constexpr auto kEnableDctErrorResultCategory =
     flags::Flag<bool>(kConfigPackage, "45868931", false);
 // Disable/Enable dynamic role switch in Nearby Connections SDK.
@@ -69,9 +69,6 @@ constexpr auto kEnableDynamicRoleSwitch =
 // Enable/Disable GATT client disconnection.
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
-// When true, enable multiplexing in NC for Bluetooth.
-constexpr auto kEnableMultiplexBluetooth =
-    flags::Flag<bool>(kConfigPackage, "45676646", false);
 // Enable/Disable preferences for Nearby Connections.
 constexpr auto kEnableNearbyConnectionsPreferences =
     flags::Flag<bool>(kConfigPackage, "45732423", false);
@@ -131,14 +128,13 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
-// When true, only populate AdvertisingMetadata and DiscoveryMetadata capability
-// fields when measured, rather than defaulting unmeasured capabilities to
-// false/0.
+// When true, only populate measured capability fields on AdvertisingMetadata
+// and DiscoveryMetadata rather than defaulting unmeasured fields to false/0.
 constexpr auto kOmitUnmeasuredAdvDisCapabilities =
     flags::Flag<bool>(kConfigPackage, "45868908", true);
-// When true, populate ConnectionAttemptMetadataParams with
-// operation_result_code in BasePcpHandler::LogConnectionAttemptFailure even
-// when endpoint_channel is null.
+// When true, LogConnectionAttemptFailure populates
+// ConnectionAttemptMetadataParams with operation_result_code even when
+// endpoint_channel is null.
 constexpr auto kPreserveNullChannelAttemptResultCode =
     flags::Flag<bool>(kConfigPackage, "45868906", false);
 // When true, LogicalConnection records EstablishedConnections in chronological
