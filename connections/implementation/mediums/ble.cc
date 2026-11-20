@@ -86,7 +86,8 @@ Ble::~Ble() {
   if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
     // If using asynchronous scanning, check the corresponding map.
     while (!service_ids_to_scanning_sessions_.empty()) {
-      StopScanning(service_ids_to_scanning_sessions_.begin()->first);
+      std::string service_id = service_ids_to_scanning_sessions_.begin()->first;
+      StopScanning(service_id);
     }
   } else {
     while (!scanned_service_ids_.empty()) {
@@ -435,14 +436,20 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
     return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
+  if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
+    if (!StartAsyncScanningLocked(service_id, power_level)) {
+      return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
+    }
+    discovered_peripheral_tracker_.StartTracking(
+        service_id, include_dct_advertisement, pcp, std::move(callback),
+        mediums::bleutils::kCopresenceServiceUuid);
+    return {true};
+  }
+
   // Start to track the advertisement found for specific `service_id`.
   discovered_peripheral_tracker_.StartTracking(
       service_id, include_dct_advertisement, pcp, std::move(callback),
       mediums::bleutils::kCopresenceServiceUuid);
-
-  if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
-    return StartAsyncScanningLocked(service_id, power_level);
-  }
 
   // Check if scan has been activated, if yes, no need to notify client
   // to scan again.
@@ -1738,25 +1745,14 @@ bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
       PowerLevelToTxPowerLevel(power_level),
       api::ble::BleMedium::ScanningCallback{
           .start_scanning_result =
-              [this, service_id =
-                         std::string(service_id)](absl::Status status) mutable {
-                // The `mutex_` is already held here. Use
-                // `AssumeHeld` to tell the thread
-                // annotation static analysis that
-                // `mutex_` is already exclusively
-                // locked.
-                // Note: unsure if this is always the case, but when I
-                // attempted to acquire the lock here I hit a deadlock.
-                AssumeHeld(mutex_);
+              [service_id = std::string(service_id)](absl::Status status) {
                 if (status.ok()) {
                   LOG(INFO) << "BLE async StartScanning started "
-                               "successfully for service ID"
-                            << &service_id;
+                               "successfully for service id="
+                            << service_id;
                 } else {
-                  LOG(ERROR) << "BLE async StartScanning "
-                                "failed for service ID"
-                             << &service_id << ": " << status;
-                  service_ids_to_scanning_sessions_.erase(service_id);
+                  LOG(ERROR) << "BLE async StartScanning failed for service id="
+                             << service_id << ": " << status;
                 }
               },
           .advertisement_found_cb =
@@ -1791,6 +1787,11 @@ bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
                 // TODO(b/345514862): Implement.
               },
       });
+  if (scanning_session == nullptr) {
+    LOG(ERROR) << "Failed to start BLE async scanning with service id="
+               << service_id;
+    return false;
+  }
   service_ids_to_scanning_sessions_.insert(
       {std::string(service_id), std::move(scanning_session)});
   LOG(INFO) << "Requested to start BLE scanning with service id=" << service_id
@@ -1826,6 +1827,7 @@ bool Ble::StopAsyncScanningLocked(absl::string_view service_id) {
                  "started scanning for this service ID.";
     return false;
   }
+  discovered_peripheral_tracker_.StopTracking(std::string(service_id));
   absl::Status status = scanning_session->second->stop_scanning();
   if (!status.ok()) {
     LOG(WARNING) << "StopAsyncScanningLocked error: " << status;

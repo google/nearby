@@ -404,6 +404,11 @@ class MediumEnvironment {
   void SetFailWifiDirectListenForService(bool fail);
   bool ShouldFailWifiDirectListenForService() const;
 
+  // Sets whether async StartScanning() fails on simulated BLE mediums, as if
+  // the platform couldn't start a scanning session. It is false by default.
+  void SetFailBleStartScanning(bool fail);
+  bool ShouldFailBleStartScanning() const;
+
  private:
   struct BluetoothMediumContext {
     BluetoothDiscoveryCallback callback;
@@ -538,6 +543,7 @@ class MediumEnvironment {
   bool wifi_direct_go_supported_ = true;
   std::atomic_bool fail_wifi_hotspot_listen_for_service_ = false;
   std::atomic_bool fail_wifi_direct_listen_for_service_ = false;
+  std::atomic_bool fail_ble_start_scanning_ = false;
 };
 
 }  // namespace nearby

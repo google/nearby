@@ -477,6 +477,9 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleMedium::ScanningCallback callback) {
   LOG(INFO) << "G3 Ble StartScanning";
+  if (MediumEnvironment::Instance().ShouldFailBleStartScanning()) {
+    return nullptr;
+  }
   auto internal_session_id = Prng().NextUint32();
 
   {
