@@ -14,11 +14,12 @@
 
 #include "internal/platform/cancelable_alarm.h"
 
+#include <atomic>
+
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/atomic_boolean.h"
-#include "internal/platform/atomic_reference.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
@@ -67,14 +68,15 @@ TEST(CancelableAlarmTest, CancelExpiredAlarmFails) {
 
 TEST(CancelableAlarmTest, CanCreateRecurringAlarm) {
   ScheduledExecutor alarm_executor;
-  AtomicReference<int> count(0);
+  std::atomic<int> count = 0;
   CancelableAlarm alarm(
-      "test_alarm", [&count]() { count.Set(count.Get() + 1); },
+      "test_alarm",
+      [&count]() { count.fetch_add(1, std::memory_order_relaxed); },
       absl::Milliseconds(1000), &alarm_executor, /*is_recurring=*/true);
   // Wait for 2 rounds (>1000ms * 2) and expect the `count` = 2.
   SystemClock::Sleep(absl::Milliseconds(2800));
   alarm.Cancel();
-  EXPECT_EQ(count.Get(), 2);
+  EXPECT_EQ(count.load(std::memory_order_relaxed), 2);
 }
 
 TEST(CancelableAlarmTest, DestructorCancelsAlarm) {
@@ -101,14 +103,14 @@ TEST(CancelableAlarmTest, IsValidReflectsCancelledState) {
 TEST(CancelableAlarmTest, CancelDuringExecutionDoesNotRescheduleOrDeadlock) {
   ScheduledExecutor alarm_executor;
   SingleThreadExecutor finish_executor;
-  AtomicReference<int> run_count(0);
+  std::atomic<int> run_count = 0;
   absl::Notification callback_started;
   absl::Notification allow_callback_finish;
 
   CancelableAlarm alarm(
       "recurring_cancel_test",
       [&]() {
-        run_count.Set(run_count.Get() + 1);
+        run_count.fetch_add(1, std::memory_order_relaxed);
         if (!callback_started.HasBeenNotified()) {
           callback_started.Notify();
         }
@@ -137,7 +139,7 @@ TEST(CancelableAlarmTest, CancelDuringExecutionDoesNotRescheduleOrDeadlock) {
 
   // Wait a while to ensure it was NOT rescheduled by Schedule().
   SystemClock::Sleep(absl::Milliseconds(300));
-  EXPECT_EQ(run_count.Get(), 1);
+  EXPECT_EQ(run_count.load(std::memory_order_relaxed), 1);
 }
 
 }  // namespace

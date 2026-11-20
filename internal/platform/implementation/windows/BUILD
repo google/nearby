@@ -79,7 +79,6 @@ cc_library(
     ],
     hdrs = [
         "atomic_boolean.h",
-        "atomic_reference.h",
         "device_info.h",
         "mutex.h",
         "scheduled_executor.h",
@@ -811,7 +810,6 @@ cc_test(
     size = "small",
     srcs = [
         "atomic_boolean_test.cc",
-        "atomic_reference_test.cc",
         "ble_gatt_server_test.cc",
         "ble_test.cc",
         "bluetooth_adapter_test.cc",

@@ -39,7 +39,6 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
-#include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -56,7 +55,6 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
-#include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
@@ -104,11 +102,6 @@ OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
     bool initial_value) {
   return std::make_unique<windows::AtomicBoolean>(initial_value);
-}
-
-std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
-    std::uint32_t value) {
-  return std::make_unique<windows::AtomicUint32>(value);
 }
 
 std::unique_ptr<RecursiveMutex>

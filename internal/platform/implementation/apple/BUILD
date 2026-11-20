@@ -341,7 +341,6 @@ cc_library(
     ],
     hdrs = [
         "atomic_boolean.h",
-        "atomic_uint32.h",
         "mutex.h",
     ],
     copts = ["-fno-exceptions"],
@@ -360,7 +359,6 @@ cc_test(
     name = "Platform_cc_test",
     srcs = [
         "atomic_boolean_test.cc",
-        "atomic_uint32_test.cc",
         "mutex_test.cc",
     ],
     shard_count = 16,

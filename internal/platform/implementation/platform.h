@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
-#include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -83,11 +82,6 @@ class ImplementationPlatform {
   // Does not use locking.
   // Does not use dynamic memory allocations in operations.
   static std::unique_ptr<AtomicBoolean> CreateAtomicBoolean(bool initial_value);
-
-  // Supports enums and integers up to 32-bit.
-  // Does not use locking, if platform supports 32-bit atomics natively.
-  // Does not use dynamic memory allocations in operations.
-  static std::unique_ptr<AtomicUint32> CreateAtomicUint32(std::uint32_t value);
 
   static std::unique_ptr<RecursiveMutex> CreateRecursiveMutex();
 

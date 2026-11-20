@@ -26,7 +26,6 @@
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/implementation/apple/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
-#include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/ble.h"
 #include "internal/platform/implementation/apple/device_info.h"
@@ -117,11 +116,6 @@ OSName ImplementationPlatform::GetCurrentOS() { return OSName::kApple; }
 // Atomics:
 std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(bool initial_value) {
   return std::make_unique<apple::AtomicBoolean>(initial_value);
-}
-
-std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
-    std::uint32_t initial_value) {
-  return std::make_unique<apple::AtomicUint32>(initial_value);
 }
 
 std::unique_ptr<RecursiveMutex> ImplementationPlatform::CreateRecursiveMutex() {

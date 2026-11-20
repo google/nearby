@@ -37,7 +37,6 @@ cc_library(
     ],
     hdrs = [
         "atomic_boolean.h",
-        "atomic_reference.h",
         "device_info.h",
         "mutex.h",
         "preferences_manager.h",

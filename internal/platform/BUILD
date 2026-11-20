@@ -216,7 +216,6 @@ cc_library(
     hdrs = [
         "array_blocking_queue.h",
         "atomic_boolean.h",
-        "atomic_reference.h",
         "blocking_queue_stream.h",
         "borrowable.h",
         "cancelable.h",
@@ -543,7 +542,6 @@ cc_test(
     timeout = "moderate",
     srcs = [
         "atomic_boolean_test.cc",
-        "atomic_reference_test.cc",
         "borrowable_test.cc",
         "cancelable_alarm_test.cc",
         "cancellable_task_test.cc",

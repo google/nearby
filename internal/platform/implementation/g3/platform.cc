@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/platform.h"
 
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -29,7 +28,6 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
-#include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -38,7 +36,6 @@
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/g3/atomic_boolean.h"
-#include "internal/platform/implementation/g3/atomic_reference.h"
 #include "internal/platform/implementation/g3/awdl.h"
 #include "internal/platform/implementation/g3/ble.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
@@ -102,11 +99,6 @@ ImplementationPlatform::CreateMultiThreadExecutor(int max_concurrency) {
 std::unique_ptr<ScheduledExecutor>
 ImplementationPlatform::CreateScheduledExecutor() {
   return std::make_unique<g3::ScheduledExecutor>();
-}
-
-std::unique_ptr<AtomicUint32> ImplementationPlatform::CreateAtomicUint32(
-    std::uint32_t value) {
-  return std::make_unique<g3::AtomicUint32>(value);
 }
 
 std::unique_ptr<BluetoothAdapter>

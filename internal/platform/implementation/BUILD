@@ -21,7 +21,6 @@ cc_library(
     name = "types",
     hdrs = [
         "atomic_boolean.h",
-        "atomic_reference.h",
         "bluetooth_adapter.h",
         "cancelable.h",
         "crypto.h",

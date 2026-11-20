@@ -255,12 +255,6 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertTrue(atomic_boolean->Get());
 }
 
-- (void)testCreateAtomicUint32 {
-  auto atomic_uint32 = nearby::api::ImplementationPlatform::CreateAtomicUint32(123);
-  XCTAssertNotEqual(atomic_uint32.get(), nullptr);
-  XCTAssertEqual(atomic_uint32->Get(), 123);
-}
-
 - (void)testCreateRecursiveMutex {
   auto mutex = nearby::api::ImplementationPlatform::CreateRecursiveMutex();
   XCTAssertNotEqual(mutex.get(), nullptr);
