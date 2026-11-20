@@ -289,7 +289,16 @@ ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacket(
   ByteArray packet_block_1 = read_bytes.result();
 
   // Read the length from the 3rd byte of the packet block (0-indexed).
-  int packet_block_2_size = packet_block_1.data()[3];
+  int packet_block_2_size;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kFixBleControlPacketSignedLength)) {
+    // Treat the length byte as unsigned so that values 0x80-0xFF are not
+    // sign-extended to a negative read size.
+    packet_block_2_size = static_cast<std::uint8_t>(packet_block_1.data()[3]);
+  } else {
+    packet_block_2_size = packet_block_1.data()[3];
+  }
   // Read the left bytes for the packet block 2).
   read_bytes = input_stream->Read(packet_block_2_size);
   if (!read_bytes.ok()) {
