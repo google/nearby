@@ -166,7 +166,7 @@ class IncomingPayloadManager {
                                absl::AnyInvocable<void()> runnable);
 
   mutable absl::Mutex mutex_;
-  std::string custom_save_path_;
+  std::string custom_save_path_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<Payload::Id, std::shared_ptr<IncomingPendingPayload>>
       pending_payloads_ ABSL_GUARDED_BY(mutex_);
   EndpointManager* endpoint_manager_;
