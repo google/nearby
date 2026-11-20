@@ -94,6 +94,13 @@ class MediumEnvironment {
     bool is_scanning;
   };
 
+  enum class BleStartScanningMode {
+    kSuccess,
+    kReturnNullSession,
+    kSyncResultFailure,
+    kAsyncResultFailure,
+  };
+
   MediumEnvironment(MediumEnvironment&&) = delete;
   MediumEnvironment& operator=(MediumEnvironment&&) = delete;
   MediumEnvironment(const MediumEnvironment&) = delete;
@@ -389,6 +396,11 @@ class MediumEnvironment {
   void SetBleL2capAvailable(bool enabled);
   bool IsBleL2capAvailable() const;
 
+  // Sets how simulated BLE mediums behave on async StartScanning() calls. It
+  // is `BleStartScanningMode::kSuccess` by default.
+  void SetBleStartScanningMode(BleStartScanningMode mode);
+  BleStartScanningMode GetBleStartScanningMode() const;
+
   // Sets whether Wi-Fi Direct Group Owner (GO) mode is supported. It is true
   // by default.
   void SetWifiDirectGoSupported(bool supported);
@@ -535,6 +547,8 @@ class MediumEnvironment {
   std::shared_ptr<FakeClock> simulated_clock_ ABSL_GUARDED_BY(mutex_);
   bool ble_extended_advertisements_available_ = false;
   std::atomic_bool ble_l2cap_available_ = false;
+  std::atomic<BleStartScanningMode> ble_start_scanning_mode_ =
+      BleStartScanningMode::kSuccess;
   bool wifi_direct_go_supported_ = true;
   std::atomic_bool fail_wifi_hotspot_listen_for_service_ = false;
   std::atomic_bool fail_wifi_direct_listen_for_service_ = false;

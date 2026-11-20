@@ -76,6 +76,17 @@ constexpr int kDummyServiceIdLength = 128;
 // locked. Used because the analysis is not interprocedural.
 void AssumeHeld(absl::Mutex& m) ABSL_ASSERT_EXCLUSIVE_LOCK(m) {}
 
+// Coordinates scan-start state between `Ble::StartAsyncScanningLocked` and the
+// `start_scanning_result` callback, which platforms may invoke synchronously or
+// asynchronously on another thread.
+struct AsyncScanStartState {
+  absl::Mutex mutex;
+  bool session_registered ABSL_GUARDED_BY(mutex) = false;
+  bool start_failed ABSL_GUARDED_BY(mutex) = false;
+  api::ble::BleMedium::ScanningSession* session ABSL_GUARDED_BY(mutex) =
+      nullptr;
+};
+
 }  // namespace
 
 Ble::Ble(BluetoothRadio& radio)
@@ -441,7 +452,10 @@ ErrorOr<bool> Ble::StartScanning(const std::string& service_id, Pcp pcp,
       mediums::bleutils::kCopresenceServiceUuid);
 
   if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
-    return StartAsyncScanningLocked(service_id, power_level);
+    if (!StartAsyncScanningLocked(service_id, power_level)) {
+      return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
+    }
+    return {true};
   }
 
   // Check if scan has been activated, if yes, no need to notify client
@@ -1733,64 +1747,137 @@ bool Ble::StartAsyncScanningLocked(absl::string_view service_id,
   // Should we check if the map is not empty, and forego scanning if true?
   // If so, do we store a nullptr instead of a scanning session ptr?
 
-  auto scanning_session = medium_.StartScanning(
-      mediums::bleutils::kCopresenceServiceUuid,
-      PowerLevelToTxPowerLevel(power_level),
-      api::ble::BleMedium::ScanningCallback{
-          .start_scanning_result =
-              [this, service_id =
-                         std::string(service_id)](absl::Status status) mutable {
-                // The `mutex_` is already held here. Use
-                // `AssumeHeld` to tell the thread
-                // annotation static analysis that
-                // `mutex_` is already exclusively
-                // locked.
-                // Note: unsure if this is always the case, but when I
-                // attempted to acquire the lock here I hit a deadlock.
-                AssumeHeld(mutex_);
-                if (status.ok()) {
-                  LOG(INFO) << "BLE async StartScanning started "
-                               "successfully for service ID"
-                            << &service_id;
-                } else {
-                  LOG(ERROR) << "BLE async StartScanning "
-                                "failed for service ID"
-                             << &service_id << ": " << status;
-                  service_ids_to_scanning_sessions_.erase(service_id);
-                }
-              },
-          .advertisement_found_cb =
-              [this](api::ble::BlePeripheral::UniqueId peripheral_id,
-                     BleAdvertisementData advertisement_data) {
-                AssumeHeld(mutex_);
-                BlePeripheral proxy(medium_, peripheral_id);
-                RunOnBleThread([this, proxy = std::move(proxy),
-                                advertisement_data]() {
-                  absl::MutexLock lock(mutex_);
-                  discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
-                      std::move(proxy), advertisement_data,
-                      [this](BlePeripheral proxy, int num_slots, int psm,
-                             const std::vector<std::string>&
-                                 interesting_service_ids,
-                             mediums::AdvertisementReadResult&
-                                 advertisement_read_result) {
-                        // The `mutex_` is already held here. Use
-                        // `AssumeHeld` to tell the thread
-                        // annotation static analysis that
-                        // `mutex_` is already exclusively
-                        // locked.
-                        AssumeHeld(mutex_);
-                        ProcessFetchGattAdvertisementsRequest(
-                            std::move(proxy), num_slots, psm,
-                            interesting_service_ids, advertisement_read_result);
-                      });
-                });
-              },
-          .advertisement_lost_cb =
-              [](api::ble::BlePeripheral::UniqueId peripheral_id) {
-                // TODO(b/345514862): Implement.
-              },
-      });
+  auto start_state = std::make_shared<AsyncScanStartState>();
+  std::unique_ptr<api::ble::BleMedium::ScanningSession> scanning_session =
+      medium_.StartScanning(
+          mediums::bleutils::kCopresenceServiceUuid,
+          PowerLevelToTxPowerLevel(power_level),
+          api::ble::BleMedium::ScanningCallback{
+              .start_scanning_result =
+                  [borrowable = lender_.GetBorrowable(),
+                   service_id = std::string(service_id),
+                   start_state](absl::Status status) mutable {
+                    if (status.ok()) {
+                      LOG(INFO) << "BLE async StartScanning started "
+                                   "successfully for service id="
+                                << service_id;
+                      return;
+                    }
+                    LOG(ERROR)
+                        << "BLE async StartScanning failed for service id="
+                        << service_id << ": " << status;
+                    api::ble::BleMedium::ScanningSession* failed_session =
+                        nullptr;
+                    bool should_cleanup_async = false;
+                    {
+                      absl::MutexLock state_lock(start_state->mutex);
+                      start_state->start_failed = true;
+                      should_cleanup_async = start_state->session_registered;
+                      failed_session = start_state->session;
+                    }
+                    if (!should_cleanup_async) {
+                      return;
+                    }
+                    Borrowed<Ble*> borrowed = borrowable.Borrow();
+                    if (!borrowed) {
+                      return;
+                    }
+                    (*borrowed)->RunOnBleThread([borrowable, service_id,
+                                                 failed_session]() {
+                      std::unique_ptr<CancelableAlarm> alarm_to_cancel;
+                      std::unique_ptr<api::ble::BleMedium::ScanningSession>
+                          session_to_stop;
+                      {
+                        Borrowed<Ble*> borrowed = borrowable.Borrow();
+                        if (!borrowed) {
+                          return;
+                        }
+                        Ble* ble = *borrowed;
+                        absl::MutexLock lock(ble->mutex_);
+                        auto it = ble->service_ids_to_scanning_sessions_.find(
+                            service_id);
+                        if (it ==
+                                ble->service_ids_to_scanning_sessions_.end() ||
+                            it->second.get() != failed_session) {
+                          return;
+                        }
+                        ble->discovered_peripheral_tracker_.StopTracking(
+                            service_id);
+                        session_to_stop = std::move(it->second);
+                        ble->service_ids_to_scanning_sessions_.erase(it);
+                        if (ble->service_ids_to_scanning_sessions_.empty()) {
+                          alarm_to_cancel = std::move(ble->lost_alarm_);
+                        }
+                      }
+                      if (session_to_stop != nullptr) {
+                        absl::Status stop_status =
+                            session_to_stop->stop_scanning();
+                        if (!stop_status.ok()) {
+                          LOG(WARNING)
+                              << "Failed to stop failed BLE async scanning "
+                                 "session for service id="
+                              << service_id << ": " << stop_status;
+                        }
+                      }
+                      if (alarm_to_cancel != nullptr) {
+                        alarm_to_cancel->Cancel();
+                      }
+                    });
+                  },
+              .advertisement_found_cb =
+                  [this](api::ble::BlePeripheral::UniqueId peripheral_id,
+                         BleAdvertisementData advertisement_data) {
+                    AssumeHeld(mutex_);
+                    BlePeripheral proxy(medium_, peripheral_id);
+                    RunOnBleThread([this, proxy = std::move(proxy),
+                                    advertisement_data]() {
+                      absl::MutexLock lock(mutex_);
+                      discovered_peripheral_tracker_
+                          .ProcessFoundBleAdvertisement(
+                              std::move(proxy), advertisement_data,
+                              [this](BlePeripheral proxy, int num_slots,
+                                     int psm,
+                                     const std::vector<std::string>&
+                                         interesting_service_ids,
+                                     mediums::AdvertisementReadResult&
+                                         advertisement_read_result) {
+                                // The `mutex_` is already held here. Use
+                                // `AssumeHeld` to tell the thread
+                                // annotation static analysis that
+                                // `mutex_` is already exclusively
+                                // locked.
+                                AssumeHeld(mutex_);
+                                ProcessFetchGattAdvertisementsRequest(
+                                    std::move(proxy), num_slots, psm,
+                                    interesting_service_ids,
+                                    advertisement_read_result);
+                              });
+                    });
+                  },
+              .advertisement_lost_cb =
+                  [](api::ble::BlePeripheral::UniqueId peripheral_id) {
+                    // TODO(b/345514862): Implement.
+                  },
+          });
+  bool failed_synchronously = (scanning_session == nullptr);
+  if (!failed_synchronously) {
+    absl::MutexLock state_lock(start_state->mutex);
+    if (start_state->start_failed) {
+      failed_synchronously = true;
+    } else {
+      start_state->session_registered = true;
+      start_state->session = scanning_session.get();
+    }
+  }
+  if (failed_synchronously) {
+    LOG(ERROR) << "Failed to start BLE async scanning with service id="
+               << service_id;
+    if (scanning_session != nullptr) {
+      scanning_session->stop_scanning().IgnoreError();
+    }
+    discovered_peripheral_tracker_.StopTracking(std::string(service_id));
+    return false;
+  }
   service_ids_to_scanning_sessions_.insert(
       {std::string(service_id), std::move(scanning_session)});
   LOG(INFO) << "Requested to start BLE scanning with service id=" << service_id
@@ -1826,6 +1913,7 @@ bool Ble::StopAsyncScanningLocked(absl::string_view service_id) {
                  "started scanning for this service ID.";
     return false;
   }
+  discovered_peripheral_tracker_.StopTracking(std::string(service_id));
   absl::Status status = scanning_session->second->stop_scanning();
   if (!status.ok()) {
     LOG(WARNING) << "StopAsyncScanningLocked error: " << status;

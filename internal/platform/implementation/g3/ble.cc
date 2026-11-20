@@ -477,6 +477,18 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleMedium::ScanningCallback callback) {
   LOG(INFO) << "G3 Ble StartScanning";
+  MediumEnvironment::BleStartScanningMode mode =
+      MediumEnvironment::Instance().GetBleStartScanningMode();
+  if (mode == MediumEnvironment::BleStartScanningMode::kReturnNullSession) {
+    return nullptr;
+  }
+  if (mode == MediumEnvironment::BleStartScanningMode::kSyncResultFailure) {
+    callback.start_scanning_result(
+        absl::InternalError("Simulated synchronous BLE scan start failure"));
+    return std::make_unique<ScanningSession>(ScanningSession{
+        .stop_scanning = []() { return absl::OkStatus(); },
+    });
+  }
   auto internal_session_id = Prng().NextUint32();
 
   {
