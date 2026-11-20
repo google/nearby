@@ -175,7 +175,10 @@ int convertStringToInt(absl::string_view data) {
     return 0;
   }
 
-  return (data[0]) | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+  return static_cast<uint8_t>(data[0]) |
+         (static_cast<uint8_t>(data[1]) << 8) |
+         (static_cast<uint8_t>(data[2]) << 16) |
+         (static_cast<uint32_t>(static_cast<uint8_t>(data[3])) << 24);
 }
 
 std::string convertIntToString(int input) {
@@ -521,7 +524,8 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
 
   ::nearby::connections::OutOfBandConnectionMetadata
       cpp_out_of_band_connection_metadata{};
-  cpp_out_of_band_connection_metadata.endpoint_id = metadata->endpoint_id;
+  cpp_out_of_band_connection_metadata.endpoint_id =
+      convertIntToString(metadata->endpoint_id);
   cpp_out_of_band_connection_metadata.endpoint_info = {
       metadata->endpoint_info.data,
       static_cast<size_t>(metadata->endpoint_info.size)};

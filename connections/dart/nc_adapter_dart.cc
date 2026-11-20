@@ -623,7 +623,7 @@ void RequestConnectionDart(NC_INSTANCE instance, int endpoint_id,
   kClientState->SetConnectionListenerDart(
       std::make_unique<ConnectionListenerDart>(info_dart.connection_listener));
 
-  NC_CONNECTION_OPTIONS connection_options;
+  NC_CONNECTION_OPTIONS connection_options{};
   connection_options.enforce_topology_constraints =
       options_dart.enforce_topology_constraints;
   connection_options.remote_bluetooth_mac_address.data =
