@@ -109,6 +109,11 @@ constexpr auto kEnforceBwuIncomingEncryptionPolicy =
 // before connection acceptance.
 constexpr auto kFilterUnconfirmedEndpointFrames =
     flags::Flag<bool>(kConfigPackage, "45813128", true);
+// When true, parses the BLE socket control packet length byte as unsigned so
+// values 0x80-0xFF are not sign-extended to a negative read size
+// (b/511806636).
+constexpr auto kFixBleControlPacketSignedLength =
+    flags::Flag<bool>(kConfigPackage, "45899384", true);
 // When true, fix the BleServerSocket deadlock/use-after-free (b/494335036).
 constexpr auto kFixBleServerSocketDeadlock =
     flags::Flag<bool>(kConfigPackage, "45782647", true);

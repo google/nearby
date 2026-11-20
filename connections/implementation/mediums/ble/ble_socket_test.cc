@@ -242,6 +242,28 @@ TEST_F(BleSocketBleMediumTest, DispatchPacketWithReadError) {
   EXPECT_EQ(result.exception(), Exception::kIo);
 }
 
+TEST_F(BleSocketBleMediumTest,
+       DispatchPacketWithHighBitControlLengthReadsUnsignedLength) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kFixBleControlPacketSignedLength,
+      true);
+  // Control packet prefix, followed by a 4-byte block whose last byte (0x80)
+  // is the length of the remaining block, followed by 0x80 bytes of body.
+  fake_input_stream_.Append(ByteArray(std::string("\x00\x00\x00", 3)));
+  fake_input_stream_.Append(ByteArray(std::string("\x08\x01\x12\x80", 4)));
+  fake_input_stream_.Append(ByteArray(std::string(0x80, '\xff')));
+  fake_input_stream_.Append(ByteArray(std::string(kServiceIdHash)));
+
+  auto result = socket_->DispatchPacket();
+
+  EXPECT_FALSE(result.ok());
+  // Exactly 0x80 bytes of body were consumed, so the trailing bytes remain.
+  auto remaining = fake_input_stream_.Read(kServiceIdHash.size());
+  ASSERT_TRUE(remaining.ok());
+  EXPECT_EQ(remaining.result(), ByteArray(std::string(kServiceIdHash)));
+}
+
 TEST_F(BleSocketBleMediumTest, ReadPayloadLengthSuccess) {
   constexpr int kPayloadLength = 12345;
   fake_input_stream_.Append(ByteArray(byte_utils::IntToBytes(kPayloadLength)));
