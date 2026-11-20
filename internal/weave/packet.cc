@@ -172,6 +172,7 @@ std::string Packet::ControlPacketTypeToString(ControlPacketType type) {
     case ControlPacketType::kControlError:
       return "[Error]";
   }
+  return absl::StrFormat("[Unknown(%d)]", static_cast<int>(type));
 }
 
 }  // namespace weave

@@ -32,6 +32,8 @@ namespace nearby {
 namespace weave {
 namespace {
 constexpr int kConnectionConfirmPacketMinLength = 4;
+// A packet must fit the header and at least one byte of payload.
+constexpr int kMinPacketSize = Packet::kPacketHeaderLength + 1;
 }
 
 ClientSocket::ClientSocket(const Connection& connection,
@@ -98,17 +100,22 @@ void ClientSocket::OnReceiveControlPacket(Packet packet) {
         absl::InvalidArgumentError("packet of insufficient length received."));
     return;
   }
-  int protocol_version =
-      ((packet.GetPayload()[0] << 8) | packet.GetPayload()[1]) &
-      (int16_t)0xFFFF;
+  std::string payload = packet.GetPayload();
+  int protocol_version = (static_cast<uint8_t>(payload[0]) << 8) |
+                         static_cast<uint8_t>(payload[1]);
   if (protocol_version != kProtocolVersion) {
     DisconnectInternal(absl::InternalError(
         absl::StrCat("unexpected protocol version ", protocol_version)));
     return;
   }
-  int max_packet_size =
-      ((packet.GetPayload()[2] << 8) | packet.GetPayload()[3]) &
-      (int16_t)0xFFFF;
+  int max_packet_size = (static_cast<uint8_t>(payload[2]) << 8) |
+                        static_cast<uint8_t>(payload[3]);
+  if (max_packet_size < kMinPacketSize) {
+    DisconnectInternal(absl::InvalidArgumentError(
+        absl::StrCat("server confirmed unsupported max packet size ",
+                     max_packet_size)));
+    return;
+  }
   if (max_packet_size > GetConnection().GetMaxPacketSize()) {
     DisconnectInternal(absl::InternalError(
         absl::StrCat("server confirmed max packet size ", max_packet_size,

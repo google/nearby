@@ -144,14 +144,13 @@ class ServerSocketTest : public ::testing::Test {
     EXPECT_EQ(packet->GetControlCommandNumber(),
               Packet::ControlPacketType::kControlConnectionConfirm);
     EXPECT_EQ(packet->GetPacketCounter(), 0);
-    int16_t agreed_protocol_version =
-        ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
-        (int16_t)0xFFFF;
+    std::string payload = packet->GetPayload();
+    int agreed_protocol_version = (static_cast<uint8_t>(payload[0]) << 8) |
+                                  static_cast<uint8_t>(payload[1]);
     EXPECT_EQ(agreed_protocol_version, kProtocolVersion);
     // Check packet size for the expected size.
-    int packet_size =
-        ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
-        (int16_t)0xFFFF;
+    int packet_size = (static_cast<uint8_t>(payload[2]) << 8) |
+                      static_cast<uint8_t>(payload[3]);
     EXPECT_EQ(packet_size, expected_size);
     // Now write a data packet of the expected payload size.
     int expected_payload_size = expected_size - 1;
@@ -197,6 +196,21 @@ TEST_F(ServerSocketTest, TestServerPacketSizeLower) {
 TEST_F(ServerSocketTest, TestClientMaxPacketSizeZero) {
   RunConnect(/*client_max_packet_size=*/0, /*server_max_packet_size=*/2,
              /*expected_size=*/2, "");
+}
+
+TEST_F(ServerSocketTest, TestClientPacketSizeWithHighBitSetInLowByte) {
+  RunConnect(/*client_max_packet_size=*/185, /*server_max_packet_size=*/512,
+             /*expected_size=*/185, "");
+}
+
+TEST_F(ServerSocketTest, TestClientMaxPacketSizeTooSmall) {
+  socket_.OnReceiveControlPacketProxy(
+      Packet::CreateConnectionRequestPacket(
+          kProtocolVersion - 1, kProtocolVersion + 1,
+          /*max_packet_size=*/1, "")
+          .value());
+  expect_connected_ = false;
+  EXPECT_THAT(last_error_, StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST_F(ServerSocketTest, TestConnectInitialData) {

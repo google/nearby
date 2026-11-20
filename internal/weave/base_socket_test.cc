@@ -383,6 +383,7 @@ TEST_F(BaseSocketTest, TestOnRemoteTransmitTwoPackets) {
       CreateDataPacket(1, false, true, ByteArray("\x03")).GetBytes());
   ASSERT_EQ(1, messages_read_.size());
   EXPECT_EQ(messages_read_[0], "\x01\x02\x03");
+  EXPECT_OK(error_status_);
 }
 
 TEST_F(BaseSocketTest, TestOnRemoteTransmitThreePackets) {
@@ -395,6 +396,7 @@ TEST_F(BaseSocketTest, TestOnRemoteTransmitThreePackets) {
       CreateDataPacket(2, false, true, ByteArray("\x05")).GetBytes());
   ASSERT_EQ(1, messages_read_.size());
   EXPECT_EQ(messages_read_[0], "\x01\x02\x03\x04\x05");
+  EXPECT_OK(error_status_);
 }
 
 TEST_F(BaseSocketTest, TestOnRemoteTransmitPacketCounterRollover) {
