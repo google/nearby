@@ -15,9 +15,18 @@
 #ifndef PLATFORM_PUBLIC_MULTI_THREAD_EXECUTOR_H_
 #define PLATFORM_PUBLIC_MULTI_THREAD_EXECUTOR_H_
 
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/submittable_executor.h"
+#include "internal/platform/lockable.h"
+#include "internal/platform/monitored_runnable.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/thread_check_runnable.h"
 
 namespace nearby {
 
@@ -25,15 +34,30 @@ namespace nearby {
 // unbounded queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool-int-
-class ABSL_LOCKABLE MultiThreadExecutor final : public SubmittableExecutor {
+class ABSL_LOCKABLE MultiThreadExecutor final : public api::Executor,
+                                                public Lockable {
  public:
   using Platform = api::ImplementationPlatform;
   explicit MultiThreadExecutor(int max_parallelism)
-      : SubmittableExecutor(
-            Platform::CreateMultiThreadExecutor(max_parallelism)) {}
+      : impl_(Platform::CreateMultiThreadExecutor(max_parallelism)) {}
   MultiThreadExecutor(const MultiThreadExecutor&) = delete;
   MultiThreadExecutor& operator=(const MultiThreadExecutor&) = delete;
-  ~MultiThreadExecutor() override = default;
+  ~MultiThreadExecutor() override { impl_->Shutdown(); }
+
+  void Execute(const std::string& name, Runnable&& runnable) {
+    impl_->Execute(MakeMonitoredRunnable(
+        name, ThreadCheckRunnable(this, std::move(runnable))));
+  }
+
+  void Execute(Runnable&& runnable) override {
+    impl_->Execute(
+        MakeMonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
+  }
+
+  void Shutdown() override { impl_->Shutdown(); }
+
+ private:
+  const absl_nonnull std::unique_ptr<api::Executor> impl_;
 };
 
 }  // namespace nearby

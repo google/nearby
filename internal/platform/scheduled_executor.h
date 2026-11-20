@@ -58,9 +58,10 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
   void Execute(const std::string& name, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
-    if (impl_)
-      impl_->Execute(MonitoredRunnable(
+    if (impl_) {
+      impl_->Execute(MakeMonitoredRunnable(
           name, ThreadCheckRunnable(this, std::move(runnable))));
+    }
   }
 
   void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) {

@@ -17,28 +17,40 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
 
-// A runnable with extra logging
+// A runnable with extra logging.
 // We log if the task has been waiting long on the executor or if it was running
 // for a long time. The latter isn't always an issue - some tasks are expected
 // to run for longer periods of time (minutes).
 class MonitoredRunnable {
  public:
-  explicit MonitoredRunnable(Runnable&& runnable);
-  MonitoredRunnable(const std::string& name, Runnable&& runnable);
+  explicit MonitoredRunnable(Runnable runnable);
+  MonitoredRunnable(absl::string_view name, Runnable runnable);
+
+  // Not copyable or movable.
+  MonitoredRunnable(const MonitoredRunnable&) = delete;
+  MonitoredRunnable& operator=(const MonitoredRunnable&) = delete;
+
+  ~MonitoredRunnable();
 
   void operator()();
 
  private:
-  const std::string name_;
+  std::string name_;
   Runnable runnable_;
-  const absl::Time post_time_ = SystemClock::ElapsedRealtime();
+  absl::Time post_time_ = SystemClock::ElapsedRealtime();
+  bool is_pending_ = true;
 };
+
+// Constructs an immovable `MonitoredRunnable` in-place inside a `Runnable`.
+Runnable MakeMonitoredRunnable(Runnable runnable);
+Runnable MakeMonitoredRunnable(absl::string_view name, Runnable runnable);
 
 }  // namespace nearby
 

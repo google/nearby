@@ -17,6 +17,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -328,6 +329,40 @@ TEST(SingleThreadExecutorTest, DelayedExecuteTimerStartFailureReturnsFalse) {
 
   EXPECT_FALSE(executor.DelayedExecute(
       absl::Milliseconds(10), []() { FAIL() << "Task should not run"; }));
+}
+
+TEST(SingleThreadExecutorTest, ConcurrentExecuteAndShutdown) {
+  constexpr int kIterations = 25;
+  constexpr int kProducerThreads = 4;
+  constexpr int kTasksPerThread = 50;
+
+  for (int iter = 0; iter < kIterations; ++iter) {
+    SingleThreadExecutor executor;
+    std::atomic_bool after_shutdown = false;
+    std::atomic_bool ran_after_shutdown = false;
+    std::vector<std::thread> producers;
+    producers.reserve(kProducerThreads);
+
+    for (int t = 0; t < kProducerThreads; ++t) {
+      producers.emplace_back([&]() {
+        for (int i = 0; i < kTasksPerThread; ++i) {
+          executor.Execute([&]() {
+            if (after_shutdown.load(std::memory_order_acquire)) {
+              ran_after_shutdown.store(true, std::memory_order_relaxed);
+            }
+          });
+        }
+      });
+    }
+
+    executor.Shutdown();
+    after_shutdown.store(true, std::memory_order_release);
+
+    for (std::thread& producer : producers) {
+      producer.join();
+    }
+    EXPECT_FALSE(ran_after_shutdown.load(std::memory_order_relaxed));
+  }
 }
 
 }  // namespace

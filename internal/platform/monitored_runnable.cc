@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
@@ -26,19 +27,24 @@
 
 namespace nearby {
 namespace {
-absl::Duration kMinReportedStartDelay = absl::Seconds(5);
-absl::Duration kMinReportedTaskDuration = absl::Seconds(10);
+constexpr absl::Duration kMinReportedStartDelay = absl::Seconds(5);
+constexpr absl::Duration kMinReportedTaskDuration = absl::Seconds(10);
 }  // namespace
 
-MonitoredRunnable::MonitoredRunnable(Runnable&& runnable)
+MonitoredRunnable::MonitoredRunnable(Runnable runnable)
     : MonitoredRunnable(absl::StrCat("Task_", absl::Hex(this)),
                         std::move(runnable)) {}
 
-MonitoredRunnable::MonitoredRunnable(const std::string& name,
-                                     Runnable&& runnable)
+MonitoredRunnable::MonitoredRunnable(absl::string_view name, Runnable runnable)
     : name_{name}, runnable_{std::move(runnable)} {
   VLOG(1) << "Task: \"" << name_ << "\" scheduled";
   PendingJobRegistry::GetInstance().AddPendingJob(name_, post_time_);
+}
+
+MonitoredRunnable::~MonitoredRunnable() {
+  if (is_pending_) {
+    PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
+  }
 }
 
 void MonitoredRunnable::operator()() {
@@ -49,7 +55,10 @@ void MonitoredRunnable::operator()() {
   } else {
     VLOG(1) << "Task: \"" << name_ << "\" started after " << start_delay;
   }
-  PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
+  if (is_pending_) {
+    is_pending_ = false;
+    PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
+  }
   PendingJobRegistry::GetInstance().AddRunningJob(name_, post_time_);
   runnable_();
   absl::Duration task_duration = SystemClock::ElapsedRealtime() - start_time;
@@ -60,6 +69,15 @@ void MonitoredRunnable::operator()() {
   }
   PendingJobRegistry::GetInstance().RemoveRunningJob(name_, post_time_);
   PendingJobRegistry::GetInstance().ListJobs();
+}
+
+Runnable MakeMonitoredRunnable(Runnable runnable) {
+  return Runnable(std::in_place_type<MonitoredRunnable>, std::move(runnable));
+}
+
+Runnable MakeMonitoredRunnable(absl::string_view name, Runnable runnable) {
+  return Runnable(std::in_place_type<MonitoredRunnable>, name,
+                  std::move(runnable));
 }
 
 }  // namespace nearby

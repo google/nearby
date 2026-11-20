@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "absl/base/nullability.h"
@@ -25,8 +26,12 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/submittable_executor.h"
+#include "internal/platform/lockable.h"
+#include "internal/platform/monitored_runnable.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/thread_check_runnable.h"
 #include "internal/platform/timer.h"
 
 namespace nearby {
@@ -35,14 +40,24 @@ namespace nearby {
 // queue.
 //
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor--
-class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
+class ABSL_LOCKABLE SingleThreadExecutor : public api::Executor,
+                                           public Lockable {
  public:
   using Platform = api::ImplementationPlatform;
-  SingleThreadExecutor()
-      : SubmittableExecutor(Platform::CreateSingleThreadExecutor()) {}
+  SingleThreadExecutor() : impl_(Platform::CreateSingleThreadExecutor()) {}
   SingleThreadExecutor(const SingleThreadExecutor&) = delete;
   SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
   ~SingleThreadExecutor() override;
+
+  virtual void Execute(const std::string& name, Runnable&& runnable) {
+    impl_->Execute(MakeMonitoredRunnable(
+        name, ThreadCheckRunnable(this, std::move(runnable))));
+  }
+
+  void Execute(Runnable&& runnable) override {
+    impl_->Execute(
+        MakeMonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
+  }
 
   // Schedules `task` to execute on the worker thread after `delay` (clamped to
   // `[0, INT_MAX]` milliseconds). Returns `true` if `task` is empty or was
@@ -78,6 +93,7 @@ class ABSL_LOCKABLE SingleThreadExecutor : public SubmittableExecutor {
 
   void DoShutdown() ABSL_LOCKS_EXCLUDED(timer_state_->mutex);
 
+  const absl_nonnull std::unique_ptr<api::Executor> impl_;
   const std::shared_ptr<TimerState> timer_state_ =
       std::make_shared<TimerState>();
 };

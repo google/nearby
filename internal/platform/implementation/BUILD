@@ -38,6 +38,7 @@ cc_library(
     visibility = [
         "//connections/implementation:__subpackages__",
         "//connections/implementation/analytics:__subpackages__",
+        "//internal/account:__subpackages__",
         "//internal/crypto_cros:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",

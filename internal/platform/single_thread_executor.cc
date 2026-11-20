@@ -25,7 +25,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-#include "internal/platform/submittable_executor.h"
 #include "internal/platform/timer.h"
 #include "internal/platform/timer_impl.h"
 
@@ -60,7 +59,7 @@ void SingleThreadExecutor::DoShutdown() {
     timer_state_->mutex.Await(
         absl::Condition(&TimerState::AllOperationsDone, timer_state_.get()));
   }
-  SubmittableExecutor::Shutdown();
+  impl_->Shutdown();
 }
 
 bool SingleThreadExecutor::DelayedExecute(absl::Duration delay,
