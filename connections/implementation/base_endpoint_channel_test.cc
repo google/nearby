@@ -175,6 +175,34 @@ DoDhKeyExchange(std::shared_ptr<TestEndpointChannel> channel_a,
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
 
+struct HalfEncryptedChannelPair {
+  std::pair<std::unique_ptr<InputStream>, std::unique_ptr<OutputStream>> pipe_a;
+  std::pair<std::unique_ptr<InputStream>, std::unique_ptr<OutputStream>> pipe_b;
+  std::shared_ptr<TestEndpointChannel> channel_a;
+  std::shared_ptr<TestEndpointChannel> channel_b;
+};
+
+HalfEncryptedChannelPair CreateHalfEncryptedChannelPair() {
+  auto pipe_a = CreatePipe();
+  auto pipe_b = CreatePipe();
+  auto channel_a = std::make_shared<TestEndpointChannel>(pipe_b.first.get(),
+                                                         pipe_a.second.get());
+  auto channel_b = std::make_shared<TestEndpointChannel>(pipe_a.first.get(),
+                                                         pipe_b.second.get());
+  ON_CALL(*channel_a, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+  ON_CALL(*channel_b, GetMedium).WillByDefault([]() {
+    return Medium::BLUETOOTH;
+  });
+  auto [context_a, context_b] = DoDhKeyExchange(channel_a, channel_b);
+  CHECK(context_a != nullptr);
+  CHECK(context_b != nullptr);
+  channel_b->EnableEncryption(context_b);
+  return {std::move(pipe_a), std::move(pipe_b), std::move(channel_a),
+          std::move(channel_b)};
+}
+
 class BaseEndpointChannelTest : public ::testing::Test {
  protected:
   void TearDown() override {
@@ -497,6 +525,10 @@ TEST_F(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
 }
 
 TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceStrictUnencryptedFrameCheck,
+      false);
   // Setup test communication environment.
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
@@ -529,6 +561,16 @@ TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   EXPECT_TRUE(result.ok());
   EXPECT_EQ(result.result().AsStringView(), keep_alive_message);
 
+  // When strict unencrypted frame checking is disabled, legacy behavior allows
+  // unencrypted DISCONNECTION frames.
+  std::string disconnection_message =
+      parser::ForDisconnection(/*request_safe_to_disconnect=*/false,
+                               /*ack_safe_to_disconnect=*/false);
+  channel_a->Write(disconnection_message);
+  result = channel_b->Read();
+  EXPECT_TRUE(result.ok());
+  EXPECT_EQ(result.result().AsStringView(), disconnection_message);
+
   // An unencrypted data frame should fail.
   absl::string_view tx_message = "data message";
   channel_a->Write(tx_message);
@@ -539,6 +581,121 @@ TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   // Shutdown test environment.
   channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+}
+
+TEST_F(BaseEndpointChannelTest,
+       ReadRejectsUnencryptedDisconnectionOnEncryptedChannel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceStrictUnencryptedFrameCheck,
+      true);
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kUnencryptedKeepAliveGracePeriodMillis,
+      5000);
+
+  HalfEncryptedChannelPair pair = CreateHalfEncryptedChannelPair();
+
+  // An unencrypted KEEP_ALIVE within the grace period is still accepted.
+  std::string keep_alive_message = parser::ForKeepAlive();
+  pair.channel_a->Write(keep_alive_message);
+  ExceptionOr<ByteArray> keep_alive_result = pair.channel_b->Read();
+  EXPECT_TRUE(keep_alive_result.ok());
+  EXPECT_EQ(keep_alive_result.result().AsStringView(), keep_alive_message);
+
+  // An injected unencrypted DISCONNECTION frame on an encrypted channel must be
+  // rejected rather than tearing down the session without AEAD authentication.
+  std::string disconnection_message =
+      parser::ForDisconnection(/*request_safe_to_disconnect=*/false,
+                               /*ack_safe_to_disconnect=*/false);
+  pair.channel_a->Write(disconnection_message);
+  ExceptionOr<ByteArray> result = pair.channel_b->Read();
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kInvalidProtocolBuffer);
+
+  pair.channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  pair.channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+}
+
+TEST_F(BaseEndpointChannelTest,
+       ReadRejectsUnencryptedKeepAliveAfterGracePeriodOnEncryptedChannel) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceStrictUnencryptedFrameCheck,
+      true);
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kUnencryptedKeepAliveGracePeriodMillis,
+      10);
+
+  HalfEncryptedChannelPair pair = CreateHalfEncryptedChannelPair();
+
+  absl::SleepFor(absl::Milliseconds(25));
+
+  std::string keep_alive_message = parser::ForKeepAlive();
+  pair.channel_a->Write(keep_alive_message);
+  ExceptionOr<ByteArray> result = pair.channel_b->Read();
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kInvalidProtocolBuffer);
+
+  pair.channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  pair.channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+}
+
+TEST_F(BaseEndpointChannelTest,
+       ReadRejectsUnencryptedKeepAliveWhenGracePeriodIsNegative) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceStrictUnencryptedFrameCheck,
+      true);
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kUnencryptedKeepAliveGracePeriodMillis,
+      -1);
+
+  HalfEncryptedChannelPair pair = CreateHalfEncryptedChannelPair();
+
+  std::string keep_alive_message = parser::ForKeepAlive();
+  pair.channel_a->Write(keep_alive_message);
+  ExceptionOr<ByteArray> rejected = pair.channel_b->Read();
+  EXPECT_FALSE(rejected.ok());
+  EXPECT_EQ(rejected.exception(), Exception::kInvalidProtocolBuffer);
+
+  pair.channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  pair.channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
+}
+
+TEST_F(BaseEndpointChannelTest,
+       EnableEncryptionWithNullContextLeavesChannelUnencrypted) {
+  auto [input, output] = CreatePipe();
+  TestEndpointChannel test_channel(input.get(), output.get());
+
+  test_channel.EnableEncryption(nullptr);
+
+  EXPECT_FALSE(test_channel.IsEncrypted());
+}
+
+TEST_F(BaseEndpointChannelTest,
+       ReadAllowsUnencryptedDisconnectionAfterDisableEncryption) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnforceStrictUnencryptedFrameCheck,
+      true);
+
+  HalfEncryptedChannelPair pair = CreateHalfEncryptedChannelPair();
+  pair.channel_b->DisableEncryption();
+  EXPECT_FALSE(pair.channel_b->IsEncrypted());
+
+  std::string disconnection_message =
+      parser::ForDisconnection(/*request_safe_to_disconnect=*/false,
+                               /*ack_safe_to_disconnect=*/false);
+  pair.channel_a->Write(disconnection_message);
+  ExceptionOr<ByteArray> allowed = pair.channel_b->Read();
+  EXPECT_TRUE(allowed.ok());
+  EXPECT_EQ(allowed.result().AsStringView(), disconnection_message);
+
+  pair.channel_a->Close(DisconnectionReason::LOCAL_DISCONNECTION);
+  pair.channel_b->Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
 }  // namespace

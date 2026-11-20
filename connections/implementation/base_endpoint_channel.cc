@@ -138,22 +138,35 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read() {
         result = ByteArray(std::move(*decrypted_data));
       } else {
         // It could be a protocol race, where remote party sends a KEEP_ALIVE
-        // or DISCONNECTION before encryption is setup on their side, and we
+        // (or, when kEnforceStrictUnencryptedFrameCheck is false,
+        // DISCONNECTION) before encryption is setup on their side, and we
         // receive it after we switched to encryption mode (e.g. if the peer
         // aborts/tears down during negotiation).
-        // In this case, we verify that message is indeed a valid KEEP_ALIVE
-        // or DISCONNECTION frame, and let it through if it is, otherwise
-        // message is erased.
+        // When kEnforceStrictUnencryptedFrameCheck is enabled, only a
+        // KEEP_ALIVE frame within kUnencryptedKeepAliveGracePeriodMillis of
+        // EnableEncryption() is allowed through; otherwise, legacy behavior
+        // allows KEEP_ALIVE or DISCONNECTION frames, and any other frame is
+        // erased.
         // TODO(apolyudov): verify this happens at most once per session.
         result = {};
         auto parsed = parser::FromBytes(input);
         if (parsed.ok()) {
           location::nearby::connections::V1Frame::FrameType frame_type =
               parser::GetFrameType(parsed.result());
-          if (frame_type ==
-                  location::nearby::connections::V1Frame::KEEP_ALIVE ||
-              frame_type ==
-                  location::nearby::connections::V1Frame::DISCONNECTION) {
+          // TODO(b/585547476): Remove this flag and legacy unencrypted frame
+          // fallback once the strict check is fully rolled out.
+          const bool allow_unencrypted_frame =
+              NearbyFlags::GetInstance().GetBoolFlag(
+                  config_package_nearby::nearby_connections_feature::
+                      kEnforceStrictUnencryptedFrameCheck)
+                  ? (frame_type ==
+                         location::nearby::connections::V1Frame::KEEP_ALIVE &&
+                     IsWithinUnencryptedKeepAliveGracePeriodLocked())
+                  : (frame_type ==
+                         location::nearby::connections::V1Frame::KEEP_ALIVE ||
+                     frame_type ==
+                         location::nearby::connections::V1Frame::DISCONNECTION);
+          if (allow_unencrypted_frame) {
             LOG(INFO) << __func__ << ": Read unencrypted frame of type "
                       << frame_type << " on encrypted channel.";
             result = ByteArray(input);
@@ -355,11 +368,15 @@ void BaseEndpointChannel::EnableEncryption(
     std::shared_ptr<EncryptionContext> context) {
   absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_ = context;
+  encryption_enabled_timestamp_ = context != nullptr
+                                      ? SystemClock::ElapsedRealtime()
+                                      : absl::InfinitePast();
 }
 
 void BaseEndpointChannel::DisableEncryption() {
   absl::MutexLock crypto_lock(crypto_mutex_);
   crypto_context_.reset();
+  encryption_enabled_timestamp_ = absl::InfinitePast();
 }
 
 bool BaseEndpointChannel::IsEncrypted() {
@@ -451,6 +468,18 @@ int BaseEndpointChannel::GetDefaultMaxTransmitPacketSize() const {
 
 bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {
   return crypto_context_ != nullptr;
+}
+
+bool BaseEndpointChannel::IsWithinUnencryptedKeepAliveGracePeriodLocked()
+    const {
+  int64_t grace_period_millis = NearbyFlags::GetInstance().GetInt64Flag(
+      config_package_nearby::nearby_connections_feature::
+          kUnencryptedKeepAliveGracePeriodMillis);
+  if (grace_period_millis < 0) {
+    return false;
+  }
+  return SystemClock::ElapsedRealtime() - encryption_enabled_timestamp_ <=
+         absl::Milliseconds(grace_period_millis);
 }
 
 void BaseEndpointChannel::BlockUntilUnpaused() {
