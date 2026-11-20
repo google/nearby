@@ -236,9 +236,14 @@ void BaseSocket::DisconnectQuietly() {
 }
 
 void BaseSocket::OnReceiveDataPacket(Packet packet) {
+  bool is_last_packet = packet.IsLastPacket();
   absl::Status packet_status = packetizer_.AddPacket(std::move(packet));
   if (!packet_status.ok()) {
     DisconnectInternal(packet_status);
+    return;
+  }
+  if (!is_last_packet) {
+    // Wait for the rest of the message.
     return;
   }
   absl::StatusOr<ByteArray> message = packetizer_.TakeMessage();
