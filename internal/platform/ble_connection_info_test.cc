@@ -14,7 +14,9 @@
 
 #include "internal/platform/ble_connection_info.h"
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -64,6 +66,39 @@ TEST(BleConnectionInfoTest, TestFromNoAction) {
   auto result = BleConnectionInfo::FromDataElementBytes(
       serialized.substr(0, serialized.length() - 1));
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(BleConnectionInfoTest, TestFromTruncatedBytes) {
+  // Heap buffers of the exact size, so reading past the end is detectable.
+  std::vector<char> no_medium = {static_cast<char>(kDataElementFieldType), 0};
+  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_medium.data(), no_medium.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  std::vector<char> no_mask = {static_cast<char>(kDataElementFieldType), 1,
+                               static_cast<char>(kBleGattMediumType)};
+  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_mask.data(), no_mask.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(BleConnectionInfoTest, TestFromMissingGattCharacteristicLength) {
+  BleConnectionInfo info(kMacAddr, "", "", {});
+  std::string serialized = info.ToDataElementBytes();
+  // Claim a GATT characteristic but end the element right after the MAC.
+  serialized[3] |= 0b00100000;
+  std::vector<char> bytes(serialized.begin(), serialized.end());
+  EXPECT_THAT(BleConnectionInfo::FromDataElementBytes(
+                  absl::string_view(bytes.data(), bytes.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(BleConnectionInfoTest, TestToFromBytesLongElement) {
+  std::vector<uint8_t> actions(130, kAction);
+  BleConnectionInfo info(kMacAddr, kGattCharacteristic, kPsm, actions);
+  auto result = BleConnectionInfo::FromDataElementBytes(
+      info.ToDataElementBytes());
+  ASSERT_OK(result);
+  EXPECT_EQ(result->GetActions(), actions);
 }
 
 TEST(BleConnectionInfoTest, TestToFromBytes) {
