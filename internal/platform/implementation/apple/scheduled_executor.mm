@@ -216,10 +216,13 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
   return cancelable;
 }
 
-void ScheduledExecutor::Execute(Runnable &&runnable) {
+bool ScheduledExecutor::Execute(Runnable &&runnable) {
+  if (!runnable) {
+    return false;
+  }
   // Submit the runnable to the queue if not shutting down.
   __block Runnable local_runnable = std::move(runnable);
-  [impl_ submitWithBlock:^{
+  return [impl_ submitWithBlock:^{
     ExecuteRunnable(local_runnable);
   }];
 }

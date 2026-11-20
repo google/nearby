@@ -72,10 +72,16 @@ void MonitoredRunnable::operator()() {
 }
 
 Runnable MakeMonitoredRunnable(Runnable runnable) {
+  if (!runnable) {
+    return nullptr;
+  }
   return Runnable(std::in_place_type<MonitoredRunnable>, std::move(runnable));
 }
 
 Runnable MakeMonitoredRunnable(absl::string_view name, Runnable runnable) {
+  if (!runnable) {
+    return nullptr;
+  }
   return Runnable(std::in_place_type<MonitoredRunnable>, name,
                   std::move(runnable));
 }

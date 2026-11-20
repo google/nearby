@@ -18,19 +18,25 @@
 #include <utility>
 #include <vector>
 
+#include "internal/platform/runnable.h"
+
 namespace nearby {
 
 FakeSingleThreadExecutor::FakeSingleThreadExecutor() = default;
 
 FakeSingleThreadExecutor::~FakeSingleThreadExecutor() { DoShutdown(); }
 
-void FakeSingleThreadExecutor::Execute(const std::string& name,
+bool FakeSingleThreadExecutor::Execute(const std::string& name,
                                        Runnable&& runnable) {
+  if (!runnable) {
+    return false;
+  }
   runnables_.push_back(std::make_pair(name, std::move(runnable)));
 
-  if (!run_executables_immediately_) return;
+  if (!run_executables_immediately_) return true;
 
   RunAllExecutables();
+  return true;
 }
 
 void FakeSingleThreadExecutor::RunAllExecutables() {

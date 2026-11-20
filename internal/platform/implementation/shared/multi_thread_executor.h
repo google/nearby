@@ -36,22 +36,31 @@ class MultiThreadExecutor : public api::Executor {
       : thread_pool_(std::make_unique<ThreadPool>(max_parallelism)) {}
   ~MultiThreadExecutor() override { DoShutdown(); }
 
-  void Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
-    if (!runnable) return;
-    absl::MutexLock lock(mutex_);
-    if (thread_pool_) {
-      thread_pool_->Schedule(std::move(runnable));
+  bool Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {
+    if (!runnable) {
+      return false;
     }
+    absl::MutexLock lock(mutex_);
+    if (!thread_pool_) {
+      return false;
+    }
+    thread_pool_->Schedule(std::move(runnable));
+    return true;
   }
 
   void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_) override { DoShutdown(); }
 
-  void ScheduleAfter(absl::Duration delay, Runnable&& runnable)
+  bool ScheduleAfter(absl::Duration delay, Runnable&& runnable)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    if (!runnable) return;
+    if (!runnable) {
+      return false;
+    }
     absl::MutexLock lock(mutex_);
-    if (!thread_pool_) return;
+    if (!thread_pool_) {
+      return false;
+    }
     thread_pool_->ScheduleAt(absl::Now() + delay, std::move(runnable));
+    return true;
   }
 
   bool InShutdown() const ABSL_LOCKS_EXCLUDED(mutex_) {

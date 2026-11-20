@@ -42,10 +42,10 @@ TEST(SingleThreadExecutorTest, CanExecute) {
   absl::CondVar cond;
   std::atomic_bool done = false;
   SingleThreadExecutor executor;
-  executor.Execute([&done, &cond]() {
+  EXPECT_TRUE(executor.Execute([&done, &cond]() {
     done = true;
     cond.SignalAll();
-  });
+  }));
   absl::Mutex mutex;
   {
     absl::MutexLock lock(mutex);
@@ -60,10 +60,10 @@ TEST(SingleThreadExecutorTest, CanExecuteNamedTask) {
   absl::CondVar cond;
   std::atomic_bool done = false;
   SingleThreadExecutor executor;
-  executor.Execute("my task", [&done, &cond]() {
+  EXPECT_TRUE(executor.Execute("my task", [&done, &cond]() {
     done = true;
     cond.SignalAll();
-  });
+  }));
   absl::Mutex mutex;
   {
     absl::MutexLock lock(mutex);
@@ -114,9 +114,13 @@ TEST(SingleThreadExecutorTest, ShutdownWaitsForRunningTasks) {
 
 TEST(SingleThreadExecutorTest, ExecuteAfterShutdownFails) {
   SingleThreadExecutor executor;
+  EXPECT_FALSE(executor.Execute(nullptr));
+  EXPECT_FALSE(executor.Execute("empty", nullptr));
 
   executor.Shutdown();
-  executor.Execute([&]() { FAIL() << "Task should not run"; });
+  EXPECT_FALSE(executor.Execute([&]() { FAIL() << "Task should not run"; }));
+  EXPECT_FALSE(
+      executor.Execute("named", [&]() { FAIL() << "Task should not run"; }));
 }
 
 TEST(SingleThreadExecutorTest, ExecuteDuringShutdownFails) {
