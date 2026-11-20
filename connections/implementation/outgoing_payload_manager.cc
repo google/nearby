@@ -27,6 +27,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/str_cat.h"
@@ -353,6 +354,13 @@ void OutgoingPayloadManager::SendPayload(
   executor->Execute("send-payload", [this, client, endpoint_ids, payload_id,
                                      payload_type, resume_offset,
                                      payload_total_size]() {
+    // Stop tracking the payload on every exit, including the early returns:
+    // CancelAllPayloadsAndWait() waits until each tracked payload is destroyed.
+    absl::Cleanup stop_tracking = [this, payload_id]() {
+      RunOnStatusUpdateThread("destroy-payload", [this, payload_id]() {
+        outgoing_pending_payloads_.StopTrackingPayload(payload_id);
+      });
+    };
     if (shutdown_->load()) return;
     std::shared_ptr<OutgoingPendingPayload> pending_payload =
         GetOutgoingPayload(payload_id);
@@ -403,10 +411,6 @@ void OutgoingPayloadManager::SendPayload(
       }
       index++;
     }
-
-    RunOnStatusUpdateThread("destroy-payload", [this, payload_id]() {
-      outgoing_pending_payloads_.StopTrackingPayload(payload_id);
-    });
   });
   VLOG(1) << "PayloadManager: xfer scheduled: self=" << this
           << "; payload_id=" << payload_id << ", payload_type=" << payload_type;
