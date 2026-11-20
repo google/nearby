@@ -20,6 +20,8 @@
 #include <memory>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/runnable.h"
@@ -81,13 +83,60 @@ class ExecutorCancelable : public nearby::api::Cancelable {
   __strong GNCScheduledTask *task_;
 };
 
-@implementation GNCOperationQueueImpl
+/** Thread-safe wrapper around `NSOperationQueue` coordinating submission with shutdown. */
+@interface GNCOperationQueueImpl : NSObject
+/** Creates an instance with the given `maxConcurrency`. */
++ (instancetype)implWithMaxConcurrency:(int)maxConcurrency;
+/** Enqueues `block` unless shutdown has started; returns `YES` if queued. */
+- (BOOL)submitWithBlock:(dispatch_block_t)block;
+/** Returns `YES` if shutdown has started. */
+- (BOOL)isShuttingDown;
+/** Marks the queue as shutting down; returns `YES` on the first call only. */
+- (BOOL)beginShutdown;
+/** Blocks until all queued operations finish without holding the internal mutex. */
+- (void)waitUntilAllOperationsAreFinished;
+@end
+
+@implementation GNCOperationQueueImpl {
+  NSOperationQueue *_queue;
+  absl::Mutex _mutex;
+  BOOL _shuttingDown ABSL_GUARDED_BY(_mutex);
+}
 
 + (instancetype)implWithMaxConcurrency:(int)maxConcurrency {
   GNCOperationQueueImpl *impl = [[GNCOperationQueueImpl alloc] init];
-  impl.queue = [[NSOperationQueue alloc] init];
-  impl.queue.maxConcurrentOperationCount = maxConcurrency;
+  if (impl) {
+    impl->_queue = [[NSOperationQueue alloc] init];
+    impl->_queue.maxConcurrentOperationCount = maxConcurrency;
+  }
   return impl;
+}
+
+- (BOOL)submitWithBlock:(dispatch_block_t)block {
+  absl::MutexLock lock(_mutex);
+  if (_shuttingDown) {
+    return NO;
+  }
+  [_queue addOperationWithBlock:block];
+  return YES;
+}
+
+- (BOOL)isShuttingDown {
+  absl::MutexLock lock(_mutex);
+  return _shuttingDown;
+}
+
+- (BOOL)beginShutdown {
+  absl::MutexLock lock(_mutex);
+  if (_shuttingDown) {
+    return NO;
+  }
+  _shuttingDown = YES;
+  return YES;
+}
+
+- (void)waitUntilAllOperationsAreFinished {
+  [_queue waitUntilAllOperationsAreFinished];
 }
 
 @end
@@ -134,7 +183,7 @@ ScheduledExecutor::~ScheduledExecutor() {
 
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable,
                                                              absl::Duration duration) {
-  if (impl_.shuttingDown) return std::shared_ptr<api::Cancelable>(nullptr);
+  if ([impl_ isShuttingDown]) return std::shared_ptr<api::Cancelable>(nullptr);
 
   // Create the shared task object. ARC will manage its lifetime.
   GNCScheduledTask *task = [[GNCScheduledTask alloc] initWithRunnable:std::move(runnable)];
@@ -149,11 +198,11 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
       // The block captures the task object, and ARC will keep it alive.
       [weakImpl, task]() {
         __strong __typeof__(weakImpl) strongImpl = weakImpl;
-        if (!strongImpl || strongImpl.shuttingDown) {
+        if (!strongImpl) {
           return;
         }
-        [strongImpl.queue addOperationWithBlock:^{
-          if (strongImpl.shuttingDown) {
+        [strongImpl submitWithBlock:^{
+          if ([strongImpl isShuttingDown]) {
             return;
           }
           GNCScheduledTaskState expected = GNCScheduledTaskState::kScheduled;
@@ -168,28 +217,23 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
 }
 
 void ScheduledExecutor::Execute(Runnable &&runnable) {
-  if (impl_.shuttingDown) {
-    return;
-  }
-
-  // Submit the runnable to the queue.
+  // Submit the runnable to the queue if not shutting down.
   __block Runnable local_runnable = std::move(runnable);
-  [impl_.queue addOperationWithBlock:^{
+  [impl_ submitWithBlock:^{
     ExecuteRunnable(local_runnable);
   }];
 }
 
 void ScheduledExecutor::Shutdown() {
-  if (impl_.shuttingDown) {
+  // Prevent new/delayed operations from being queued/executed.
+  if (![impl_ beginShutdown]) {
     return;
   }
-  // Prevent new/delayed operations from being queued/executed.
-  impl_.shuttingDown = YES;
 
   // Block until all currently executing operations finish.
   dispatch_group_t group = dispatch_group_create();
   dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0), ^{
-    [impl_.queue waitUntilAllOperationsAreFinished];
+    [impl_ waitUntilAllOperationsAreFinished];
   });
   dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
 }

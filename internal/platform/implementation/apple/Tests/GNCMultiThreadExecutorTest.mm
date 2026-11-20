@@ -82,4 +82,24 @@ using MultiThreadExecutor = ::nearby::api::Executor;
   [self waitForExpectationsWithTimeout:0.5 handler:nil];
 }
 
+- (void)testExecuteDuringShutdownAndRepeatedShutdown {
+  std::unique_ptr<MultiThreadExecutor> executor([self executor]);
+  dispatch_semaphore_t started = dispatch_semaphore_create(0);
+
+  executor->Execute([self, started, &executor]() {
+    dispatch_semaphore_signal(started);
+    [NSThread sleepForTimeInterval:0.05];
+    executor->Execute([self]() { self.otherCounter++; });
+    self.counter++;
+  });
+
+  XCTAssertEqual(
+      dispatch_semaphore_wait(started, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)), 0);
+  executor->Shutdown();
+  executor->Shutdown();
+
+  XCTAssertEqual(self.counter, 1);
+  XCTAssertEqual(self.otherCounter, 0);
+}
+
 @end
