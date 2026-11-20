@@ -831,8 +831,11 @@ std::unique_ptr<api::ble::BleL2capSocket> BleMedium::ConnectOverL2cap(
   [medium_ openL2CAPChannelWithPSM:psm
                         peripheral:peripheral
                  completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
-                   if (error) {
+                   if (error || !stream) {
                      openError = error;
+                     if (!openError) {
+                       GNCLoggerError(@"Failed to connect over L2CAP: stream is nil.");
+                     }
                      dispatch_semaphore_signal(semaphore);
                      return;
                    }

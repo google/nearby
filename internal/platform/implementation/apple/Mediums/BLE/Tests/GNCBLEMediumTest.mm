@@ -694,4 +694,50 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
   }
 }
 
+- (void)testOpeningL2CAPDoesNotBlockGATTCharacteristicDiscovery {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager
+                                                    peripheralManager:fakePeripheralManager
+                                                                queue:dispatch_get_main_queue()];
+  GNCFakePeripheral *peripheral = [[GNCFakePeripheral alloc] init];
+
+  __block GNCBLEGATTClient *gattClient = nil;
+  XCTestExpectation *gattExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"GATT connected"];
+  [medium connectToGATTServerForPeripheral:peripheral
+                      disconnectionHandler:nil
+                         completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
+                           XCTAssertNil(error);
+                           gattClient = client;
+                           [gattExpectation fulfill];
+                         }];
+  [self waitForExpectations:@[ gattExpectation ] timeout:3];
+  XCTAssertNotNil(gattClient);
+
+  // Delay peripheral delegate callbacks so L2CAP opens while GATT discovery is in flight.
+  peripheral.delegateDelay = 0.05;
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID];
+  CBUUID *characteristicUUID = [CBUUID UUIDWithString:@"0000FEF4-0000-1000-8000-00805F9B34FB"];
+  XCTestExpectation *discoverExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"GATT discovery completed"];
+  [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
+                                   serviceUUID:serviceUUID
+                             completionHandler:^(NSError *error) {
+                               XCTAssertNil(error);
+                               [discoverExpectation fulfill];
+                             }];
+
+  XCTestExpectation *l2capExpectation =
+      [[XCTestExpectation alloc] initWithDescription:@"L2CAP opened"];
+  [medium openL2CAPChannelWithPSM:123
+                       peripheral:peripheral
+                completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                  XCTAssertNil(error);
+                  [l2capExpectation fulfill];
+                }];
+
+  [self waitForExpectations:@[ discoverExpectation, l2capExpectation ] timeout:3];
+}
+
 @end

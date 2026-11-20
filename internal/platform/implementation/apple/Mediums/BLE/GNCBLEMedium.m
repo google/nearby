@@ -25,6 +25,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralDelegateMultiplexer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManagerMultiplexer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/NSData+GNCWebSafeBase64.h"
@@ -92,6 +93,10 @@ static NSError *AlreadyScanningError() {
 
   // The timeout duration for peripheral connection attempts.
   NSTimeInterval _peripheralConnectTimeout;
+
+  // Per-peripheral delegate multiplexers so GATT and L2CAP clients can share a peripheral.
+  NSMutableDictionary<NSUUID *, GNCPeripheralDelegateMultiplexer *>
+      *_peripheralDelegateMultiplexers;
 }
 
 - (instancetype)init {
@@ -128,6 +133,7 @@ static NSError *AlreadyScanningError() {
     _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
     _l2capPSM = 0;
     _peripheralConnectTimeout = kPeripheralConnectTimeout;
+    _peripheralDelegateMultiplexers = [NSMutableDictionary dictionary];
   }
   return self;
 }
@@ -481,6 +487,22 @@ static NSError *AlreadyScanningError() {
   }
 }
 
+- (void)ensureDelegateMultiplexerForPeripheral:(id<GNCPeripheral>)peripheral {
+  dispatch_assert_queue(_queue);
+  NSUUID *identifier = peripheral.identifier;
+  if (!identifier) {
+    return;
+  }
+  GNCPeripheralDelegateMultiplexer *multiplexer = _peripheralDelegateMultiplexers[identifier];
+  if (!multiplexer) {
+    multiplexer = [[GNCPeripheralDelegateMultiplexer alloc] init];
+    _peripheralDelegateMultiplexers[identifier] = multiplexer;
+  }
+  if (peripheral.peripheralDelegate != multiplexer) {
+    peripheral.peripheralDelegate = multiplexer;
+  }
+}
+
 - (void)internalOpenL2CAPChannel:(id<GNCPeripheral>)remotePeripheral {
   dispatch_assert_queue(_queue);
 
@@ -493,6 +515,7 @@ static NSError *AlreadyScanningError() {
     return;
   }
 
+  [self ensureDelegateMultiplexerForPeripheral:remotePeripheral];
   [_l2capClient
       openL2CAPChannelWithPSM:_l2capPSM
                    peripheral:remotePeripheral
@@ -544,6 +567,7 @@ static NSError *AlreadyScanningError() {
       _gattConnectionCompletionHandlers[peripheral.identifier];
   _gattConnectionCompletionHandlers[peripheral.identifier] = nil;
   if (handler) {
+    [self ensureDelegateMultiplexerForPeripheral:peripheral];
     GNCBLEGATTClient *client =
         [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral
                          requestDisconnectionHandler:^(id<GNCPeripheral> peripheral) {
@@ -582,6 +606,9 @@ static NSError *AlreadyScanningError() {
                       error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
 
+  if (peripheral.identifier) {
+    [_peripheralDelegateMultiplexers removeObjectForKey:peripheral.identifier];
+  }
   GNCGATTDisconnectionHandler handler = _gattDisconnectionHandlers[peripheral.identifier];
   _gattDisconnectionHandlers[peripheral.identifier] = nil;
   if (handler) {

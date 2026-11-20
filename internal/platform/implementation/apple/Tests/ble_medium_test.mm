@@ -423,6 +423,42 @@ static const char *const kTestServiceID = "TestServiceID";
   XCTAssertEqual(l2cap_socket.get(), nullptr);
 }
 
+- (void)testConnectOverL2cap_NilStreamWithoutError {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  NSDictionary<CBUUID *, NSData *> *serviceData =
+      @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Advertisement found callback should be called."];
+  nearby::api::ble::BleMedium::ScanCallback callback = {
+      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
+                                                   nearby::api::ble::BleAdvertisementData)>(
+          [expectation](nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+                        const nearby::api::ble::BleAdvertisementData &advertisement) {
+            [expectation fulfill];
+          })};
+  _medium->StartScanning(nearby::Uuid(0x0000FE2C00001000, 0x800000805F9B34FB),
+                         nearby::api::ble::TxPowerLevel::kUltraLow, std::move(callback));
+  if (_fakeGNCBLEMedium.advertisementFoundHandler) {
+    _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
+  }
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+
+  _fakeGNCBLEMedium.fakeL2CAPStream = nil;
+  _fakeGNCBLEMedium.openL2CAPChannelError = nil;
+
+  for (NSNumber *refactorEnabled in @[ @NO, @YES ]) {
+    id mockFeatureFlags = OCMClassMock([GNCFeatureFlags class]);
+    OCMStub([mockFeatureFlags refactorBleL2capEnabled]).andReturn(refactorEnabled.boolValue);
+
+    auto l2cap_socket =
+        _medium->ConnectOverL2cap(123, kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
+                                  fakePeripheral.identifier.hash, nullptr);
+
+    XCTAssertEqual(l2cap_socket.get(), nullptr);
+    [mockFeatureFlags stopMocking];
+  }
+}
+
 #pragma mark - Connect Tests
 
 - (void)testConnect_PeripheralNotFound {
