@@ -186,10 +186,10 @@ TEST(ScheduledExecutorTest, SingleThreadedExecuteAfterShutdownFails) {
   thread_ids.push_back(GetCurrentThreadId());
   executor->Shutdown();
 
-  executor->Execute([&output, &thread_ids]() {
+  EXPECT_FALSE(executor->Execute([&output, &thread_ids]() {
     thread_ids.push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
-  });
+  }));
 
   ASSERT_EQ(thread_ids.size(), 1);
   ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
@@ -206,13 +206,13 @@ TEST(ScheduledExecutorTest, SingleThreadedExecuteNullSucceeds) {
 
   thread_ids.push_back(GetCurrentThreadId());
 
-  executor->Execute(nullptr);
-  executor->Execute([&]() {
+  EXPECT_FALSE(executor->Execute(nullptr));
+  EXPECT_TRUE(executor->Execute([&]() {
     thread_ids.push_back(GetCurrentThreadId());
     output.append(RUNNABLE_0_TEXT.c_str());
     notification.Notify();
-  });
-  executor->Execute(nullptr);
+  }));
+  EXPECT_FALSE(executor->Execute(nullptr));
 
   ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   executor->Shutdown();
@@ -310,10 +310,10 @@ TEST(ScheduledExecutorTest, MultiThreadedExecuteSingleTaskAfterShutdownFails) {
   thread_ids.push_back(GetCurrentThreadId());
   executor->Shutdown();
 
-  executor->Execute([output, &thread_ids]() {
+  EXPECT_FALSE(executor->Execute([output, &thread_ids]() {
     thread_ids.push_back(GetCurrentThreadId());
     output->append(RUNNABLE_0_TEXT.c_str());
-  });
+  }));
 
   ASSERT_EQ(thread_ids.size(), 1);
   ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));

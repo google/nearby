@@ -26,8 +26,8 @@ MultiThreadExecutor::MultiThreadExecutor(int max_concurrency) {
 
 void MultiThreadExecutor::Shutdown() { scheduled_executor_->Shutdown(); }
 
-void MultiThreadExecutor::Execute(Runnable&& runnable) {
-  scheduled_executor_->Execute(std::move(runnable));
+bool MultiThreadExecutor::Execute(Runnable&& runnable) {
+  return scheduled_executor_->Execute(std::move(runnable));
 }
 
 }  // namespace apple
