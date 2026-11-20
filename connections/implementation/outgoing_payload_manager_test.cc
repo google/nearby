@@ -433,5 +433,34 @@ TEST_F(OutgoingPayloadManagerTest,
   tx->Close();
 }
 
+TEST_F(OutgoingPayloadManagerTest,
+       CancelAllPayloadsAndWaitDoesNotHangOnQueuedPayload) {
+  auto [input1, tx1] = CreatePipe();
+  tx1->Write("hello");
+  Payload payload1(std::move(input1));
+  Payload::Id payload_id1 = payload1.GetId();
+
+  outgoing_payload_manager_.SendPayload(&client_, {std::string(kEndpointA)},
+                                        std::move(payload1));
+  ASSERT_TRUE(WaitForProgress([payload_id1](const PayloadProgressInfo& info) {
+    return info.payload_id == payload_id1 &&
+           info.status == PayloadProgressInfo::Status::kInProgress;
+  }));
+
+  // The first payload blocks the stream executor reading its pipe, so this
+  // one stays queued behind it.
+  auto [input2, tx2] = CreatePipe();
+  outgoing_payload_manager_.SendPayload(&client_, {std::string(kEndpointA)},
+                                        Payload(std::move(input2)));
+
+  shutdown_.store(true);
+  outgoing_payload_manager_.CancelAllPayloadsAndWait();
+  outgoing_payload_manager_.ShutdownExecutors();
+  outgoing_payload_manager_.StopTrackingAllPayloads();
+
+  tx1->Close();
+  tx2->Close();
+}
+
 }  // namespace
 }  // namespace nearby::connections
