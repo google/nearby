@@ -18,13 +18,14 @@
 #include <windows.h>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/implementation/windows/task_scheduler.h"
+#include "internal/platform/implementation/windows/thread_pool.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -37,8 +38,9 @@ namespace windows {
 class ScheduledExecutor : public api::ScheduledExecutor {
  public:
   ScheduledExecutor();
+  explicit ScheduledExecutor(int32_t max_concurrency);
 
-  ~ScheduledExecutor() override = default;
+  ~ScheduledExecutor() override;
 
   // Cancelable is kept both in the executor context, and in the caller context.
   // We want Cancelable to live until both caller and executor are done with it.
@@ -54,7 +56,7 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   void Shutdown() override;
 
  private:
-  std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
+  const std::unique_ptr<ThreadPool> thread_pool_;
   std::atomic_bool shut_down_ = false;
 
   TaskScheduler task_scheduler_;

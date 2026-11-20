@@ -27,7 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -81,7 +81,7 @@ HWND CreateNearbyWindow() {
 // Initialize class static variables.
 ABSL_CONST_INIT absl::Mutex SessionManager::session_mutex_{absl::kConstInit};
 HWND SessionManager::session_hwnd_ = nullptr;
-SubmittableExecutor* SessionManager::session_thread_ = nullptr;
+ScheduledExecutor* SessionManager::session_thread_ = nullptr;
 absl::flat_hash_map<std::string,
                     absl::AnyInvocable<void(SessionManager::SessionState)>>*
     SessionManager::session_callbacks_ = nullptr;
@@ -97,7 +97,7 @@ bool SessionManager::RegisterSessionListener(
   // Create session thread if no running thread.
   if (session_thread_ == nullptr) {
     absl::Notification notification;
-    session_thread_ = new SubmittableExecutor();
+    session_thread_ = new ScheduledExecutor();
     session_callbacks_ = new absl::flat_hash_map<
         std::string, absl::AnyInvocable<void(SessionManager::SessionState)>>();
     session_thread_->Execute(

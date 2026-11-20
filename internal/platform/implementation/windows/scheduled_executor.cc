@@ -14,24 +14,31 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
-#include <crtdbg.h>
-
+#include <atomic>
+#include <cassert>
+#include <cstdint>
 #include <memory>
 #include <utility>
 
 #include "absl/time/time.h"
-#include "internal/flags/nearby_flags.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/windows/thread_pool.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
 
-ScheduledExecutor::ScheduledExecutor()
-    : executor_(std::make_unique<nearby::windows::Executor>()),
-      shut_down_(false) {}
+ScheduledExecutor::ScheduledExecutor() : ScheduledExecutor(1) {}
+
+ScheduledExecutor::ScheduledExecutor(int32_t max_concurrency)
+    : thread_pool_(ThreadPool::Create(
+          max_concurrency > 0 ? static_cast<uint32_t>(max_concurrency) : 0)) {
+  assert(max_concurrency >= 1);
+  assert(thread_pool_ != nullptr);
+}
+
+ScheduledExecutor::~ScheduledExecutor() { Shutdown(); }
 
 // Cancelable is kept both in the executor context, and in the caller context.
 // We want Cancelable to live until both caller and executor are done with it.
@@ -39,7 +46,7 @@ ScheduledExecutor::ScheduledExecutor()
 // using std:shared_ptr<> instead of std::unique_ptr<>.
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
-  if (shut_down_) {
+  if (shut_down_.load(std::memory_order_acquire)) {
     LOG(ERROR) << __func__ << ": Attempt to Schedule on a shut down executor.";
 
     return nullptr;
@@ -49,22 +56,32 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {
-  if (shut_down_) {
-    LOG(ERROR) << __func__ << ": Attempt to Execute on a shut down executor.";
+  if (shut_down_.load(std::memory_order_acquire)) {
+    VLOG(1) << __func__ << ": Attempt to Execute on a shut down executor.";
     return;
   }
 
-  executor_->Execute(std::move(runnable));
+  if (runnable == nullptr) {
+    LOG(ERROR) << __func__ << ": Runnable was null.";
+    return;
+  }
+
+  if (thread_pool_ == nullptr) {
+    return;
+  }
+
+  thread_pool_->Run(std::move(runnable));
 }
 
 void ScheduledExecutor::Shutdown() {
-  if (!shut_down_) {
-    shut_down_ = true;
-    executor_->Shutdown();
+  if (!shut_down_.exchange(true, std::memory_order_acq_rel)) {
+    if (thread_pool_ != nullptr) {
+      thread_pool_->ShutDown();
+    }
     task_scheduler_.Shutdown();
     return;
   }
-  LOG(ERROR) << __func__ << ": Attempt to Shutdown on a shut down executor.";
+  VLOG(1) << __func__ << ": Attempt to Shutdown on a shut down executor.";
 }
 }  // namespace windows
 }  // namespace nearby

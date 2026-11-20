@@ -14,11 +14,18 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
+#include <atomic>
 #include <chrono>  // NOLINT
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -169,6 +176,199 @@ TEST(ScheduledExecutorTest, CancelAfterStartedFails) {
   ASSERT_EQ(GetCurrentThreadId(), threadIds->at(0));
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
+}
+
+TEST(ScheduledExecutorTest, SingleThreadedExecuteAfterShutdownFails) {
+  auto executor = std::make_unique<ScheduledExecutor>();
+  std::string output;
+  std::vector<DWORD> thread_ids;
+
+  thread_ids.push_back(GetCurrentThreadId());
+  executor->Shutdown();
+
+  executor->Execute([&output, &thread_ids]() {
+    thread_ids.push_back(GetCurrentThreadId());
+    output.append(RUNNABLE_0_TEXT.c_str());
+  });
+
+  ASSERT_EQ(thread_ids.size(), 1);
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+  ASSERT_EQ(output, "");
+}
+
+TEST(ScheduledExecutorTest, SingleThreadedExecuteNullSucceeds) {
+  absl::Notification notification;
+  std::string expected(RUNNABLE_0_TEXT.c_str());
+
+  auto executor = std::make_unique<ScheduledExecutor>();
+  std::string output;
+  std::vector<DWORD> thread_ids;
+
+  thread_ids.push_back(GetCurrentThreadId());
+
+  executor->Execute(nullptr);
+  executor->Execute([&]() {
+    thread_ids.push_back(GetCurrentThreadId());
+    output.append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
+  });
+  executor->Execute(nullptr);
+
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  executor->Shutdown();
+
+  ASSERT_EQ(thread_ids.size(), 2);
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+  ASSERT_EQ(output, expected);
+}
+
+TEST(ScheduledExecutorTest, SingleThreadedExecuteMultipleTasksSucceeds) {
+  absl::BlockingCounter block_count(5);
+  std::string expected(RUNNABLE_ALL_TEXT.c_str());
+
+  auto executor = std::make_unique<ScheduledExecutor>();
+  std::string output;
+  std::vector<DWORD> thread_ids;
+  DWORD parent_thread = GetCurrentThreadId();
+
+  for (int index = 0; index < 5; index++) {
+    executor->Execute([&, index]() {
+      thread_ids.push_back(GetCurrentThreadId());
+      char buffer[128];
+      snprintf(buffer, sizeof(buffer), "%s%d, ", RUNNABLE_TEXT.c_str(), index);
+      output.append(std::string(buffer));
+      block_count.DecrementCount();
+    });
+  }
+
+  block_count.Wait();
+  executor->Shutdown();
+
+  ASSERT_EQ(thread_ids.size(), 5);
+  ASSERT_EQ(GetCurrentThreadId(), parent_thread);
+  DWORD worker_thread_id = thread_ids.at(0);
+  for (size_t index = 0; index < thread_ids.size(); index++) {
+    ASSERT_EQ(thread_ids.at(index), worker_thread_id);
+  }
+  ASSERT_EQ(output, expected);
+}
+
+TEST(ScheduledExecutorTest, MultiThreadedExecuteSingleTaskSucceeds) {
+  absl::Notification notification;
+  std::string expected(RUNNABLE_0_TEXT.c_str());
+
+  auto executor = std::make_unique<ScheduledExecutor>(2);
+  std::vector<DWORD> thread_ids;
+  auto output = std::make_shared<std::string>();
+
+  thread_ids.push_back(GetCurrentThreadId());
+
+  executor->Execute([&, output]() {
+    thread_ids.push_back(GetCurrentThreadId());
+    output->append(RUNNABLE_0_TEXT.c_str());
+    notification.Notify();
+  });
+
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  executor->Shutdown();
+
+  ASSERT_EQ(thread_ids.size(), 2);
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+  ASSERT_EQ(*output, expected);
+}
+
+TEST(ScheduledExecutorTest, MultiThreadedExecuteMultipleTasksSucceeds) {
+  absl::BlockingCounter block_count(5);
+
+  auto executor = std::make_unique<ScheduledExecutor>(2);
+  absl::Mutex mutex;
+  std::vector<DWORD> thread_ids;
+  thread_ids.push_back(GetCurrentThreadId());
+
+  for (int index = 0; index < 5; index++) {
+    executor->Execute([&]() {
+      {
+        absl::MutexLock lock(mutex);
+        thread_ids.push_back(GetCurrentThreadId());
+      }
+      block_count.DecrementCount();
+    });
+  }
+
+  block_count.Wait();
+  executor->Shutdown();
+
+  ASSERT_EQ(thread_ids.size(), 6);
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+}
+
+TEST(ScheduledExecutorTest, MultiThreadedExecuteSingleTaskAfterShutdownFails) {
+  auto executor = std::make_unique<ScheduledExecutor>(2);
+  std::vector<DWORD> thread_ids;
+  auto output = std::make_shared<std::string>();
+
+  thread_ids.push_back(GetCurrentThreadId());
+  executor->Shutdown();
+
+  executor->Execute([output, &thread_ids]() {
+    thread_ids.push_back(GetCurrentThreadId());
+    output->append(RUNNABLE_0_TEXT.c_str());
+  });
+
+  ASSERT_EQ(thread_ids.size(), 1);
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+  ASSERT_EQ(*output, "");
+}
+
+TEST(ScheduledExecutorTest,
+     MultiThreadedExecuteMultipleTasksLargeNumberOfThreadsSucceeds) {
+  absl::BlockingCounter block_count(250);
+
+  auto executor = std::make_unique<ScheduledExecutor>(32);
+  std::vector<DWORD> thread_ids;
+  thread_ids.push_back(GetCurrentThreadId());
+  absl::Mutex mutex;
+
+  for (int index = 0; index < 250; index++) {
+    executor->Execute([&]() mutable {
+      DWORD id = GetCurrentThreadId();
+      DWORD sleep_time = 1;
+      {
+        absl::MutexLock lock(mutex);
+        thread_ids.push_back(id);
+        sleep_time = (std::rand() % 101) + 1;  // NOLINT
+      }
+      Sleep(sleep_time);
+      block_count.DecrementCount();
+    });
+  }
+
+  block_count.Wait();
+  executor->Shutdown();
+
+  ASSERT_EQ(GetCurrentThreadId(), thread_ids.at(0));
+  ASSERT_EQ(thread_ids.size(), 251);
+}
+
+TEST(ScheduledExecutorTest, ExecuteAndScheduleDuringShutdownDoNotDeadlock) {
+  absl::Notification started;
+  auto executor = std::make_unique<ScheduledExecutor>();
+  std::atomic_bool nested_ran = false;
+  std::shared_ptr<api::Cancelable> nested_scheduled;
+
+  executor->Execute([&]() {
+    started.Notify();
+    Sleep(50);
+    executor->Execute([&]() { nested_ran.store(true); });
+    nested_scheduled = executor->Schedule([&]() { nested_ran.store(true); },
+                                          absl::Milliseconds(10));
+  });
+
+  ASSERT_TRUE(started.WaitForNotificationWithTimeout(absl::Seconds(5)));
+  executor->Shutdown();
+  executor->Shutdown();
+  EXPECT_FALSE(nested_ran.load());
+  EXPECT_EQ(nested_scheduled, nullptr);
 }
 
 }  // namespace

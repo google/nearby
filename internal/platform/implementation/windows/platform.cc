@@ -70,7 +70,6 @@
 #include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/string_utils.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/implementation/windows/timer.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
@@ -138,13 +137,13 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 
 std::unique_ptr<Executor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
-  return std::make_unique<windows::SubmittableExecutor>();
+  return std::make_unique<windows::ScheduledExecutor>();
 }
 
 std::unique_ptr<Executor>
 ImplementationPlatform::CreateMultiThreadExecutor(
     std::int32_t max_concurrency) {
-  return std::make_unique<windows::SubmittableExecutor>(max_concurrency);
+  return std::make_unique<windows::ScheduledExecutor>(max_concurrency);
 }
 
 std::unique_ptr<ScheduledExecutor>

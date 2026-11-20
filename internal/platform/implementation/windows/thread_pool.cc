@@ -174,21 +174,31 @@ std::optional<uint64_t> ThreadPool::Run(Runnable task, absl::Duration delay,
 }
 
 void ThreadPool::ShutDown() {
-  absl::MutexLock lock(mutex_);
-  VLOG(1) << __func__ << ": Thread pool(" << this << ") is shutting down.";
-  if (is_shut_down_) {
-    LOG(INFO) << __func__ << ": Thread pool(" << this
-              << ") is already shut down.";
-    return;
+  PTP_CLEANUP_GROUP cleanup_group = nullptr;
+  PTP_POOL thread_pool = nullptr;
+  {
+    absl::MutexLock lock(mutex_);
+    VLOG(1) << __func__ << ": Thread pool(" << this << ") is shutting down.";
+    if (is_shut_down_) {
+      LOG(INFO) << __func__ << ": Thread pool(" << this
+                << ") is already shut down.";
+      return;
+    }
+
+    is_shut_down_ = true;
+    cleanup_group = cleanup_group_;
+    cleanup_group_ = nullptr;
+    thread_pool = thread_pool_;
+    thread_pool_ = nullptr;
   }
 
-  is_shut_down_ = true;
-
-  CloseThreadpoolCleanupGroupMembers(/*ptpcg=*/cleanup_group_,
+  // Wait for queued and in-flight callbacks outside `mutex_` so re-entrant
+  // `Run()` or `CancelDelayedTask()` calls do not deadlock.
+  CloseThreadpoolCleanupGroupMembers(/*ptpcg=*/cleanup_group,
                                      /*fCancelPendingCallbacks=*/FALSE,
                                      /*pvCleanupContext=*/nullptr);
-  CloseThreadpoolCleanupGroup(/*ptpcg=*/cleanup_group_);
-  CloseThreadpool(/*ptpp=*/thread_pool_);
+  CloseThreadpoolCleanupGroup(/*ptpcg=*/cleanup_group);
+  CloseThreadpool(/*ptpp=*/thread_pool);
   task_queue_.clear();
   delayed_task_map_.clear();
   VLOG(1) << __func__ << ": Thread pool(" << this << ") is shut down.";

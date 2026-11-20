@@ -23,7 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/scheduled_executor.h"
 
 namespace nearby {
 namespace windows {
@@ -64,7 +64,7 @@ class SessionManager {
   // Static class members
   static absl::Mutex session_mutex_;
   static HWND session_hwnd_;
-  static SubmittableExecutor* session_thread_;
+  static ScheduledExecutor* session_thread_;
   static absl::flat_hash_map<
       std::string, absl::AnyInvocable<void(SessionManager::SessionState)>>*
       session_callbacks_;

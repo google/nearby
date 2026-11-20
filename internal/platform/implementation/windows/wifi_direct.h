@@ -38,8 +38,8 @@
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
+#include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
@@ -280,7 +280,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   absl::CondVar is_ip_address_ready_;
   std::string remote_device_name_;
   WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  SubmittableExecutor listener_executor_;
+  ScheduledExecutor listener_executor_;
 #endif  // ENABLE_WIFI_DIRECT_GO
 
   // Discovery properties
