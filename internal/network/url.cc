@@ -74,14 +74,35 @@ bool Url::SetUrlPath(absl::string_view url_string) {
     authority = url_string;
     url_string = "";
   }
+  // Drop the userinfo; the host starts after the last '@'.
+  size_t userinfo_end = authority.rfind('@');
+  if (userinfo_end != std::string::npos) {
+    authority = authority.substr(userinfo_end + 1);
+  }
   if (authority.empty()) {
     return false;
   }
-  size_t port_start = authority.find(':');
+  size_t port_start = std::string::npos;
+  if (authority.front() == '[') {
+    // IPv6 literal, e.g. "[::1]:8080".
+    size_t host_end = authority.find(']');
+    if (host_end == std::string::npos) {
+      return false;
+    }
+    if (host_end + 1 < authority.size()) {
+      if (authority[host_end + 1] != ':') {
+        return false;
+      }
+      port_start = host_end + 1;
+    }
+  } else {
+    port_start = authority.find(':');
+  }
   if (port_start != std::string::npos) {
     host_ = authority.substr(0, port_start);
     int port;
-    if (absl::SimpleAtoi(authority.substr(port_start + 1), &port)) {
+    if (absl::SimpleAtoi(authority.substr(port_start + 1), &port) &&
+        port >= 0 && port <= 65535) {
       port_ = port;
     } else {
       return false;
@@ -90,23 +111,26 @@ bool Url::SetUrlPath(absl::string_view url_string) {
     host_ = authority;
     port_ = scheme_ == "http" ? 80 : 443;
   }
+  if (host_.empty()) {
+    return false;
+  }
   if (url_string.empty()) {
     return true;
   }
-  size_t query_start = url_string.find_first_of('?');
-  if (query_start != std::string::npos) {
-    path_ = url_string.substr(0, query_start);
-    url_string = url_string.substr(query_start + 1);
-  } else {
-    path_ = url_string;
+  // The fragment starts at the first '#'; a '?' after it is part of the
+  // fragment.
+  size_t fragment_start = url_string.find('#');
+  if (fragment_start != std::string::npos) {
+    fragment_ = url_string.substr(fragment_start + 1);
+    url_string = url_string.substr(0, fragment_start);
   }
   absl::string_view query;
-  size_t fragment_start = url_string.find_first_of('#');
-  if (fragment_start != std::string::npos) {
-    query = url_string.substr(0, fragment_start);
-    fragment_ = url_string.substr(fragment_start + 1);
+  size_t query_start = url_string.find('?');
+  if (query_start != std::string::npos) {
+    path_ = url_string.substr(0, query_start);
+    query = url_string.substr(query_start + 1);
   } else {
-    query = url_string;
+    path_ = url_string;
   }
   if (!query.empty()) {
     // split by &

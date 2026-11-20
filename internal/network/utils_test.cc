@@ -26,6 +26,10 @@ TEST(UrlEncode, TestEncode) {
   EXPECT_EQ(UrlEncode("abc12&()*t"), "abc12%26()*t");
 }
 
+TEST(UrlEncode, TestEncodeControlCharacters) {
+  EXPECT_EQ(UrlEncode("a\tb\nc"), "a%09b%0Ac");
+}
+
 TEST(UrlDecode, TestDecode) {
   EXPECT_EQ(UrlDecode("abc12%26()*t"), "abc12&()*t");
 }
