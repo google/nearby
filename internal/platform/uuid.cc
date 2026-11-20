@@ -54,8 +54,6 @@ std::ostream& write_hex(std::ostream& os, absl::string_view data) {
 ByteArray Hash(absl::string_view input, const EVP_MD* algo) {
   unsigned int md_out_size = EVP_MAX_MD_SIZE;
   uint8_t digest_buffer[EVP_MAX_MD_SIZE];
-  if (input.empty()) return {};
-
   if (!EVP_Digest(input.data(), input.size(), digest_buffer, &md_out_size, algo,
                   nullptr))
     return {};
@@ -196,7 +194,7 @@ std::string Uuid::ToCanonicalString(const std::array<char, 16>& data) const {
 bool Uuid::operator<(const Uuid& rhs) const {
   return GetMostSigBits() == rhs.GetMostSigBits()
              ? GetLeastSigBits() < rhs.GetLeastSigBits()
-             : GetMostSigBits() < rhs.GetLeastSigBits();
+             : GetMostSigBits() < rhs.GetMostSigBits();
 }
 
 bool Uuid::operator==(const Uuid& rhs) const {

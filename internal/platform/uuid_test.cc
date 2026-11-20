@@ -129,10 +129,31 @@ TEST(UuidTest, ComparisonEqualWorksForString) {
 }
 
 TEST(UuidTest, OperatorGreaterThan) {
-  Uuid a("12345678-1234-1234-1234-123456789012");
-  Uuid b("12345678-1234-1234-1234-123456789013");
+  std::optional<Uuid> a =
+      Uuid::FromString("12345678-1234-1234-1234-123456789012");
+  std::optional<Uuid> b =
+      Uuid::FromString("12345678-1234-1234-1234-123456789013");
+  ASSERT_TRUE(a.has_value());
+  ASSERT_TRUE(b.has_value());
 
+  EXPECT_TRUE(*a < *b);
+  EXPECT_FALSE(*b < *a);
+}
+
+TEST(UuidTest, OperatorLessThanComparesMostSignificantBitsFirst) {
+  Uuid a(/*most_sig_bits=*/1, /*least_sig_bits=*/5);
+  Uuid b(/*most_sig_bits=*/2, /*least_sig_bits=*/0);
+
+  EXPECT_FALSE(a < a);
   EXPECT_TRUE(a < b);
+  EXPECT_FALSE(b < a);
+}
+
+TEST(UuidTest, CreateFromEmptyStringWithMd5) {
+  // Same as Java's UUID.nameUUIDFromBytes(new byte[0]).
+  Uuid uuid("");
+
+  EXPECT_EQ(uuid, Uuid(0xd41d8cd98f003204, 0xa9800998ecf8427e));
 }
 
 TEST(UuidTest, ConstructUuidFromString) {
