@@ -90,6 +90,8 @@ void MediumEnvironment::Stop() {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
     ble_l2cap_available_.store(false, std::memory_order_relaxed);
+    ble_start_scanning_mode_.store(BleStartScanningMode::kSuccess,
+                                   std::memory_order_relaxed);
     absl::MutexLock lock(mutex_);
     if (config_.use_simulated_clock) {
       simulated_clock_.reset();
@@ -116,6 +118,8 @@ void MediumEnvironment::Reset() {
     use_valid_peer_connection_ = true;
     peer_connection_latency_ = absl::ZeroDuration();
     ble_l2cap_available_.store(false, std::memory_order_relaxed);
+    ble_start_scanning_mode_.store(BleStartScanningMode::kSuccess,
+                                   std::memory_order_relaxed);
     wifi_direct_go_supported_ = true;
     fail_wifi_hotspot_listen_for_service_ = false;
     fail_wifi_direct_listen_for_service_ = false;
@@ -600,6 +604,12 @@ void MediumEnvironment::UpdateBleMediumForScanning(
               << ", medium=" << &medium << ", medium_context=" << &context
               << ", enabled=" << enabled;
     if (enabled) {
+      if (GetBleStartScanningMode() ==
+          BleStartScanningMode::kAsyncResultFailure) {
+        callback.start_scanning_result(absl::InternalError(
+            "Simulated asynchronous BLE scan start failure"));
+        return;
+      }
       context.scanning = true;
       callback.start_scanning_result(absl::OkStatus());
       context.scan_callback_map[{scanning_service_uuid, internal_session_id}] =
@@ -1414,6 +1424,15 @@ void MediumEnvironment::SetBleL2capAvailable(bool enabled) {
 
 bool MediumEnvironment::IsBleL2capAvailable() const {
   return ble_l2cap_available_.load(std::memory_order_relaxed);
+}
+
+void MediumEnvironment::SetBleStartScanningMode(BleStartScanningMode mode) {
+  ble_start_scanning_mode_.store(mode, std::memory_order_relaxed);
+}
+
+MediumEnvironment::BleStartScanningMode
+MediumEnvironment::GetBleStartScanningMode() const {
+  return ble_start_scanning_mode_.load(std::memory_order_relaxed);
 }
 
 void MediumEnvironment::SetWifiDirectGoSupported(bool supported) {
