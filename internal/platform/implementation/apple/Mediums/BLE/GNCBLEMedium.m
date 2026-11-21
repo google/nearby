@@ -162,6 +162,10 @@ static NSError *AlreadyScanningError() {
   NSMutableDictionary<NSUUID *, dispatch_block_t> *_gattConnectionTimeoutBlocks;
   NSMutableDictionary<NSUUID *, dispatch_block_t> *_l2capConnectionTimeoutBlocks;
 
+  // Active LE link claims per peripheral: weak references to active GATT clients. The peripheral
+  // connection is cancelled only when no GATT or L2CAP claim remains.
+  NSMutableDictionary<NSUUID *, NSHashTable<GNCBLEGATTClient *> *> *_activeGATTClients;
+
   // The timeout duration for peripheral connection attempts.
   NSTimeInterval _peripheralConnectTimeout;
 
@@ -177,9 +181,6 @@ static NSError *AlreadyScanningError() {
 
   // GATT connection attempts queued behind an in-flight local disconnect.
   NSMutableDictionary<NSUUID *, GNCQueuedGATTConnectionAttempt *> *_queuedGATTConnectionAttempts;
-
-  // Per-peripheral tokens for the currently active GATT client session, cleared on disconnection.
-  NSMutableDictionary<NSUUID *, NSObject *> *_activeGATTClientTokens;
 }
 
 - (instancetype)init {
@@ -219,12 +220,12 @@ static NSError *AlreadyScanningError() {
     _l2capOpenAttempts = [NSMutableDictionary dictionary];
     _gattConnectionTimeoutBlocks = [NSMutableDictionary dictionary];
     _l2capConnectionTimeoutBlocks = [NSMutableDictionary dictionary];
+    _activeGATTClients = [NSMutableDictionary dictionary];
     _peripheralConnectTimeout = kPeripheralConnectTimeout;
     _peripheralDelegateMultiplexers = [NSMutableDictionary dictionary];
     _cancelingPeripheralIdentifiers = [NSMutableSet set];
     _queuedConnectPeripherals = [NSMutableDictionary dictionary];
     _queuedGATTConnectionAttempts = [NSMutableDictionary dictionary];
-    _activeGATTClientTokens = [NSMutableDictionary dictionary];
   }
   return self;
 }
@@ -378,9 +379,9 @@ static NSError *AlreadyScanningError() {
                     disconnectionHandler:(nullable GNCGATTDisconnectionHandler)disconnectionHandler
                        completionHandler:
                            (nullable GNCGATTConnectionCompletionHandler)completionHandler {
-  completionHandler =
-      [(completionHandler ?: ^(GNCBLEGATTClient *_Nullable client, NSError *_Nullable error) {
-      }) copy];
+  completionHandler = [(completionHandler
+                            ?: ^(GNCBLEGATTClient *_Nullable client, NSError *_Nullable error){
+                               }) copy];
   __weak __typeof__(self) weakSelf = self;
   dispatch_queue_t queue = _queue;
   dispatch_async(queue, ^{
@@ -404,8 +405,9 @@ static NSError *AlreadyScanningError() {
           strongSelf->_queuedGATTConnectionAttempts[identifier];
       if (previousQueuedAttempt) {
         [strongSelf->_queuedGATTConnectionAttempts removeObjectForKey:identifier];
-        previousQueuedAttempt.completionHandler(
-            nil, [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorUnknown userInfo:nil]);
+        previousQueuedAttempt.completionHandler(nil, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                                         code:GNCBLEErrorUnknown
+                                                                     userInfo:nil]);
       }
       queuedAttempt =
           [[GNCQueuedGATTConnectionAttempt alloc] initWithPeripheral:remotePeripheral
@@ -448,7 +450,7 @@ static NSError *AlreadyScanningError() {
                  }
                  [innerSelf->_gattConnectionCompletionHandlers removeObjectForKey:identifier];
                  [innerSelf->_gattDisconnectionHandlers removeObjectForKey:identifier];
-                 [innerSelf cancelPeripheralConnectionForPeripheral:remotePeripheral];
+                 [innerSelf cancelPeripheralConnectionIfUnused:remotePeripheral];
                  completionHandler(nil, error);
                }];
     }
@@ -494,7 +496,8 @@ static NSError *AlreadyScanningError() {
                      peripheral:(id<GNCPeripheral>)remotePeripheral
               completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler {
   completionHandler =
-      completionHandler ?: ^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {};
+      completionHandler ?: ^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+      };
   __weak __typeof__(self) weakSelf = self;
   dispatch_queue_t queue = _queue;
   dispatch_async(queue, ^{
@@ -537,10 +540,8 @@ static NSError *AlreadyScanningError() {
                 return;
               }
               NSUUID *peripheralIdentifier = peripheral.identifier ?: identifier;
-              if ([innerSelf removeL2CAPClient:strongClient forIdentifier:peripheralIdentifier] &&
-                  innerSelf->_l2capClients[peripheralIdentifier].count == 0 &&
-                  !innerSelf->_l2capOpenAttempts[peripheralIdentifier]) {
-                [innerSelf cancelPeripheralConnectionForPeripheral:peripheral];
+              if ([innerSelf removeL2CAPClient:strongClient forIdentifier:peripheralIdentifier]) {
+                [innerSelf cancelPeripheralConnectionIfUnused:peripheral];
               }
             });
           }];
@@ -581,9 +582,7 @@ static NSError *AlreadyScanningError() {
                            !innerSelf->_queuedGATTConnectionAttempts[identifier]) {
                          [innerSelf->_queuedConnectPeripherals removeObjectForKey:identifier];
                        }
-                       if (innerSelf->_l2capClients[identifier].count == 0) {
-                         [innerSelf cancelPeripheralConnectionForPeripheral:remotePeripheral];
-                       }
+                       [innerSelf cancelPeripheralConnectionIfUnused:remotePeripheral];
                        if (strongAttempt.completionHandler) {
                          strongAttempt.completionHandler(nil, error);
                        }
@@ -755,6 +754,57 @@ static NSError *AlreadyScanningError() {
   return attempt;
 }
 
+- (BOOL)hasActiveGATTClientsForIdentifier:(NSUUID *)identifier {
+  dispatch_assert_queue(_queue);
+  NSHashTable<GNCBLEGATTClient *> *clients = _activeGATTClients[identifier];
+  if (!clients) {
+    return NO;
+  }
+  NSUInteger activeCount = 0;
+  @autoreleasepool {
+    activeCount = clients.allObjects.count;
+  }
+  if (activeCount == 0) {
+    [_activeGATTClients removeObjectForKey:identifier];
+    return NO;
+  }
+  return YES;
+}
+
+- (BOOL)removeGATTClient:(nullable GNCBLEGATTClient *)client forIdentifier:(NSUUID *)identifier {
+  dispatch_assert_queue(_queue);
+  if (!client) {
+    return NO;
+  }
+  NSHashTable<GNCBLEGATTClient *> *clients = _activeGATTClients[identifier];
+  if (![clients containsObject:client]) {
+    return NO;
+  }
+  [clients removeObject:client];
+  @autoreleasepool {
+    if (clients.allObjects.count == 0) {
+      [_activeGATTClients removeObjectForKey:identifier];
+    }
+  }
+  return YES;
+}
+
+- (void)cancelPeripheralConnectionIfUnused:(id<GNCPeripheral>)peripheral {
+  dispatch_assert_queue(_queue);
+  NSUUID *identifier = peripheral.identifier;
+  if (!identifier) {
+    return;
+  }
+  BOOL hasGATT = [self hasActiveGATTClientsForIdentifier:identifier] ||
+                 _gattConnectionCompletionHandlers[identifier] != nil ||
+                 _queuedGATTConnectionAttempts[identifier] != nil;
+  BOOL hasL2CAP = _l2capClients[identifier].count > 0 || _l2capOpenAttempts[identifier] != nil ||
+                  _l2capStreamCompletionHandlers[identifier] != nil;
+  if (!hasGATT && !hasL2CAP) {
+    [self cancelPeripheralConnectionForPeripheral:peripheral];
+  }
+}
+
 - (void)ensureDelegateMultiplexerForPeripheral:(id<GNCPeripheral>)peripheral {
   dispatch_assert_queue(_queue);
   NSUUID *identifier = peripheral.identifier;
@@ -788,9 +838,11 @@ static NSError *AlreadyScanningError() {
   if (!l2capClient) {
     [self cancelConnectionTimeoutInMap:_l2capConnectionTimeoutBlocks forIdentifier:identifier];
     [self takeL2CAPOpenAttemptForIdentifier:identifier];
+    [self cancelPeripheralConnectionIfUnused:remotePeripheral];
     if (attempt.completionHandler) {
-      attempt.completionHandler(
-          nil, [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorUnknown userInfo:nil]);
+      attempt.completionHandler(nil, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                         code:GNCBLEErrorUnknown
+                                                     userInfo:nil]);
     }
     return;
   }
@@ -820,6 +872,7 @@ static NSError *AlreadyScanningError() {
                 [strongSelf->_l2capStreamCompletionHandlers removeObjectForKey:identifier];
                 if (error || !stream) {
                   [strongSelf removeL2CAPClient:strongAttempt.ownedClient forIdentifier:identifier];
+                  [strongSelf cancelPeripheralConnectionIfUnused:remotePeripheral];
                 }
                 if (strongAttempt.completionHandler) {
                   strongAttempt.completionHandler(stream, error);
@@ -872,7 +925,7 @@ static NSError *AlreadyScanningError() {
   [identifiers addObjectsFromArray:_l2capPSMs.allKeys];
   [identifiers addObjectsFromArray:_l2capClients.allKeys];
   [identifiers addObjectsFromArray:_peripheralDelegateMultiplexers.allKeys];
-  [identifiers addObjectsFromArray:_activeGATTClientTokens.allKeys];
+  [identifiers addObjectsFromArray:_activeGATTClients.allKeys];
 
   NSDictionary<NSUUID *, GNCQueuedGATTConnectionAttempt *> *queuedGATTAttempts =
       [_queuedGATTConnectionAttempts copy];
@@ -913,7 +966,8 @@ static NSError *AlreadyScanningError() {
     [self cancelConnectionTimeoutInMap:_gattConnectionTimeoutBlocks forIdentifier:identifier];
   }
 
-  GNCGATTConnectionCompletionHandler priorGattHandler = _gattConnectionCompletionHandlers[identifier];
+  GNCGATTConnectionCompletionHandler priorGattHandler =
+      _gattConnectionCompletionHandlers[identifier];
   [_gattConnectionCompletionHandlers removeObjectForKey:identifier];
 
   GNCL2CAPChannelOpenAttempt *currentL2CAPAttempt = _l2capOpenAttempts[identifier];
@@ -943,7 +997,7 @@ static NSError *AlreadyScanningError() {
         priorL2CAPAttempt ? priorL2CAPAttempt.completionHandler : fallbackL2CAPHandler;
   }
 
-  [_activeGATTClientTokens removeObjectForKey:identifier];
+  [_activeGATTClients removeObjectForKey:identifier];
   [_peripheralDelegateMultiplexers removeObjectForKey:identifier];
 
   GNCGATTDisconnectionHandler disconnectionHandler = _gattDisconnectionHandlers[identifier];
@@ -953,11 +1007,11 @@ static NSError *AlreadyScanningError() {
   [_queuedConnectPeripherals removeObjectForKey:identifier];
 
   if (priorGattHandler || priorL2CAPHandler) {
-    NSError *callbackError =
-        error ?: (useFallbackError ? [NSError errorWithDomain:GNCBLEErrorDomain
-                                                        code:GNCBLEErrorUnknown
-                                                    userInfo:nil]
-                                   : nil);
+    NSError *callbackError = error
+                                 ?: (useFallbackError ? [NSError errorWithDomain:GNCBLEErrorDomain
+                                                                            code:GNCBLEErrorUnknown
+                                                                        userInfo:nil]
+                                                      : nil);
     if (priorGattHandler) {
       priorGattHandler(nil, callbackError);
     }
@@ -1024,14 +1078,15 @@ static NSError *AlreadyScanningError() {
   if (handler) {
     [_gattConnectionCompletionHandlers removeObjectForKey:identifier];
     [self ensureDelegateMultiplexerForPeripheral:peripheral];
+
     __weak __typeof__(self) weakSelf = self;
     dispatch_queue_t queue = _queue;
-    NSObject *gattToken = [[NSObject alloc] init];
-    _activeGATTClientTokens[identifier] = gattToken;
+    __block __weak GNCBLEGATTClient *weakClient = nil;
     __block BOOL didRequestDisconnection = NO;
     GNCBLEGATTClient *client = [[GNCBLEGATTClient alloc]
                  initWithPeripheral:peripheral
         requestDisconnectionHandler:^(id<GNCPeripheral> clientPeripheral) {
+          __strong GNCBLEGATTClient *strongClient = weakClient;
           dispatch_async(queue, ^{
             if (didRequestDisconnection) {
               return;
@@ -1042,13 +1097,18 @@ static NSError *AlreadyScanningError() {
               return;
             }
             NSUUID *clientIdentifier = clientPeripheral.identifier ?: identifier;
-            if (strongSelf->_activeGATTClientTokens[clientIdentifier] != gattToken) {
-              return;
+            if ([strongSelf removeGATTClient:strongClient forIdentifier:clientIdentifier]) {
+              [strongSelf cancelPeripheralConnectionIfUnused:clientPeripheral];
             }
-            [strongSelf->_activeGATTClientTokens removeObjectForKey:clientIdentifier];
-            [strongSelf cancelPeripheralConnectionForPeripheral:clientPeripheral];
           });
         }];
+    weakClient = client;
+    NSHashTable<GNCBLEGATTClient *> *clients = _activeGATTClients[identifier];
+    if (!clients) {
+      clients = [NSHashTable weakObjectsHashTable];
+      _activeGATTClients[identifier] = clients;
+    }
+    [clients addObject:client];
     handler(client, nil);
   }
 
@@ -1076,7 +1136,7 @@ static NSError *AlreadyScanningError() {
   }
   [self cancelConnectionTimeoutInMap:_gattConnectionTimeoutBlocks forIdentifier:identifier];
   [self cancelConnectionTimeoutInMap:_l2capConnectionTimeoutBlocks forIdentifier:identifier];
-  [_activeGATTClientTokens removeObjectForKey:identifier];
+  [_activeGATTClients removeObjectForKey:identifier];
 
   GNCGATTConnectionCompletionHandler gattHandler = _gattConnectionCompletionHandlers[identifier];
   [_gattConnectionCompletionHandlers removeObjectForKey:identifier];
