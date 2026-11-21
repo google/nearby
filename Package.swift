@@ -514,6 +514,7 @@ let package = Package(
         "internal/test/fake_timer_test.cc",
         "internal/test/fake_device_info_test.cc",
         "internal/test/fake_http_client_test.cc",
+        "internal/test/fake_single_thread_executor_test.cc",
         "internal/test/test_single_thread_executor_test.cc",
         "internal/weave/base_socket_test.cc",
         "internal/weave/control_packet_write_request_test.cc",

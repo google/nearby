@@ -37,8 +37,8 @@ class ScheduledExecutor final : public api::ScheduledExecutor {
   ScheduledExecutor();
   ~ScheduledExecutor() override;
 
-  void Execute(Runnable&& runnable) override {
-    executor_.Execute(std::move(runnable));
+  bool Execute(Runnable&& runnable) override {
+    return executor_.Execute(std::move(runnable));
   }
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable,
                                             absl::Duration delay) override;

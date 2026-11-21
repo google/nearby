@@ -49,14 +49,14 @@ class ABSL_LOCKABLE SingleThreadExecutor : public api::Executor,
   SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
   ~SingleThreadExecutor() override;
 
-  virtual void Execute(const std::string& name, Runnable&& runnable) {
-    impl_->Execute(MakeMonitoredRunnable(
-        name, ThreadCheckRunnable(this, std::move(runnable))));
+  virtual bool Execute(const std::string& name, Runnable&& runnable) {
+    return impl_->Execute(MakeMonitoredRunnable(
+        name, MakeThreadCheckRunnable(this, std::move(runnable))));
   }
 
-  void Execute(Runnable&& runnable) override {
-    impl_->Execute(
-        MakeMonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
+  bool Execute(Runnable&& runnable) override {
+    return impl_->Execute(MakeMonitoredRunnable(
+        MakeThreadCheckRunnable(this, std::move(runnable))));
   }
 
   // Schedules `task` to execute on the worker thread after `delay` (clamped to

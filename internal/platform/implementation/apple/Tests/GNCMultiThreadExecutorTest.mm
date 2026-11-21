@@ -71,7 +71,8 @@ using MultiThreadExecutor = ::nearby::api::Executor;
 
   executor->Shutdown();
 
-  executor->Execute([self]() { self.otherCounter++; });
+  XCTAssertFalse(executor->Execute(nullptr));
+  XCTAssertFalse(executor->Execute([self]() { self.otherCounter++; }));
 
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), queue, ^{
     XCTAssertLessThanOrEqual(self.counter, kRunnableCount);

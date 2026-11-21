@@ -80,11 +80,13 @@ using ::nearby::api::ScheduledExecutor;
 - (void)testFailtoScheduleAfterShutdown {
   std::unique_ptr<ScheduledExecutor> executor([self executor]);
 
+  XCTAssertFalse(executor->Execute(nullptr));
+
   executor->Shutdown();
 
   auto cancelable = executor->Schedule([self]() { self.counter++; }, absl::Milliseconds(100));
   XCTAssertTrue(cancelable == nullptr);
-  executor->Execute([self]() { self.counter++; });
+  XCTAssertFalse(executor->Execute([self]() { self.counter++; }));
   XCTAssertEqual(self.counter, 0);
 }
 
