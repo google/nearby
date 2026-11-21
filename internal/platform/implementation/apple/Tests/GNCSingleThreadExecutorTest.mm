@@ -14,17 +14,18 @@
 
 #import <XCTest/XCTest.h>
 
+#include <atomic>
+#include <memory>
 #include <utility>
 
 #include "absl/time/time.h"
-#include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/apple/single_thread_executor.h"
 #include "internal/platform/implementation/executor.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/single_thread_executor.h"
 #include "internal/platform/runnable.h"
 
 using ::nearby::Runnable;
-using ::nearby::api::ImplementationPlatform;
-using SingleThreadExecutor = ::nearby::api::Executor;
+using ::nearby::api::SingleThreadExecutor;
 
 @interface GNCSingleThreadExecutorTest : XCTestCase
 @property(atomic) int counter;
@@ -34,10 +35,7 @@ using SingleThreadExecutor = ::nearby::api::Executor;
 
 // Creates a SingleThreadExecutor.
 - (std::unique_ptr<SingleThreadExecutor>)executor {
-  std::unique_ptr<SingleThreadExecutor> executor =
-      ImplementationPlatform::CreateSingleThreadExecutor();
-  XCTAssert(executor != nullptr);
-  return executor;
+  return std::make_unique<::nearby::apple::SingleThreadExecutor>();
 }
 
 // Tests that the executor executes runnables as expected.
@@ -83,6 +81,84 @@ using SingleThreadExecutor = ::nearby::api::Executor;
   executor->Shutdown();
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
   XCTAssertEqual(self.counter, 1);
+}
+
+// Tests that DelayedExecute executes after the specified delay and treats zero/negative delays as
+// immediate Execute submissions.
+- (void)testDelayedExecute {
+  std::unique_ptr<SingleThreadExecutor> executor([self executor]);
+  XCTestExpectation *zeroExpectation = [self expectationWithDescription:@"zero"];
+  XCTestExpectation *negativeExpectation = [self expectationWithDescription:@"negative"];
+  XCTestExpectation *expectation = [self expectationWithDescription:@"delayed"];
+
+  XCTAssertTrue(executor->DelayedExecute(absl::ZeroDuration(), [self, zeroExpectation]() {
+    self.counter++;
+    [zeroExpectation fulfill];
+  }));
+  XCTAssertTrue(executor->DelayedExecute(-absl::Seconds(1), [self, negativeExpectation]() {
+    self.counter++;
+    [negativeExpectation fulfill];
+  }));
+  XCTAssertTrue(executor->DelayedExecute(absl::Milliseconds(20), [self, expectation]() {
+    self.counter++;
+    [expectation fulfill];
+  }));
+
+  [self waitForExpectations:@[ zeroExpectation, negativeExpectation, expectation ] timeout:1.0];
+  XCTAssertEqual(self.counter, 3);
+}
+
+// Tests that DelayedExecute cancels pending delayed tasks on Shutdown and rejects post-Shutdown
+// calls.
+- (void)testDelayedExecuteShutdown {
+  std::unique_ptr<SingleThreadExecutor> executor([self executor]);
+  XCTAssertFalse(executor->DelayedExecute(absl::Milliseconds(10), nullptr));
+  XCTAssertTrue(executor->DelayedExecute(absl::Seconds(10), [self]() { self.counter++; }));
+
+  executor->Shutdown();
+
+  XCTAssertFalse(executor->DelayedExecute(absl::Milliseconds(10), [self]() { self.counter++; }));
+  XCTAssertEqual(self.counter, 0);
+}
+
+// Tests IsRunningOnExecutor returns true only on the queue currently executing a task.
+- (void)testIsRunningOnExecutor {
+  std::unique_ptr<SingleThreadExecutor> executor([self executor]);
+  std::unique_ptr<SingleThreadExecutor> otherExecutor([self executor]);
+  SingleThreadExecutor *executorPtr = executor.get();
+  SingleThreadExecutor *otherExecutorPtr = otherExecutor.get();
+  XCTAssertFalse(executor->IsRunningOnExecutor());
+
+  XCTestExpectation *executeExpectation = [self expectationWithDescription:@"execute"];
+  std::atomic<bool> onExecutorInExecute = false;
+  std::atomic<bool> onOtherInExecute = true;
+  XCTAssertTrue(executor->Execute(
+      [executorPtr, otherExecutorPtr, &onExecutorInExecute, &onOtherInExecute, executeExpectation]() {
+        onExecutorInExecute.store(executorPtr->IsRunningOnExecutor(), std::memory_order_relaxed);
+        onOtherInExecute.store(otherExecutorPtr->IsRunningOnExecutor(), std::memory_order_relaxed);
+        [executeExpectation fulfill];
+      }));
+  [self waitForExpectations:@[ executeExpectation ] timeout:1.0];
+  XCTAssertTrue(onExecutorInExecute.load(std::memory_order_relaxed));
+  XCTAssertFalse(onOtherInExecute.load(std::memory_order_relaxed));
+
+  XCTestExpectation *delayedExpectation = [self expectationWithDescription:@"delayed"];
+  std::atomic<bool> onExecutorInDelayed = false;
+  std::atomic<bool> onOtherInDelayed = true;
+  XCTAssertTrue(executor->DelayedExecute(
+      absl::Milliseconds(10),
+      [executorPtr, otherExecutorPtr, &onExecutorInDelayed, &onOtherInDelayed, delayedExpectation]() {
+        onExecutorInDelayed.store(executorPtr->IsRunningOnExecutor(), std::memory_order_relaxed);
+        onOtherInDelayed.store(otherExecutorPtr->IsRunningOnExecutor(), std::memory_order_relaxed);
+        [delayedExpectation fulfill];
+      }));
+  [self waitForExpectations:@[ delayedExpectation ] timeout:1.0];
+  XCTAssertTrue(onExecutorInDelayed.load(std::memory_order_relaxed));
+  XCTAssertFalse(onOtherInDelayed.load(std::memory_order_relaxed));
+
+  executor->Shutdown();
+  otherExecutor->Shutdown();
+  XCTAssertFalse(executor->IsRunningOnExecutor());
 }
 
 @end

@@ -15,15 +15,33 @@
 #ifndef PLATFORM_IMPL_APPLE_SINGLE_THREAD_EXECUTOR_H_
 #define PLATFORM_IMPL_APPLE_SINGLE_THREAD_EXECUTOR_H_
 
-#import "internal/platform/implementation/apple/multi_thread_executor.h"
+#include <memory>
+
+#include "absl/time/time.h"
+#include "internal/platform/implementation/single_thread_executor.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace apple {
 
-class SingleThreadExecutor : public MultiThreadExecutor {
+class ScheduledExecutor;
+
+class SingleThreadExecutor final : public api::SingleThreadExecutor {
  public:
-  SingleThreadExecutor() : MultiThreadExecutor(1) {}
-  ~SingleThreadExecutor() override = default;
+  SingleThreadExecutor();
+  ~SingleThreadExecutor() override;
+
+  SingleThreadExecutor(const SingleThreadExecutor&) = delete;
+  SingleThreadExecutor& operator=(const SingleThreadExecutor&) = delete;
+
+  // api::SingleThreadExecutor:
+  bool Execute(Runnable&& runnable) override;
+  bool DelayedExecute(absl::Duration delay, Runnable&& runnable) override;
+  void Shutdown() override;
+  bool IsRunningOnExecutor() const override;
+
+ private:
+  std::unique_ptr<ScheduledExecutor> scheduled_executor_;
 };
 
 }  // namespace apple
