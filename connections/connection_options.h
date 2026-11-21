@@ -38,6 +38,12 @@ struct ConnectionInfo {
   std::optional<location::nearby::connections::MediumRole> medium_role;
   std::vector<location::nearby::proto::connections::WifiDirectAuthType>
       supported_wifi_direct_auth_types;
+  // Whether the endpoint supports 6 GHz Wi-Fi (determined locally from
+  // WifiCapability or parsed from a remote peer's MediumMetadata). Used to
+  // advertise and query 6 GHz capability for Wi-Fi bandwidth upgrade
+  // negotiation; defaults to false so unknown or unmeasured endpoints
+  // conservatively fall back to non-6 GHz channels.
+  bool supports_6_ghz = false;
 };
 
 // Connection Options: used for both Advertising and Discovery.
