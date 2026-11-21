@@ -46,6 +46,10 @@
       false);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableAwdl, false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      false);
 
   [super tearDown];
 }
@@ -143,6 +147,22 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableAwdl, false);
   XCTAssertFalse([GNCFeatureFlags awdlEnabled]);
+}
+
+- (void)testSynchronizeNWFrameworkSocketWriteTimeoutEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags synchronizeNWFrameworkSocketWriteTimeoutEnabled]);
+}
+
+- (void)testSynchronizeNWFrameworkSocketWriteTimeoutEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kSynchronizeNwFrameworkSocketWriteTimeout,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags synchronizeNWFrameworkSocketWriteTimeoutEnabled]);
 }
 
 @end

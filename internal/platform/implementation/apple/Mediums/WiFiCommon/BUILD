@@ -54,6 +54,7 @@ objc_library(
         "GNCNWParameters.h",
     ],
     deps = [
+        "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",

@@ -64,6 +64,7 @@ objc_library(
     ],
     deps = [
         ":FakeNWFramework",
+        "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",
