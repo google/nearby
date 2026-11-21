@@ -50,6 +50,10 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::
           kSynchronizeNwFrameworkSocketWriteTimeout,
       false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      false);
 
   [super tearDown];
 }
@@ -163,6 +167,22 @@
           kSynchronizeNwFrameworkSocketWriteTimeout,
       NO);
   XCTAssertFalse([GNCFeatureFlags synchronizeNWFrameworkSocketWriteTimeoutEnabled]);
+}
+
+- (void)testGuardNWFrameworkSocketReadConditionEnabled_WhenFlagIsTrue {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      YES);
+  XCTAssertTrue([GNCFeatureFlags guardNWFrameworkSocketReadConditionEnabled]);
+}
+
+- (void)testGuardNWFrameworkSocketReadConditionEnabled_WhenFlagIsFalse {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kGuardNwFrameworkSocketReadCondition,
+      NO);
+  XCTAssertFalse([GNCFeatureFlags guardNWFrameworkSocketReadConditionEnabled]);
 }
 
 @end

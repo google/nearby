@@ -47,4 +47,7 @@
 /** Checks whether GNCNWFrameworkSocket write timeout completion state is synchronized. */
 @property(nonatomic, class, readonly) BOOL synchronizeNWFrameworkSocketWriteTimeoutEnabled;
 
+/** Checks whether GNCNWFrameworkSocket read NSCondition waits are guarded with a predicate. */
+@property(nonatomic, class, readonly) BOOL guardNWFrameworkSocketReadConditionEnabled;
+
 @end

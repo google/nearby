@@ -91,6 +91,8 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
 
 @property(nonatomic, readonly) id<GNCNWConnection> connection;
 
+- (NSCondition *)createReceiveCondition;
+
 @end
 
 @implementation GNCNWFrameworkSocket {
@@ -102,6 +104,10 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     _connection = connection;
   }
   return self;
+}
+
+- (NSCondition *)createReceiveCondition {
+  return [[NSCondition alloc] init];
 }
 
 - (NSData *)readMaxLength:(NSUInteger)length error:(NSError **)error {
@@ -162,27 +168,51 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
     return nil;
   }
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block dispatch_data_t resultData = nil;
   __block NSError *blockError = nil;
 
   // Min and max length are set to the same value to indicate that we expect to receive a single
   // message of the given length. Completion is only called once and only when the received message
   // is at least min length. The returned data will be at most max length.
-  [connection receiveMessageWithMinLength:static_cast<uint32_t>(length)
-                                maxLength:static_cast<uint32_t>(length)
-                        completionHandler:^(dispatch_data_t _Nullable content,
-                                            nw_content_context_t _Nullable context, bool isComplete,
-                                            nw_error_t _Nullable receiveError) {
-                          if (receiveError) {
-                            blockError =
-                                (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
-                          }
-                          resultData = content;
-                          dispatch_semaphore_signal(semaphore);
-                        }];
-
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (GNCFeatureFlags.guardNWFrameworkSocketReadConditionEnabled) {
+    NSCondition *condition = [self createReceiveCondition];
+    __block BOOL isDone = NO;
+    [connection receiveMessageWithMinLength:static_cast<uint32_t>(length)
+                                  maxLength:static_cast<uint32_t>(length)
+                          completionHandler:^(dispatch_data_t _Nullable content,
+                                              nw_content_context_t _Nullable context,
+                                              bool isComplete, nw_error_t _Nullable receiveError) {
+                            [condition lock];
+                            if (receiveError) {
+                              blockError =
+                                  (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                            }
+                            resultData = content;
+                            isDone = YES;
+                            [condition broadcast];
+                            [condition unlock];
+                          }];
+    [condition lock];
+    while (!isDone) {
+      [condition wait];
+    }
+    [condition unlock];
+  } else {
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    [connection receiveMessageWithMinLength:static_cast<uint32_t>(length)
+                                  maxLength:static_cast<uint32_t>(length)
+                          completionHandler:^(dispatch_data_t _Nullable content,
+                                              nw_content_context_t _Nullable context,
+                                              bool isComplete, nw_error_t _Nullable receiveError) {
+                            if (receiveError) {
+                              blockError =
+                                  (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                            }
+                            resultData = content;
+                            dispatch_semaphore_signal(semaphore);
+                          }];
+    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  }
   if (error) {
     *error = blockError;
   }

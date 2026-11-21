@@ -63,6 +63,55 @@ typedef void (^GNCLateSendCompletionHandler)(nw_error_t _Nullable error);
 
 @end
 
+@interface GNCNWFrameworkSocket (Testing)
+- (NSCondition *)createReceiveCondition;
+@end
+
+@interface GNCTestNWFrameworkSocket : GNCNWFrameworkSocket
+@property(nonatomic, nullable) NSCondition *testCondition;
+@end
+
+@implementation GNCTestNWFrameworkSocket
+
+- (NSCondition *)createReceiveCondition {
+  return self.testCondition ?: [super createReceiveCondition];
+}
+
+@end
+
+@interface GNCSpuriousWakeupFakeNWConnection : GNCFakeNWConnection
+@property(nonatomic, nullable) NSCondition *targetCondition;
+@end
+
+@implementation GNCSpuriousWakeupFakeNWConnection
+
+- (void)receiveMessageWithMinLength:(uint32_t)minIncompleteLength
+                          maxLength:(uint32_t)maxLength
+                  completionHandler:(void (^)(dispatch_data_t _Nullable content,
+                                              nw_content_context_t _Nullable context,
+                                              bool isComplete, nw_error_t _Nullable error))handler {
+  NSCondition *condition = self.targetCondition;
+  dispatch_data_t data = self.dataToReceive;
+  BOOL failure = self.simulateReceiveFailure;
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+    if (condition != nil) {
+      [condition lock];
+      [condition broadcast];
+      [condition unlock];
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(50 * NSEC_PER_MSEC)),
+                   dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+                     if (failure) {
+                       handler(nil, nil, YES, nil);
+                     } else {
+                       handler(data, nil, YES, nil);
+                     }
+                   });
+  });
+}
+
+@end
+
 @interface GNCNWFrameworkSocketTests : XCTestCase
 @end
 
@@ -220,6 +269,74 @@ typedef void (^GNCLateSendCompletionHandler)(nw_error_t _Nullable error);
   XCTAssertNotNil(error);
   XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
   XCTAssertEqual(error.code, GNCNWFrameworkErrorTimedOut);
+}
+
+- (void)testReadWaitsAcrossSpuriousConditionWakeupAndHandlesCleanEOF_WhenFlagEnabled {
+  id featureFlagsMock = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([featureFlagsMock guardNWFrameworkSocketReadConditionEnabled]).andReturn(YES);
+
+  GNCSpuriousWakeupFakeNWConnection *spuriousConnection =
+      [[GNCSpuriousWakeupFakeNWConnection alloc] init];
+  NSCondition *condition = [[NSCondition alloc] init];
+  spuriousConnection.targetCondition = condition;
+  GNCTestNWFrameworkSocket *socket =
+      [[GNCTestNWFrameworkSocket alloc] initWithConnection:spuriousConnection];
+  socket.testCondition = condition;
+
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+  dispatch_data_t dispatchData =
+      dispatch_data_create(testData.bytes, testData.length, dispatch_get_main_queue(), ^{});
+  spuriousConnection.dataToReceive = dispatchData;
+
+  NSError *error = nil;
+  NSData *receivedData = [socket readMaxLength:testData.length error:&error];
+  XCTAssertEqualObjects(receivedData, testData);
+  XCTAssertNil(error);
+
+  std::optional<std::string> receivedString =
+      [socket readStringWithMaxLength:testData.length error:&error];
+  XCTAssertTrue(receivedString.has_value());
+  XCTAssertEqualObjects(@(receivedString.value().c_str()), testString);
+  XCTAssertNil(error);
+
+  spuriousConnection.dataToReceive = nil;
+  NSData *eofData = [socket readMaxLength:testData.length error:&error];
+  XCTAssertNil(eofData);
+  XCTAssertNil(error);
+
+  std::optional<std::string> eofString =
+      [socket readStringWithMaxLength:testData.length error:&error];
+  XCTAssertFalse(eofString.has_value());
+  XCTAssertNil(error);
+
+  [featureFlagsMock stopMocking];
+}
+
+- (void)testReadWaitsViaBaselineSemaphore_WhenFlagDisabled {
+  id featureFlagsMock = OCMClassMock([GNCFeatureFlags class]);
+  OCMStub([featureFlagsMock guardNWFrameworkSocketReadConditionEnabled]).andReturn(NO);
+
+  GNCSpuriousWakeupFakeNWConnection *spuriousConnection =
+      [[GNCSpuriousWakeupFakeNWConnection alloc] init];
+  NSCondition *condition = [[NSCondition alloc] init];
+  spuriousConnection.targetCondition = condition;
+  GNCTestNWFrameworkSocket *socket =
+      [[GNCTestNWFrameworkSocket alloc] initWithConnection:spuriousConnection];
+  socket.testCondition = condition;
+
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+  dispatch_data_t dispatchData =
+      dispatch_data_create(testData.bytes, testData.length, dispatch_get_main_queue(), ^{});
+  spuriousConnection.dataToReceive = dispatchData;
+
+  NSError *error = nil;
+  NSData *receivedData = [socket readMaxLength:testData.length error:&error];
+  XCTAssertEqualObjects(receivedData, testData);
+  XCTAssertNil(error);
+
+  [featureFlagsMock stopMocking];
 }
 
 @end

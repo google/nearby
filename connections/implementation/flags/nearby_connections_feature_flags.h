@@ -126,6 +126,10 @@ constexpr auto kFixStaleAndListenOnlyConnectionRequests =
 // unavailable in UpdateAdvertisingOptionsImpl (b/574971059).
 constexpr auto kFixWifiLanServiceInfoSerialization =
     flags::Flag<bool>(kConfigPackage, "45871083", true);
+// Guard GNCNWFrameworkSocket read condition wait with a boolean predicate and
+// treat zero-byte complete reads as clean EOF.
+constexpr auto kGuardNwFrameworkSocketReadCondition =
+    flags::Flag<bool>(kConfigPackage, "45868922", false);
 // Default max transmit packet size for medium.
 constexpr auto kMediumDefaultMaxTransmitPacketSize =
     flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);
