@@ -39,10 +39,12 @@ TEST(MultiThreadExecutorTest, CanExecute) {
   absl::CondVar cond;
   std::atomic_bool done = false;
   MultiThreadExecutor executor(kMaxThreads);
-  executor.Execute([&done, &cond]() {
+  EXPECT_FALSE(executor.Execute(nullptr));
+  EXPECT_FALSE(executor.Execute("empty", nullptr));
+  EXPECT_TRUE(executor.Execute([&done, &cond]() {
     done = true;
     cond.SignalAll();
-  });
+  }));
   absl::Mutex mutex;
   {
     absl::MutexLock lock(mutex);
@@ -51,6 +53,11 @@ TEST(MultiThreadExecutorTest, CanExecute) {
     }
   }
   EXPECT_TRUE(done);
+
+  absl::Notification named_done;
+  EXPECT_TRUE(
+      executor.Execute("named_task", [&named_done]() { named_done.Notify(); }));
+  EXPECT_TRUE(named_done.WaitForNotificationWithTimeout(absl::Seconds(1)));
 }
 
 TEST(MultiThreadExecutorTest, JobsExecuteInParallel) {
@@ -125,9 +132,9 @@ TEST(MultiThreadExecutorTest, ShutdownWaitsForRunningTasks) {
 TEST(MultiThreadExecutorTest, ExecuteAfterShutdownFails) {
   MultiThreadExecutor executor(kMaxThreads);
   executor.Shutdown();
-  executor.Execute([]() { FAIL() << "Task should not run"; });
-  executor.Execute("named_after_shutdown",
-                   []() { FAIL() << "Named task should not run"; });
+  EXPECT_FALSE(executor.Execute([]() { FAIL() << "Task should not run"; }));
+  EXPECT_FALSE(executor.Execute(
+      "named_after_shutdown", []() { FAIL() << "Named task should not run"; }));
 }
 
 TEST(MultiThreadExecutorTest, ExecuteDuringShutdownFails) {
@@ -135,15 +142,15 @@ TEST(MultiThreadExecutorTest, ExecuteDuringShutdownFails) {
   absl::Notification calling_shutdown;
   MultiThreadExecutor executor(kMaxThreads);
 
-  executor.Execute([&]() {
+  EXPECT_TRUE(executor.Execute([&]() {
     started.Notify();
     if (!calling_shutdown.WaitForNotificationWithTimeout(absl::Seconds(5))) {
       ADD_FAILURE() << "Timed out waiting for shutdown to start";
       return;
     }
     absl::SleepFor(absl::Milliseconds(200));
-    executor.Execute([]() { FAIL() << "Task should not run"; });
-  });
+    EXPECT_FALSE(executor.Execute([]() { FAIL() << "Task should not run"; }));
+  }));
 
   ASSERT_TRUE(started.WaitForNotificationWithTimeout(absl::Seconds(5)));
   calling_shutdown.Notify();
