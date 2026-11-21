@@ -54,6 +54,7 @@
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -61,6 +62,14 @@
 
 namespace nearby {
 namespace connections {
+
+class ClientProxyTestPeer {
+ public:
+  static void SaveClientInfoToPreferences(ClientProxy* client) {
+    client->SaveClientInfoToPreferences();
+  }
+};
+
 namespace {
 
 using ::location::nearby::connections::OsInfo;
@@ -1382,21 +1391,30 @@ TEST_F(ClientProxyTest, GetLocalInfoCorrect) {
 }
 
 TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableSafeToDisconnect,
+      true);
+  client1_ = std::make_unique<ClientProxy>();
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
 
   EXPECT_FALSE(client1()->GetRemoteOsInfo(advertising_endpoint.id).has_value());
-  EXPECT_FALSE(client1()
-                   ->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
-                   .has_value());
+  EXPECT_FALSE(client1()->IsSafeToDisconnectEnabled(advertising_endpoint.id));
   EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id), "");
 }
 
 TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableSafeToDisconnect,
+      true);
+  client1_ = std::make_unique<ClientProxy>();
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
   OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
 
+  EXPECT_FALSE(client1()->IsSafeToDisconnectEnabled(advertising_endpoint.id));
   OsInfo os_info;
   os_info.set_type(OsInfo::ANDROID);
   std::int32_t nearby_connections_version = 2;
@@ -1407,9 +1425,7 @@ TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
   ASSERT_TRUE(client1()->GetRemoteOsInfo(advertising_endpoint.id).has_value());
   EXPECT_EQ(client1()->GetRemoteOsInfo(advertising_endpoint.id).value().type(),
             OsInfo::ANDROID);
-  EXPECT_EQ(
-      client1()->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
-      nearby_connections_version);
+  EXPECT_TRUE(client1()->IsSafeToDisconnectEnabled(advertising_endpoint.id));
   std::string device_name = "device_name";
   client1()->SetRemoteDeviceName(advertising_endpoint.id, device_name);
   EXPECT_EQ(client1()->GetRemoteDeviceName(advertising_endpoint.id),
@@ -1557,7 +1573,7 @@ TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
   std::string endpoint_id = advertising_endpoint.id;
-  client1_->SaveClientInfoToPreferences();
+  ClientProxyTestPeer::SaveClientInfoToPreferences(client1_.get());
 
   // Destroy the client and create a new one.
   client1_.reset();
@@ -1580,7 +1596,7 @@ TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
   std::string endpoint_id = advertising_endpoint.id;
-  client1_->SaveClientInfoToPreferences();
+  ClientProxyTestPeer::SaveClientInfoToPreferences(client1_.get());
 
   // Destroy the client and create a new one.
   client1_.reset();
@@ -1883,33 +1899,35 @@ TEST_F(ClientProxyTest, GetLastLocalEndpointIdStartsEmpty) {
   EXPECT_TRUE(client1()->GetLastLocalEndpointId().empty());
 }
 
-TEST_F(ClientProxyTest, ResetLocalEndpointId_OngoingConnectionReturnsEarly) {
+TEST_F(ClientProxyTest,
+       ExitStableEndpointIdMode_OngoingConnectionDoesNotRotateEndpointId) {
   std::string old_id = client1()->GetLocalEndpointId();
   ASSERT_FALSE(old_id.empty());
 
   // Set up an ongoing connection
   OnAdvertisingConnectionInitiated(client1(),
                                    {ByteArray("EndpointInfo"), "EndA"});
-  EXPECT_TRUE(client1()->HasOngoingConnection());
+  EXPECT_FALSE(client1()->GetPendingConnectedEndpoints().empty());
 
-  // ResetLocalEndpointId should NOT clear local_endpoint_id
-  client1()->ResetLocalEndpointId();
+  // ExitStableEndpointIdMode should NOT clear local_endpoint_id while connected
+  client1()->ExitStableEndpointIdMode();
   EXPECT_EQ(client1()->GetLocalEndpointId(), old_id);
 
   // Terminate connection
   client1()->OnDisconnected("EndA", /*notify=*/false);
-  EXPECT_FALSE(client1()->HasOngoingConnection());
+  EXPECT_TRUE(client1()->GetPendingConnectedEndpoints().empty());
+  EXPECT_TRUE(client1()->GetConnectedEndpoints().empty());
 
-  // ResetLocalEndpointId should now successfully clear local_endpoint_id
-  client1()->ResetLocalEndpointId();
+  // ExitStableEndpointIdMode should now clear local_endpoint_id
+  client1()->ExitStableEndpointIdMode();
   EXPECT_NE(client1()->GetLocalEndpointId(), old_id);
 }
 
-TEST_F(ClientProxyTest, ResetLocalEndpointId_SavesToLastLocalEndpointId) {
+TEST_F(ClientProxyTest, ExitStableEndpointIdMode_SavesToLastLocalEndpointId) {
   std::string old_id = client1()->GetLocalEndpointId();
   ASSERT_FALSE(old_id.empty());
 
-  client1()->ResetLocalEndpointId();
+  client1()->ExitStableEndpointIdMode();
   EXPECT_EQ(client1()->GetLastLocalEndpointId(), old_id);
 }
 
@@ -2195,7 +2213,8 @@ TEST_F(ClientProxyTest, RedundantStopsAndResetLogSingleSessionWhenFlagEnabled) {
   EXPECT_FALSE(client1()->IsAdvertising());
   EXPECT_FALSE(client1()->IsDiscovering());
   EXPECT_FALSE(client1()->IsListeningForIncomingConnections());
-  EXPECT_FALSE(client1()->HasOngoingConnection());
+  EXPECT_TRUE(client1()->GetPendingConnectedEndpoints().empty());
+  EXPECT_TRUE(client1()->GetConnectedEndpoints().empty());
 
   // Subsequent Reset() on the now-idle ClientProxy should not log another
   // empty session.
@@ -2291,6 +2310,258 @@ TEST_F(ClientProxyTest,
   EXPECT_CALL(*mock_analytics_recorder1_ptr_, UpdateAdvertisingPowerLevel(_))
       .Times(0);
   client1()->UpdateAdvertisingOptions(high_power_options);
+}
+
+TEST_F(ClientProxyTest, DiscoveryCallbacksCanReenterClientProxy) {
+  bool found_called = false;
+  bool lost_called = false;
+  client1()->StartedDiscovery(
+      service_id_, strategy_,
+      DiscoveryListener{
+          .endpoint_found_cb =
+              [&](const std::string& endpoint_id, const ByteArray&,
+                  const std::string& service_id) {
+                found_called = true;
+                EXPECT_TRUE(client1()->IsDiscovering());
+                EXPECT_TRUE(client1()->IsDiscoveringServiceId(service_id));
+                EXPECT_EQ(client1()->GetDiscoveryServiceId(), service_id_);
+                client1()->AddCancellationFlag(endpoint_id);
+              },
+          .endpoint_lost_cb =
+              [&](const std::string&) {
+                lost_called = true;
+                EXPECT_TRUE(client1()->IsDiscovering());
+                client1()->StoppedDiscovery();
+                EXPECT_FALSE(client1()->IsDiscovering());
+              },
+      },
+      absl::MakeSpan(mediums_), /*operation_result_with_medium=*/{});
+
+  client1()->OnEndpointFound(service_id_, "EP01", ByteArray{"info"}, medium_);
+  EXPECT_TRUE(found_called);
+
+  client1()->OnEndpointLost(service_id_, "EP01");
+  EXPECT_TRUE(lost_called);
+  EXPECT_FALSE(client1()->IsDiscovering());
+}
+
+TEST_F(ClientProxyTest, ConnectionCallbacksCanReenterClientProxy) {
+  bool initiated_called = false;
+  bool accepted_called = false;
+  bool bwu_called = false;
+  bool disconnected_called = false;
+  bool rejected_called = false;
+
+  ConnectionListener listener{
+      .initiated_cb =
+          [&](const std::string& endpoint_id, const ConnectionResponseInfo&) {
+            initiated_called = true;
+            EXPECT_TRUE(client1()->HasPendingConnectionToEndpoint(endpoint_id));
+            EXPECT_EQ(client1()->GetConnectionToken(endpoint_id),
+                      endpoint_id == "EP01" ? "tok1" : "tok2");
+          },
+      .accepted_cb =
+          [&](const std::string& endpoint_id) {
+            accepted_called = true;
+            EXPECT_TRUE(client1()->IsConnectedToEndpoint(endpoint_id));
+            EXPECT_TRUE(client1()->OverrideSavePath(endpoint_id, "/tmp/save"));
+          },
+      .rejected_cb =
+          [&](const std::string& endpoint_id, Status) {
+            rejected_called = true;
+            EXPECT_EQ(client1()->GetConnectionToken(endpoint_id), "tok2");
+            client1()->CancelEndpoint(endpoint_id);
+          },
+      .disconnected_cb =
+          [&](const std::string& endpoint_id) {
+            disconnected_called = true;
+            EXPECT_FALSE(client1()->IsConnectedToEndpoint(endpoint_id));
+            EXPECT_TRUE(client1()->GetPendingConnectedEndpoints().empty());
+            EXPECT_TRUE(client1()->GetConnectedEndpoints().empty());
+          },
+      .bandwidth_changed_cb =
+          [&](const std::string& endpoint_id, Medium medium) {
+            bwu_called = true;
+            EXPECT_EQ(client1()->GetConnectedMedium(endpoint_id), medium);
+          },
+  };
+
+  client1()->OnConnectionInitiated("EP01", advertising_connection_info_,
+                                   connection_options_, listener, "tok1");
+  EXPECT_TRUE(initiated_called);
+
+  client1()->LocalEndpointAcceptedConnection("EP01", {});
+  client1()->RemoteEndpointAcceptedConnection("EP01");
+  client1()->OnConnectionAccepted("EP01");
+  EXPECT_TRUE(accepted_called);
+  EXPECT_EQ(client1()->GetSavePath("EP01"), "/tmp/save");
+
+  client1()->OnBandwidthChanged("EP01", Medium::WIFI_LAN);
+  EXPECT_TRUE(bwu_called);
+
+  client1()->OnDisconnected("EP01", /*notify=*/true);
+  EXPECT_TRUE(disconnected_called);
+
+  client1()->OnConnectionInitiated("EP02", discovery_connection_info_,
+                                   connection_options_, listener, "tok2");
+  client1()->LocalEndpointRejectedConnection("EP02");
+  client1()->OnConnectionRejected("EP02", {Status::kConnectionRejected});
+  EXPECT_TRUE(rejected_called);
+  EXPECT_TRUE(client1()->GetPendingConnectedEndpoints().empty());
+  EXPECT_TRUE(client1()->GetConnectedEndpoints().empty());
+}
+
+TEST_F(ClientProxyTest,
+       IncomingListeningCallbacksCanReenterAndSurviveStopListening) {
+  int callbacks_invoked = 0;
+  client1()->StartedListeningForIncomingConnections(
+      service_id_, Strategy::kP2pCluster,
+      v3::ConnectionListener{
+          .initiated_cb =
+              [&](const NearbyDevice& device,
+                  const v3::InitialConnectionInfo&) {
+                ++callbacks_invoked;
+                EXPECT_TRUE(
+                    client1()->HasPendingConnectionToEndpoint(
+                        device.GetEndpointId()));
+              },
+          .result_cb =
+              [&](const NearbyDevice& device, v3::ConnectionResult result) {
+                ++callbacks_invoked;
+                if (result.status.Ok()) {
+                  EXPECT_TRUE(
+                      client1()->IsConnectedToEndpoint(device.GetEndpointId()));
+                }
+              },
+          .disconnected_cb =
+              [&](const NearbyDevice& device) {
+                ++callbacks_invoked;
+                EXPECT_FALSE(
+                    client1()->IsConnectedToEndpoint(device.GetEndpointId()));
+              },
+          .bandwidth_changed_cb =
+              [&](const NearbyDevice& device, v3::BandwidthInfo bwu_info) {
+                ++callbacks_invoked;
+                EXPECT_EQ(client1()->GetConnectedMedium(device.GetEndpointId()),
+                          bwu_info.medium);
+              },
+      },
+      {});
+
+  ConnectionListener listener =
+      client1()->GetAdvertisingOrIncomingConnectionListener();
+  client1()->StoppedListeningForIncomingConnections();
+  EXPECT_FALSE(client1()->IsListeningForIncomingConnections());
+
+  client1()->OnConnectionInitiated("EP01", advertising_connection_info_,
+                                   connection_options_, listener, "tok1");
+  client1()->LocalEndpointAcceptedConnection("EP01", {});
+  client1()->RemoteEndpointAcceptedConnection("EP01");
+  client1()->OnConnectionAccepted("EP01");
+  client1()->OnBandwidthChanged("EP01", Medium::WIFI_LAN);
+  client1()->OnDisconnected("EP01", /*notify=*/true);
+  EXPECT_EQ(callbacks_invoked, 4);
+}
+
+TEST_F(ClientProxyTest, PayloadCallbacksCanReenterClientProxy) {
+  bool payload_called = false;
+  bool progress_called = false;
+  client1()->OnConnectionInitiated("EP01", advertising_connection_info_,
+                                   connection_options_, {}, "tok1");
+  client1()->LocalEndpointAcceptedConnection(
+      "EP01",
+      PayloadListener{
+          .payload_cb =
+              [&](absl::string_view endpoint_id, Payload) {
+                payload_called = true;
+                EXPECT_TRUE(
+                    client1()->OverrideSavePath(endpoint_id, "/tmp/payload"));
+                EXPECT_EQ(client1()->GetSavePath(endpoint_id), "/tmp/payload");
+              },
+          .payload_progress_cb =
+              [&](absl::string_view endpoint_id, const PayloadProgressInfo&) {
+                progress_called = true;
+                EXPECT_EQ(client1()->GetSavePath(endpoint_id), "/tmp/payload");
+                client1()->OnDisconnected(std::string(endpoint_id),
+                                          /*notify=*/false);
+              },
+      });
+  client1()->RemoteEndpointAcceptedConnection("EP01");
+  client1()->OnConnectionAccepted("EP01");
+
+  client1()->OnPayload("EP01", Payload(payload_bytes_));
+  EXPECT_TRUE(payload_called);
+
+  client1()->OnPayloadProgress("EP01", {});
+  EXPECT_TRUE(progress_called);
+  EXPECT_FALSE(client1()->IsConnectedToEndpoint("EP01"));
+}
+
+TEST_F(ClientProxyTest, CancelEndpointCallbacksCanReenterClientProxy) {
+  MediumEnvironment::Instance().SetFeatureFlags(kTestCases[0]);
+  client1()->AddCancellationFlag("EP01");
+  client1()->AddCancellationFlag("EP02");
+  std::shared_ptr<CancellationFlag> flag1 =
+      client1()->GetCancellationFlag("EP01");
+  std::shared_ptr<CancellationFlag> flag2 =
+      client1()->GetCancellationFlag("EP02");
+
+  int cancel_callbacks = 0;
+  CancellationFlagListener listener1(flag1.get(), [&]() {
+    ++cancel_callbacks;
+    EXPECT_FALSE(client1()->GetLocalEndpointId().empty());
+    EXPECT_TRUE(client1()->GetCancellationFlag("EP01")->Cancelled());
+  });
+  CancellationFlagListener listener2(flag2.get(), [&]() {
+    ++cancel_callbacks;
+    EXPECT_FALSE(client1()->IsAdvertising());
+    EXPECT_TRUE(client1()->GetCancellationFlag("EP02")->Cancelled());
+  });
+
+  client1()->CancelEndpoint("EP01");
+  EXPECT_EQ(cancel_callbacks, 1);
+
+  client1()->CancelAllEndpoints();
+  EXPECT_EQ(cancel_callbacks, 2);
+}
+
+TEST_F(ClientProxyTest, ConcurrentStateAccessIsThreadSafe) {
+  SingleThreadExecutor worker1;
+  SingleThreadExecutor worker2;
+  std::atomic<bool> stop{false};
+
+  worker1.Execute([&]() {
+    int i = 0;
+    while (!stop.load(std::memory_order_relaxed)) {
+      client1()->SetLocalOsType((i % 2 == 0) ? OsInfo::APPLE : OsInfo::ANDROID);
+      client1()->SetWebRtcNonCellular(i % 2 == 0);
+      client1()->UpdateLocalEndpointInfo("info");
+      client1()->UpdateDctDeviceName((i % 2 == 0) ? "DevA" : "DevB");
+      ++i;
+    }
+  });
+
+  worker2.Execute([&]() {
+    while (!stop.load(std::memory_order_relaxed)) {
+      (void)client1()->GetLocalOsInfo();
+      (void)client1()->GetWebRtcNonCellular();
+      (void)client1()->GetLocalEndpointInfo();
+      (void)client1()->GetDctDedup();
+      (void)client1()->GetLocalMediumRole({});
+      (void)client1()->Dump();
+    }
+  });
+
+  for (int i = 0; i < 200; ++i) {
+    client1()->StartedDiscovery(service_id_, strategy_, {}, {}, {});
+    client1()->OnEndpointFound(service_id_, "EP01", ByteArray{"info"}, medium_);
+    client1()->OnEndpointLost(service_id_, "EP01");
+    client1()->StoppedDiscovery();
+  }
+
+  stop.store(true, std::memory_order_relaxed);
+  worker1.Shutdown();
+  worker2.Shutdown();
 }
 }  // namespace
 }  // namespace connections
