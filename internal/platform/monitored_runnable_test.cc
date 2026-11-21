@@ -48,6 +48,11 @@ TEST(MonitoredRunnableTest, UnnamedRunnableExecutesTask) {
   EXPECT_TRUE(executed);
 }
 
+TEST(MonitoredRunnableTest, EmptyRunnableReturnsNull) {
+  EXPECT_FALSE(MakeMonitoredRunnable(nullptr));
+  EXPECT_FALSE(MakeMonitoredRunnable("empty_job", nullptr));
+}
+
 #if !defined(NEARBY_CHROMIUM)
 using ::testing::_;
 using ::testing::AnyNumber;
