@@ -48,7 +48,8 @@ class MonitoredRunnable {
   bool is_pending_ = true;
 };
 
-// Constructs an immovable `MonitoredRunnable` in-place inside a `Runnable`.
+// Constructs an immovable `MonitoredRunnable` in-place inside a `Runnable`, or
+// returns an empty `Runnable` when `runnable` is empty.
 Runnable MakeMonitoredRunnable(Runnable runnable);
 Runnable MakeMonitoredRunnable(absl::string_view name, Runnable runnable);
 

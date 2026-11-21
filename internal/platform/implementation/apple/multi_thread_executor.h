@@ -32,7 +32,7 @@ class MultiThreadExecutor : public api::Executor {
 
   // api::Executor:
   void Shutdown() override;
-  void Execute(Runnable&& runnable) override;
+  bool Execute(Runnable&& runnable) override;
 
  private:
   std::unique_ptr<ScheduledExecutor> scheduled_executor_;

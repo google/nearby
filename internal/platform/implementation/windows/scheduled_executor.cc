@@ -55,22 +55,22 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
   return task_scheduler_.Schedule(std::move(runnable), duration);
 }
 
-void ScheduledExecutor::Execute(Runnable&& runnable) {
+bool ScheduledExecutor::Execute(Runnable&& runnable) {
   if (shut_down_.load(std::memory_order_acquire)) {
     VLOG(1) << __func__ << ": Attempt to Execute on a shut down executor.";
-    return;
+    return false;
   }
 
   if (runnable == nullptr) {
     LOG(ERROR) << __func__ << ": Runnable was null.";
-    return;
+    return false;
   }
 
   if (thread_pool_ == nullptr) {
-    return;
+    return false;
   }
 
-  thread_pool_->Run(std::move(runnable));
+  return thread_pool_->Run(std::move(runnable));
 }
 
 void ScheduledExecutor::Shutdown() {

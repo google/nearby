@@ -39,6 +39,16 @@ class ThreadCheckRunnable {
   Runnable runnable_;
 };
 
+// Wraps `runnable` in a `ThreadCheckRunnable`, or returns an empty `Runnable`
+// when `runnable` is empty so platform executors can detect empty tasks.
+inline Runnable MakeThreadCheckRunnable(const Lockable *lockable,
+                                        Runnable runnable) {
+  if (!runnable) {
+    return nullptr;
+  }
+  return ThreadCheckRunnable(lockable, std::move(runnable));
+}
+
 }  // namespace nearby
 
 #endif  // PLATFORM_PUBLIC_THREAD_CHECK_RUNNABLE_H_
