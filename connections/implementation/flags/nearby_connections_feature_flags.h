@@ -31,6 +31,10 @@ namespace nearby_connections_feature {
 // The timeout in millis to report peripheral device lost.
 constexpr auto kBlePeripheralLostTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45411439", 12000);
+// Synchronize GNCNWFrameworkSocket close with active read and write
+// operations.
+constexpr auto kCloseNwFrameworkSocketSafely =
+    flags::Flag<bool>(kConfigPackage, "45868912", false);
 // Restricts outgoing connection attempt deduplication to UPGRADE attempts so
 // failed INITIAL attempts are no longer deduplicated and their pending
 // connection requests are marked NOT_SENT.

@@ -50,4 +50,7 @@
 /** Checks whether GNCNWFrameworkSocket read NSCondition waits are guarded with a predicate. */
 @property(nonatomic, class, readonly) BOOL guardNWFrameworkSocketReadConditionEnabled;
 
+/** Checks whether GNCNWFrameworkSocket close is synchronized with active operations. */
+@property(nonatomic, class, readonly) BOOL closeNWFrameworkSocketSafelyEnabled;
+
 @end
