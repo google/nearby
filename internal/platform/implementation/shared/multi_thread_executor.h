@@ -33,7 +33,11 @@ namespace nearby::shared {
 class MultiThreadExecutor : public api::Executor {
  public:
   explicit MultiThreadExecutor(int max_parallelism)
-      : thread_pool_(std::make_unique<ThreadPool>(max_parallelism)) {}
+      : MultiThreadExecutor(max_parallelism, ThreadPool::Options{}) {}
+  MultiThreadExecutor(int max_parallelism, ThreadPool::Options options)
+      : thread_pool_(
+            std::make_unique<ThreadPool>(max_parallelism, std::move(options))) {
+  }
   ~MultiThreadExecutor() override { DoShutdown(); }
 
   bool Execute(Runnable&& runnable) ABSL_LOCKS_EXCLUDED(mutex_) override {

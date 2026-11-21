@@ -210,7 +210,6 @@ cc_library(
         "monitored_runnable.cc",
         "pending_job_registry.cc",
         "pipe.cc",
-        "single_thread_executor.cc",
         "timer_impl.cc",
     ],
     hdrs = [
@@ -572,8 +571,6 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:log_severity",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log:scoped_mock_log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",

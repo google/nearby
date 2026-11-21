@@ -20,8 +20,6 @@
 namespace nearby {
 namespace api {
 
-int GetCurrentTid();
-
 // This abstract class is the superclass of all classes representing an
 // Executor.
 class Executor {

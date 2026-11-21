@@ -50,6 +50,7 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
+#include "internal/platform/implementation/single_thread_executor.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
@@ -67,6 +68,7 @@
 #include "internal/platform/implementation/windows/output_file.h"
 #include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/single_thread_executor.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/timer.h"
 #include "internal/platform/implementation/windows/wifi.h"
@@ -128,9 +130,9 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   return std::make_unique<windows::OutputFile>(file_path);
 }
 
-std::unique_ptr<Executor>
+std::unique_ptr<SingleThreadExecutor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
-  return std::make_unique<windows::ScheduledExecutor>();
+  return std::make_unique<windows::SingleThreadExecutor>();
 }
 
 std::unique_ptr<Executor>
