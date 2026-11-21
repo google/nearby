@@ -16,11 +16,13 @@
 
 #include <stdint.h>
 
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
@@ -99,6 +101,42 @@ TEST(NearbyShareDecryptedPublicCertificateTest, Decrypt_InvalidDataFailure) {
                                              1);
   EXPECT_FALSE(NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
       proto_cert, GetNearbyShareTestEncryptedMetadataKey()));
+}
+
+TEST(NearbyShareDecryptedPublicCertificateTest,
+     Decrypt_ExtremeTimestampOverflowRejectedWithoutOverflow) {
+  PublicCertificate proto_cert =
+      GetNearbyShareTestPublicCertificate(kTestPublicCertificateVisibility);
+  proto_cert.mutable_start_time()->set_seconds(
+      std::numeric_limits<int64_t>::max());
+  proto_cert.mutable_end_time()->set_seconds(
+      std::numeric_limits<int64_t>::min());
+  EXPECT_FALSE(NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
+      proto_cert, GetNearbyShareTestEncryptedMetadataKey()));
+
+  proto_cert.mutable_end_time()->set_seconds(
+      std::numeric_limits<int64_t>::max());
+  EXPECT_FALSE(NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
+      proto_cert, GetNearbyShareTestEncryptedMetadataKey()));
+}
+
+TEST(NearbyShareDecryptedPublicCertificateTest,
+     Decrypt_MinAndMaxInt64TimestampsValid) {
+  PublicCertificate proto_cert =
+      GetNearbyShareTestPublicCertificate(kTestPublicCertificateVisibility);
+  proto_cert.mutable_start_time()->set_seconds(
+      std::numeric_limits<int64_t>::min());
+  proto_cert.mutable_end_time()->set_seconds(
+      std::numeric_limits<int64_t>::max());
+
+  std::optional<NearbyShareDecryptedPublicCertificate> cert =
+      NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
+          proto_cert, GetNearbyShareTestEncryptedMetadataKey());
+  ASSERT_TRUE(cert);
+  EXPECT_EQ(cert->not_before(),
+            absl::FromUnixSeconds(std::numeric_limits<int64_t>::min()));
+  EXPECT_EQ(cert->not_after(),
+            absl::FromUnixSeconds(std::numeric_limits<int64_t>::max()));
 }
 
 TEST(NearbyShareDecryptedPublicCertificateTest, Verify) {

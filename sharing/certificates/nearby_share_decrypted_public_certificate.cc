@@ -129,9 +129,9 @@ NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
   // PublicCertificate.for_selected_contacts are not returned from the server
   // for remote devices.
   absl::Time not_before =
-      FromJavaTime(public_certificate.start_time().seconds() * 1000);
+      absl::FromUnixSeconds(public_certificate.start_time().seconds());
   absl::Time not_after =
-      FromJavaTime(public_certificate.end_time().seconds() * 1000);
+      absl::FromUnixSeconds(public_certificate.end_time().seconds());
   std::vector<uint8_t> public_key(public_certificate.public_key().begin(),
                                   public_certificate.public_key().end());
   std::unique_ptr<crypto::SymmetricKey> secret_key =
