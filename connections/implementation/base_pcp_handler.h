@@ -230,9 +230,17 @@ class BasePcpHandler : public PcpHandler,
   struct BluetoothEndpoint : public DiscoveredEndpoint {
     BluetoothEndpoint(DiscoveredEndpoint endpoint, BluetoothDevice device)
         : DiscoveredEndpoint(std::move(endpoint)),
-          bluetooth_device(std::move(device)) {}
+          bluetooth_device(std::move(device)),
+          mac_address(bluetooth_device.IsValid() ? bluetooth_device.GetAddress()
+                                                 : MacAddress()) {}
+    BluetoothEndpoint(DiscoveredEndpoint endpoint, BluetoothDevice device,
+                      MacAddress mac_address)
+        : DiscoveredEndpoint(std::move(endpoint)),
+          bluetooth_device(std::move(device)),
+          mac_address(mac_address) {}
 
     BluetoothDevice bluetooth_device;
+    MacAddress mac_address;
   };
 
   struct BleEndpoint : public BasePcpHandler::DiscoveredEndpoint {

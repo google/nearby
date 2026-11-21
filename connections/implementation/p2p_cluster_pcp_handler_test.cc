@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
@@ -41,10 +42,13 @@
 #include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby::connections {
 namespace {
@@ -2037,6 +2041,706 @@ TEST_F(P2pClusterPcpHandlerTest,
       config_package_nearby::nearby_connections_feature::
           kFixWifiLanServiceInfoSerialization,
       true);
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothNameChangedToUnrecognizedNameRetiresDiscoveredEndpoint) {
+  env_.Start();
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  ByteArray info_a{"endpoint_a"};
+  std::string discovered_id_a;
+  std::string lost_id_a;
+  absl::Notification found_latch_a;
+  absl::Notification lost_latch_a;
+
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothOnlyDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == info_a &&
+                        !found_latch_a.HasBeenNotified()) {
+                      discovered_id_a = endpoint_id;
+                      found_latch_a.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (endpoint_id == discovered_id_a &&
+                        !lost_latch_a.HasBeenNotified()) {
+                      lost_id_a = endpoint_id;
+                      lost_latch_a.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = info_a}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(found_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    // Rename the still-discoverable Bluetooth adapter to a non-Nearby name.
+    mediums_a.GetBluetoothRadio().GetBluetoothAdapter().SetName(
+        "Unrecognized Device Name");
+    ASSERT_TRUE(lost_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+    EXPECT_EQ(lost_id_a, discovered_id_a);
+
+    mediums_a.GetBluetoothRadio().Disable();
+    handler_a.StopAdvertising(&client_a_);
+    bwu_a.Shutdown();
+  }
+
+  client_b_.AddCancellationFlag(discovered_id_a);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, discovered_id_a,
+                                        {.endpoint_info = info_a}, {}),
+            Status{Status::kEndpointUnknown});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothDeviceLostWithUnrecognizedNameRetiresDiscoveredEndpoint) {
+  env_.Start();
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  ByteArray info_a{"endpoint_a"};
+  std::string discovered_id_a;
+  absl::Notification found_latch_a;
+  absl::Notification lost_latch_a;
+
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothOnlyDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == info_a &&
+                        !found_latch_a.HasBeenNotified()) {
+                      discovered_id_a = endpoint_id;
+                      found_latch_a.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (endpoint_id == discovered_id_a &&
+                        !lost_latch_a.HasBeenNotified()) {
+                      lost_latch_a.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = info_a}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(found_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    // Switch out of discoverable mode before renaming so device_name_changed_cb
+    // does not fire; disabling the radio then fires device_lost_cb with an
+    // unrecognized adapter name.
+    BluetoothAdapter& adapter_a =
+        mediums_a.GetBluetoothRadio().GetBluetoothAdapter();
+    adapter_a.SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+    adapter_a.SetName("Unrecognized Device Name");
+    mediums_a.GetBluetoothRadio().Disable();
+
+    ASSERT_TRUE(lost_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    handler_a.StopAdvertising(&client_a_);
+    bwu_a.Shutdown();
+  }
+
+  client_b_.AddCancellationFlag(discovered_id_a);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, discovered_id_a,
+                                        {.endpoint_info = info_a}, {}),
+            Status{Status::kEndpointUnknown});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothDeviceLostRetiresAllAliasedEndpointsSharingMacAddress) {
+  env_.Start();
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  ByteArray ble_info{"ble_endpoint"};
+  ByteArray bt_info{"bt_endpoint"};
+  std::string ble_endpoint_id;
+  std::string bt_endpoint_id;
+  absl::Notification ble_found_latch;
+  absl::Notification bt_found_latch;
+  absl::Notification bt_lost_latch;
+
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothAndBleDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == ble_info &&
+                        !ble_found_latch.HasBeenNotified()) {
+                      ble_endpoint_id = endpoint_id;
+                      ble_found_latch.Notify();
+                    } else if (endpoint_info == bt_info &&
+                               !bt_found_latch.HasBeenNotified()) {
+                      bt_endpoint_id = endpoint_id;
+                      bt_found_latch.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (!bt_endpoint_id.empty() &&
+                        endpoint_id == bt_endpoint_id &&
+                        !bt_lost_latch.HasBeenNotified()) {
+                      bt_lost_latch.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    // Advertise endpoint 1 over BLE (which embeds mediums_a's Classic MAC
+    // address and synthesizes a BluetoothEndpoint on handler_b).
+    AdvertisingOptions ble_only_options{
+        {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}}};
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         ble_only_options,
+                                         {.endpoint_info = ble_info}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(
+        ble_found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    // Switch to advertising a distinct endpoint ID over Bluetooth Classic on
+    // the same adapter MAC address, creating two BluetoothEndpoints aliasing
+    // mediums_a's BluetoothDevice.
+    handler_a.StopAdvertising(&client_a_);
+    ASSERT_EQ(handler_a.StartAdvertising(&client_c_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = bt_info}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(
+        bt_found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    // Disabling mediums_a's Bluetooth radio fires device_lost_cb while the
+    // adapter name only carries client_c_'s endpoint ID; both aliased
+    // BluetoothEndpoints for mediums_a's MAC must be retired.
+    mediums_a.GetBluetoothRadio().Disable();
+    ASSERT_TRUE(bt_lost_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    handler_a.StopAdvertising(&client_c_);
+    bwu_a.Shutdown();
+  }
+
+  client_b_.AddCancellationFlag(bt_endpoint_id);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, bt_endpoint_id,
+                                        {.endpoint_info = bt_info}, {}),
+            Status{Status::kEndpointUnknown});
+
+  // Verify the BLE-synthesized BluetoothEndpoint was also retired while
+  // mediums_a is already destroyed (only the BleEndpoint remains).
+  client_b_.AddCancellationFlag(ble_endpoint_id);
+  ConnectionOptions bluetooth_only_connection_options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}}};
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, ble_endpoint_id,
+                                        {.endpoint_info = ble_info},
+                                        bluetooth_only_connection_options),
+            Status{Status::kError});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothNameChangedRetiresAllAliasedEndpointsSharingMacAddress) {
+  env_.Start();
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  ByteArray ble_info{"ble_endpoint"};
+  ByteArray bt_info{"bt_endpoint"};
+  std::string ble_endpoint_id;
+  std::string bt_endpoint_id;
+  absl::Notification ble_found_latch;
+  absl::Notification bt_found_latch;
+  absl::Notification bt_lost_latch;
+
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothAndBleDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == ble_info &&
+                        !ble_found_latch.HasBeenNotified()) {
+                      ble_endpoint_id = endpoint_id;
+                      ble_found_latch.Notify();
+                    } else if (endpoint_info == bt_info &&
+                               !bt_found_latch.HasBeenNotified()) {
+                      bt_endpoint_id = endpoint_id;
+                      bt_found_latch.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (!bt_endpoint_id.empty() &&
+                        endpoint_id == bt_endpoint_id &&
+                        !bt_lost_latch.HasBeenNotified()) {
+                      bt_lost_latch.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    AdvertisingOptions ble_only_options{
+        {Strategy::kP2pCluster, BooleanMediumSelector{.ble = true}}};
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         ble_only_options,
+                                         {.endpoint_info = ble_info}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(
+        ble_found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    handler_a.StopAdvertising(&client_a_);
+    ASSERT_EQ(handler_a.StartAdvertising(&client_c_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = bt_info}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(
+        bt_found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    // Renaming the still-discoverable adapter fires BluetoothNameChangedHandler
+    // and must retire both aliased BluetoothEndpoints sharing mediums_a's MAC.
+    mediums_a.GetBluetoothRadio().GetBluetoothAdapter().SetName(
+        "Unrecognized Device Name");
+    ASSERT_TRUE(bt_lost_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    mediums_a.GetBluetoothRadio().Disable();
+    handler_a.StopAdvertising(&client_c_);
+    bwu_a.Shutdown();
+  }
+
+  client_b_.AddCancellationFlag(bt_endpoint_id);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, bt_endpoint_id,
+                                        {.endpoint_info = bt_info}, {}),
+            Status{Status::kEndpointUnknown});
+
+  client_b_.AddCancellationFlag(ble_endpoint_id);
+  ConnectionOptions bluetooth_only_connection_options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{.bluetooth = true}}};
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, ble_endpoint_id,
+                                        {.endpoint_info = ble_info},
+                                        bluetooth_only_connection_options),
+            Status{Status::kError});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothDeviceLostDoesNotRetireEndpointsForOtherServiceIds) {
+  env_.Start();
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  ByteArray info_a{"endpoint_a"};
+  ByteArray other_info{"other_endpoint"};
+  constexpr char kOtherEndpointId[] = "OTHR";
+  constexpr char kOtherServiceId[] = "other_service";
+  std::string discovered_id_a;
+  absl::Notification found_latch_a;
+  absl::Notification other_found_latch;
+  absl::Notification lost_latch_a;
+  absl::Notification other_lost_latch;
+
+  DiscoveryOptions oob_options = GetBluetoothOnlyDiscoveryOptions();
+  oob_options.is_out_of_band_connection = true;
+  ClientProxy client_oob;
+  client_oob.StartedDiscovery(
+      kOtherServiceId, Strategy::kP2pCluster,
+      {
+          .endpoint_found_cb =
+              [&](const std::string& endpoint_id,
+                  const ByteArray& endpoint_info,
+                  const std::string& service_id) {
+                if (endpoint_id == kOtherEndpointId &&
+                    !other_found_latch.HasBeenNotified()) {
+                  other_found_latch.Notify();
+                }
+              },
+          .endpoint_lost_cb =
+              [&](const std::string& endpoint_id) {
+                if (endpoint_id == kOtherEndpointId &&
+                    !other_lost_latch.HasBeenNotified()) {
+                  other_lost_latch.Notify();
+                }
+              },
+      },
+      {}, {}, oob_options);
+
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothOnlyDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == info_a &&
+                        !found_latch_a.HasBeenNotified()) {
+                      discovered_id_a = endpoint_id;
+                      found_latch_a.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (endpoint_id == kOtherEndpointId &&
+                        !other_lost_latch.HasBeenNotified()) {
+                      other_lost_latch.Notify();
+                    } else if (endpoint_id == discovered_id_a &&
+                               !lost_latch_a.HasBeenNotified()) {
+                      lost_latch_a.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = info_a}),
+              Status{Status::kSuccess});
+    ASSERT_TRUE(found_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    MacAddress mac_a =
+        mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetAddress();
+    handler_b.InjectEndpoint(
+        &client_oob, kOtherServiceId,
+        OutOfBandConnectionMetadata{
+            .medium = location::nearby::proto::connections::Medium::BLUETOOTH,
+            .endpoint_id = kOtherEndpointId,
+            .endpoint_info = other_info,
+            .remote_bluetooth_mac_address = GetSixBytesMacAddress(mac_a),
+        });
+    ASSERT_TRUE(
+        other_found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    mediums_a.GetBluetoothRadio().Disable();
+    ASSERT_TRUE(lost_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+    handler_a.StopAdvertising(&client_a_);
+    bwu_a.Shutdown();
+  }
+
+  EXPECT_FALSE(other_lost_latch.HasBeenNotified());
+
+  client_b_.AddCancellationFlag(discovered_id_a);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, discovered_id_a,
+                                        {.endpoint_info = info_a}, {}),
+            Status{Status::kEndpointUnknown});
+
+  // The endpoint on kOtherServiceId must still be cached (failing at connect
+  // rather than kEndpointUnknown).
+  client_oob.AddCancellationFlag(kOtherEndpointId);
+  EXPECT_EQ(handler_b.RequestConnection(&client_oob, kOtherEndpointId,
+                                        {.endpoint_info = other_info}, {}),
+            Status{Status::kBluetoothError});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+class UnsetMacBluetoothDevice : public api::BluetoothDevice {
+ public:
+  explicit UnsetMacBluetoothDevice(std::string name)
+      : name_(std::move(name)) {}
+  std::string GetName() const override { return name_; }
+  void SetName(std::string name) { name_ = std::move(name); }
+  MacAddress GetMacAddress() const override { return MacAddress(); }
+
+ private:
+  std::string name_;
+};
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothDeviceLostFallsBackToDeviceNameWhenMacAddressUnset) {
+  env_.Start();
+  ByteArray info_a{"endpoint_a"};
+  std::string encoded_device_name;
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = info_a}),
+              Status{Status::kSuccess});
+    encoded_device_name =
+        mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetName();
+    mediums_a.GetBluetoothRadio().Disable();
+    handler_a.StopAdvertising(&client_a_);
+    bwu_a.Shutdown();
+  }
+
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  std::string discovered_id;
+  absl::Notification found_latch;
+  absl::Notification lost_latch;
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothOnlyDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_info == info_a &&
+                        !found_latch.HasBeenNotified()) {
+                      discovered_id = endpoint_id;
+                      found_latch.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (endpoint_id == discovered_id &&
+                        !lost_latch.HasBeenNotified()) {
+                      lost_latch.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  BluetoothAdapter peer_adapter;
+  UnsetMacBluetoothDevice unset_mac_device(encoded_device_name);
+  env_.OnBluetoothAdapterChangedState(
+      peer_adapter.GetImpl(), unset_mac_device, encoded_device_name,
+      /*enabled=*/true, BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ASSERT_TRUE(found_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  env_.OnBluetoothAdapterChangedState(peer_adapter.GetImpl(), unset_mac_device,
+                                      encoded_device_name, /*enabled=*/false,
+                                      BluetoothAdapter::ScanMode::kNone);
+  ASSERT_TRUE(lost_latch.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  client_b_.AddCancellationFlag(discovered_id);
+  EXPECT_EQ(handler_b.RequestConnection(&client_b_, discovered_id,
+                                        {.endpoint_info = info_a}, {}),
+            Status{Status::kEndpointUnknown});
+
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(P2pClusterPcpHandlerTest,
+       BluetoothNameChangedDoesNotRetireOtherUnsetMacEndpoints) {
+  env_.Start();
+  ByteArray info_a{"endpoint_a"};
+  ByteArray info_b1{"endpoint_b1"};
+  ByteArray info_b2{"endpoint_b2"};
+  BluetoothDeviceName template_name;
+  {
+    Mediums mediums_a;
+    EndpointChannelManager ecm_a;
+    EndpointManager em_a(&ecm_a);
+    BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+    InjectedBluetoothDeviceStore ibds_a;
+    P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+    ASSERT_EQ(handler_a.StartAdvertising(&client_a_, service_id_,
+                                         GetBluetoothOnlyAdvertisingOptions(),
+                                         {.endpoint_info = info_a}),
+              Status{Status::kSuccess});
+    template_name = BluetoothDeviceName(
+        mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetName());
+    mediums_a.GetBluetoothRadio().Disable();
+    handler_a.StopAdvertising(&client_a_);
+    bwu_a.Shutdown();
+  }
+
+  constexpr char kEndpointIdA[] = "EPA1";
+  constexpr char kEndpointIdB1[] = "EPB1";
+  constexpr char kEndpointIdB2[] = "EPB2";
+  std::string encoded_name_a(BluetoothDeviceName(
+      template_name.GetVersion(), template_name.GetPcp(), kEndpointIdA,
+      template_name.GetServiceIdHash(), info_a, template_name.GetUwbAddress(),
+      template_name.GetWebRtcState()));
+  std::string encoded_name_b1(BluetoothDeviceName(
+      template_name.GetVersion(), template_name.GetPcp(), kEndpointIdB1,
+      template_name.GetServiceIdHash(), info_b1, template_name.GetUwbAddress(),
+      template_name.GetWebRtcState()));
+  std::string encoded_name_b2(BluetoothDeviceName(
+      template_name.GetVersion(), template_name.GetPcp(), kEndpointIdB2,
+      template_name.GetServiceIdHash(), info_b2, template_name.GetUwbAddress(),
+      template_name.GetWebRtcState()));
+
+  Mediums mediums_b;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {}, {});
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  absl::Notification found_latch_a;
+  absl::Notification found_latch_b1;
+  absl::Notification found_latch_b2;
+  absl::Notification lost_latch_a;
+  ASSERT_EQ(
+      handler_b.StartDiscovery(
+          &client_b_, service_id_, GetBluetoothOnlyDiscoveryOptions(),
+          {
+              .endpoint_found_cb =
+                  [&](const std::string& endpoint_id,
+                      const ByteArray& endpoint_info,
+                      const std::string& service_id) {
+                    if (endpoint_id == kEndpointIdA &&
+                        !found_latch_a.HasBeenNotified()) {
+                      found_latch_a.Notify();
+                    } else if (endpoint_id == kEndpointIdB1 &&
+                               !found_latch_b1.HasBeenNotified()) {
+                      found_latch_b1.Notify();
+                    } else if (endpoint_id == kEndpointIdB2 &&
+                               !found_latch_b2.HasBeenNotified()) {
+                      found_latch_b2.Notify();
+                    }
+                  },
+              .endpoint_lost_cb =
+                  [&](const std::string& endpoint_id) {
+                    if (endpoint_id == kEndpointIdA &&
+                        !lost_latch_a.HasBeenNotified()) {
+                      lost_latch_a.Notify();
+                    }
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  BluetoothAdapter peer_adapter_a;
+  UnsetMacBluetoothDevice unset_mac_device_a(encoded_name_a);
+  env_.OnBluetoothAdapterChangedState(
+      peer_adapter_a.GetImpl(), unset_mac_device_a, encoded_name_a,
+      /*enabled=*/true, BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ASSERT_TRUE(found_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  BluetoothAdapter peer_adapter_b;
+  UnsetMacBluetoothDevice unset_mac_device_b(encoded_name_b1);
+  env_.OnBluetoothAdapterChangedState(
+      peer_adapter_b.GetImpl(), unset_mac_device_b, encoded_name_b1,
+      /*enabled=*/true, BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ASSERT_TRUE(found_latch_b1.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  // Renaming unset_mac_device_b triggers BluetoothNameChangedHandler with an
+  // unset MacAddress; it must not retire unset_mac_device_a's endpoint.
+  unset_mac_device_b.SetName(encoded_name_b2);
+  env_.OnBluetoothAdapterChangedState(
+      peer_adapter_b.GetImpl(), unset_mac_device_b, encoded_name_b2,
+      /*enabled=*/true, BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  ASSERT_TRUE(found_latch_b2.WaitForNotificationWithTimeout(absl::Seconds(1)));
+  EXPECT_FALSE(lost_latch_a.HasBeenNotified());
+
+  // Confirm unset_mac_device_a is still tracked and retires when lost.
+  env_.OnBluetoothAdapterChangedState(peer_adapter_a.GetImpl(),
+                                      unset_mac_device_a, encoded_name_a,
+                                      /*enabled=*/false,
+                                      BluetoothAdapter::ScanMode::kNone);
+  EXPECT_TRUE(lost_latch_a.WaitForNotificationWithTimeout(absl::Seconds(1)));
+
+  env_.OnBluetoothAdapterChangedState(peer_adapter_b.GetImpl(),
+                                      unset_mac_device_b, encoded_name_b2,
+                                      /*enabled=*/false,
+                                      BluetoothAdapter::ScanMode::kNone);
+  handler_b.StopDiscovery(&client_b_);
+  bwu_b.Shutdown();
+  env_.Stop();
 }
 
 }  // namespace

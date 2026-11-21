@@ -411,15 +411,18 @@ bool P2pClusterPcpHandler::IsRecognizedBluetoothEndpoint(
 void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
+  if (!device.IsValid()) {
+    LOG(WARNING) << "BluetoothDeviceDiscoveredHandler: "
+                    "Skipping the invalid Bluetooth device";
+    return;
+  }
+
+  const std::string device_name_string = device.GetName();
+  const MacAddress mac_address = device.GetAddress();
   RunOnPcpHandlerThread(
       "p2p-bt-device-discovered",
-      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
-        if (!device.IsValid()) {
-          LOG(WARNING) << "BluetoothDeviceDiscoveredHandler: "
-                          "Skipping the invalid Bluetooth device";
-          return;
-        }
-
+      [this, client, service_id, device, device_name_string,
+       mac_address]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
         if (!bluetooth_medium_.IsDiscovering(service_id) &&
             !client->GetDiscoveryOptions().is_out_of_band_connection) {
@@ -429,7 +432,6 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
         }
 
         // Parse the Bluetooth device name.
-        const std::string device_name_string = device.GetName();
         BluetoothDeviceName device_name(device_name_string);
 
         // Make sure the Bluetooth device name points to a valid
@@ -453,6 +455,7 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
                 {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
                  service_id, BLUETOOTH, device_name.GetWebRtcState()},
                 device,
+                mac_address,
             }));
       });
 }
@@ -460,16 +463,19 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
 void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice device) {
+  if (!device.IsValid()) {
+    LOG(WARNING) << "BluetoothNameChangedHandler: Skipping the "
+                    "invalid Bluetooth device";
+    return;
+  }
+
+  const std::string device_name_string = device.GetName();
+  const MacAddress mac_address = device.GetAddress();
   RunOnPcpHandlerThread(
       "p2p-bt-name-changed",
-      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
+      [this, client, service_id, device, device_name_string,
+       mac_address]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!device.IsValid()) {
-          LOG(WARNING) << "BluetoothNameChangedHandler: Skipping the "
-                          "invalid Bluetooth device";
-          return;
-        }
-
         if (!bluetooth_medium_.IsDiscovering(service_id) &&
             !client->GetDiscoveryOptions().is_out_of_band_connection) {
           LOG(WARNING) << "Ignoring name changed Bluetooth device due to no "
@@ -477,12 +483,18 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           return;
         }
 
-        // Parse the Bluetooth device name.
-        const std::string device_name_string = device.GetName();
-        BluetoothDeviceName device_name(device_name_string);
         LOG(INFO) << "BT discovery handler (CHANGED) [client_id="
                   << client->GetClientId() << ", service_id=" << service_id
-                  << "]: processing new name " << device_name_string;
+                  << "]: processing device name change.";
+
+        // Retire any previously discovered BluetoothEndpoints sharing this MAC
+        // address before validating the new name, since a device may rename out
+        // of Nearby Connections format or have multiple aliased endpoint IDs.
+        RetireBluetoothEndpointsForMacAddress(client, service_id, mac_address,
+                                              "device name change");
+
+        // Parse the Bluetooth device name.
+        BluetoothDeviceName device_name(device_name_string);
 
         // Make sure the Bluetooth device name points to a valid
         // endpoint we're discovering.
@@ -491,35 +503,6 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           LOG(INFO) << "Found unrecognized BluetoothDeviceName "
                     << device_name_string;
           return;
-        }
-
-        // By this point, the BluetoothDevice passed to us has a different
-        // name than what we may have discovered before. We need to iterate
-        // over the found BluetoothEndpoints and compare their addresses to
-        // see the devices are the same. We are not guaranteed to discover a
-        // match, since the old name may not have been formatted for Nearby
-        // Connections.
-        for (auto endpoint : GetDiscoveredEndpoints(Medium::BLUETOOTH)) {
-          BluetoothEndpoint* bluetoothEndpoint =
-              static_cast<BluetoothEndpoint*>(endpoint);
-          LOG(INFO)
-              << "BT discovery handler (CHANGED) [client_id="
-              << client->GetClientId() << ", service_id=" << service_id
-              << "]: comparing MAC addresses with existing endpoint "
-              << bluetoothEndpoint->bluetooth_device.GetName()
-              << ". They have MAC address "
-              << bluetoothEndpoint->bluetooth_device.GetAddress().ToString()
-              << " and the new endpoint has MAC address "
-              << device.GetAddress().ToString();
-          if (bluetoothEndpoint->bluetooth_device.GetAddress() ==
-              device.GetAddress()) {
-            // Report the BluetoothEndpoint as lost to the client.
-            VLOG(1) << "Reporting lost BluetoothDevice "
-                    << bluetoothEndpoint->bluetooth_device.GetName()
-                    << ", due to device name change.";
-            OnEndpointLost(client, *endpoint);
-            break;
-          }
         }
 
         // Report the discovered endpoint to the client.
@@ -534,8 +517,30 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
                 {device_name.GetEndpointId(), device_name.GetEndpointInfo(),
                  service_id, Medium::BLUETOOTH, device_name.GetWebRtcState()},
                 device,
+                mac_address,
             }));
       });
+}
+
+void P2pClusterPcpHandler::RetireBluetoothEndpointsForMacAddress(
+    ClientProxy* client, absl::string_view service_id, MacAddress mac_address,
+    absl::string_view reason) {
+  if (!mac_address.IsSet()) {
+    return;
+  }
+  std::vector<DiscoveredEndpoint> stale_endpoints;
+  for (auto* endpoint : GetDiscoveredEndpoints(Medium::BLUETOOTH)) {
+    auto* bluetooth_endpoint = static_cast<BluetoothEndpoint*>(endpoint);
+    if (bluetooth_endpoint->service_id == service_id &&
+        bluetooth_endpoint->mac_address == mac_address) {
+      stale_endpoints.push_back(*endpoint);
+    }
+  }
+  for (const auto& stale_endpoint : stale_endpoints) {
+    VLOG(1) << "Reporting lost BluetoothEndpoint " << stale_endpoint.endpoint_id
+            << " for service_id=" << service_id << " due to " << reason << ".";
+    OnEndpointLost(client, stale_endpoint);
+  }
 }
 
 void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
@@ -547,10 +552,12 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
     return;
   }
 
-  const std::string& device_name_string = device.GetName();
+  const std::string device_name_string = device.GetName();
+  const MacAddress mac_address = device.GetAddress();
   RunOnPcpHandlerThread(
-      "p2p-bt-device-lost", [this, client, service_id,
-                             device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
+      "p2p-bt-device-lost",
+      [this, client, service_id, device_name_string,
+       mac_address]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
         if (!bluetooth_medium_.IsDiscovering(service_id) &&
             !client->GetDiscoveryOptions().is_out_of_band_connection) {
@@ -559,7 +566,13 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
           return;
         }
 
-        // Parse the Bluetooth device name.
+        if (mac_address.IsSet()) {
+          RetireBluetoothEndpointsForMacAddress(client, service_id, mac_address,
+                                                "device lost");
+          return;
+        }
+
+        // Parse the Bluetooth device name when MAC address is unset.
         BluetoothDeviceName device_name(device_name_string);
 
         // Make sure the Bluetooth device name points to a valid
