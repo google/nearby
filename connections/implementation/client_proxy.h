@@ -46,6 +46,7 @@
 #include "connections/v3/listeners.h"
 #include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
+#include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
@@ -74,6 +75,10 @@ class ClientProxy final {
   ClientProxy& operator=(const ClientProxy&) = delete;
 
   std::int64_t GetClientId() const;
+
+  ::nearby::Borrowable<ClientProxy*> GetBorrowable() {
+    return lender_.GetBorrowable();
+  }
 
   std::string GetLocalEndpointId();
   std::string GetLocalEndpointInfo() { return local_endpoint_info_; }
@@ -557,6 +562,7 @@ class ClientProxy final {
   bool webrtc_non_cellular_ = false;
   // Whether DCT is enabled.
   bool is_dct_enabled_ = false;
+  ::nearby::Lender<ClientProxy*> lender_{this};
 };
 
 }  // namespace nearby::connections
