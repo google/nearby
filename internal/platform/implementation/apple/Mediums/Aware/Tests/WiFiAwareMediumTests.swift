@@ -16,6 +16,10 @@ import Foundation
 import XCTest
 import os
 
+#if canImport(UIKit)
+  import UIKit
+#endif
+
 @testable import third_party_nearby_internal_platform_implementation_apple_Mediums_Aware_WiFiAwareMedium
 
 @available(iOS 26.0, *)
@@ -315,4 +319,70 @@ final class WiFiAwareMediumTests: XCTestCase {
     XCTAssertNil(afterClose)
     XCTAssertTrue(closedFlag.withLock { $0 })
   }
+
+  // MARK: - Pairing UI Dismissal Tests
+
+  #if canImport(UIKit)
+    // Hostless unit tests cannot complete a view controller presentation, so the dismissal of a
+    // live pairing UI itself is covered by on-device verification. These cover the bookkeeping
+    // around it, which StopSubscribing() / StopPublishing() rely on.
+
+    @MainActor
+    private func dismissSubscribing(_ medium: GNCWiFiAwareMedium) async {
+      let dismissed = expectation(description: "subscribing dismissal completion")
+      medium.dismissAwareSubscribingView { dismissed.fulfill() }
+      await fulfillment(of: [dismissed], timeout: 5)
+    }
+
+    @MainActor
+    private func dismissPublishing(_ medium: GNCWiFiAwareMedium) async {
+      let dismissed = expectation(description: "publishing dismissal completion")
+      medium.dismissAwarePublishingView { dismissed.fulfill() }
+      await fulfillment(of: [dismissed], timeout: 5)
+    }
+
+    @MainActor
+    func testDismissAwareSubscribingView_withNothingPresented_callsCompletion() async {
+      let medium = GNCWiFiAwareMedium()
+      await dismissSubscribing(medium)
+      XCTAssertNil(medium.presentedSubscribingViewController)
+    }
+
+    @MainActor
+    func testDismissAwarePublishingView_withNothingPresented_callsCompletion() async {
+      let medium = GNCWiFiAwareMedium()
+      await dismissPublishing(medium)
+      XCTAssertNil(medium.presentedPublishingViewController)
+    }
+
+    @MainActor
+    func testDismissAwareSubscribingView_untracksViewNoLongerPresentedAndIsIdempotent() async {
+      // E.g. the user already closed the sheet but it has not been deallocated yet.
+      let pairingView = UIViewController()
+      let medium = GNCWiFiAwareMedium()
+      medium.presentedSubscribingViewController = pairingView
+
+      await dismissSubscribing(medium)
+      XCTAssertNil(medium.presentedSubscribingViewController)
+
+      // A second stop for the same attempt (e.g. cancellation followed by StopSubscribing) must
+      // still complete.
+      await dismissSubscribing(medium)
+      XCTAssertNil(medium.presentedSubscribingViewController)
+    }
+
+    @MainActor
+    func testDismissAwarePublishingView_leavesSubscribingViewTracked() async {
+      let subscribingView = UIViewController()
+      let publishingView = UIViewController()
+      let medium = GNCWiFiAwareMedium()
+      medium.presentedSubscribingViewController = subscribingView
+      medium.presentedPublishingViewController = publishingView
+
+      await dismissPublishing(medium)
+
+      XCTAssertNil(medium.presentedPublishingViewController)
+      XCTAssertTrue(medium.presentedSubscribingViewController === subscribingView)
+    }
+  #endif
 }

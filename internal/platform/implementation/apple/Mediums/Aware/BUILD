@@ -57,7 +57,12 @@ swift_library(
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "//third_party/apple_frameworks:os",
-    ],
+    ] + select({
+        "@platforms//os:platform_ios": [
+            "//third_party/apple_frameworks:UIKit",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 ios_unit_test(

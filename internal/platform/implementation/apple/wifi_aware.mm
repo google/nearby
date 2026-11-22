@@ -224,6 +224,7 @@ class WifiAwareServerSocket : public api::WifiAwareServerSocket {
 
 WifiAwareMedium::WifiAwareMedium() {
   medium_ = [[GNCNWFramework alloc] initWithPeerToPeer:YES];
+  aware_swift_wrapper_ = [[GNCWiFiAwareSwiftWrapper alloc] init];
   if (@available(iOS 26.0, *)) {
     aware_manager_ = [[GNCAwareManager alloc] init];
   } else {
@@ -231,7 +232,33 @@ WifiAwareMedium::WifiAwareMedium() {
   }
 }
 
-WifiAwareMedium::WifiAwareMedium(GNCNWFramework* medium) : medium_(medium) {}
+WifiAwareMedium::WifiAwareMedium(GNCNWFramework* medium)
+    : medium_(medium), aware_swift_wrapper_([[GNCWiFiAwareSwiftWrapper alloc] init]) {}
+
+void WifiAwareMedium::DismissPublishingPairingUi(const char* reason) {
+  GNCWiFiAwareSwiftWrapper* awareSwiftWrapper = aware_swift_wrapper_;
+  NSString* reasonString = @(reason);
+  dispatch_async(dispatch_get_main_queue(), ^{
+    publish_ui_generation_++;
+    [awareSwiftWrapper dismissAwarePublishingViewWithCompletion:^{
+      GNCLoggerInfo(@"[NEARBY] WifiAwareMedium publishing pairing UI cleared (%@)", reasonString);
+    }];
+  });
+}
+
+void WifiAwareMedium::DismissSubscribingPairingUi(const char* reason) {
+  GNCWiFiAwareSwiftWrapper* awareSwiftWrapper = aware_swift_wrapper_;
+  NSString* reasonString = @(reason);
+  dispatch_async(dispatch_get_main_queue(), ^{
+    subscribe_ui_generation_++;
+    // Cleared now rather than when the dismissal tracker fires (1.5 s after the UI is gone), so a
+    // new upgrade attempt arriving in between still gets to show its own pairing UI.
+    is_showing_pairing_ui_ = false;
+    [awareSwiftWrapper dismissAwareSubscribingViewWithCompletion:^{
+      GNCLoggerInfo(@"[NEARBY] WifiAwareMedium subscribing pairing UI cleared (%@)", reasonString);
+    }];
+  });
+}
 
 bool WifiAwareMedium::StartAdvertising(const WifiAwareServiceInfo& wifi_aware_service_info) {
   return network_utils::StartAdvertising(medium_,
@@ -277,13 +304,23 @@ bool WifiAwareMedium::StartPublishing(const std::string& service_name) {
     publish_pairing_semaphore_ = dispatch_semaphore_create(0);
     dispatch_semaphore_t sem = publish_pairing_semaphore_;
     NSString* serviceName = [NSString stringWithUTF8String:service_name.c_str()];
+    GNCWiFiAwareSwiftWrapper* awareMedium = aware_swift_wrapper_;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-      GNCWiFiAwareMedium* awareMedium = [[GNCWiFiAwareMedium alloc] init];
+      // Captured on the main queue, ahead of any StopPublishing() issued after this call.
+      uint64_t generation = publish_ui_generation_;
       [awareMedium getPairedDeviceCountWithCompletionHandler:^(NSInteger pairedDeviceCount) {
         GNCLoggerInfo(@"[NEARBY] Aware paired devices count: %@", @(pairedDeviceCount));
         if (pairedDeviceCount == 0) {
           dispatch_async(dispatch_get_main_queue(), ^{
+            if (generation != publish_ui_generation_) {
+              // Publishing stopped while we were checking the paired-device store; showing the
+              // UI now would leave it up with nothing behind it.
+              GNCLoggerInfo(@"[NEARBY] Publishing stopped before the pairing View was shown, "
+                            @"not showing it");
+              dispatch_semaphore_signal(sem);
+              return;
+            }
             [awareMedium
                 showAwarePublishingViewAtTopWithServiceName:serviceName
                                                  completion:^{
@@ -314,6 +351,7 @@ bool WifiAwareMedium::StopPublishing() {
   GNCLoggerInfo(@"[NEARBY] WifiAwareMedium StopPublishing");
   is_publishing_ = false;
   [aware_manager_ cancelListenTask];
+  DismissPublishingPairingUi("StopPublishing");
   if (publish_pairing_semaphore_ != nil) {
     dispatch_semaphore_signal(publish_pairing_semaphore_);
     publish_pairing_semaphore_ = nil;
@@ -355,31 +393,53 @@ bool WifiAwareMedium::StartSubscribing(const std::string& service_name) {
 
     NSString* peerId = [NSString stringWithUTF8String:expected_peer_id_.c_str()];
     BOOL peerIdKnown = expected_peer_id_.empty() ? NO : YES;
+    GNCWiFiAwareSwiftWrapper* awareSwiftWrapper = aware_swift_wrapper_;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-      GNCWiFiAwareSwiftWrapper* awareSwiftWrapper = [[GNCWiFiAwareSwiftWrapper alloc] init];
+      // Captured on the main queue, ahead of any StopSubscribing() issued after this call, so that
+      // a dismissal for this attempt is visible below as a generation mismatch.
+      uint64_t generation = subscribe_ui_generation_;
 
       // Presents Apple's pairing UI and releases the gate once a pairing for `peerId` exists or the
       // sheet goes away, whichever happens first.
       void (^pairWithPeer)() = ^{
-        [awareManager awaitNewPairedDeviceForPeerId:peerId
-                                  completionHandler:^{
-                                    releaseGate(@"new pairing recorded");
-                                  }];
-        if (is_showing_pairing_ui_) {
-          // Android re-sends UPGRADE_PATH_AVAILABLE every few seconds, so a sheet from an earlier
-          // attempt may still be up. Presenting a second one silently fails and its completion
-          // never runs, which would wedge this attempt on the gate forever.
-          GNCLoggerInfo(@"[NEARBY] WifiAwareMedium  Already showing subscribing pairing View, not "
-                        @"stacking another");
-          releaseGate(@"pairing UI already showing");
-          return;
-        }
-        is_showing_pairing_ui_ = true;
+        // Callers reach this from Swift completion handlers on arbitrary threads; hop to the main
+        // queue, which owns `is_showing_pairing_ui_` and `subscribe_ui_generation_`.
         dispatch_async(dispatch_get_main_queue(), ^{
+          if (generation != subscribe_ui_generation_) {
+            // Subscribing stopped (e.g. the transfer finished over BLE and the endpoint went away)
+            // before the UI got shown. Showing it now would leave a PIN entry sheet on screen with
+            // nothing behind it until Apple's pairing session times out.
+            GNCLoggerInfo(@"[NEARBY] WifiAwareMedium Subscribing stopped before the pairing View "
+                          @"was shown, not showing it");
+            releaseGate(@"subscribing stopped");
+            return;
+          }
+          [awareManager awaitNewPairedDeviceForPeerId:peerId
+                                    completionHandler:^{
+                                      releaseGate(@"new pairing recorded");
+                                    }];
+          if (is_showing_pairing_ui_) {
+            // Android re-sends UPGRADE_PATH_AVAILABLE every few seconds, so a sheet from an earlier
+            // attempt may still be up. Presenting a second one silently fails and its completion
+            // never runs, which would wedge this attempt on the gate forever.
+            GNCLoggerInfo(@"[NEARBY] WifiAwareMedium  Already showing subscribing pairing View, "
+                          @"not stacking another");
+            releaseGate(@"pairing UI already showing");
+            return;
+          }
+          is_showing_pairing_ui_ = true;
           [awareSwiftWrapper
               showAwareSubscribingViewAtTopWithServiceName:serviceName
                                                 completion:^{
+                                                  releaseGate(@"pairing UI dismissal");
+                                                  if (generation != subscribe_ui_generation_) {
+                                                    // Dismissed by DismissSubscribingPairingUi(),
+                                                    // which already cleaned up. A newer attempt
+                                                    // may own the flag and the pairing watch by
+                                                    // now, so leave both alone.
+                                                    return;
+                                                  }
                                                   // Backstop: also covers the user cancelling
                                                   // without ever pairing.
                                                   is_showing_pairing_ui_ = false;
@@ -390,7 +450,6 @@ bool WifiAwareMedium::StartSubscribing(const std::string& service_name) {
                                                   // leave a watch behind to bind whatever gets
                                                   // paired next to this `peerId`.
                                                   [awareManager cancelPairingWatch];
-                                                  releaseGate(@"pairing UI dismissal");
                                                 }];
         });
       };
@@ -450,6 +509,9 @@ bool WifiAwareMedium::StopSubscribing() {
   is_subscribing_ = false;
   [aware_manager_ cancelBrowseTask];
   [aware_manager_ cancelPairingWatch];
+  // The attempt is over, successful or not. On success the pairing is already in the store by
+  // the time we get here, so cutting the sheet's success animation short loses nothing.
+  DismissSubscribingPairingUi("StopSubscribing");
   if (subscribe_pairing_semaphore_ != nil) {
     dispatch_semaphore_signal(subscribe_pairing_semaphore_);
     subscribe_pairing_semaphore_ = nil;
@@ -489,6 +551,8 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
       pairing_cancellation_listener =
           std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
             GNCLoggerInfo(@"[NEARBY] ConnectToService: cancellation requested during pairing UI");
+            [aware_manager_ cancelPairingWatch];
+            DismissSubscribingPairingUi("ConnectToService cancelled");
             if (subscribe_pairing_semaphore_ != nil) {
               dispatch_semaphore_signal(subscribe_pairing_semaphore_);
             }
@@ -589,6 +653,7 @@ std::unique_ptr<api::WifiAwareSocket> WifiAwareMedium::ConnectToService(
           std::make_unique<CancellationFlagListener>(cancellation_flag, [this]() {
             NSLog(@"QS_AWARE ConnectToService: cancellation requested during pairing UI");
             [aware_manager_ cancelPairingWatch];
+            DismissSubscribingPairingUi("ConnectToService cancelled");
             if (subscribe_pairing_semaphore_ != nil) {
               dispatch_semaphore_signal(subscribe_pairing_semaphore_);
             }
