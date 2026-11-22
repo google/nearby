@@ -1510,6 +1510,9 @@ enum OsType {
   APPLE = 4;
   LINUX = 100;  // g3 test environment
 }
+
+// Todo: add instant connection result and error stage codes
+
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
