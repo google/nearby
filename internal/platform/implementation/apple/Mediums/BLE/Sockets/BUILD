@@ -22,9 +22,6 @@ package(default_visibility = ["//internal/platform/implementation/apple:__subpac
 
 objc_library(
     name = "Central",
-    srcs = glob([
-        "Source/Central/*.m",
-    ]),
     hdrs = glob([
         "Source/Central/*.h",
     ]) + [
@@ -32,7 +29,7 @@ objc_library(
     ],
     deps = [
         ":Shared",
-        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//googlemac/iPhone/Shared/Nearby/Sockets:Central",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
     ],
@@ -40,9 +37,6 @@ objc_library(
 
 objc_library(
     name = "Peripheral",
-    srcs = glob([
-        "Source/Peripheral/*.m",
-    ]),
     hdrs = glob([
         "Source/Peripheral/*.h",
     ]) + [
@@ -50,7 +44,7 @@ objc_library(
     ],
     deps = [
         ":Shared",
-        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//googlemac/iPhone/Shared/Nearby/Sockets:Peripheral",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:Foundation",
@@ -65,16 +59,13 @@ objc_library(
 
 objc_library(
     name = "Shared",
-    srcs = glob([
-        "Source/Shared/*.m",
-    ]),
     hdrs = glob([
         "Source/Shared/*.h",
     ]) + [
         "Source/GNSShared.h",
     ],
     deps = [
-        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//googlemac/iPhone/Shared/Nearby/Sockets:Shared",
         "//third_party/apple_frameworks:CommonCrypto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
