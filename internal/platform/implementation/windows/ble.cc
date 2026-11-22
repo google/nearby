@@ -483,6 +483,23 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
       return nullptr;
     }
     watchers_.push_back(std::move(watcher));
+
+    if (!adapter_->IsExtendedAdvertisingSupported()) {
+      for (const auto& [alternate_uuid16, service_id] :
+           alternate_uuids_for_service_) {
+        auto alternate_watcher = std::make_unique<AdvertisementWatcher>();
+        alternate_watcher->InitializeWithServiceFilter(
+            alternate_uuid16, {this, &BleMedium::AdvertisementFoundHandler},
+            {this, &BleMedium::WatcherHandler});
+        if (alternate_watcher->Start()) {
+          watchers_.push_back(std::move(alternate_watcher));
+        } else {
+          LOG(WARNING) << "Failed to start alternate watcher for UUID: "
+                       << alternate_uuid16;
+        }
+      }
+    }
+
     LOG(INFO) << __func__ << ": BLE scanning started.";
   } else {
     LOG(WARNING) << __func__ << ": BLE Scanning already started.";
@@ -523,6 +540,7 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
                     try {
                       LOG(INFO)
                           << "No more scan sessions, stopping Ble scanning.";
+                      alternate_uuids_for_service_.clear();
                       watchers_.clear();
 
                       LOG(INFO) << "Ble stoped scanning successfully.";
@@ -1179,9 +1197,12 @@ void BleMedium::AdvertisementFoundHandler(
     BluetoothLEAdvertisementReceivedEventArgs args) {
   BluetoothLEAdvertisement advertisement = args.Advertisement();
   std::vector<Uuid> service_uuid_list;
+  std::vector<std::string> alt_service_ids;
   bool found_matching_service_uuid = false;
+  bool has_alternate_uuids = false;
   {
     absl::MutexLock lock(mutex_);
+    has_alternate_uuids = !alternate_uuids_for_service_.empty();
     for (auto windows_service_uuid : advertisement.ServiceUuids()) {
       auto nearby_service_uuid =
           winrt_guid_to_nearby_uuid(windows_service_uuid);
@@ -1189,10 +1210,19 @@ void BleMedium::AdvertisementFoundHandler(
       if (service_uuid_to_session_map_.find(nearby_service_uuid) !=
           service_uuid_to_session_map_.end()) {
         found_matching_service_uuid = true;
+      } else {
+        std::optional<uint16_t> uuid16 = nearby_service_uuid.GetBtUuid16();
+        if (uuid16.has_value()) {
+          auto alternate_it = alternate_uuids_for_service_.find(*uuid16);
+          if (alternate_it != alternate_uuids_for_service_.end()) {
+            found_matching_service_uuid = true;
+            alt_service_ids.push_back(alternate_it->second);
+          }
+        }
       }
     }
   }
-  if (!found_matching_service_uuid) {
+  if (!found_matching_service_uuid && !has_alternate_uuids) {
     return;
   }
 
@@ -1207,12 +1237,14 @@ void BleMedium::AdvertisementFoundHandler(
     // Discard the first 2 bytes of Service Uuid in Service Data
     uint16_t service_uuid16 = data_reader.ReadUInt16();
 
+    bool matched_primary_service = false;
     for (auto service_uuid : service_uuid_list) {
       std::optional<uint16_t> uuid16 = service_uuid.GetBtUuid16();
       if (!uuid16.has_value()) {
         continue;
       }
       if (*uuid16 == service_uuid16) {
+        matched_primary_service = true;
         std::string data;
 
         uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
@@ -1227,8 +1259,22 @@ void BleMedium::AdvertisementFoundHandler(
         ble_advertisement_data.service_data[service_uuid] = ByteArray{data};
       }
     }
+    if (!matched_primary_service && has_alternate_uuids) {
+      absl::MutexLock lock(mutex_);
+      auto alternate_it = alternate_uuids_for_service_.find(service_uuid16);
+      if (alternate_it != alternate_uuids_for_service_.end()) {
+        found_matching_service_uuid = true;
+        if (std::find(alt_service_ids.begin(), alt_service_ids.end(),
+                      alternate_it->second) == alt_service_ids.end()) {
+          alt_service_ids.push_back(alternate_it->second);
+        }
+      }
+    }
   }
-  if (ble_advertisement_data.service_data.empty()) {
+  if (!found_matching_service_uuid) {
+    return;
+  }
+  if (ble_advertisement_data.service_data.empty() && alt_service_ids.empty()) {
     LOG(ERROR) << "Got matching Service UUID but found no "
                   "corresponding data, skipping";
     return;
@@ -1241,6 +1287,27 @@ void BleMedium::AdvertisementFoundHandler(
   }
 
   VLOG(1) << "BLE peripheral with address: " << bluetooth_address.ToString();
+
+  // Only process alternate service data if there is no primary service data.
+  if (ble_advertisement_data.service_data.empty() && !alt_service_ids.empty()) {
+    ble_advertisement_data.is_extended_advertisement = false;
+    BleAdvertisementHeader header =
+        CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
+    ByteArray header_bytes(header);
+    absl::MutexLock lock(mutex_);
+    for (auto& [session_service_uuid, sessions] :
+         service_uuid_to_session_map_) {
+      api::ble::BleAdvertisementData session_advertisement_data =
+          ble_advertisement_data;
+      session_advertisement_data.service_data[session_service_uuid] =
+          header_bytes;
+      for (auto& id_session_pair : sessions) {
+        id_session_pair.second.advertisement_found_cb(
+            bluetooth_address.address(), session_advertisement_data);
+      }
+    }
+    return;
+  }
 
   // Invokes callbacks that matches the UUID.
   for (auto service_uuid : service_uuid_list) {
