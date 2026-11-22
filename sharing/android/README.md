@@ -49,6 +49,7 @@ Example code:
 val sendIntent = Intent(Intent.ACTION_SEND)
         .setType(/* Set your content mime type here */)
         .putExtra(Intent.EXTRA_STREAM, /* your content URI here */)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 ```
 
 ## Sending a folder via Quick Share

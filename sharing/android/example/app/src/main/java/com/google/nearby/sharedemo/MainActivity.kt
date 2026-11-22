@@ -16,7 +16,6 @@
 
 package com.google.nearby.sharedemo
 
-import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -118,17 +117,6 @@ fun MainView(
               flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
           val context = LocalContext.current
-          // We need to call sendIntent.migrateExtraStreamToClipData() to show the preview images on
-          // Android Q and above but the method is hidden. Hence we call PendingIntent.getActivity as
-          // a proxy/wrapper which calls the above method. This method can throw exception if files
-          // are too large.
-          // We need to call sendIntent.migrateExtraStreamToClipData() to show the preview images on
-          // Android Q and above but the method is hidden. Hence we call PendingIntent.getActivity as
-          // a proxy/wrapper which calls the above method. This method can throw exception if files
-          // are too large.
-          val pendingIntentFlags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-
-          PendingIntent.getActivity(context.applicationContext, 0, sendIntent, pendingIntentFlags)
           ShareDestinations(sendIntent, state.targets, onShareTargetClicked = { data, intent ->
             for (uri in uris) {
               context.grantUriPermission(
