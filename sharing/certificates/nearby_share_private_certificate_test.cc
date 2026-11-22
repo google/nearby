@@ -28,6 +28,7 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/test_util.h"
+#include "sharing/internal/api/private_certificate_data.h"
 #include "sharing/proto/encrypted_metadata.pb.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
@@ -77,6 +78,55 @@ TEST(NearbySharePrivateCertificateTest, ToFromDictionary) {
   before.key_pair_->ExportPrivateKey(&before_private_key);
   after.key_pair_->ExportPrivateKey(&after_private_key);
   EXPECT_EQ(before_private_key, after_private_key);
+}
+
+TEST(NearbySharePrivateCertificateTest,
+     ConsumedSaltsSerializationOrderAndRoundtrip) {
+  NearbySharePrivateCertificate before(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      GetNearbyShareTestNotBefore(), GetNearbyShareTestMetadata());
+  const std::vector<std::vector<uint8_t>> consumed_salts = {
+      {0xff, 0xff}, {0x01, 0x00}, {0x00, 0x01}, {0x00, 0x00}};
+  for (const std::vector<uint8_t>& salt : consumed_salts) {
+    before.next_salts_for_testing().push(salt);
+    std::optional<NearbyShareEncryptedMetadataKey> key =
+        before.EncryptMetadataKey();
+    ASSERT_TRUE(key);
+    EXPECT_EQ(key->salt(), salt);
+  }
+
+  api::PrivateCertificateData cert_data = before.ToCertificateData();
+  EXPECT_EQ(cert_data.consumed_salts, "000000010100FFFF");
+
+  std::optional<NearbySharePrivateCertificate> after =
+      NearbySharePrivateCertificate::FromCertificateData(cert_data);
+  ASSERT_TRUE(after);
+  for (const std::vector<uint8_t>& salt : consumed_salts) {
+    after->next_salts_for_testing().push(salt);
+  }
+  const std::vector<uint8_t> unused_salt = {0x12, 0x34};
+  after->next_salts_for_testing().push(unused_salt);
+  std::optional<NearbyShareEncryptedMetadataKey> next_key =
+      after->EncryptMetadataKey();
+  ASSERT_TRUE(next_key);
+  EXPECT_EQ(next_key->salt(), unused_salt);
+}
+
+TEST(NearbySharePrivateCertificateTest,
+     FromCertificateData_CorruptedConsumedSalts) {
+  NearbySharePrivateCertificate cert(
+      DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+      GetNearbyShareTestNotBefore(), GetNearbyShareTestMetadata());
+  api::PrivateCertificateData cert_data = cert.ToCertificateData();
+
+  cert_data.consumed_salts = "000";
+  EXPECT_FALSE(NearbySharePrivateCertificate::FromCertificateData(cert_data));
+
+  cert_data.consumed_salts = "0000F";
+  EXPECT_FALSE(NearbySharePrivateCertificate::FromCertificateData(cert_data));
+
+  cert_data.consumed_salts = "ZZZZ";
+  EXPECT_FALSE(NearbySharePrivateCertificate::FromCertificateData(cert_data));
 }
 
 TEST(NearbySharePrivateCertificateTest, EncryptMetadataKey) {
