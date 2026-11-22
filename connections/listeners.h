@@ -36,6 +36,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
 
+
 namespace nearby {
 namespace connections {
 
