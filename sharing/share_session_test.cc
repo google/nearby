@@ -443,5 +443,55 @@ TEST(ShareSessionTest, DisconnectNotConnected) {
   session.Disconnect();
 }
 
+TEST(ShareSessionTest,
+     ConvertToTransmissionStatusMapsDeprecatedFailureStatusesToFailed) {
+  using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
+
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kMediaUnavailable),
+            AttachmentTransmissionStatus::
+                FAILED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kDeviceAuthenticationFailed),
+            AttachmentTransmissionStatus::
+                FAILED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kIncompletePayloads),
+            AttachmentTransmissionStatus::
+                FAILED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kFailed),
+            AttachmentTransmissionStatus::
+                FAILED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kComplete),
+            AttachmentTransmissionStatus::
+                COMPLETE_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kRejected),
+            AttachmentTransmissionStatus::
+                REJECTED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kCancelled),
+            AttachmentTransmissionStatus::
+                CANCELED_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kTimedOut),
+            AttachmentTransmissionStatus::
+                TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kNotEnoughSpace),
+            AttachmentTransmissionStatus::
+                NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kUnsupportedAttachmentType),
+            AttachmentTransmissionStatus::
+                UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS);
+  EXPECT_EQ(ShareSession::ConvertToTransmissionStatus(
+                TransferMetadata::Status::kUnknown),
+            AttachmentTransmissionStatus::
+                UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS);
+}
+
 }  // namespace
 }  // namespace nearby::sharing
