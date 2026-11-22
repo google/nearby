@@ -200,7 +200,9 @@ bool OutgoingShareSession::InitiateSendAttachments(
 void OutgoingShareSession::OnConnectionDisconnected() {
   disconnection_timeout_ = nullptr;
   if (pending_complete_metadata_.has_value()) {
-    UpdateTransferMetadata(*pending_complete_metadata_);
+    if (!is_cancelled()) {
+      UpdateTransferMetadata(*pending_complete_metadata_);
+    }
     pending_complete_metadata_.reset();
   }
 }

@@ -1247,13 +1247,16 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
       session_.ProcessPayloadTransferUpdates();
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
-  EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kCancelled));
+  EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kCancelling));
+  EXPECT_FALSE(metadata->is_final_status());
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
       Eq(file1_path));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
       Eq(std::nullopt));
+  EXPECT_THAT(session_.GetPayloadFilePaths(),
+              UnorderedElementsAre(file1_path, file2_path));
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
       IsTrue());
