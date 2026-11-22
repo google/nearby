@@ -18,7 +18,10 @@ load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["//visibility:public"],
+    features = ["swift.enable_v6"],
+)
 
 swift_library(
     name = "NearbyConnections",
