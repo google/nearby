@@ -90,6 +90,7 @@ void MediumEnvironment::Stop() {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
     ble_l2cap_available_.store(false, std::memory_order_relaxed);
+    fail_ble_start_scanning_.store(false, std::memory_order_relaxed);
     absl::MutexLock lock(mutex_);
     if (config_.use_simulated_clock) {
       simulated_clock_.reset();
@@ -119,6 +120,7 @@ void MediumEnvironment::Reset() {
     wifi_direct_go_supported_ = true;
     fail_wifi_hotspot_listen_for_service_ = false;
     fail_wifi_direct_listen_for_service_ = false;
+    fail_ble_start_scanning_.store(false, std::memory_order_relaxed);
   });
   Sync();
 }
@@ -1438,6 +1440,14 @@ void MediumEnvironment::SetFailWifiDirectListenForService(bool fail) {
 
 bool MediumEnvironment::ShouldFailWifiDirectListenForService() const {
   return fail_wifi_direct_listen_for_service_;
+}
+
+void MediumEnvironment::SetFailBleStartScanning(bool fail) {
+  fail_ble_start_scanning_.store(fail, std::memory_order_relaxed);
+}
+
+bool MediumEnvironment::ShouldFailBleStartScanning() const {
+  return fail_ble_start_scanning_.load(std::memory_order_relaxed);
 }
 
 }  // namespace nearby
