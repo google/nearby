@@ -91,6 +91,8 @@ class ExecutorCancelable : public nearby::api::Cancelable {
 - (BOOL)submitWithBlock:(dispatch_block_t)block;
 /** Returns `YES` if shutdown has started. */
 - (BOOL)isShuttingDown;
+/** Returns `YES` if the calling thread is currently executing an operation on this queue. */
+- (BOOL)isRunningOnQueue;
 /** Marks the queue as shutting down; returns `YES` on the first call only. */
 - (BOOL)beginShutdown;
 /** Blocks until all queued operations finish without holding the internal mutex. */
@@ -124,6 +126,10 @@ class ExecutorCancelable : public nearby::api::Cancelable {
 - (BOOL)isShuttingDown {
   absl::MutexLock lock(_mutex);
   return _shuttingDown;
+}
+
+- (BOOL)isRunningOnQueue {
+  return [NSOperationQueue currentQueue] == _queue;
 }
 
 - (BOOL)beginShutdown {
@@ -226,6 +232,10 @@ bool ScheduledExecutor::Execute(Runnable &&runnable) {
     ExecuteRunnable(local_runnable);
   }];
 }
+
+bool ScheduledExecutor::IsShuttingDown() const { return [impl_ isShuttingDown]; }
+
+bool ScheduledExecutor::IsRunningOnExecutor() const { return [impl_ isRunningOnQueue]; }
 
 void ScheduledExecutor::Shutdown() {
   // Prevent new/delayed operations from being queued/executed.

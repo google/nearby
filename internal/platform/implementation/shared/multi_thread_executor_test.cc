@@ -170,5 +170,116 @@ TEST(SingleThreadExecutorTest, ExecutesTasksSequentiallyAndShutsDown) {
   EXPECT_THAT(executed_order, ElementsAre(0, 1, 2));
 }
 
+TEST(SingleThreadExecutorTest, DelayedExecuteAndIsRunningOnExecutor) {
+  SingleThreadExecutor executor;
+  SingleThreadExecutor other_executor;
+  absl::Notification delayed_done;
+  std::atomic<bool> on_executor_in_execute = false;
+  std::atomic<bool> on_other_in_execute = true;
+  std::atomic<bool> on_executor_in_delayed = false;
+  std::atomic<bool> on_other_in_delayed = true;
+  std::vector<int> immediate_order;
+
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+  EXPECT_FALSE(executor.DelayedExecute(absl::ZeroDuration(), nullptr));
+  EXPECT_FALSE(executor.DelayedExecute(absl::Milliseconds(10), nullptr));
+  EXPECT_TRUE(executor.Execute([&]() {
+    on_executor_in_execute.store(executor.IsRunningOnExecutor(),
+                                 std::memory_order_relaxed);
+    on_other_in_execute.store(other_executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+    immediate_order.push_back(1);
+  }));
+  EXPECT_TRUE(executor.DelayedExecute(
+      absl::ZeroDuration(), [&]() { immediate_order.push_back(2); }));
+  EXPECT_TRUE(executor.DelayedExecute(
+      -absl::Seconds(1), [&]() { immediate_order.push_back(3); }));
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(10), [&]() {
+    on_executor_in_delayed.store(executor.IsRunningOnExecutor(),
+                                 std::memory_order_relaxed);
+    on_other_in_delayed.store(other_executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+    delayed_done.Notify();
+  }));
+  ASSERT_TRUE(delayed_done.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_THAT(immediate_order, ElementsAre(1, 2, 3));
+  EXPECT_TRUE(on_executor_in_execute.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_in_execute.load(std::memory_order_relaxed));
+  EXPECT_TRUE(on_executor_in_delayed.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_in_delayed.load(std::memory_order_relaxed));
+
+  executor.Shutdown();
+  EXPECT_FALSE(executor.DelayedExecute(absl::ZeroDuration(), []() {}));
+  EXPECT_FALSE(executor.DelayedExecute(absl::Milliseconds(10), []() {}));
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+}
+
+TEST(SingleThreadExecutorTest,
+     DelayedExecuteDrainsNonPositiveAndCancelsPositiveAndClampedOnShutdown) {
+  SingleThreadExecutor executor;
+  absl::Notification task_started;
+  absl::Notification allow_finish;
+  std::atomic<bool> zero_delay_ran = false;
+  std::atomic<bool> negative_delay_ran = false;
+  std::atomic<bool> positive_delay_ran = false;
+  std::atomic<bool> large_delay_ran = false;
+  std::atomic<bool> infinite_delay_ran = false;
+
+  ASSERT_TRUE(executor.Execute([&]() {
+    task_started.Notify();
+    allow_finish.WaitForNotificationWithTimeout(kWaitTimeout);
+  }));
+  ASSERT_TRUE(task_started.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::ZeroDuration(), [&]() {
+    zero_delay_ran.store(true, std::memory_order_relaxed);
+  }));
+  EXPECT_TRUE(executor.DelayedExecute(-absl::Milliseconds(5), [&]() {
+    negative_delay_ran.store(true, std::memory_order_relaxed);
+  }));
+  EXPECT_TRUE(executor.DelayedExecute(absl::Seconds(10), [&]() {
+    positive_delay_ran.store(true, std::memory_order_relaxed);
+  }));
+  EXPECT_TRUE(executor.DelayedExecute(absl::Hours(24 * 30), [&]() {
+    large_delay_ran.store(true, std::memory_order_relaxed);
+  }));
+  EXPECT_TRUE(executor.DelayedExecute(absl::InfiniteDuration(), [&]() {
+    infinite_delay_ran.store(true, std::memory_order_relaxed);
+  }));
+
+  allow_finish.Notify();
+  executor.Shutdown();
+
+  EXPECT_TRUE(zero_delay_ran.load(std::memory_order_relaxed));
+  EXPECT_TRUE(negative_delay_ran.load(std::memory_order_relaxed));
+  EXPECT_FALSE(positive_delay_ran.load(std::memory_order_relaxed));
+  EXPECT_FALSE(large_delay_ran.load(std::memory_order_relaxed));
+  EXPECT_FALSE(infinite_delay_ran.load(std::memory_order_relaxed));
+}
+
+TEST(SingleThreadExecutorTest,
+     ScheduleAfterRunsTasksCancelsOnShutdownAndRejectsInvalidCalls) {
+  SingleThreadExecutor executor;
+  absl::Notification scheduled_done;
+  std::atomic<bool> canceled_ran = false;
+  std::atomic<bool> post_shutdown_ran = false;
+
+  EXPECT_FALSE(executor.ScheduleAfter(absl::ZeroDuration(), Runnable()));
+  EXPECT_TRUE(executor.ScheduleAfter(
+      absl::Milliseconds(10), [&]() { scheduled_done.Notify(); }));
+  ASSERT_TRUE(scheduled_done.WaitForNotificationWithTimeout(kWaitTimeout));
+
+  EXPECT_TRUE(executor.ScheduleAfter(absl::Seconds(10), [&]() {
+    canceled_ran.store(true, std::memory_order_relaxed);
+  }));
+  executor.Shutdown();
+
+  EXPECT_FALSE(canceled_ran.load(std::memory_order_relaxed));
+  EXPECT_FALSE(executor.ScheduleAfter(absl::ZeroDuration(), [&]() {
+    post_shutdown_ran.store(true, std::memory_order_relaxed);
+  }));
+  EXPECT_FALSE(post_shutdown_ran.load(std::memory_order_relaxed));
+}
+
 }  // namespace
 }  // namespace nearby::shared
