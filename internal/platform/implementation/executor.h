@@ -29,8 +29,11 @@ class Executor {
   // Before returning from destructor, executor must wait for all pending
   // jobs to finish.
   virtual ~Executor() = default;
+  // Enqueues `runnable` for execution. Returns `true` if `runnable` was
+  // scheduled; returns `false` if `runnable` is empty, the executor has been
+  // shut down, or scheduling fails.
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html#execute-java.lang.Runnable-
-  virtual void Execute(Runnable&& runnable) = 0;
+  virtual bool Execute(Runnable&& runnable) = 0;
 
   // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html#shutdown--
   virtual void Shutdown() = 0;

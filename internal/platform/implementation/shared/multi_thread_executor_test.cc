@@ -58,9 +58,9 @@ TEST(MultiThreadExecutorTest, ExecuteAndScheduleAfterRunTasks) {
   absl::Notification scheduled;
   MultiThreadExecutor executor(2);
 
-  executor.Execute([&executed]() { executed.Notify(); });
-  executor.ScheduleAfter(absl::Milliseconds(10),
-                         [&scheduled]() { scheduled.Notify(); });
+  EXPECT_TRUE(executor.Execute([&executed]() { executed.Notify(); }));
+  EXPECT_TRUE(executor.ScheduleAfter(absl::Milliseconds(10),
+                                     [&scheduled]() { scheduled.Notify(); }));
 
   EXPECT_TRUE(executed.WaitForNotificationWithTimeout(kWaitTimeout));
   EXPECT_TRUE(scheduled.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -70,9 +70,9 @@ TEST(MultiThreadExecutorTest, ExecuteAndScheduleAfterIgnoreNullRunnable) {
   absl::Notification done;
   MultiThreadExecutor executor(2);
 
-  executor.Execute(Runnable());
-  executor.ScheduleAfter(absl::ZeroDuration(), Runnable());
-  executor.Execute([&done]() { done.Notify(); });
+  EXPECT_FALSE(executor.Execute(Runnable()));
+  EXPECT_FALSE(executor.ScheduleAfter(absl::ZeroDuration(), Runnable()));
+  EXPECT_TRUE(executor.Execute([&done]() { done.Notify(); }));
 
   EXPECT_TRUE(done.WaitForNotificationWithTimeout(kWaitTimeout));
 }
@@ -141,11 +141,13 @@ TEST(MultiThreadExecutorTest, SubmissionsAfterShutdownDoNotRun) {
   MultiThreadExecutor executor(2);
   executor.Shutdown();
 
-  executor.Execute([&]() { ran.store(true, std::memory_order_relaxed); });
-  executor.ScheduleAfter(absl::ZeroDuration(),
-                         [&]() { ran.store(true, std::memory_order_relaxed); });
-  executor.Execute(Runnable());
-  executor.ScheduleAfter(absl::ZeroDuration(), Runnable());
+  EXPECT_FALSE(
+      executor.Execute([&]() { ran.store(true, std::memory_order_relaxed); }));
+  EXPECT_FALSE(executor.ScheduleAfter(
+      absl::ZeroDuration(),
+      [&]() { ran.store(true, std::memory_order_relaxed); }));
+  EXPECT_FALSE(executor.Execute(Runnable()));
+  EXPECT_FALSE(executor.ScheduleAfter(absl::ZeroDuration(), Runnable()));
 
   EXPECT_FALSE(ran.load(std::memory_order_relaxed));
 }

@@ -42,16 +42,16 @@ class ABSL_LOCKABLE MultiThreadExecutor final : public api::Executor,
       : impl_(Platform::CreateMultiThreadExecutor(max_parallelism)) {}
   MultiThreadExecutor(const MultiThreadExecutor&) = delete;
   MultiThreadExecutor& operator=(const MultiThreadExecutor&) = delete;
-  ~MultiThreadExecutor() override { impl_->Shutdown(); }
+  ~MultiThreadExecutor() override { Shutdown(); }
 
-  void Execute(const std::string& name, Runnable&& runnable) {
-    impl_->Execute(MakeMonitoredRunnable(
-        name, ThreadCheckRunnable(this, std::move(runnable))));
+  bool Execute(const std::string& name, Runnable&& runnable) {
+    return impl_->Execute(MakeMonitoredRunnable(
+        name, MakeThreadCheckRunnable(this, std::move(runnable))));
   }
 
-  void Execute(Runnable&& runnable) override {
-    impl_->Execute(
-        MakeMonitoredRunnable(ThreadCheckRunnable(this, std::move(runnable))));
+  bool Execute(Runnable&& runnable) override {
+    return impl_->Execute(MakeMonitoredRunnable(
+        MakeThreadCheckRunnable(this, std::move(runnable))));
   }
 
   void Shutdown() override { impl_->Shutdown(); }
