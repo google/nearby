@@ -40,25 +40,27 @@ constexpr int kMaxProtocolMsbIndex = 2;
 constexpr int kMaxProtocolLsbIndex = 3;
 constexpr int kMaxPacketSizeMsbIndex = 4;
 constexpr int kMaxPacketSizeLsbIndex = 5;
+// A packet must fit the header and at least one byte of payload.
+constexpr int kMinPacketSize = Packet::kPacketHeaderLength + 1;
 
-int16_t ExtractMinProtocolVersionFromConnRequest(
-    absl::string_view packet_bytes) {
-  return ((packet_bytes[kMinProtocolMsbIndex] << 8) |
-          packet_bytes[kMinProtocolLsbIndex]) &
-         0xFFFF;
+uint16_t ReadUint16(absl::string_view bytes, int msb_index, int lsb_index) {
+  return (static_cast<uint8_t>(bytes[msb_index]) << 8) |
+         static_cast<uint8_t>(bytes[lsb_index]);
 }
 
-int16_t ExtractMaxProtocolVersionFromConnRequest(
+uint16_t ExtractMinProtocolVersionFromConnRequest(
     absl::string_view packet_bytes) {
-  return ((packet_bytes[kMaxProtocolMsbIndex] << 8) |
-          packet_bytes[kMaxProtocolLsbIndex]) &
-         0xFFFF;
+  return ReadUint16(packet_bytes, kMinProtocolMsbIndex, kMinProtocolLsbIndex);
+}
+
+uint16_t ExtractMaxProtocolVersionFromConnRequest(
+    absl::string_view packet_bytes) {
+  return ReadUint16(packet_bytes, kMaxProtocolMsbIndex, kMaxProtocolLsbIndex);
 }
 
 uint16_t ExtractMaxPacketSizeFromConnRequest(absl::string_view packet_bytes) {
-  return ((packet_bytes[kMaxPacketSizeMsbIndex] << 8) |
-          packet_bytes[kMaxPacketSizeLsbIndex]) &
-         0xFFFF;
+  return ReadUint16(packet_bytes, kMaxPacketSizeMsbIndex,
+                    kMaxPacketSizeLsbIndex);
 }
 }  // namespace
 
@@ -126,6 +128,12 @@ void ServerSocket::OnReceiveControlPacket(Packet packet) {
       ExtractMaxPacketSizeFromConnRequest(packet_payload);
   if (client_max_packet_size == 0) {
     max_packet_size_ = GetConnection().GetMaxPacketSize();
+  } else if (client_max_packet_size < kMinPacketSize) {
+    LOG(ERROR) << "Received unsupported max packet size: "
+               << client_max_packet_size;
+    DisconnectInternal(
+        absl::InvalidArgumentError("max packet size too small"));
+    return;
   } else {
     max_packet_size_ =
         std::min(GetConnection().GetMaxPacketSize(), client_max_packet_size);

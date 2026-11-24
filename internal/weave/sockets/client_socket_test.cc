@@ -143,16 +143,15 @@ class ClientSocketTest : public ::testing::Test {
     EXPECT_EQ(packet->GetControlCommandNumber(),
               Packet::ControlPacketType::kControlConnectionRequest);
     EXPECT_EQ(packet->GetPacketCounter(), 0);
-    int16_t min_protocol_version =
-        ((packet->GetPayload()[0] << 8) | packet->GetPayload()[1]) &
-        (int16_t)0xFFFF;
-    int16_t max_protocol_version =
-        ((packet->GetPayload()[2] << 8) | packet->GetPayload()[3]) &
-        (int16_t)0xFFFF;
+    std::string payload = packet->GetPayload();
+    int min_protocol_version = (static_cast<uint8_t>(payload[0]) << 8) |
+                               static_cast<uint8_t>(payload[1]);
+    int max_protocol_version = (static_cast<uint8_t>(payload[2]) << 8) |
+                               static_cast<uint8_t>(payload[3]);
     EXPECT_EQ(min_protocol_version, kProtocolVersion);
     EXPECT_EQ(max_protocol_version, kProtocolVersion);
-    int pkt_size = ((packet->GetPayload()[4] << 8) | packet->GetPayload()[5]) &
-                   (int16_t)0xFFFF;
+    int pkt_size = (static_cast<uint8_t>(payload[4]) << 8) |
+                   static_cast<uint8_t>(payload[5]);
     EXPECT_EQ(pkt_size, client_size);
     EXPECT_EQ(packet->GetPayload().size(), 6);
     socket_.OnReceiveControlPacketProxy(
@@ -220,6 +219,24 @@ TEST_F(ClientSocketTest, TestClientServerPacketSizeHigher) {
           .value());
   absl::SleepFor(absl::Milliseconds(10));
   expect_connected_ = false;
+}
+
+TEST_F(ClientSocketTest, TestServerPacketSizeWithHighBitSetInLowByte) {
+  RunConnect(/*client_size=*/250, /*server_size=*/185, "");
+}
+
+TEST_F(ClientSocketTest, TestServerMaxPacketSizeTooSmall) {
+  connection_.SetMaxPacketSize(kClientMaxPacketSize);
+  socket_.Connect();
+  absl::SleepFor(absl::Milliseconds(10));
+  ASSERT_OK(Packet::FromBytes(ByteArray(connection_.PollWrittenPacket())));
+  socket_.OnReceiveControlPacketProxy(
+      Packet::CreateConnectionConfirmPacket(kProtocolVersion,
+                                            /*max_packet_size=*/1, "")
+          .value());
+  absl::SleepFor(absl::Milliseconds(10));
+  expect_connected_ = false;
+  EXPECT_EQ(last_error_.code(), absl::StatusCode::kInvalidArgument);
 }
 
 TEST_F(ClientSocketTest, TestConnectInitialData) {
