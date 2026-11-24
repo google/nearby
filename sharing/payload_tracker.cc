@@ -37,6 +37,39 @@
 
 namespace nearby {
 namespace sharing {
+namespace {
+
+double CalculateEstimatedTimeRemainingSeconds(uint64_t total_transfer_size,
+                                              uint64_t current_transferred_size,
+                                              double speed_bytes_per_second) {
+  if (total_transfer_size <= current_transferred_size ||
+      !std::isfinite(speed_bytes_per_second) || speed_bytes_per_second <= 0.0) {
+    return 0.0;
+  }
+  double remaining_seconds =
+      static_cast<double>(total_transfer_size - current_transferred_size) /
+      speed_bytes_per_second;
+  if (!std::isfinite(remaining_seconds) || remaining_seconds <= 0.0) {
+    return 0.0;
+  }
+  return remaining_seconds;
+}
+
+uint64_t ClampToUint64(double value) {
+  if (!std::isfinite(value) || value <= 0.0) {
+    return 0;
+  }
+  if (value >= std::ldexp(1.0, 64)) {
+    return std::numeric_limits<uint64_t>::max();
+  }
+  return static_cast<uint64_t>(value);
+}
+
+uint64_t RoundSecondsToUint64(double seconds) {
+  return ClampToUint64(std::round(seconds));
+}
+
+}  // namespace
 
 PayloadTracker::PayloadTracker(
     Clock* clock, int64_t share_target_id, const AttachmentContainer& container,
@@ -181,9 +214,14 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
   if (current_speed_ == 0 ||
       current_time - last_transfer_speed_update_timestamp_ >
           absl::Seconds(kTransferSpeedUpdateInterval)) {
-    current_speed_ = (current_transferred_size - last_transferred_size_) /
-                     absl::ToDoubleSeconds(
-                         current_time - last_transfer_speed_update_timestamp_);
+    double elapsed_seconds = absl::ToDoubleSeconds(
+        current_time - last_transfer_speed_update_timestamp_);
+    current_speed_ = (elapsed_seconds > 0.0 &&
+                      current_transferred_size >= last_transferred_size_)
+                         ? static_cast<double>(current_transferred_size -
+                                               last_transferred_size_) /
+                               elapsed_seconds
+                         : 0.0;
 
     // Use current speed for the ETA calculation for the first
     // `kEstimatedTimeRemainingUpdateInterval` seconds to avoid getting stuck at
@@ -191,9 +229,8 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
     if ((first_window_ == true) &&
         (current_time - last_eta_update_timestamp_ <
          absl::Seconds(kEstimatedTimeRemainingUpdateInterval))) {
-      estimated_time_remaining_ =
-          (total_transfer_size_ - current_transferred_size) /
-          (current_speed_ + std::numeric_limits<uint64_t>::min());
+      estimated_time_remaining_ = CalculateEstimatedTimeRemainingSeconds(
+          total_transfer_size_, current_transferred_size, current_speed_);
       first_window_ = false;
     }
 
@@ -208,26 +245,28 @@ std::optional<TransferMetadataBuilder> PayloadTracker::OnTransferUpdate(
       absl::Seconds(kEstimatedTimeRemainingUpdateInterval)) {
     double average_speed =
         rolling_window_speed_bucket_ / kEstimatedTimeRemainingUpdateInterval;
-    estimated_time_remaining_ =
-        (total_transfer_size_ - current_transferred_size) /
-        (average_speed + std::numeric_limits<uint64_t>::min());
+    estimated_time_remaining_ = CalculateEstimatedTimeRemainingSeconds(
+        total_transfer_size_, current_transferred_size, average_speed);
     last_eta_update_timestamp_ = current_time;
     rolling_window_speed_bucket_ = 0.0;
   }
 
   last_update_progress_ = current_progress;
 
-  return std::move(TransferMetadataBuilder()
-      .set_status(TransferMetadata::Status::kInProgress)
-      .set_progress(percent)
-      .set_transferred_bytes(current_transferred_size)
-      .set_transfer_speed(static_cast<uint64_t>(current_speed_))
-      .set_estimated_time_remaining(std::llround(estimated_time_remaining_))
-      .set_total_attachments_count(payload_state_.size())
-      .set_transferred_attachments_count(transferred_attachments_count_)
-      .set_in_progress_attachment_id(state.attachment_id)
-      .set_in_progress_attachment_total_bytes(state.total_size)
-      .set_in_progress_attachment_transferred_bytes(state.amount_transferred));
+  return std::move(
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kInProgress)
+          .set_progress(percent)
+          .set_transferred_bytes(current_transferred_size)
+          .set_transfer_speed(ClampToUint64(current_speed_))
+          .set_estimated_time_remaining(
+              RoundSecondsToUint64(estimated_time_remaining_))
+          .set_total_attachments_count(payload_state_.size())
+          .set_transferred_attachments_count(transferred_attachments_count_)
+          .set_in_progress_attachment_id(state.attachment_id)
+          .set_in_progress_attachment_total_bytes(state.total_size)
+          .set_in_progress_attachment_transferred_bytes(
+              state.amount_transferred));
 }
 
 bool PayloadTracker::IsComplete() const {

@@ -15,6 +15,7 @@
 #include "sharing/payload_tracker.h"
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -107,6 +108,206 @@ TEST_F(PayloadTrackerTest, StatusUpdateWithTimeUpdate) {
   metadata = PayloadUpdate(3072);
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata->progress(), 3.0);
+}
+
+TEST(PayloadTrackerEdgeCasesTest, ZeroSpeedElapsedWindowClampsEtaToZero) {
+  FakeClock fake_clock;
+  TestSingleThreadExecutor task_runner(&fake_clock);
+  constexpr int64_t kSecondFileId = 2;
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddFileAttachment(FileAttachment(
+              kFileId, kFileSize, std::string(kFileName),
+              std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+          .AddFileAttachment(FileAttachment(
+              kSecondFileId, kFileSize, "second.jpg", std::string(kMimeType),
+              service::proto::FileMetadata::IMAGE))
+          .Build();
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map = {
+      {kFileId, kFileId},
+      {kSecondFileId, kSecondFileId},
+  };
+  PayloadTracker tracker(
+      &fake_clock, kShareTargetId, *container, attachment_payload_map,
+      std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner));
+
+  fake_clock.FastForward(absl::Seconds(4));
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      tracker.ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+          kSecondFileId, PayloadStatus::kSuccess, kFileSize,
+          /*bytes_transferred=*/0));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.transfer_speed(), 0);
+  EXPECT_EQ(metadata.estimated_time_remaining(), 0);
+}
+
+TEST(PayloadTrackerEdgeCasesTest, ZeroTotalSizeAndZeroSpeedClampsEtaToZero) {
+  FakeClock fake_clock;
+  TestSingleThreadExecutor task_runner(&fake_clock);
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddFileAttachment(FileAttachment(
+              kFileId, /*size=*/0, std::string(kFileName),
+              std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+          .Build();
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map = {
+      {kFileId, kFileId},
+  };
+  PayloadTracker tracker(
+      &fake_clock, kShareTargetId, *container, attachment_payload_map,
+      std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner));
+
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      tracker.ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+          kFileId, PayloadStatus::kInProgress, /*total_bytes=*/0,
+          /*bytes_transferred=*/0));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.progress(), 100.0);
+  EXPECT_EQ(metadata.transfer_speed(), 0);
+  EXPECT_EQ(metadata.estimated_time_remaining(), 0);
+}
+
+TEST_F(PayloadTrackerTest, FirstWindowEtaUsesCurrentSpeedAndRoundsResult) {
+  // First update initializes last_eta_update_timestamp_ because FakeClock
+  // starts at absl::Now() while last_eta_update_timestamp_ defaults to
+  // UnixEpoch().
+  std::optional<TransferMetadata> metadata = PayloadUpdate(1024);
+  ASSERT_TRUE(metadata.has_value());
+
+  // Second update within the 3-second ETA window uses current_speed_ directly
+  // via first_window_. Remaining bytes: 102400 - 21504 = 80896; speed:
+  // 20480 / 2 = 10240 B/s; ETA: 80896 / 10240 = 7.9s -> rounds to 8s.
+  FastForward(absl::Seconds(2));
+  metadata = PayloadUpdate(21504);
+  ASSERT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->transfer_speed(), 10240);
+  EXPECT_EQ(metadata->estimated_time_remaining(), 8);
+}
+
+TEST(PayloadTrackerEdgeCasesTest, OverflowingEtaClampsToUint64Max) {
+  FakeClock fake_clock;
+  TestSingleThreadExecutor task_runner(&fake_clock);
+  constexpr int64_t kSecondFileId = 2;
+  constexpr int64_t kThirdFileId = 3;
+  constexpr int64_t kHugeFileSize = int64_t{1} << 62;
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddFileAttachment(FileAttachment(
+              kFileId, /*size=*/1, std::string(kFileName),
+              std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+          .AddFileAttachment(FileAttachment(
+              kSecondFileId, /*size=*/1, "second.jpg", std::string(kMimeType),
+              service::proto::FileMetadata::IMAGE))
+          .AddFileAttachment(FileAttachment(
+              kThirdFileId, kHugeFileSize, "huge.bin", std::string(kMimeType),
+              service::proto::FileMetadata::IMAGE))
+          .Build();
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map = {
+      {kFileId, kFileId},
+      {kSecondFileId, kSecondFileId},
+      {kThirdFileId, kThirdFileId},
+  };
+  PayloadTracker tracker(
+      &fake_clock, kShareTargetId, *container, attachment_payload_map,
+      std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner));
+
+  ASSERT_TRUE(tracker
+                  .ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+                      kFileId, PayloadStatus::kSuccess, /*total_bytes=*/1,
+                      /*bytes_transferred=*/1))
+                  .has_value());
+
+  fake_clock.FastForward(absl::Seconds(1000000000));
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      tracker.ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+          kSecondFileId, PayloadStatus::kSuccess, /*total_bytes=*/1,
+          /*bytes_transferred=*/1));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.estimated_time_remaining(),
+            std::numeric_limits<uint64_t>::max());
+}
+
+TEST(PayloadTrackerEdgeCasesTest, ZeroElapsedTimeGuardsSpeedAndEta) {
+  FakeClock fake_clock;
+  TestSingleThreadExecutor task_runner(&fake_clock);
+  constexpr int64_t kSecondFileId = 2;
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddFileAttachment(FileAttachment(
+              kFileId, kFileSize, std::string(kFileName),
+              std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+          .AddFileAttachment(FileAttachment(
+              kSecondFileId, kFileSize, "second.jpg", std::string(kMimeType),
+              service::proto::FileMetadata::IMAGE))
+          .Build();
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map = {
+      {kFileId, kFileId},
+      {kSecondFileId, kSecondFileId},
+  };
+  PayloadTracker tracker(
+      &fake_clock, kShareTargetId, *container, attachment_payload_map,
+      std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner));
+
+  // First update with 0 transferred bytes leaves current_speed_ == 0.0 and
+  // initializes last_transfer_speed_update_timestamp_ and
+  // last_eta_update_timestamp_ to fake_clock.Now().
+  ASSERT_TRUE(tracker
+                  .ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+                      kFileId, PayloadStatus::kSuccess, kFileSize,
+                      /*bytes_transferred=*/0))
+                  .has_value());
+
+  // Consecutive update at the exact same timestamp while current_speed_ == 0
+  // hits the elapsed_seconds <= 0.0 guard.
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      tracker.ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+          kSecondFileId, PayloadStatus::kInProgress, kFileSize,
+          /*bytes_transferred=*/2048));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.transfer_speed(), 0);
+  EXPECT_EQ(metadata.estimated_time_remaining(), 0);
+}
+
+TEST(PayloadTrackerEdgeCasesTest, DecreasingTransferredSizeResetsSpeedToZero) {
+  FakeClock fake_clock;
+  TestSingleThreadExecutor task_runner(&fake_clock);
+  constexpr int64_t kSecondFileId = 2;
+  std::unique_ptr<AttachmentContainer> container =
+      AttachmentContainer::Builder()
+          .AddFileAttachment(FileAttachment(
+              kFileId, kFileSize, std::string(kFileName),
+              std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+          .AddFileAttachment(FileAttachment(
+              kSecondFileId, kFileSize, "second.jpg", std::string(kMimeType),
+              service::proto::FileMetadata::IMAGE))
+          .Build();
+  absl::flat_hash_map<int64_t, int64_t> attachment_payload_map = {
+      {kFileId, kFileId},
+      {kSecondFileId, kSecondFileId},
+  };
+  PayloadTracker tracker(
+      &fake_clock, kShareTargetId, *container, attachment_payload_map,
+      std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner));
+
+  ASSERT_TRUE(tracker
+                  .ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+                      kFileId, PayloadStatus::kInProgress, kFileSize,
+                      /*bytes_transferred=*/10240))
+                  .has_value());
+
+  fake_clock.FastForward(absl::Seconds(2));
+  std::optional<TransferMetadataBuilder> metadata_builder =
+      tracker.ProcessPayloadUpdate(std::make_unique<PayloadTransferUpdate>(
+          kSecondFileId, PayloadStatus::kInProgress, kFileSize,
+          /*bytes_transferred=*/4096));
+  ASSERT_TRUE(metadata_builder.has_value());
+  TransferMetadata metadata = metadata_builder->build();
+  EXPECT_EQ(metadata.transfer_speed(), 0);
+  EXPECT_EQ(metadata.estimated_time_remaining(), 0);
 }
 
 }  // namespace
