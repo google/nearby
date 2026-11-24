@@ -305,11 +305,15 @@ void NcCloseService(NC_INSTANCE instance) {
     LOG(INFO) << "Stopping all endpoints with status " << status.ToString();
   });
 
-  kNcContextMap->erase(nc_context->core);
-  delete nc_context->router;
-  delete nc_context->core;
-  if (nc_context->event_logger != nullptr) {
-    delete nc_context->event_logger;
+  // Copy the context before erasing it; `nc_context` points into the map.
+  NcContext context = *nc_context;
+  kNcContextMap->erase(instance);
+  // Core's destructor stops all endpoints through the router, so Core must be
+  // deleted before ServiceControllerRouter.
+  delete context.core;
+  delete context.router;
+  if (context.event_logger != nullptr) {
+    delete context.event_logger;
   }
 }
 
