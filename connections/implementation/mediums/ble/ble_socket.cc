@@ -288,9 +288,21 @@ ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacket(
   }
   ByteArray packet_block_1 = read_bytes.result();
 
-  // Read the length from the 3rd byte of the packet block (0-indexed).
-  int packet_block_2_size = packet_block_1.data()[3];
-  // Read the left bytes for the packet block 2).
+  // A control packet on the wire is the 3-byte "\x00\x00\x00" prefix (already
+  // consumed by DispatchPacket()) followed by a serialized SocketControlFrame
+  // (see BlePacket::CreateControlPacket() and BlePacket::operator ByteArray()).
+  // The stream has no explicit length field for the frame, so the remaining
+  // length is taken from the frame's wire encoding: data()[0] is the `type`
+  // field tag, data()[1] its value, data()[2] the tag of the populated
+  // sub-frame, and data()[3] the sub-frame's length as a protobuf varint. Only
+  // single-byte varints (1..127) are accepted; values of 0x80 and above carry
+  // the varint continuation bit and are rejected rather than misread.
+  const std::uint8_t packet_block_2_size =
+      static_cast<std::uint8_t>(packet_block_1.data()[3]);
+  if (packet_block_2_size == 0 || packet_block_2_size >= 0x80) {
+    return Exception::kFailed;
+  }
+  // Read the remaining bytes (packet block 2).
   read_bytes = input_stream->Read(packet_block_2_size);
   if (!read_bytes.ok()) {
     return read_bytes;

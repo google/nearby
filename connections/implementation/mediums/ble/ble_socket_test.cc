@@ -242,6 +242,49 @@ TEST_F(BleSocketBleMediumTest, DispatchPacketWithReadError) {
   EXPECT_EQ(result.exception(), Exception::kIo);
 }
 
+TEST_F(BleSocketBleMediumTest, DispatchPacketWithControlLength0x80Fails) {
+  // Control packet prefix, followed by a 4-byte block whose last byte (0x80)
+  // has the varint continuation bit set, followed by 0x80 bytes of body.
+  fake_input_stream_.Append(ByteArray("\x00\x00\x00", 3));
+  fake_input_stream_.Append(ByteArray("\x08\x01\x12\x80", 4));
+  fake_input_stream_.Append(ByteArray(std::string(0x80, 'a')));
+
+  auto result = socket_->DispatchPacket();
+
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kFailed);
+  // The packet is rejected before the body is read.
+  auto remaining = fake_input_stream_.Read(0x80);
+  ASSERT_TRUE(remaining.ok());
+  EXPECT_EQ(remaining.result(), ByteArray(std::string(0x80, 'a')));
+}
+
+TEST_F(BleSocketBleMediumTest, DispatchPacketWithControlLength0xFFFails) {
+  fake_input_stream_.Append(ByteArray("\x00\x00\x00", 3));
+  fake_input_stream_.Append(ByteArray("\x08\x01\x12\xff", 4));
+  fake_input_stream_.Append(ByteArray(std::string(0xff, 'a')));
+
+  auto result = socket_->DispatchPacket();
+
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kFailed);
+  // The packet is rejected before the body is read.
+  auto remaining = fake_input_stream_.Read(0xff);
+  ASSERT_TRUE(remaining.ok());
+  EXPECT_EQ(remaining.result(), ByteArray(std::string(0xff, 'a')));
+}
+
+TEST_F(BleSocketBleMediumTest, DispatchPacketWithZeroControlLengthFails) {
+  // No body follows; a zero length must fail fast instead of issuing Read(0).
+  fake_input_stream_.Append(ByteArray("\x00\x00\x00", 3));
+  fake_input_stream_.Append(ByteArray("\x08\x01\x12\x00", 4));
+
+  auto result = socket_->DispatchPacket();
+
+  EXPECT_FALSE(result.ok());
+  EXPECT_EQ(result.exception(), Exception::kFailed);
+}
+
 TEST_F(BleSocketBleMediumTest, ReadPayloadLengthSuccess) {
   constexpr int kPayloadLength = 12345;
   fake_input_stream_.Append(ByteArray(byte_utils::IntToBytes(kPayloadLength)));
