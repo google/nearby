@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/shared/multi_thread_executor.h"
 
 #include <atomic>
+#include <cstdint>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -168,6 +169,33 @@ TEST(SingleThreadExecutorTest, ExecutesTasksSequentiallyAndShutsDown) {
 
   EXPECT_TRUE(executor.InShutdown());
   EXPECT_THAT(executed_order, ElementsAre(0, 1, 2));
+}
+
+TEST(SingleThreadExecutorTest, DelayedExecuteAndIsRunningOnExecutor) {
+  SingleThreadExecutor executor;
+  SingleThreadExecutor other_executor;
+  absl::Notification delayed_done;
+  std::atomic<bool> on_executor = false;
+  std::atomic<bool> on_other_executor = true;
+
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+  EXPECT_FALSE(executor.DelayedExecute(absl::Milliseconds(10), nullptr));
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(10), [&]() {
+    on_executor.store(executor.IsRunningOnExecutor(),
+                      std::memory_order_relaxed);
+    on_other_executor.store(other_executor.IsRunningOnExecutor(),
+                            std::memory_order_relaxed);
+    delayed_done.Notify();
+  }));
+  ASSERT_TRUE(delayed_done.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_TRUE(on_executor.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_executor.load(std::memory_order_relaxed));
+
+  EXPECT_TRUE(executor.DelayedExecute(
+      absl::Seconds(10), []() { FAIL() << "Canceled on shutdown"; }));
+  executor.Shutdown();
+  EXPECT_FALSE(executor.DelayedExecute(absl::Milliseconds(10), []() {}));
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
 }
 
 }  // namespace
