@@ -101,6 +101,7 @@ IncomingPayloadManager::IncomingPayloadManager(
 
 void IncomingPayloadManager::SetCustomSavePath(ClientProxy* client,
                                                const std::string& path) {
+  absl::MutexLock lock(mutex_);
   custom_save_path_ = path;
 }
 
@@ -205,9 +206,13 @@ ErrorOr<std::shared_ptr<IncomingPayloadManager::IncomingPendingPayload>>
 IncomingPayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                               const std::string& endpoint_id,
                                               const std::string& save_path) {
+  std::string payload_save_path = save_path;
+  if (payload_save_path.empty()) {
+    absl::MutexLock lock(mutex_);
+    payload_save_path = custom_save_path_;
+  }
   ErrorOr<std::unique_ptr<IncomingInternalPayload>> result =
-      CreateIncomingInternalPayload(
-          frame, save_path.empty() ? custom_save_path_ : save_path);
+      CreateIncomingInternalPayload(frame, payload_save_path);
   if (result.has_error()) {
     return {result.error()};
   }
