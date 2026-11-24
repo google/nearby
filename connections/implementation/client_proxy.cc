@@ -74,7 +74,6 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
@@ -242,51 +241,94 @@ class NoOpAnalyticsRecorder : public AnalyticsRecorder {
   void Sync() override {}
 };
 
+void CancelAlarm(std::unique_ptr<CancelableAlarm> alarm) {
+  if (alarm != nullptr && alarm->IsValid()) {
+    alarm->Cancel();
+  }
+}
+
+void CancelAlarms(std::vector<std::unique_ptr<CancelableAlarm>> alarms) {
+  for (auto& alarm : alarms) {
+    CancelAlarm(std::move(alarm));
+  }
+}
+
+OsInfo::OsType OSNameToOsInfoType(api::OSName os_name) {
+  switch (os_name) {
+    case api::OSName::kLinux:
+      return OsInfo::LINUX;
+    case api::OSName::kWindows:
+      return OsInfo::WINDOWS;
+    case api::OSName::kApple:
+      return OsInfo::APPLE;
+    case api::OSName::kChromeOS:
+      return OsInfo::CHROME_OS;
+    case api::OSName::kAndroid:
+      return OsInfo::ANDROID;
+  }
+}
+
+absl::string_view ToString(PayloadProgressInfo::Status status) {
+  switch (status) {
+    case PayloadProgressInfo::Status::kSuccess:
+      return "Success";
+    case PayloadProgressInfo::Status::kFailure:
+      return "Failure";
+    case PayloadProgressInfo::Status::kInProgress:
+      return "In Progress";
+    case PayloadProgressInfo::Status::kCanceled:
+      return "Cancelled";
+  }
+}
+
 }  // namespace
 
 ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
-    : client_id_(Prng().NextInt64()),
-      analytics_recorder_(std::move(analytics_recorder)) {
-  if (analytics_recorder_ == nullptr) {
-    analytics_recorder_ = std::make_unique<NoOpAnalyticsRecorder>();
-  }
-
-  if (NearbyFlags::GetInstance().GetBoolFlag(
+    : is_dct_enabled_(NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableDct)),
+      client_id_(Prng().NextInt64()),
+#ifndef NEARBY_CHROMIUM
+      local_device_name_(
+          api::ImplementationPlatform::CreateDeviceInfo()
+              ->GetOsDeviceName()
+              .value_or("")),
+#endif
+      supports_safe_to_disconnect_(NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableNearbyConnectionsPreferences)) {
-    InitializePreferencesManager();
-  }
-
-  is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableDct);
-  error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
-      [this](const ErrorCodeParams& params) {
-        analytics_recorder_->OnErrorCode(params);
-      });
-  local_os_info_.set_type(
-      OSNameToOsInfoType(api::ImplementationPlatform::GetCurrentOS()));
-  supports_safe_to_disconnect_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::
-          kEnableSafeToDisconnect);
+              kEnableSafeToDisconnect)),
+      analytics_recorder_(analytics_recorder != nullptr
+                              ? std::move(analytics_recorder)
+                              : std::make_unique<NoOpAnalyticsRecorder>()),
+      error_code_recorder_(std::make_unique<ErrorCodeRecorder>(
+          [this](const ErrorCodeParams& params) {
+            analytics_recorder_->OnErrorCode(params);
+          })) {
   LOG(INFO) << "[safe-to-disconnect]: Local enabled: "
             << supports_safe_to_disconnect_ << "; Version: "
             << NearbyFlags::GetInstance().GetInt64Flag(
                    config_package_nearby::nearby_connections_feature::
                        kSafeToDisconnectVersion);
-  // Generate a 7 bits dedup value.
-  absl::BitGen bitgen;
-  dct_dedup_ = absl::Uniform(bitgen, 0, 1 << 7);
 
-  // Load advertising info from preferences.
-  LoadClientInfoFromPreferences();
+  bool has_preferences_manager = false;
+  {
+    absl::MutexLock lock(mutex_);
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableNearbyConnectionsPreferences)) {
+      InitializePreferencesManager();
+    }
+    local_os_info_.set_type(
+        OSNameToOsInfoType(api::ImplementationPlatform::GetCurrentOS()));
+    // Generate a 7 bits dedup value.
+    absl::BitGen bitgen;
+    dct_dedup_ = absl::Uniform(bitgen, 0, 1 << 7);
 
-#ifndef NEARBY_CHROMIUM
-  local_device_name_ = api::ImplementationPlatform::CreateDeviceInfo()
-                           ->GetOsDeviceName()
-                           .value_or("");
-#endif
+    // Load advertising info from preferences.
+    LoadClientInfoFromPreferences();
+    has_preferences_manager = (preferences_manager_ != nullptr);
+  }
 
-  if (preferences_manager_ != nullptr) {
+  if (has_preferences_manager) {
     app_lifecycle_monitor_ =
         api::ImplementationPlatform::CreateAppLifecycleMonitor(
             [this](api::AppLifecycleMonitor::AppLifecycleState state) {
@@ -300,71 +342,86 @@ ClientProxy::ClientProxy(std::unique_ptr<AnalyticsRecorder> analytics_recorder)
   }
 }
 
-ClientProxy::~ClientProxy() { Reset(); }
-
-std::int64_t ClientProxy::GetClientId() const { return client_id_; }
+ClientProxy::~ClientProxy() {
+  app_lifecycle_monitor_.reset();
+  Reset();
+  std::unique_ptr<CancelableAlarm> alarm_to_cancel;
+  {
+    absl::MutexLock lock(mutex_);
+    alarm_to_cancel = CancelClearCachedEndpointIdAlarmLocked();
+  }
+  CancelAlarm(std::move(alarm_to_cancel));
+  single_thread_executor_.Shutdown();
+}
 
 std::string ClientProxy::GetLocalEndpointId() {
-  MutexLock lock(&mutex_);
-  if (IsDctEnabled() && GetEndpointIdForDct().has_value()) {
-    LOG(INFO) << "DCT is using genereted endpoint id.";
-    return GetEndpointIdForDct().value();
-  } else {
-    if (!local_endpoint_id_.empty()) {
-      LOG(INFO) << __func__
-                << ": Reusing cached endpoint id: " << local_endpoint_id_;
-      return local_endpoint_id_;
+  absl::MutexLock lock(mutex_);
+  return GetLocalEndpointIdLocked();
+}
+
+std::string ClientProxy::GetLocalEndpointIdLocked() {
+  if (IsDctEnabled()) {
+    std::optional<std::string> dct_endpoint_id = GetEndpointIdForDct();
+    if (dct_endpoint_id.has_value()) {
+      LOG(INFO) << "DCT is using genereted endpoint id.";
+      return dct_endpoint_id.value();
     }
-    if (external_device_provider_ == nullptr) {
-      local_endpoint_id_ = GenerateLocalEndpointId();
-    } else {
-      local_endpoint_id_ =
-          external_device_provider_->GetLocalDevice()->GetEndpointId();
-      LOG(INFO) << __func__
-                << ": From external device provider, populating endpoint id: "
-                << local_endpoint_id_;
-    }
+  }
+  if (!local_endpoint_id_.empty()) {
+    LOG(INFO) << __func__
+              << ": Reusing cached endpoint id: " << local_endpoint_id_;
     return local_endpoint_id_;
   }
+  if (external_device_provider_ == nullptr) {
+    local_endpoint_id_ = GenerateLocalEndpointId();
+  } else {
+    local_endpoint_id_ =
+        external_device_provider_->GetLocalDevice()->GetEndpointId();
+    LOG(INFO) << __func__
+              << ": From external device provider, populating endpoint id: "
+              << local_endpoint_id_;
+  }
+  return local_endpoint_id_;
 }
 
 const NearbyDevice* ClientProxy::GetLocalDevice() {
+  absl::MutexLock lock(mutex_);
   if (external_device_provider_ == nullptr &&
       connections_device_provider_ == nullptr) {
     // TODO(b/285602283): Plug in actual endpoint info once available.
     connections_device_provider_ =
         std::make_unique<v3::ConnectionsDeviceProvider>(
-            GetLocalEndpointId(), "V3 endpoint",
+            GetLocalEndpointIdLocked(), "V3 endpoint",
             std::vector<ConnectionInfoVariant>{});
   }
-  return GetLocalDeviceProvider()->GetLocalDevice();
+  return GetLocalDeviceProviderLocked()->GetLocalDevice();
 }
 
 std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_token;
+    return item->connection_token;
   }
   return {};
 }
 
 bool ClientProxy::OverrideSavePath(absl::string_view endpoint_id,
                                    absl::string_view path) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.save_path = path;
+    item->save_path = path;
     return true;
   }
   return false;
 }
 
 std::string ClientProxy::GetSavePath(absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.save_path;
+    return item->save_path;
   }
   return "";
 }
@@ -392,27 +449,45 @@ std::string ClientProxy::GenerateLocalEndpointId() {
 }
 
 void ClientProxy::Reset() {
-  MutexLock lock(&mutex_);
+  std::vector<std::unique_ptr<CancelableAlarm>> alarms_to_cancel;
+  ConnectionListener removed_advertising_listener;
+  std::shared_ptr<const DiscoveryListener> removed_discovery_listener;
+  std::shared_ptr<const v3::ConnectionListener> removed_listening_listener;
+  absl::flat_hash_map<std::string, Connection> removed_connections;
+  absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>
+      removed_flags;
+  {
+    absl::MutexLock lock(mutex_);
 
-  StoppedAdvertising();
-  StoppedDiscovery();
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kFixClientSessionLogging)) {
-    StoppedListeningForIncomingConnections();
+    StoppedAdvertisingLocked(alarms_to_cancel, removed_advertising_listener);
+    StoppedDiscoveryLocked(removed_discovery_listener);
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kFixClientSessionLogging)) {
+      StoppedListeningForIncomingConnectionsLocked(removed_listening_listener);
+    }
+    RemoveAllEndpointsLocked(removed_connections, removed_flags);
+    ExitStableEndpointIdModeLocked(alarms_to_cancel);
   }
-  RemoveAllEndpoints();
-  ExitStableEndpointIdMode();
+  CancelAlarms(std::move(alarms_to_cancel));
 }
 
 void ClientProxy::RegisterEventHandler(ClientEventHandler handler) {
-  absl::MutexLock lock(event_handler_mutex_);
-  event_handler_ = std::move(handler);
+  ClientEventHandler old_handler;
+  {
+    absl::MutexLock lock(event_handler_mutex_);
+    old_handler = std::move(event_handler_);
+    event_handler_ = std::move(handler);
+  }
 }
 
 void ClientProxy::UnregisterEventHandler() {
-  absl::MutexLock lock(event_handler_mutex_);
-  event_handler_ = nullptr;
+  ClientEventHandler old_handler;
+  {
+    absl::MutexLock lock(event_handler_mutex_);
+    old_handler = std::move(event_handler_);
+    event_handler_ = nullptr;
+  }
 }
 
 bool ClientProxy::OnEvent(const ClientEvent& event) {
@@ -437,55 +512,73 @@ void ClientProxy::StartedAdvertising(
     std::optional<bool> is_extended_advertisement_supported,
     std::optional<int> connected_ap_frequency,
     std::optional<bool> is_nfc_available) {
-  MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [StartedAdvertising]: client=" << GetClientId();
+  std::unique_ptr<CancelableAlarm> alarm_to_cancel;
+  ConnectionListener old_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    LOG(INFO) << "ClientProxy [StartedAdvertising]: client=" << GetClientId();
 
-  if (stable_endpoint_id_mode_) {
-    cached_endpoint_id_ = local_endpoint_id_;
-  } else {
-    cached_endpoint_id_.clear();
+    if (stable_endpoint_id_mode_) {
+      cached_endpoint_id_ = local_endpoint_id_;
+    } else {
+      cached_endpoint_id_.clear();
+    }
+
+    alarm_to_cancel = CancelClearCachedEndpointIdAlarmLocked();
+
+    old_listener = std::move(advertising_info_.listener);
+    advertising_info_ = {service_id, listener};
+    advertising_options_ = advertising_options;
+
+    const std::vector<location::nearby::proto::connections::Medium>
+        medium_vector(mediums.begin(), mediums.end());
+    std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kOmitUnmeasuredAdvDisCapabilities)) {
+      advertising_metadata_params =
+          AnalyticsRecorder::BuildAdvertisingMetadataParams(
+              is_extended_advertisement_supported, connected_ap_frequency,
+              is_nfc_available, operation_result_with_mediums);
+    } else {
+      advertising_metadata_params =
+          AnalyticsRecorder::BuildAdvertisingMetadataParams(
+              /*is_extended_advertisement_supported=*/false,
+              /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
+              operation_result_with_mediums);
+    }
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kFixClientSessionLogging)) {
+      advertising_metadata_params->power_level =
+          advertising_options.low_power
+              ? location::nearby::proto::connections::PowerLevel::LOW_POWER
+              : location::nearby::proto::connections::PowerLevel::HIGH_POWER;
+    }
+    analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
+                                            advertising_metadata_params.get());
   }
-
-  CancelClearCachedEndpointIdAlarm();
-
-  advertising_info_ = {service_id, listener};
-  advertising_options_ = advertising_options;
-
-  const std::vector<location::nearby::proto::connections::Medium> medium_vector(
-      mediums.begin(), mediums.end());
-  std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kOmitUnmeasuredAdvDisCapabilities)) {
-    advertising_metadata_params =
-        AnalyticsRecorder::BuildAdvertisingMetadataParams(
-            is_extended_advertisement_supported, connected_ap_frequency,
-            is_nfc_available, operation_result_with_mediums);
-  } else {
-    advertising_metadata_params =
-        AnalyticsRecorder::BuildAdvertisingMetadataParams(
-            /*is_extended_advertisement_supported=*/false,
-            /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
-            operation_result_with_mediums);
-  }
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kFixClientSessionLogging)) {
-    advertising_metadata_params->power_level =
-        advertising_options.low_power
-            ? location::nearby::proto::connections::PowerLevel::LOW_POWER
-            : location::nearby::proto::connections::PowerLevel::HIGH_POWER;
-  }
-  analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
-                                          advertising_metadata_params.get());
+  CancelAlarm(std::move(alarm_to_cancel));
 }
 
 void ClientProxy::StoppedAdvertising() {
-  MutexLock lock(&mutex_);
+  std::vector<std::unique_ptr<CancelableAlarm>> alarms_to_cancel;
+  ConnectionListener removed_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    StoppedAdvertisingLocked(alarms_to_cancel, removed_listener);
+  }
+  CancelAlarms(std::move(alarms_to_cancel));
+}
+
+void ClientProxy::StoppedAdvertisingLocked(
+    std::vector<std::unique_ptr<CancelableAlarm>>& alarms_to_cancel,
+    ConnectionListener& removed_advertising_listener) {
   LOG(INFO) << "ClientProxy [StoppedAdvertising]: client=" << GetClientId();
 
-  const bool was_advertising = IsAdvertising();
+  const bool was_advertising = IsAdvertisingLocked();
   if (was_advertising) {
+    removed_advertising_listener = std::move(advertising_info_.listener);
     advertising_info_.Clear();
     analytics_recorder_->OnStopAdvertising();
     local_endpoint_info_.clear();
@@ -495,30 +588,29 @@ void ClientProxy::StoppedAdvertising() {
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging) ||
       was_advertising) {
-    OnSessionComplete();
+    OnSessionCompleteLocked();
   }
 
-  ExitStableEndpointIdMode();
+  ExitStableEndpointIdModeLocked(alarms_to_cancel);
 }
 
 bool ClientProxy::IsAdvertising() const {
-  MutexLock lock(&mutex_);
-
-  return !advertising_info_.IsEmpty();
+  absl::MutexLock lock(mutex_);
+  return IsAdvertisingLocked();
 }
 
 std::string ClientProxy::GetAdvertisingServiceId() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return advertising_info_.service_id;
 }
 
 void ClientProxy::UpdateAdvertisingOptions(
     const AdvertisingOptions& advertising_options) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging) &&
-      IsAdvertising() && advertising_options_.low_power &&
+      IsAdvertisingLocked() && advertising_options_.low_power &&
       !advertising_options.low_power) {
     analytics_recorder_->UpdateAdvertisingPowerLevel(
         location::nearby::proto::connections::PowerLevel::HIGH_POWER);
@@ -530,53 +622,72 @@ void ClientProxy::StartedListeningForIncomingConnections(
     absl::string_view service_id, Strategy strategy,
     v3::ConnectionListener listener,
     const v3::ConnectionListeningOptions& options) {
-  MutexLock lock(&mutex_);
-  listening_options_ = options;
-  listening_info_ = ListeningInfo{
-      .service_id = std::string(service_id),
-      .listener = std::move(listener),
-  };
-  analytics_recorder_->OnStartedIncomingConnectionListening(strategy);
+  std::shared_ptr<const v3::ConnectionListener> old_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    listening_options_ = options;
+    old_listener = std::move(listening_info_.listener);
+    listening_info_ = ListeningInfo{
+        .service_id = std::string(service_id),
+        .listener =
+            std::make_shared<const v3::ConnectionListener>(std::move(listener)),
+    };
+    analytics_recorder_->OnStartedIncomingConnectionListening(strategy);
+  }
 }
 
 void ClientProxy::StoppedListeningForIncomingConnections() {
-  MutexLock lock(&mutex_);
+  std::shared_ptr<const v3::ConnectionListener> removed_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    StoppedListeningForIncomingConnectionsLocked(removed_listener);
+  }
+}
+
+void ClientProxy::StoppedListeningForIncomingConnectionsLocked(
+    std::shared_ptr<const v3::ConnectionListener>& removed_listening_listener) {
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging)) {
-    if (IsListeningForIncomingConnections()) {
+    if (IsListeningForIncomingConnectionsLocked()) {
+      removed_listening_listener = std::move(listening_info_.listener);
       listening_info_.Clear();
       analytics_recorder_->OnStoppedIncomingConnectionListening();
-      OnSessionComplete();
+      OnSessionCompleteLocked();
     }
     return;
   }
+  removed_listening_listener = std::move(listening_info_.listener);
   listening_info_.Clear();
   analytics_recorder_->OnStoppedIncomingConnectionListening();
 }
 
 bool ClientProxy::IsListeningForIncomingConnections() const {
-  MutexLock lock(&mutex_);
-  return !listening_info_.IsEmpty();
+  absl::MutexLock lock(mutex_);
+  return IsListeningForIncomingConnectionsLocked();
 }
 
 std::string ClientProxy::GetListeningForIncomingConnectionsServiceId() const {
-  MutexLock lock(&mutex_);
-  if (IsListeningForIncomingConnections()) {
+  absl::MutexLock lock(mutex_);
+  if (IsListeningForIncomingConnectionsLocked()) {
     return listening_info_.service_id;
   }
   return "";
 }
 
 ConnectionListener ClientProxy::GetAdvertisingOrIncomingConnectionListener() {
-  if (IsListeningForIncomingConnections()) {
-    ConnectionListener listener = {
+  absl::MutexLock lock(mutex_);
+  if (IsListeningForIncomingConnectionsLocked() &&
+       listening_info_.listener != nullptr) {
+    std::shared_ptr<const v3::ConnectionListener> shared_listener =
+        listening_info_.listener;
+    return ConnectionListener{
         .initiated_cb =
-            [this](const std::string& endpoint_id,
-                   const ConnectionResponseInfo& info) {
+            [shared_listener](const std::string& endpoint_id,
+                              const ConnectionResponseInfo& info) {
               auto remote_device = v3::ConnectionsDevice(
                   endpoint_id, info.remote_endpoint_info.AsStringView(), {});
-              this->listening_info_.listener.initiated_cb(
+              shared_listener->initiated_cb(
                   remote_device,
                   v3::InitialConnectionInfo{
                       .authentication_digits = info.authentication_token,
@@ -586,33 +697,32 @@ ConnectionListener ClientProxy::GetAdvertisingOrIncomingConnectionListener() {
                   });
             },
         .accepted_cb =
-            [this](const std::string& endpoint_id) {
+            [shared_listener](const std::string& endpoint_id) {
               auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-              this->listening_info_.listener.result_cb(
+              shared_listener->result_cb(
                   remote_device,
                   v3::ConnectionResult{.status = Status{
                                            .value = Status::kSuccess,
                                        }});
             },
         .rejected_cb =
-            [this](const std::string& endpoint_id, Status status) {
+            [shared_listener](const std::string& endpoint_id, Status status) {
               auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-              this->listening_info_.listener.result_cb(
+              shared_listener->result_cb(
                   remote_device, v3::ConnectionResult{.status = status});
             },
         .disconnected_cb =
-            [this](const std::string& endpoint_id) {
+            [shared_listener](const std::string& endpoint_id) {
               auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-              this->listening_info_.listener.disconnected_cb(remote_device);
+              shared_listener->disconnected_cb(remote_device);
             },
         .bandwidth_changed_cb =
-            [this](const std::string& endpoint_id, Medium medium) {
+            [shared_listener](const std::string& endpoint_id, Medium medium) {
               auto remote_device = v3::ConnectionsDevice(endpoint_id, "", {});
-              this->listening_info_.listener.bandwidth_changed_cb(
+              shared_listener->bandwidth_changed_cb(
                   remote_device, v3::BandwidthInfo{.medium = medium});
             },
     };
-    return listener;
   }
   return advertising_info_.listener;
 }
@@ -627,35 +737,52 @@ void ClientProxy::StartedDiscovery(
     std::optional<bool> is_extended_advertisement_supported,
     std::optional<int> connected_ap_frequency,
     std::optional<bool> is_nfc_available) {
-  MutexLock lock(&mutex_);
-  discovery_info_ = DiscoveryInfo{service_id, std::move(listener)};
-  discovery_options_ = discovery_options;
+  std::shared_ptr<const DiscoveryListener> old_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    old_listener = std::move(discovery_info_.listener);
+    discovery_info_ = DiscoveryInfo{
+        service_id,
+        std::make_shared<const DiscoveryListener>(std::move(listener)),
+    };
+    discovery_options_ = discovery_options;
 
-  const std::vector<location::nearby::proto::connections::Medium> medium_vector(
-      mediums.begin(), mediums.end());
-  std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kOmitUnmeasuredAdvDisCapabilities)) {
-    discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams(
-        is_extended_advertisement_supported, connected_ap_frequency,
-        is_nfc_available, operation_result_with_mediums);
-  } else {
-    discovery_metadata_params = AnalyticsRecorder::BuildDiscoveryMetadataParams(
-        /*is_extended_advertisement_supported=*/false,
-        /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
-        operation_result_with_mediums);
+    const std::vector<location::nearby::proto::connections::Medium>
+        medium_vector(mediums.begin(), mediums.end());
+    std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kOmitUnmeasuredAdvDisCapabilities)) {
+      discovery_metadata_params =
+          AnalyticsRecorder::BuildDiscoveryMetadataParams(
+              is_extended_advertisement_supported, connected_ap_frequency,
+              is_nfc_available, operation_result_with_mediums);
+    } else {
+      discovery_metadata_params =
+          AnalyticsRecorder::BuildDiscoveryMetadataParams(
+              /*is_extended_advertisement_supported=*/false,
+              /*connected_ap_frequency=*/0, /*is_nfc_available=*/false,
+              operation_result_with_mediums);
+    }
+    analytics_recorder_->OnStartDiscovery(strategy, medium_vector,
+                                          discovery_metadata_params.get());
   }
-  analytics_recorder_->OnStartDiscovery(strategy, medium_vector,
-                                        discovery_metadata_params.get());
 }
 
 void ClientProxy::StoppedDiscovery() {
-  MutexLock lock(&mutex_);
+  std::shared_ptr<const DiscoveryListener> removed_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    StoppedDiscoveryLocked(removed_listener);
+  }
+}
 
-  const bool was_discovering = IsDiscovering();
+void ClientProxy::StoppedDiscoveryLocked(
+    std::shared_ptr<const DiscoveryListener>& removed_discovery_listener) {
+  const bool was_discovering = IsDiscoveringLocked();
   if (was_discovering) {
     discovered_endpoint_ids_.clear();
+    removed_discovery_listener = std::move(discovery_info_.listener);
     discovery_info_.Clear();
     analytics_recorder_->OnStopDiscovery();
   }
@@ -664,25 +791,22 @@ void ClientProxy::StoppedDiscovery() {
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging) ||
       was_discovering) {
-    OnSessionComplete();
+    OnSessionCompleteLocked();
   }
 }
 
 bool ClientProxy::IsDiscoveringServiceId(const std::string& service_id) const {
-  MutexLock lock(&mutex_);
-
-  return IsDiscovering() && service_id == discovery_info_.service_id;
+  absl::MutexLock lock(mutex_);
+  return IsDiscoveringServiceIdLocked(service_id);
 }
 
 bool ClientProxy::IsDiscovering() const {
-  MutexLock lock(&mutex_);
-
-  return !discovery_info_.IsEmpty();
+  absl::MutexLock lock(mutex_);
+  return IsDiscoveringLocked();
 }
 
 std::string ClientProxy::GetDiscoveryServiceId() const {
-  MutexLock lock(&mutex_);
-
+  absl::MutexLock lock(mutex_);
   return discovery_info_.service_id;
 }
 
@@ -690,54 +814,63 @@ void ClientProxy::OnEndpointFound(
     const std::string& service_id, const std::string& endpoint_id,
     const ByteArray& endpoint_info,
     location::nearby::proto::connections::Medium medium) {
-  MutexLock lock(&mutex_);
-
   LOG(INFO) << "ClientProxy [Endpoint Found]: [enter] id=" << endpoint_id
             << "; service=" << service_id
             << "; info=" << absl::BytesToHexString(endpoint_info.data())
             << "; medium="
             << location::nearby::proto::connections::Medium_Name(medium);
-  if (!IsDiscoveringServiceId(service_id)) {
-    LOG(INFO) << "ClientProxy [Endpoint Found]: Ignoring event for id="
-              << endpoint_id << " because this client is not discovering.";
-    return;
+  std::shared_ptr<const DiscoveryListener> listener;
+  {
+    absl::MutexLock lock(mutex_);
+    if (!IsDiscoveringServiceIdLocked(service_id)) {
+      LOG(INFO) << "ClientProxy [Endpoint Found]: Ignoring event for id="
+                << endpoint_id << " because this client is not discovering.";
+      return;
+    }
+    if (discovered_endpoint_ids_.contains(endpoint_id)) {
+      LOG(WARNING)
+          << "ClientProxy [Endpoint Found]: Ignoring event for id="
+          << endpoint_id
+          << " because this client has already reported this endpoint as "
+             "found.";
+      return;
+    }
+    discovered_endpoint_ids_.insert(endpoint_id);
+    listener = discovery_info_.listener;
   }
-
-  if (discovered_endpoint_ids_.count(endpoint_id)) {
-    LOG(WARNING)
-        << "ClientProxy [Endpoint Found]: Ignoring event for id=" << endpoint_id
-        << " because this client has already reported this endpoint as found.";
-    return;
+  if (listener != nullptr) {
+    listener->endpoint_found_cb(endpoint_id, endpoint_info, service_id);
+    analytics_recorder_->OnEndpointFound(medium);
   }
-
-  discovered_endpoint_ids_.insert(endpoint_id);
-  discovery_info_.listener.endpoint_found_cb(endpoint_id, endpoint_info,
-                                             service_id);
-  analytics_recorder_->OnEndpointFound(medium);
 }
 
 void ClientProxy::OnEndpointLost(const std::string& service_id,
                                  const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
-
   LOG(INFO) << "ClientProxy [Endpoint Lost]: [enter] id=" << endpoint_id
             << "; service=" << service_id;
-  if (!IsDiscoveringServiceId(service_id)) {
-    LOG(INFO) << "ClientProxy [Endpoint Lost]: Ignoring event for id="
-              << endpoint_id << " because this client is not discovering.";
-    return;
+  std::shared_ptr<const DiscoveryListener> listener;
+  {
+    absl::MutexLock lock(mutex_);
+    if (!IsDiscoveringServiceIdLocked(service_id)) {
+      LOG(INFO) << "ClientProxy [Endpoint Lost]: Ignoring event for id="
+                << endpoint_id << " because this client is not discovering.";
+      return;
+    }
+    const auto it = discovered_endpoint_ids_.find(endpoint_id);
+    if (it == discovered_endpoint_ids_.end()) {
+      LOG(WARNING)
+          << "ClientProxy [Endpoint Lost]: Ignoring event for id="
+          << endpoint_id
+          << " because this client has not yet reported this endpoint as "
+             "found";
+      return;
+    }
+    discovered_endpoint_ids_.erase(it);
+    listener = discovery_info_.listener;
   }
-
-  const auto it = discovered_endpoint_ids_.find(endpoint_id);
-  if (it == discovered_endpoint_ids_.end()) {
-    LOG(WARNING)
-        << "ClientProxy [Endpoint Lost]: Ignoring event for id=" << endpoint_id
-        << " because this client has not yet reported this endpoint as found";
-    return;
+  if (listener != nullptr) {
+    listener->endpoint_lost_cb(endpoint_id);
   }
-
-  discovered_endpoint_ids_.erase(it);
-  discovery_info_.listener.endpoint_lost_cb(endpoint_id);
 }
 
 void ClientProxy::OnRequestConnection(
@@ -751,42 +884,40 @@ void ClientProxy::OnConnectionInitiated(
     const std::string& endpoint_id, const ConnectionResponseInfo& info,
     const ConnectionOptions& connection_options,
     const ConnectionListener& listener, const std::string& connection_token) {
-  MutexLock lock(&mutex_);
+  ConnectionListener listener_copy = listener;
+  {
+    absl::MutexLock lock(mutex_);
 
-  // Whether this is incoming or outgoing, the local and remote endpoints both
-  // still need to accept this connection, so set its establishment status to
-  // PENDING.
-  auto result = connections_.emplace(
-      endpoint_id, std::make_pair(
-                       Connection{
-                           .is_incoming = info.is_incoming_connection,
-                           .connection_listener = listener,
-                           .connection_options = connection_options,
-                           .connection_token = connection_token,
-                       },
-                       PayloadListener{
-                           .payload_cb = [](absl::string_view, Payload) {},
-                           .payload_progress_cb = [](absl::string_view,
-                                                     PayloadProgressInfo) {},
-                       }));
-  // Instead of using structured binding which is nice, but banned
-  // (can not use c++17 features, until chromium does) we unpack manually.
-  auto& pair_iter = result.first;
-  bool inserted = result.second;
-  LOG(INFO) << "ClientProxy [Connection Initiated]: add Connection: client="
-            << GetClientId() << "; endpoint_id=" << endpoint_id
-            << "; inserted=" << inserted;
-  DCHECK(inserted);
-  const ConnectionPair& item = pair_iter->second;
-  // Notify the client.
+    // Whether this is incoming or outgoing, the local and remote endpoints both
+    // still need to accept this connection, so set its establishment status to
+    // PENDING.
+    auto result = connections_.emplace(
+        endpoint_id, Connection{
+                         .is_incoming = info.is_incoming_connection,
+                         .connection_listener = listener,
+                         .connection_options = connection_options,
+                         .connection_token = connection_token,
+                     });
+    bool inserted = result.second;
+    LOG(INFO) << "ClientProxy [Connection Initiated]: add Connection: client="
+              << GetClientId() << "; endpoint_id=" << endpoint_id
+              << "; inserted=" << inserted;
+    DCHECK(inserted);
+
+    if (info.is_incoming_connection) {
+      // Add CancellationFlag for advertisers once encryption succeeds.
+      AddCancellationFlagLocked(endpoint_id);
+    }
+  }
+
+  // Notify the client outside the lock so re-entrant calls into ClientProxy do
+  // not deadlock.
   //
   // Note: we allow devices to connect to an advertiser even after it stops
   // advertising, so no need to check IsAdvertising() here.
-  item.first.connection_listener.initiated_cb(endpoint_id, info);
+  listener_copy.initiated_cb(endpoint_id, info);
 
   if (info.is_incoming_connection) {
-    // Add CancellationFlag for advertisers once encryption succeeds.
-    AddCancellationFlag(endpoint_id);
     analytics_recorder_->OnConnectionRequestReceived(endpoint_id);
   } else {
     analytics_recorder_->OnConnectionRequestSent(endpoint_id);
@@ -795,39 +926,51 @@ void ClientProxy::OnConnectionInitiated(
 
 void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
   LOG(INFO) << "ClientProxy [ConnectionAccepted]: id=" << endpoint_id;
-  MutexLock lock(&mutex_);
+  std::function<void(const std::string&)> accepted_cb;
+  {
+    absl::MutexLock lock(mutex_);
 
-  if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    LOG(INFO) << "ClientProxy [Connection Accepted]: no pending "
-                 "connection; endpoint_id="
-              << endpoint_id;
-    return;
+    if (!HasPendingConnectionToEndpointLocked(endpoint_id)) {
+      LOG(INFO) << "ClientProxy [Connection Accepted]: no pending "
+                   "connection; endpoint_id="
+                << endpoint_id;
+      return;
+    }
+
+    Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      accepted_cb = item->connection_listener.accepted_cb;
+      item->status = Connection::kConnected;
+    }
   }
 
-  // Notify the client.
-  ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    item->first.connection_listener.accepted_cb(endpoint_id);
-    item->first.status = Connection::kConnected;
+  if (accepted_cb) {
+    accepted_cb(endpoint_id);
   }
 }
 
 void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
                                        const Status& status) {
   LOG(INFO) << "ClientProxy [ConnectionRejected]: id=" << endpoint_id;
-  MutexLock lock(&mutex_);
+  std::function<void(const std::string&, Status)> rejected_cb;
+  {
+    absl::MutexLock lock(mutex_);
 
-  if (!HasPendingConnectionToEndpoint(endpoint_id)) {
-    LOG(INFO) << "ClientProxy [Connection Rejected]: no pending "
-                 "connection; endpoint_id="
-              << endpoint_id;
-    return;
+    if (!HasPendingConnectionToEndpointLocked(endpoint_id)) {
+      LOG(INFO) << "ClientProxy [Connection Rejected]: no pending "
+                   "connection; endpoint_id="
+                << endpoint_id;
+      return;
+    }
+
+    const Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      rejected_cb = item->connection_listener.rejected_cb;
+    }
   }
 
-  // Notify the client.
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    item->first.connection_listener.rejected_cb(endpoint_id, status);
+  if (rejected_cb) {
+    rejected_cb(endpoint_id, status);
     OnDisconnected(endpoint_id, false /* notify */);
   }
 }
@@ -835,13 +978,19 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
 void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
                                      Medium new_medium) {
   LOG(INFO) << "ClientProxy [BandwidthChanged]: id=" << endpoint_id;
-  MutexLock lock(&mutex_);
+  std::function<void(const std::string&, Medium)> bandwidth_changed_cb;
+  {
+    absl::MutexLock lock(mutex_);
 
-  ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    item->first.connected_medium = new_medium;
-    item->first.connection_listener.bandwidth_changed_cb(endpoint_id,
-                                                         new_medium);
+    Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      item->connected_medium = new_medium;
+      bandwidth_changed_cb = item->connection_listener.bandwidth_changed_cb;
+    }
+  }
+
+  if (bandwidth_changed_cb) {
+    bandwidth_changed_cb(endpoint_id, new_medium);
     LOG(INFO) << "ClientProxy [reporting onBandwidthChanged]: client="
               << GetClientId() << "; endpoint_id=" << endpoint_id;
   }
@@ -849,41 +998,51 @@ void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
 
 void ClientProxy::OnDisconnected(const std::string& endpoint_id, bool notify) {
   LOG(INFO) << "ClientProxy [OnDisconnected]: id=" << endpoint_id;
-  MutexLock lock(&mutex_);
+  std::function<void(const std::string&)> disconnected_cb;
+  std::optional<Connection> removed_connection;
+  std::shared_ptr<CancellationFlag> cancellation_flag;
+  std::unique_ptr<CancelableAlarm> alarm_to_cancel;
+  {
+    absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    if (notify) {
-      item->first.connection_listener.disconnected_cb({endpoint_id});
+    auto it = connections_.find(endpoint_id);
+    if (it != connections_.end()) {
+      if (notify) {
+        disconnected_cb = it->second.connection_listener.disconnected_cb;
+      }
+      removed_connection = std::move(it->second);
+      connections_.erase(it);
+      OnSessionCompleteLocked();
     }
-    connections_.erase(endpoint_id);
-    OnSessionComplete();
+
+    cancellation_flag = GetCancellationFlagToCancelLocked(endpoint_id);
+
+    if (!stable_endpoint_id_mode_ && !HasOngoingConnection()) {
+      alarm_to_cancel = ScheduleClearCachedEndpointIdAlarmLocked();
+    }
   }
 
-  CancelEndpoint(endpoint_id);
-
-  if (!stable_endpoint_id_mode_ && !HasOngoingConnection()) {
-    ScheduleClearCachedEndpointIdAlarm();
+  CancelAlarm(std::move(alarm_to_cancel));
+  if (cancellation_flag != nullptr) {
+    cancellation_flag->Cancel();
+  }
+  if (disconnected_cb) {
+    disconnected_cb(endpoint_id);
   }
 }
 
-bool ClientProxy::ConnectionStatusMatches(const std::string& endpoint_id,
-                                          Connection::Status status) const {
-  MutexLock lock(&mutex_);
-
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    return item->first.status == status;
-  }
-  return false;
+bool ClientProxy::IsConnectedToEndpointLocked(
+    const std::string& endpoint_id) const {
+  const Connection* item = LookupConnection(endpoint_id);
+  return item != nullptr && item->status == Connection::kConnected;
 }
 
 Medium ClientProxy::GetConnectedMedium(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connected_medium;
+    return item->connected_medium;
   }
 
   return Medium::UNKNOWN_MEDIUM;
@@ -891,59 +1050,58 @@ Medium ClientProxy::GetConnectedMedium(const std::string& endpoint_id) const {
 
 BooleanMediumSelector ClientProxy::GetUpgradeMediums(
     const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_options.allowed;
+    return item->connection_options.allowed;
   }
   return {};
 }
 
 bool ClientProxy::Is5GHzSupported(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_options.connection_info.supports_5_ghz;
+    return item->connection_options.connection_info.supports_5_ghz;
   }
   return false;
 }
 
 std::string ClientProxy::GetBssid(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_options.connection_info.bssid;
+    return item->connection_options.connection_info.bssid;
   }
   return {};
 }
 
 std::int32_t ClientProxy::GetApFrequency(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_options.connection_info.ap_frequency;
+    return item->connection_options.connection_info.ap_frequency;
   }
   return -1;
 }
 
 bool ClientProxy::IsConnectedToEndpoint(const std::string& endpoint_id) const {
-  return ConnectionStatusMatches(endpoint_id, Connection::kConnected);
+  absl::MutexLock lock(mutex_);
+  return IsConnectedToEndpointLocked(endpoint_id);
 }
 
 std::vector<std::string> ClientProxy::GetMatchingEndpoints(
     absl::AnyInvocable<bool(const Connection&)> pred) const {
-  MutexLock lock(&mutex_);
-
   std::vector<std::string> connected_endpoints;
 
   for (const auto& pair : connections_) {
     const auto& endpoint_id = pair.first;
-    const auto& connection_pair = pair.second;
-    if (pred(connection_pair.first)) {
+    const auto& connection = pair.second;
+    if (pred(connection)) {
       connected_endpoints.push_back(endpoint_id);
     }
   }
@@ -951,26 +1109,22 @@ std::vector<std::string> ClientProxy::GetMatchingEndpoints(
 }
 
 std::vector<std::string> ClientProxy::GetPendingConnectedEndpoints() const {
+  absl::MutexLock lock(mutex_);
   return GetMatchingEndpoints([](const Connection& connection) {
     return connection.status != Connection::kConnected;
   });
 }
 
 std::vector<std::string> ClientProxy::GetConnectedEndpoints() const {
+  absl::MutexLock lock(mutex_);
   return GetMatchingEndpoints([](const Connection& connection) {
     return connection.status == Connection::kConnected;
   });
 }
 
-bool ClientProxy::HasOngoingConnection() const {
-  return !GetPendingConnectedEndpoints().empty() ||
-         !GetConnectedEndpoints().empty();
-}
-
 bool ClientProxy::HasWifiDirectConnection() const {
-  MutexLock lock(&mutex_);
   for (const auto& entry : connections_) {
-    if (entry.second.first.connected_medium == Medium::WIFI_DIRECT) {
+    if (entry.second.connected_medium == Medium::WIFI_DIRECT) {
       LOG(INFO) << "ClientProxy [HasWifiDirectConnection]: true";
       return true;
     }
@@ -980,9 +1134,8 @@ bool ClientProxy::HasWifiDirectConnection() const {
 }
 
 bool ClientProxy::HasWifiHotspotConnection() const {
-  MutexLock lock(&mutex_);
   for (const auto& entry : connections_) {
-    if (entry.second.first.connected_medium == Medium::WIFI_HOTSPOT) {
+    if (entry.second.connected_medium == Medium::WIFI_HOTSPOT) {
       return true;
     }
   }
@@ -990,10 +1143,9 @@ bool ClientProxy::HasWifiHotspotConnection() const {
 }
 
 bool ClientProxy::HasWifiAwareConnection() const {
-  MutexLock lock(&mutex_);
   for (const auto& entry : connections_) {
-    if (entry.second.first.connected_medium == Medium::WIFI_AWARE ||
-        entry.second.first.connected_medium == Medium::WIFI_AWARE_R4) {
+    if (entry.second.connected_medium == Medium::WIFI_AWARE ||
+        entry.second.connected_medium == Medium::WIFI_AWARE_R4) {
       return true;
     }
   }
@@ -1001,50 +1153,67 @@ bool ClientProxy::HasWifiAwareConnection() const {
 }
 
 std::string ClientProxy::GetLastLocalEndpointId() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return last_local_endpoint_id_;
 }
 
 std::int32_t ClientProxy::GetNumOutgoingConnections() const {
-  return GetMatchingEndpoints([](const Connection& connection) {
-           return connection.status == Connection::kConnected &&
-                  !connection.is_incoming;
-         })
-      .size();
+  absl::MutexLock lock(mutex_);
+  int32_t count = 0;
+  for (const auto& pair : connections_) {
+    const auto& connection = pair.second;
+    if (connection.status == Connection::kConnected &&
+        !connection.is_incoming) {
+      count++;
+    }
+  }
+  return count;
 }
 
 std::int32_t ClientProxy::GetNumIncomingConnections() const {
-  return GetMatchingEndpoints([](const Connection& connection) {
-           return connection.status == Connection::kConnected &&
-                  connection.is_incoming;
-         })
-      .size();
+  absl::MutexLock lock(mutex_);
+  int32_t count = 0;
+  for (const auto& pair : connections_) {
+    const auto& connection = pair.second;
+    if (connection.status == Connection::kConnected && connection.is_incoming) {
+      count++;
+    }
+  }
+  return count;
 }
 
 bool ClientProxy::IsIncomingConnection(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr && item->first.status == Connection::kConnected) {
-    return item->first.is_incoming;
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
+  if (item != nullptr && item->status == Connection::kConnected) {
+    return item->is_incoming;
   }
   return false;
 }
 
 bool ClientProxy::HasPendingConnectionToEndpoint(
     const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
+  return HasPendingConnectionToEndpointLocked(endpoint_id);
+}
 
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+bool ClientProxy::HasPendingConnectionToEndpointLocked(
+    const std::string& endpoint_id) const {
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.status != Connection::kConnected;
+    return item->status != Connection::kConnected;
   }
   return false;
 }
 
 bool ClientProxy::HasLocalEndpointResponded(
     const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
+  return HasLocalEndpointRespondedLocked(endpoint_id);
+}
 
+bool ClientProxy::HasLocalEndpointRespondedLocked(
+    const std::string& endpoint_id) const {
   return ConnectionStatusesContains(
       endpoint_id,
       static_cast<Connection::Status>(Connection::kLocalEndpointAccepted |
@@ -1053,8 +1222,12 @@ bool ClientProxy::HasLocalEndpointResponded(
 
 bool ClientProxy::HasRemoteEndpointResponded(
     const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
+  return HasRemoteEndpointRespondedLocked(endpoint_id);
+}
 
+bool ClientProxy::HasRemoteEndpointRespondedLocked(
+    const std::string& endpoint_id) const {
   return ConnectionStatusesContains(
       endpoint_id,
       static_cast<Connection::Status>(Connection::kRemoteEndpointAccepted |
@@ -1063,27 +1236,32 @@ bool ClientProxy::HasRemoteEndpointResponded(
 
 void ClientProxy::LocalEndpointAcceptedConnection(
     const std::string& endpoint_id, PayloadListener listener) {
-  MutexLock lock(&mutex_);
-  if (HasLocalEndpointResponded(endpoint_id)) {
-    LOG(INFO)
-        << "ClientProxy [Local Accepted]: local endpoint has responded; id="
-        << endpoint_id;
-    return;
+  std::shared_ptr<const PayloadListener> old_listener;
+  {
+    absl::MutexLock lock(mutex_);
+    if (HasLocalEndpointRespondedLocked(endpoint_id)) {
+      LOG(INFO)
+          << "ClientProxy [Local Accepted]: local endpoint has responded; id="
+          << endpoint_id;
+      return;
+    }
+    AppendConnectionStatus(endpoint_id, Connection::kLocalEndpointAccepted);
+    LOG(INFO) << "ClientProxy [Local Accepted]: id=" << endpoint_id;
+    Connection* item = LookupConnection(endpoint_id);
+    if (item != nullptr) {
+      old_listener = std::move(item->payload_listener);
+      item->payload_listener =
+          std::make_shared<const PayloadListener>(std::move(listener));
+    }
+    analytics_recorder_->OnLocalEndpointAccepted(endpoint_id);
   }
-  AppendConnectionStatus(endpoint_id, Connection::kLocalEndpointAccepted);
-  LOG(INFO) << "ClientProxy [Local Accepted]: id=" << endpoint_id;
-  ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    item->second = std::move(listener);
-  }
-  analytics_recorder_->OnLocalEndpointAccepted(endpoint_id);
 }
 
 void ClientProxy::LocalEndpointRejectedConnection(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  if (HasLocalEndpointResponded(endpoint_id)) {
+  if (HasLocalEndpointRespondedLocked(endpoint_id)) {
     LOG(INFO)
         << "ClientProxy [Local Rejected]: local endpoint has responded; id="
         << endpoint_id;
@@ -1096,9 +1274,9 @@ void ClientProxy::LocalEndpointRejectedConnection(
 
 void ClientProxy::RemoteEndpointAcceptedConnection(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  if (HasRemoteEndpointResponded(endpoint_id)) {
+  if (HasRemoteEndpointRespondedLocked(endpoint_id)) {
     LOG(INFO)
         << "ClientProxy [Remote Accepted]: remote endpoint has responded; id="
         << endpoint_id;
@@ -1111,9 +1289,9 @@ void ClientProxy::RemoteEndpointAcceptedConnection(
 
 void ClientProxy::RemoteEndpointRejectedConnection(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
-  if (HasRemoteEndpointResponded(endpoint_id)) {
+  if (HasRemoteEndpointRespondedLocked(endpoint_id)) {
     LOG(INFO)
         << "ClientProxy [Remote Rejected]: remote endpoint has responded; id="
         << endpoint_id;
@@ -1125,7 +1303,7 @@ void ClientProxy::RemoteEndpointRejectedConnection(
 }
 
 bool ClientProxy::IsConnectionAccepted(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return ConnectionStatusesContains(endpoint_id,
                                     Connection::kLocalEndpointAccepted) &&
@@ -1134,7 +1312,7 @@ bool ClientProxy::IsConnectionAccepted(const std::string& endpoint_id) const {
 }
 
 bool ClientProxy::IsConnectionRejected(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   return ConnectionStatusesContains(
       endpoint_id,
@@ -1143,43 +1321,47 @@ bool ClientProxy::IsConnectionRejected(const std::string& endpoint_id) const {
 }
 
 bool ClientProxy::AutoUpgradeBandwidth() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   bool result = false;
-  if (IsAdvertising() && (GetAdvertisingOptions().strategy.IsNone() ||
-                          GetAdvertisingOptions().auto_upgrade_bandwidth)) {
+  if (IsAdvertisingLocked() && (advertising_options_.strategy.IsNone() ||
+                                advertising_options_.auto_upgrade_bandwidth)) {
     result |= true;
   }
-  if (IsListeningForIncomingConnections() &&
-      (GetListeningOptions().strategy.IsNone() ||
-       GetListeningOptions().auto_upgrade_bandwidth)) {
+  if (IsListeningForIncomingConnectionsLocked() &&
+      (listening_options_.strategy.IsNone() ||
+       listening_options_.auto_upgrade_bandwidth)) {
     result |= true;
   }
   return result;
 }
 
 bool ClientProxy::ShouldEnforceTopologyConstraints() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   bool result = false;
-  if (IsAdvertising() &&
-      (GetAdvertisingOptions().strategy.IsNone() ||
-       GetAdvertisingOptions().enforce_topology_constraints)) {
+  if (IsAdvertisingLocked() &&
+      (advertising_options_.strategy.IsNone() ||
+       advertising_options_.enforce_topology_constraints)) {
     result |= true;
   }
-  if (IsListeningForIncomingConnections() &&
-      (GetListeningOptions().strategy.IsNone() ||
-       GetListeningOptions().enforce_topology_constraints)) {
+  if (IsListeningForIncomingConnectionsLocked() &&
+      (listening_options_.strategy.IsNone() ||
+       listening_options_.enforce_topology_constraints)) {
     result |= true;
   }
   return result;
 }
 
 void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
+  absl::MutexLock lock(mutex_);
+  AddCancellationFlagLocked(endpoint_id);
+}
+
+void ClientProxy::AddCancellationFlagLocked(const std::string& endpoint_id) {
   // Don't insert the CancellationFlag to the map if feature flag is disabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
     return;
   }
 
-  MutexLock lock(&mutex_);
   auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
     // A new flag may be added to the map with the same endpoint, even if a
@@ -1199,7 +1381,7 @@ void ClientProxy::AddCancellationFlag(const std::string& endpoint_id) {
 
 std::shared_ptr<CancellationFlag> ClientProxy::GetCancellationFlag(
     const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   const auto item = cancellation_flags_.find(endpoint_id);
   if (item == cancellation_flags_.end()) {
     return default_cancellation_flag_;
@@ -1207,67 +1389,81 @@ std::shared_ptr<CancellationFlag> ClientProxy::GetCancellationFlag(
   return item->second;
 }
 
-void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
-  MutexLock lock(&mutex_);
+std::shared_ptr<CancellationFlag>
+ClientProxy::GetCancellationFlagToCancelLocked(const std::string& endpoint_id) {
   const auto item = cancellation_flags_.find(endpoint_id);
   if (item != cancellation_flags_.end()) {
-    item->second->Cancel();
+    return item->second;
+  }
+  return nullptr;
+}
+
+void ClientProxy::CancelEndpoint(const std::string& endpoint_id) {
+  std::shared_ptr<CancellationFlag> cancellation_flag;
+  {
+    absl::MutexLock lock(mutex_);
+    cancellation_flag = GetCancellationFlagToCancelLocked(endpoint_id);
+  }
+  if (cancellation_flag != nullptr) {
+    cancellation_flag->Cancel();
   }
 }
 
-const OsInfo& ClientProxy::GetLocalOsInfo() const { return local_os_info_; }
+OsInfo ClientProxy::GetLocalOsInfo() const {
+  absl::MutexLock lock(mutex_);
+  return local_os_info_;
+}
 
 std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
     absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.os_info;
+    return item->os_info;
   }
   return std::nullopt;
 }
 
 void ClientProxy::SetLocalOsType(
     const location::nearby::connections::OsInfo::OsType& os_type) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   local_os_info_.set_type(os_type);
 }
 
 void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
                                   const OsInfo& remote_os_info) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.os_info.emplace(remote_os_info);
+    item->os_info.emplace(remote_os_info);
   }
 }
 
 void ClientProxy::SetRemoteDeviceName(absl::string_view endpoint_id,
                                       absl::string_view device_name) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.device_name = std::string(device_name);
+    item->device_name = std::string(device_name);
     LOG(INFO) << "ClientProxy [SetRemoteDeviceName]: " << device_name;
   }
 }
 
 std::string ClientProxy::GetRemoteDeviceName(
     absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.device_name;
+    return item->device_name;
   }
   return "";
 }
 
 std::optional<std::int32_t> ClientProxy::GetRemoteSafeToDisconnectVersion(
     absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.safe_to_disconnect_version;
+    return item->safe_to_disconnect_version;
   }
   return std::nullopt;
 }
@@ -1275,26 +1471,38 @@ std::optional<std::int32_t> ClientProxy::GetRemoteSafeToDisconnectVersion(
 void ClientProxy::SetRemoteSafeToDisconnectVersion(
     absl::string_view endpoint_id,
     const std::int32_t& safe_to_disconnect_version) {
-  MutexLock lock(&mutex_);
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.safe_to_disconnect_version = safe_to_disconnect_version;
+    item->safe_to_disconnect_version = safe_to_disconnect_version;
   }
 }
 
 bool ClientProxy::IsSafeToDisconnectEnabled(absl::string_view endpoint_id) {
-  return IsSupportSafeToDisconnect() &&
-         GetRemoteSafeToDisconnectVersion(endpoint_id).has_value() &&
-         (GetRemoteSafeToDisconnectVersion(endpoint_id) >=
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .min_nc_version_supports_safe_to_disconnect);
+  if (!IsSupportSafeToDisconnect()) {
+    return false;
+  }
+  std::optional<std::int32_t> version;
+  {
+    absl::MutexLock lock(mutex_);
+    version = GetRemoteSafeToDisconnectVersion(endpoint_id);
+  }
+  return version.has_value() &&
+         (*version >= FeatureFlags::GetInstance()
+                          .GetFlags()
+                          .min_nc_version_supports_safe_to_disconnect);
 }
 
 void ClientProxy::CancelAllEndpoints() {
-  MutexLock lock(&mutex_);
-  for (const auto& item : cancellation_flags_) {
-    std::shared_ptr<CancellationFlag> cancellation_flag = item.second;
+  std::vector<std::shared_ptr<CancellationFlag>> flags_to_cancel;
+  {
+    absl::MutexLock lock(mutex_);
+    flags_to_cancel.reserve(cancellation_flags_.size());
+    for (const auto& item : cancellation_flags_) {
+      flags_to_cancel.push_back(item.second);
+    }
+  }
+  for (const auto& cancellation_flag : flags_to_cancel) {
     if (cancellation_flag->Cancelled()) {
       continue;
     }
@@ -1303,28 +1511,33 @@ void ClientProxy::CancelAllEndpoints() {
 }
 
 void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
-  MutexLock lock(&mutex_);
-
-  if (IsConnectedToEndpoint(endpoint_id)) {
-    const std::pair<ClientProxy::Connection, PayloadListener>* item =
-        LookupConnection(endpoint_id);
-    if (item != nullptr) {
-      LOG(INFO) << "ClientProxy [reporting onPayloadReceived]: client="
-                << GetClientId() << "; endpoint_id=" << endpoint_id
-                << " ; payload {id:" << payload.GetId()
-                << ", type:" << payload.GetType() << "}";
-      item->second.payload_cb(endpoint_id, std::move(payload));
+  std::shared_ptr<const PayloadListener> listener;
+  {
+    absl::MutexLock lock(mutex_);
+    if (!IsConnectedToEndpointLocked(endpoint_id)) {
+      return;
     }
+    const Connection* item = LookupConnection(endpoint_id);
+    if (item == nullptr || item->payload_listener == nullptr) {
+      return;
+    }
+    listener = item->payload_listener;
   }
+
+  LOG(INFO) << "ClientProxy [reporting onPayloadReceived]: client="
+            << GetClientId() << "; endpoint_id=" << endpoint_id
+            << " ; payload {id:" << payload.GetId()
+            << ", type:" << payload.GetType() << "}";
+  listener->payload_cb(endpoint_id, std::move(payload));
 }
 
-const ClientProxy::ConnectionPair* ClientProxy::LookupConnection(
+const ClientProxy::Connection* ClientProxy::LookupConnection(
     absl::string_view endpoint_id) const {
   auto item = connections_.find(endpoint_id);
   return item != connections_.end() ? &item->second : nullptr;
 }
 
-ClientProxy::ConnectionPair* ClientProxy::LookupConnection(
+ClientProxy::Connection* ClientProxy::LookupConnection(
     absl::string_view endpoint_id) {
   auto item = connections_.find(endpoint_id);
   return item != connections_.end() ? &item->second : nullptr;
@@ -1332,49 +1545,55 @@ ClientProxy::ConnectionPair* ClientProxy::LookupConnection(
 
 void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
                                     const PayloadProgressInfo& info) {
-  MutexLock lock(&mutex_);
-
-  if (IsConnectedToEndpoint(endpoint_id)) {
-    std::pair<ClientProxy::Connection, PayloadListener>* item =
-        LookupConnection(endpoint_id);
-    if (item != nullptr) {
-      item->second.payload_progress_cb(endpoint_id, info);
-
-      if (info.status == PayloadProgressInfo::Status::kInProgress) {
-        VLOG(1) << "ClientProxy [reporting onPayloadProgress]: client="
-                << GetClientId() << "; endpoint_id=" << endpoint_id
-                << "; payload_id=" << info.payload_id
-                << ", payload_status=" << ToString(info.status);
-      } else {
-        LOG(INFO) << "ClientProxy [reporting onPayloadProgress]: client="
-                  << GetClientId() << "; endpoint_id=" << endpoint_id
-                  << "; payload_id=" << info.payload_id
-                  << ", payload_status=" << ToString(info.status);
-      }
+  std::shared_ptr<const PayloadListener> listener;
+  {
+    absl::MutexLock lock(mutex_);
+    if (!IsConnectedToEndpointLocked(endpoint_id)) {
+      return;
     }
+    const Connection* item = LookupConnection(endpoint_id);
+    if (item == nullptr || item->payload_listener == nullptr) {
+      return;
+    }
+    listener = item->payload_listener;
+  }
+
+  listener->payload_progress_cb(endpoint_id, info);
+  if (info.status == PayloadProgressInfo::Status::kInProgress) {
+    VLOG(1) << "ClientProxy [reporting onPayloadProgress]: client="
+            << GetClientId() << "; endpoint_id=" << endpoint_id
+            << "; payload_id=" << info.payload_id
+            << ", payload_status=" << ToString(info.status);
+  } else {
+    LOG(INFO) << "ClientProxy [reporting onPayloadProgress]: client="
+              << GetClientId() << "; endpoint_id=" << endpoint_id
+              << "; payload_id=" << info.payload_id
+              << ", payload_status=" << ToString(info.status);
   }
 }
 
-void ClientProxy::RemoveAllEndpoints() {
-  MutexLock lock(&mutex_);
-
+void ClientProxy::RemoveAllEndpointsLocked(
+    absl::flat_hash_map<std::string, Connection>& removed_connections,
+    absl::flat_hash_map<std::string, std::shared_ptr<CancellationFlag>>&
+        removed_flags) {
   const bool had_connections = !connections_.empty();
   // Note: we may want to notify the client of onDisconnected() for each
   // endpoint, in the case when this is called from stopAllEndpoints(). For now,
   // just remove without notifying.
+  removed_connections = std::move(connections_);
   connections_.clear();
+  removed_flags = std::move(cancellation_flags_);
   cancellation_flags_.clear();
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging) ||
       had_connections) {
-    OnSessionComplete();
+    OnSessionCompleteLocked();
   }
 }
 
 void ClientProxy::ResetLocalEndpointId() {
-  MutexLock lock(&mutex_);
   if (HasOngoingConnection()) {
     return;
   }
@@ -1384,15 +1603,15 @@ void ClientProxy::ResetLocalEndpointId() {
   }
 }
 
-void ClientProxy::OnSessionComplete() {
-  MutexLock lock(&mutex_);
+void ClientProxy::OnSessionCompleteLocked() {
   const bool is_session_idle =
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kFixClientSessionLogging)
-          ? (connections_.empty() && !IsAdvertising() && !IsDiscovering() &&
-             !IsListeningForIncomingConnections())
-          : (connections_.empty() && !IsAdvertising());
+          ? (connections_.empty() && !IsAdvertisingLocked() &&
+             !IsDiscoveringLocked() &&
+             !IsListeningForIncomingConnectionsLocked())
+          : (connections_.empty() && !IsAdvertisingLocked());
   if (is_session_idle) {
     if (!local_endpoint_id_.empty()) {
       last_local_endpoint_id_ = local_endpoint_id_;
@@ -1406,72 +1625,89 @@ void ClientProxy::OnSessionComplete() {
 
 bool ClientProxy::ConnectionStatusesContains(
     const std::string& endpoint_id, Connection::Status status_to_match) const {
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return (item->first.status & status_to_match) != 0;
+    return (item->status & status_to_match) != 0;
   }
   return false;
 }
 
 void ClientProxy::AppendConnectionStatus(const std::string& endpoint_id,
                                          Connection::Status status_to_append) {
-  ConnectionPair* item = LookupConnection(endpoint_id);
+  Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    item->first.status =
-        static_cast<Connection::Status>(item->first.status | status_to_append);
+    item->status =
+        static_cast<Connection::Status>(item->status | status_to_append);
   }
 }
 
 AdvertisingOptions ClientProxy::GetAdvertisingOptions() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return advertising_options_;
 }
 
 DiscoveryOptions ClientProxy::GetDiscoveryOptions() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return discovery_options_;
 }
 
 v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return listening_options_;
 }
 
 void ClientProxy::EnterStableEndpointIdMode() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << "ClientProxy [EnterStableEndpointIdMode]: client="
           << GetClientId();
 
   stable_endpoint_id_mode_ = true;
-  if (!IsAdvertising() && !IsDiscovering() && !HasOngoingConnection()) {
+  if (!IsAdvertisingLocked() && !IsDiscoveringLocked() &&
+      !HasOngoingConnection()) {
     ResetLocalEndpointId();
   }
 }
 
 void ClientProxy::ExitStableEndpointIdMode() {
-  MutexLock lock(&mutex_);
+  std::vector<std::unique_ptr<CancelableAlarm>> alarms_to_cancel;
+  {
+    absl::MutexLock lock(mutex_);
+    ExitStableEndpointIdModeLocked(alarms_to_cancel);
+  }
+  CancelAlarms(std::move(alarms_to_cancel));
+}
+
+void ClientProxy::ExitStableEndpointIdModeLocked(
+    std::vector<std::unique_ptr<CancelableAlarm>>& alarms_to_cancel) {
   VLOG(1) << "ClientProxy [ExitStableEndpointIdMode]: client=" << GetClientId();
 
   stable_endpoint_id_mode_ = false;
   ResetLocalEndpointId();
-  ScheduleClearCachedEndpointIdAlarm();
+  std::unique_ptr<CancelableAlarm> alarm =
+      ScheduleClearCachedEndpointIdAlarmLocked();
+  if (alarm != nullptr) {
+    alarms_to_cancel.push_back(std::move(alarm));
+  }
 }
 
-void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
-  CancelClearCachedEndpointIdAlarm();
+std::unique_ptr<CancelableAlarm>
+ClientProxy::ScheduleClearCachedEndpointIdAlarmLocked() {
+  std::unique_ptr<CancelableAlarm> old_alarm =
+      CancelClearCachedEndpointIdAlarmLocked();
 
   if (cached_endpoint_id_.empty()) {
     VLOG(1) << "ClientProxy [There is no cached local high power "
                "advertising endpoint Id]: client="
             << GetClientId();
-    return;
+    return old_alarm;
   }
 
-  if (IsAdvertising() || IsDiscovering() || HasOngoingConnection()) {
+  if (IsAdvertisingLocked() || IsDiscoveringLocked() ||
+      HasOngoingConnection()) {
     VLOG(1) << "ClientProxy [Handle clearing cached endpoint ID "
                "during disconnection]: client="
             << GetClientId();
-    return;
+    return old_alarm;
   }
 
   // Schedule to clear cache high visibility mode advertisement endpoint id in
@@ -1479,66 +1715,58 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
   LOG(INFO) << "ClientProxy [High Visibility Mode Adv, Schedule to "
                "Clear Cache EndpointId]: client="
             << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
+  const uint64_t generation = cached_endpoint_id_alarm_generation_;
   cached_endpoint_id_alarm_ = std::make_unique<CancelableAlarm>(
       "clear_high_power_endpoint_id_cache",
-      [this]() { ClearCachedLocalEndpointId(); },
+      [this, generation]() { ClearCachedLocalEndpointIdForAlarm(generation); },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
+  return old_alarm;
 }
 
-void ClientProxy::CancelClearCachedEndpointIdAlarm() {
-  if (cached_endpoint_id_alarm_ && cached_endpoint_id_alarm_->IsValid()) {
-    cached_endpoint_id_alarm_->Cancel();
-    cached_endpoint_id_alarm_.reset();
+std::unique_ptr<CancelableAlarm>
+ClientProxy::CancelClearCachedEndpointIdAlarmLocked() {
+  ++cached_endpoint_id_alarm_generation_;
+  return std::move(cached_endpoint_id_alarm_);
+}
+
+void ClientProxy::ClearCachedLocalEndpointIdForAlarm(uint64_t generation) {
+  absl::MutexLock lock(mutex_);
+  if (generation != cached_endpoint_id_alarm_generation_) {
+    return;
   }
-}
-
-void ClientProxy::ClearCachedLocalEndpointId() {
-  MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [Cleared cached local endpoint Id.]: client="
             << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
   cached_endpoint_id_.clear();
 }
 
-OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {
-  switch (osName) {
-    case api::OSName::kLinux:
-      return OsInfo::LINUX;
-    case api::OSName::kWindows:
-      return OsInfo::WINDOWS;
-    case api::OSName::kApple:
-      return OsInfo::APPLE;
-    case api::OSName::kChromeOS:
-      return OsInfo::CHROME_OS;
-    case api::OSName::kAndroid:
-      return OsInfo::ANDROID;
-  }
+void ClientProxy::ClearCachedLocalEndpointId() {
+  absl::MutexLock lock(mutex_);
+  ++cached_endpoint_id_alarm_generation_;
+  LOG(INFO) << "ClientProxy [Cleared cached local endpoint Id.]: client="
+            << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
+  cached_endpoint_id_.clear();
 }
 
-bool ClientProxy::GetWebRtcNonCellular() {
-  MutexLock lock(&mutex_);
+bool ClientProxy::GetWebRtcNonCellular() const {
+  absl::MutexLock lock(mutex_);
   return webrtc_non_cellular_;
 }
 
 void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << "ClientProxy: client=" << GetClientId()
           << (webrtc_non_cellular ? " disallow" : " allow")
           << " to use mobile data.";
   webrtc_non_cellular_ = webrtc_non_cellular;
 }
 
-bool ClientProxy::IsDctEnabled() const {
-  MutexLock lock(&mutex_);
-  return is_dct_enabled_;
-}
-
 uint8_t ClientProxy::GetDctDedup() const {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return dct_dedup_;
 }
 
 void ClientProxy::UpdateDctDeviceName(absl::string_view device_name) {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!dct_device_name_.empty() && dct_device_name_ != device_name) {
     // Need to update dedup value if device name is changed.
     absl::BitGen bitgen;
@@ -1560,10 +1788,10 @@ void ClientProxy::UpdateDctDeviceName(absl::string_view device_name) {
 
 std::optional<MediumRole> ClientProxy::GetMediumRole(
     absl::string_view endpoint_id) const {
-  MutexLock lock(&mutex_);
-  const ConnectionPair* item = LookupConnection(endpoint_id);
+  absl::MutexLock lock(mutex_);
+  const Connection* item = LookupConnection(endpoint_id);
   if (item != nullptr) {
-    return item->first.connection_options.connection_info.medium_role;
+    return item->connection_options.connection_info.medium_role;
   }
   return std::nullopt;
 }
@@ -1577,7 +1805,8 @@ location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
     return medium_role;
   }
 
-  if (GetLocalOsInfo().type() == OsInfo::APPLE) {
+  absl::MutexLock lock(mutex_);
+  if (local_os_info_.type() == OsInfo::APPLE) {
     medium_role.set_support_awdl_publisher(true);
     medium_role.set_support_awdl_subscriber(true);
     // Apple always supports wifi hotspot client role since they can always
@@ -1592,29 +1821,29 @@ location::nearby::connections::MediumRole ClientProxy::GetLocalMediumRole(
     return medium_role;
   }
 
+  const bool is_using_p2p = IsUsingP2pMediumLocked();
   medium_role.set_support_wifi_direct_group_owner(
-      mediums_availability.is_wifi_direct_go_available && !IsUsingP2pMedium());
+      mediums_availability.is_wifi_direct_go_available && !is_using_p2p);
   medium_role.set_support_wifi_direct_group_client(
       mediums_availability.is_wifi_direct_gc_available);
   medium_role.set_support_wifi_hotspot_host(
-      mediums_availability.is_wifi_hotspot_ap_available && !IsUsingP2pMedium());
+      mediums_availability.is_wifi_hotspot_ap_available && !is_using_p2p);
   medium_role.set_support_wifi_hotspot_client(
       mediums_availability.is_wifi_hotspot_client_available);
   medium_role.set_support_wifi_aware_publisher(
-      mediums_availability.is_wifi_aware_available && !IsUsingP2pMedium());
+      mediums_availability.is_wifi_aware_available && !is_using_p2p);
   medium_role.set_support_wifi_aware_subscriber(
-      mediums_availability.is_wifi_aware_available && !IsUsingP2pMedium());
+      mediums_availability.is_wifi_aware_available && !is_using_p2p);
   LOG(INFO) << "medium_role: " << medium_role.DebugString();
   return medium_role;
 }
 
 bool ClientProxy::IsUsingP2pMedium() const {
-  return HasWifiDirectConnection() || HasWifiHotspotConnection() ||
-         HasWifiAwareConnection();
+  absl::MutexLock lock(mutex_);
+  return IsUsingP2pMediumLocked();
 }
 
 std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {
-  MutexLock lock(&mutex_);
   if (dct_endpoint_id_.empty()) {
     return std::nullopt;
   }
@@ -1653,7 +1882,7 @@ void ClientProxy::InitializePreferencesManager() {
 #endif
 
 void ClientProxy::SaveClientInfoToPreferences() {
-  MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (preferences_manager_ == nullptr) {
     return;
   }
@@ -1673,7 +1902,6 @@ void ClientProxy::SaveClientInfoToPreferences() {
 }
 
 void ClientProxy::LoadClientInfoFromPreferences() {
-  MutexLock lock(&mutex_);
   if (preferences_manager_ == nullptr) {
     return;
   }
@@ -1707,42 +1935,30 @@ void ClientProxy::LoadClientInfoFromPreferences() {
   preferences_manager_->Remove(kAdvertisingTimestamp);
 }
 
-std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
-  switch (status) {
-    case PayloadProgressInfo::Status::kSuccess:
-      return std::string("Success");
-    case PayloadProgressInfo::Status::kFailure:
-      return std::string("Failure");
-    case PayloadProgressInfo::Status::kInProgress:
-      return std::string("In Progress");
-    case PayloadProgressInfo::Status::kCanceled:
-      return std::string("Cancelled");
-  }
-}
-
 std::string ClientProxy::Dump() {
+  absl::MutexLock lock(mutex_);
   std::stringstream sstream;
   sstream << "Nearby Connections State" << std::endl;
   sstream << "  Client ID: " << GetClientId() << std::endl;
-  sstream << "  Local Endpoint ID: " << GetLocalEndpointId() << std::endl;
+  sstream << "  Local Endpoint ID: " << GetLocalEndpointIdLocked() << std::endl;
   sstream << std::boolalpha;
-  sstream << "  Is Advertising: " << IsAdvertising() << std::endl;
-  sstream << "  Is Discovering: " << IsDiscovering() << std::endl;
+  sstream << "  Is Advertising: " << IsAdvertisingLocked() << std::endl;
+  sstream << "  Is Discovering: " << IsDiscoveringLocked() << std::endl;
   sstream << std::noboolalpha;
-  sstream << "  Advertising Service ID: " << GetAdvertisingServiceId()
+  sstream << "  Advertising Service ID: " << advertising_info_.service_id
           << std::endl;
-  sstream << "  Discovery Service ID: " << GetDiscoveryServiceId() << std::endl;
+  sstream << "  Discovery Service ID: " << discovery_info_.service_id
+          << std::endl;
   sstream << "  Connections: " << std::endl;
   for (auto it = connections_.begin(); it != connections_.end(); ++it) {
     // TODO(deling): write Connection.ToString()
     sstream << "    " << it->first << " :(connection token) "
-            << it->second.first.connection_token << ", (remote os type) "
-            << (it->second.first.os_info.has_value()
+            << it->second.connection_token << ", (remote os type) "
+            << (it->second.os_info.has_value()
                     ? location::nearby::connections::OsInfo::OsType_Name(
-                          it->second.first.os_info->type())
+                          it->second.os_info->type())
                     : "unknown")
-            << ", (remote device name) " << it->second.first.device_name
-            << std::endl;
+            << ", (remote device name) " << it->second.device_name << std::endl;
   }
 
   sstream << "  Discovered endpoint IDs: " << std::endl;
