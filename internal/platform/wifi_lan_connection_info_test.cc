@@ -14,7 +14,9 @@
 
 #include "internal/platform/wifi_lan_connection_info.h"
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -22,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/connection_info.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -40,6 +43,28 @@ using Medium = ::location::nearby::proto::connections::Medium;
 TEST(WifiLanConnectionInfoTest, TestMediumType) {
   WifiLanConnectionInfo info(kIpv4Addr, kPort, {kAction});
   EXPECT_EQ(info.GetMediumType(), Medium::WIFI_LAN);
+}
+
+TEST(WifiLanConnectionInfoTest, TestFromTruncatedBytes) {
+  // Heap buffers of the exact size, so reading past the end is detectable.
+  std::vector<char> no_medium = {static_cast<char>(kDataElementFieldType), 0};
+  EXPECT_THAT(WifiLanConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_medium.data(), no_medium.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  std::vector<char> no_mask = {static_cast<char>(kDataElementFieldType), 1,
+                               static_cast<char>(kWifiLanMediumType)};
+  EXPECT_THAT(WifiLanConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_mask.data(), no_mask.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(WifiLanConnectionInfoTest, TestToFromBytesLongElement) {
+  std::vector<uint8_t> actions(130, kAction);
+  WifiLanConnectionInfo info(kIpv6Addr, kPort, kBssid, actions);
+  auto result =
+      WifiLanConnectionInfo::FromDataElementBytes(info.ToDataElementBytes());
+  ASSERT_OK(result);
+  EXPECT_EQ(result->GetActions(), actions);
 }
 
 TEST(WifiLanConnectionInfoTest, TestGetMembers) {

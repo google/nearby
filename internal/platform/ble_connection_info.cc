@@ -14,6 +14,7 @@
 
 #include "internal/platform/ble_connection_info.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -69,7 +70,7 @@ absl::StatusOr<BleConnectionInfo> BleConnectionInfo::FromDataElementBytes(
     return absl::InvalidArgumentError("Not a data element type");
   }
   int position = 1;
-  int length = static_cast<int>(bytes[position]);
+  uint8_t length = static_cast<uint8_t>(bytes[position]);
   if (length != bytes.size() - 2) {
     return absl::InvalidArgumentError("Bad data element length");
   }
@@ -89,7 +90,11 @@ absl::StatusOr<BleConnectionInfo> BleConnectionInfo::FromDataElementBytes(
   }
   std::string characteristic;
   if ((mask & kGattCharacteristicMask) == kGattCharacteristicMask) {
-    char characteristic_length = bytes[position];
+    if (bytes.size() <= position) {
+      return absl::InvalidArgumentError(
+          "Insufficient remaining bytes to read GATT characteristic length.");
+    }
+    uint8_t characteristic_length = static_cast<uint8_t>(bytes[position]);
     if (bytes.size() - (position + 1) < characteristic_length) {
       return absl::InvalidArgumentError(
           "Insufficient remaining bytes to read GATT characteristic.");

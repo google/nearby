@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -24,6 +25,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "internal/platform/connection_info.h"
 #include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
@@ -49,6 +51,33 @@ TEST(BluetoothConnectionInfoTest, TestGetFields) {
   ASSERT_EQ(info.GetActions().size(), 1);
   EXPECT_EQ(info.GetActions()[0], kAction);
   EXPECT_EQ(info.GetBluetoothUuid(), kBluetoothUuid);
+}
+
+TEST(BluetoothConnectionInfoTest, TestFromTruncatedBytes) {
+  // Heap buffers of the exact size, so reading past the end is detectable.
+  std::vector<char> no_medium = {static_cast<char>(kDataElementFieldType), 0};
+  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_medium.data(), no_medium.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  std::vector<char> no_mask = {static_cast<char>(kDataElementFieldType), 1,
+                               static_cast<char>(kBluetoothMediumType)};
+  EXPECT_THAT(BluetoothConnectionInfo::FromDataElementBytes(
+                  absl::string_view(no_mask.data(), no_mask.size())),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(BluetoothConnectionInfoTest, TestToFromBytesLongElement) {
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  std::vector<uint8_t> actions(130, kAction);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid, actions);
+  auto result = BluetoothConnectionInfo::FromDataElementBytes(
+      info.ToDataElementBytes());
+  ASSERT_OK(result);
+  EXPECT_EQ(result->GetActions(), actions);
 }
 
 TEST(BluetoothConnectionInfoTest, TestToFromBytes) {

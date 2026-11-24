@@ -29,7 +29,8 @@ inline constexpr uint8_t kBleGattMediumType = 0x01;
 inline constexpr uint8_t kWifiLanMediumType = 0x03;
 inline constexpr uint8_t kWifiAwareMediumType = 0x04;
 inline constexpr int kMacAddressLength = 6;
-inline constexpr int kConnectionInfoMinimumLength = 2;
+// Field type, payload length, medium type and mask.
+inline constexpr int kConnectionInfoMinimumLength = 4;
 
 class BleConnectionInfo;
 class BluetoothConnectionInfo;
