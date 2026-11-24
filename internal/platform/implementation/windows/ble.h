@@ -184,8 +184,9 @@ class BleMedium : public api::ble::BleMedium {
   std::vector<std::unique_ptr<AdvertisementWatcher>> watchers_
       ABSL_GUARDED_BY(mutex_);
 
-  // std::map<Uuid, std::map<uint64_t, ScanningCallback>>
-  absl::flat_hash_map<Uuid, absl::flat_hash_map<uint64_t, ScanningCallback>>
+  // std::map<Uuid, std::map<uint64_t, std::shared_ptr<ScanningCallback>>>
+  absl::flat_hash_map<
+      Uuid, absl::flat_hash_map<uint64_t, std::shared_ptr<ScanningCallback>>>
       service_uuid_to_session_map_ ABSL_GUARDED_BY(mutex_);
 
   // WinRT objects

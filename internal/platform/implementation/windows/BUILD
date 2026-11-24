@@ -132,6 +132,7 @@ cc_library(
         "@boringssl//:crypto",
         "@com_google_absl//absl/strings",
     ],
+    alwayslink = True,
 )
 
 cc_library(
@@ -321,6 +322,7 @@ cc_library(
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
         "//third_party/WinRT:winrt",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
@@ -845,6 +847,9 @@ cc_test(
         ":wifi_direct",
         ":wifi_hotspot",
         ":wifi_medium",
+        "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums/ble:ble_advertisement_header",
+        "//connections/implementation/mediums/ble:bloom_filter",
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",

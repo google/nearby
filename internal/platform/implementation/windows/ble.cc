@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/windows/ble.h"
 
-#include <algorithm>
 #include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdint>
@@ -25,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
@@ -488,14 +488,8 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
     LOG(WARNING) << __func__ << ": BLE Scanning already started.";
   }
   uint64_t session_id = GenerateSessionId();
-
-  auto iter = service_uuid_to_session_map_.find(service_uuid);
-  if (iter == service_uuid_to_session_map_.end()) {
-    service_uuid_to_session_map_[service_uuid].insert(
-        {session_id, std::move(callback)});
-  } else {
-    iter->second.insert({session_id, std::move(callback)});
-  }
+  service_uuid_to_session_map_[service_uuid].insert(
+      {session_id, std::make_shared<ScanningCallback>(std::move(callback))});
 
   // Generate and return ScanningSession.
   return std::make_unique<BleMedium::ScanningSession>(
@@ -523,6 +517,7 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
                     try {
                       LOG(INFO)
                           << "No more scan sessions, stopping Ble scanning.";
+                      alternate_uuids_for_service_.clear();
                       watchers_.clear();
 
                       LOG(INFO) << "Ble stoped scanning successfully.";
@@ -1177,83 +1172,181 @@ void BleMedium::AdvertisementReceivedHandler(
 void BleMedium::AdvertisementFoundHandler(
     BluetoothLEAdvertisementWatcher watcher,
     BluetoothLEAdvertisementReceivedEventArgs args) {
-  BluetoothLEAdvertisement advertisement = args.Advertisement();
-  std::vector<Uuid> service_uuid_list;
-  bool found_matching_service_uuid = false;
-  {
-    absl::MutexLock lock(mutex_);
-    for (auto windows_service_uuid : advertisement.ServiceUuids()) {
-      auto nearby_service_uuid =
-          winrt_guid_to_nearby_uuid(windows_service_uuid);
-      service_uuid_list.push_back(nearby_service_uuid);
-      if (service_uuid_to_session_map_.find(nearby_service_uuid) !=
-          service_uuid_to_session_map_.end()) {
-        found_matching_service_uuid = true;
-      }
-    }
-  }
-  if (!found_matching_service_uuid) {
+  if (args == nullptr) {
     return;
   }
 
-  // Construct BleAdvertisementData from the windows Advertisement.
+  std::vector<Uuid> registered_service_uuids;
+  bool has_alternate_uuids = false;
+  {
+    absl::MutexLock lock(mutex_);
+    if (service_uuid_to_session_map_.empty()) {
+      return;
+    }
+    registered_service_uuids.reserve(service_uuid_to_session_map_.size());
+    for (const auto& [service_uuid, sessions] : service_uuid_to_session_map_) {
+      if (!sessions.empty()) {
+        registered_service_uuids.push_back(service_uuid);
+      }
+    }
+    has_alternate_uuids = !alternate_uuids_for_service_.empty();
+  }
+  if (registered_service_uuids.empty()) {
+    return;
+  }
+
+  const bool allow_alternate_uuids =
+      has_alternate_uuids && !adapter_->IsExtendedAdvertisingSupported();
+  std::vector<std::string> alt_service_ids;
+  auto maybe_add_alt_service_id = [this, allow_alternate_uuids,
+                                   &alt_service_ids](uint16_t uuid16) {
+    if (!allow_alternate_uuids) {
+      return;
+    }
+    absl::MutexLock lock(mutex_);
+    const auto alternate_it = alternate_uuids_for_service_.find(uuid16);
+    if (alternate_it != alternate_uuids_for_service_.end() &&
+        !absl::c_linear_search(alt_service_ids, alternate_it->second)) {
+      alt_service_ids.push_back(alternate_it->second);
+    }
+  };
+
+  MacAddress bluetooth_address;
   api::ble::BleAdvertisementData ble_advertisement_data;
-  for (BluetoothLEAdvertisementDataSection service_data :
-       advertisement.GetSectionsByType(kUuid16ServiceDataType)) {
-    // Parse Advertisement Data for Section 0x16 (Service Data)
-    DataReader data_reader = DataReader::FromBuffer(service_data.Data());
-    data_reader.ByteOrder(ByteOrder::LittleEndian);
+  ble_advertisement_data.is_extended_advertisement = false;
+  try {
+    BluetoothLEAdvertisement advertisement = args.Advertisement();
+    if (advertisement == nullptr) {
+      return;
+    }
+    uint64_t raw_bluetooth_address = args.BluetoothAddress();
+    if (!MacAddress::FromUint64(raw_bluetooth_address, bluetooth_address)) {
+      LOG(ERROR) << "Invalid MAC address: 0x"
+                 << absl::StrCat(absl::Hex(raw_bluetooth_address));
+      return;
+    }
 
-    // Discard the first 2 bytes of Service Uuid in Service Data
-    uint16_t service_uuid16 = data_reader.ReadUInt16();
-
-    for (auto service_uuid : service_uuid_list) {
-      std::optional<uint16_t> uuid16 = service_uuid.GetBtUuid16();
-      if (!uuid16.has_value()) {
+    // Construct BleAdvertisementData from the Windows Advertisement.
+    for (BluetoothLEAdvertisementDataSection service_data :
+         advertisement.GetSectionsByType(kUuid16ServiceDataType)) {
+      // Parse Advertisement Data for Section 0x16 (Service Data)
+      if (service_data.Data() == nullptr) {
         continue;
       }
-      if (*uuid16 == service_uuid16) {
-        std::string data;
+      DataReader data_reader = DataReader::FromBuffer(service_data.Data());
+      data_reader.ByteOrder(ByteOrder::LittleEndian);
+      if (data_reader.UnconsumedBufferLength() < 2) {
+        continue;
+      }
 
-        uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
+      // Discard the first 2 bytes of Service Uuid in Service Data
+      uint16_t service_uuid16 = data_reader.ReadUInt16();
+      bool matched_registered_service = false;
+
+      for (const auto& service_uuid : registered_service_uuids) {
+        std::optional<uint16_t> uuid16 = service_uuid.GetBtUuid16();
+        if (!uuid16.has_value() || *uuid16 != service_uuid16) {
+          continue;
+        }
+        matched_registered_service = true;
+        uint32_t unconsumed_buffer_length =
+            data_reader.UnconsumedBufferLength();
         if (unconsumed_buffer_length > 27) {
           LOG(INFO) << "Skipping extended advertisement with service "
                     << absl::StrCat(absl::Hex(*uuid16));
-          return;
+          break;
         }
-        for (int i = 0; i < unconsumed_buffer_length; i++) {
+        std::string data;
+        data.reserve(unconsumed_buffer_length);
+        for (uint32_t i = 0; i < unconsumed_buffer_length; ++i) {
           data.append(1, static_cast<unsigned char>(data_reader.ReadByte()));
         }
         ble_advertisement_data.service_data[service_uuid] = ByteArray{data};
+        break;
+      }
+
+      if (!matched_registered_service) {
+        maybe_add_alt_service_id(service_uuid16);
       }
     }
-  }
-  if (ble_advertisement_data.service_data.empty()) {
-    LOG(ERROR) << "Got matching Service UUID but found no "
-                  "corresponding data, skipping";
+
+    if (allow_alternate_uuids) {
+      for (const auto& windows_service_uuid : advertisement.ServiceUuids()) {
+        Uuid nearby_service_uuid =
+            winrt_guid_to_nearby_uuid(windows_service_uuid);
+        std::optional<uint16_t> uuid16 = nearby_service_uuid.GetBtUuid16();
+        if (uuid16.has_value()) {
+          maybe_add_alt_service_id(*uuid16);
+        }
+      }
+    }
+  } catch (const std::exception& exception) {
+    LOG(ERROR) << __func__ << ": Exception on BLE advertisement found: "
+               << exception.what();
+    return;
+  } catch (const winrt::hresult_error& ex) {
+    LOG(ERROR) << __func__ << ": WinRT exception on BLE advertisement found: "
+               << ex.code() << ": " << winrt::to_string(ex.message());
+    return;
+  } catch (...) {
+    LOG(ERROR) << __func__
+               << ": Unknown exception on BLE advertisement found.";
     return;
   }
-  // Save the BlePeripheral.
-  MacAddress bluetooth_address;
-  if (!MacAddress::FromUint64(args.BluetoothAddress(), bluetooth_address)) {
-    LOG(ERROR) << "Invalid MAC address: " << args.BluetoothAddress();
+
+  if (ble_advertisement_data.service_data.empty() && alt_service_ids.empty()) {
     return;
   }
 
   VLOG(1) << "BLE peripheral with address: " << bluetooth_address.ToString();
 
-  // Invokes callbacks that matches the UUID.
-  for (auto service_uuid : service_uuid_list) {
-    {
-      absl::MutexLock lock(mutex_);
-      if (service_uuid_to_session_map_.find(service_uuid) !=
-          service_uuid_to_session_map_.end()) {
-        for (auto& id_session_pair :
-             service_uuid_to_session_map_[service_uuid]) {
-          id_session_pair.second.advertisement_found_cb(
-              bluetooth_address.address(), ble_advertisement_data);
+  auto notify_sessions =
+      [this, &bluetooth_address](
+          const Uuid& service_uuid,
+          const api::ble::BleAdvertisementData& advertisement_data) {
+        std::vector<std::shared_ptr<ScanningCallback>> callbacks;
+        {
+          absl::MutexLock lock(mutex_);
+          auto session_it = service_uuid_to_session_map_.find(service_uuid);
+          if (session_it != service_uuid_to_session_map_.end()) {
+            callbacks.reserve(session_it->second.size());
+            for ([[maybe_unused]] const auto& [session_id, callback] :
+                 session_it->second) {
+              if (callback != nullptr) {
+                callbacks.push_back(callback);
+              }
+            }
+          }
         }
+        for (const auto& callback : callbacks) {
+          callback->advertisement_found_cb(bluetooth_address.address(),
+                                           advertisement_data);
+        }
+      };
+
+  // Invokes callbacks that match primary service data UUIDs.
+  for ([[maybe_unused]] const auto& [service_uuid, service_data] :
+       ble_advertisement_data.service_data) {
+    notify_sessions(service_uuid, ble_advertisement_data);
+  }
+
+  // Only process alternate service data for sessions with no primary service
+  // data.
+  if (!alt_service_ids.empty()) {
+    VLOG(1) << "Found BLE peripheral with address: "
+            << bluetooth_address.ToString()
+            << " for services: " << absl::StrJoin(alt_service_ids, ",");
+    BleAdvertisementHeader header =
+        CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
+    ByteArray header_bytes(header);
+    for (const auto& session_service_uuid : registered_service_uuids) {
+      if (ble_advertisement_data.service_data.contains(session_service_uuid)) {
+        continue;
       }
+      api::ble::BleAdvertisementData alt_advertisement_data;
+      alt_advertisement_data.is_extended_advertisement = false;
+      alt_advertisement_data.service_data[session_service_uuid] = header_bytes;
+      notify_sessions(session_service_uuid, alt_advertisement_data);
     }
   }
 }
