@@ -22,14 +22,22 @@ namespace {
 TEST(FakeSingleThreadExecutorTest, ExecuteDefersUntilRunAllExecutables) {
   FakeSingleThreadExecutor executor;
   int count = 0;
+  bool on_executor_in_task = false;
 
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
   EXPECT_FALSE(executor.Execute("empty", nullptr));
-  EXPECT_TRUE(executor.Execute("first", [&count]() { count += 1; }));
+  EXPECT_TRUE(executor.Execute("first", [&]() {
+    on_executor_in_task = executor.IsRunningOnExecutor();
+    count += 1;
+  }));
   EXPECT_TRUE(executor.Execute("second", [&count]() { count *= 10; }));
   EXPECT_EQ(count, 0);
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
 
   executor.RunAllExecutables();
   EXPECT_EQ(count, 10);
+  EXPECT_TRUE(on_executor_in_task);
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
 }
 
 TEST(FakeSingleThreadExecutorTest, ExecuteImmediatelyRunsNonEmptyTasks) {

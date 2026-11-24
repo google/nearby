@@ -23,7 +23,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "third_party/gloop/thread/thread.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/app_lifecycle_monitor.h"
@@ -61,6 +60,7 @@
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/shared/multi_thread_executor.h"
 #include "internal/platform/implementation/shared/single_thread_executor.h"
+#include "internal/platform/implementation/single_thread_executor.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_aware.h"
@@ -81,12 +81,7 @@ std::string ImplementationPlatform::GetCustomSavePath(
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kLinux; }
 
-int GetCurrentTid() {
-  const LiveThread* my = Thread_GetMyLiveThread();
-  return LiveThread_Pthread_TID(my);
-}
-
-std::unique_ptr<Executor>
+std::unique_ptr<SingleThreadExecutor>
 ImplementationPlatform::CreateSingleThreadExecutor() {
   return std::make_unique<shared::SingleThreadExecutor>();
 }

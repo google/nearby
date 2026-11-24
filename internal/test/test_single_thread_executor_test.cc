@@ -17,6 +17,8 @@
 #include <atomic>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
@@ -25,6 +27,8 @@
 
 namespace nearby {
 namespace {
+
+using ::testing::ElementsAre;
 
 TEST(TestSingleThreadExecutorTest, Execute) {
   FakeClock clock;
@@ -51,6 +55,23 @@ TEST(TestSingleThreadExecutorTest, DelayedExecuteUsesFakeClock) {
   clock.FastForward(absl::Seconds(10));
   EXPECT_TRUE(executor.SyncWithTimeout(absl::Seconds(1)));
   EXPECT_EQ(count.load(std::memory_order_seq_cst), 1);
+}
+
+TEST(TestSingleThreadExecutorTest,
+     ZeroAndNegativeDelayedExecuteRunWithoutAdvancingClock) {
+  FakeClock clock;
+  TestSingleThreadExecutor executor(&clock);
+  std::vector<int> results;
+
+  EXPECT_FALSE(executor.DelayedExecute(absl::ZeroDuration(), nullptr));
+  EXPECT_TRUE(executor.Execute([&results] { results.push_back(1); }));
+  EXPECT_TRUE(executor.DelayedExecute(absl::ZeroDuration(),
+                                      [&results] { results.push_back(2); }));
+  EXPECT_TRUE(executor.DelayedExecute(-absl::Seconds(5),
+                                      [&results] { results.push_back(3); }));
+  executor.Sync();
+
+  EXPECT_THAT(results, ElementsAre(1, 2, 3));
 }
 
 TEST(TestSingleThreadExecutorTest, TasksRunInSequence) {
@@ -107,6 +128,41 @@ TEST(TestSingleThreadExecutorTest, SyncWithTimeoutExpiresSafely) {
 
   unblock_task.Notify();
   executor.Sync();
+}
+
+TEST(TestSingleThreadExecutorTest, IsRunningOnExecutorTrueInsideTasks) {
+  FakeClock clock;
+  TestSingleThreadExecutor executor(&clock);
+  TestSingleThreadExecutor other_executor(&clock);
+  std::atomic<bool> on_executor_in_execute = false;
+  std::atomic<bool> on_other_in_execute = true;
+  std::atomic<bool> on_executor_in_delayed = false;
+  std::atomic<bool> on_other_in_delayed = true;
+
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+
+  EXPECT_TRUE(executor.Execute([&] {
+    on_executor_in_execute.store(executor.IsRunningOnExecutor(),
+                                 std::memory_order_relaxed);
+    on_other_in_execute.store(other_executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+  }));
+  executor.Sync();
+  EXPECT_TRUE(on_executor_in_execute.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_in_execute.load(std::memory_order_relaxed));
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::Seconds(5), [&] {
+    on_executor_in_delayed.store(executor.IsRunningOnExecutor(),
+                                 std::memory_order_relaxed);
+    on_other_in_delayed.store(other_executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+  }));
+  clock.FastForward(absl::Seconds(5));
+  executor.Sync();
+  EXPECT_TRUE(on_executor_in_delayed.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_in_delayed.load(std::memory_order_relaxed));
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
 }
 
 }  // namespace

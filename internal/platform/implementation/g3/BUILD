@@ -209,7 +209,6 @@ cc_library(
         "//internal/platform/implementation:webrtc_platform",
         "//internal/platform/implementation/shared:executor",
         "//internal/platform/implementation/shared:file",
-        "//third_party/gloop/thread",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

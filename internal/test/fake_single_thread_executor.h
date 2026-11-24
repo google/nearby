@@ -34,6 +34,7 @@ class ABSL_LOCKABLE FakeSingleThreadExecutor final
   ~FakeSingleThreadExecutor() override;
 
   bool Execute(const std::string& name, Runnable&& runnable) override;
+  bool IsRunningOnExecutor() const override { return is_running_; }
 
   void SetRunExecutablesImmediately(bool run_executables_immediately) {
     run_executables_immediately_ = run_executables_immediately;
@@ -45,6 +46,7 @@ class ABSL_LOCKABLE FakeSingleThreadExecutor final
   void DoShutdown();
 
   bool run_executables_immediately_ = false;
+  bool is_running_ = false;
   std::vector<std::pair<std::string, Runnable>> runnables_;
 };
 

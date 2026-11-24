@@ -43,6 +43,7 @@
 #include "internal/platform/implementation/executor.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/file.h"
+#include "internal/platform/implementation/single_thread_executor.h"
 #include "internal/platform/payload_id.h"
 
 namespace nearby {
@@ -140,7 +141,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::
 }
 
 // Java-like Executors
-std::unique_ptr<Executor> ImplementationPlatform::CreateSingleThreadExecutor() {
+std::unique_ptr<SingleThreadExecutor> ImplementationPlatform::CreateSingleThreadExecutor() {
   return std::make_unique<apple::SingleThreadExecutor>();
 }
 

@@ -16,12 +16,10 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_TEST_TEST_SINGLE_THREAD_EXECUTOR_H_
 
 #include <atomic>
-#include <memory>
 
 #include "absl/base/nullability.h"
 #include "absl/time/time.h"
 #include "internal/platform/single_thread_executor.h"
-#include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 
 namespace nearby {
@@ -30,8 +28,7 @@ namespace nearby {
 // while driving DelayedExecute timers through FakeClock.
 class TestSingleThreadExecutor : public SingleThreadExecutor {
  public:
-  explicit TestSingleThreadExecutor(FakeClock* absl_nonnull clock)
-      : clock_(clock) {}
+  explicit TestSingleThreadExecutor(FakeClock* absl_nonnull clock);
   TestSingleThreadExecutor(const TestSingleThreadExecutor&) = delete;
   TestSingleThreadExecutor& operator=(const TestSingleThreadExecutor&) = delete;
   ~TestSingleThreadExecutor() override;
@@ -45,11 +42,9 @@ class TestSingleThreadExecutor : public SingleThreadExecutor {
   // complete.
   bool SyncWithTimeout(absl::Duration timeout);
 
- protected:
-  absl_nonnull std::unique_ptr<Timer> CreateTimer() override;
-
  private:
-  FakeClock* const clock_;
+  class Impl;
+
   std::atomic<bool> closed_ = false;
 };
 

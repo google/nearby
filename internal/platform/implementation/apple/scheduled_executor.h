@@ -42,6 +42,8 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   void Shutdown() override;
   std::shared_ptr<api::Cancelable> Schedule(Runnable&& runnable, absl::Duration duration) override;
   bool Execute(Runnable&& runnable) override;
+  bool IsShuttingDown() const;
+  bool IsRunningOnExecutor() const;
 
  private:
   void Shutdown(std::int64_t timeout_millis);

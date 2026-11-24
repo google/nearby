@@ -42,6 +42,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",

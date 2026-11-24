@@ -21,15 +21,14 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/timer.h"
+#include "internal/platform/implementation/single_thread_executor.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace {
@@ -191,9 +190,11 @@ TEST(SingleThreadExecutorTest, TwoDelayedExecuteTasks) {
   EXPECT_TRUE(first_task_started.load(std::memory_order_seq_cst));
 }
 
-TEST(SingleThreadExecutorTest, DelayedExecuteEmptyTask) {
+TEST(SingleThreadExecutorTest, DelayedExecuteEmptyTaskReturnsFalse) {
   SingleThreadExecutor executor;
-  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(100), nullptr));
+  executor.Execute(nullptr);
+  executor.Execute("empty", nullptr);
+  EXPECT_FALSE(executor.DelayedExecute(absl::Milliseconds(100), nullptr));
 }
 
 TEST(SingleThreadExecutorTest, DelayedExecuteAfterShutdownFails) {
@@ -311,28 +312,91 @@ TEST(SingleThreadExecutorTest, ThreadCheck_DelayedExecuteRunnable) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(5)));
 }
 
-class FailingTimer : public Timer {
+class FailingSingleThreadExecutorImpl final : public api::SingleThreadExecutor {
  public:
-  bool Start(int delay, int period,
-             absl::AnyInvocable<void()> callback) override {
+  bool Execute(Runnable&& runnable) override { return false; }
+  bool DelayedExecute(absl::Duration delay, Runnable&& runnable) override {
     return false;
   }
-  void Stop() override {}
-  bool IsRunning() override { return false; }
+  void Shutdown() override {}
+  bool IsRunningOnExecutor() const override { return false; }
 };
 
-class FailingTimerSingleThreadExecutor : public SingleThreadExecutor {
- protected:
-  absl_nonnull std::unique_ptr<Timer> CreateTimer() override {
-    return std::make_unique<FailingTimer>();
-  }
+class FailingSingleThreadExecutor final : public SingleThreadExecutor {
+ public:
+  FailingSingleThreadExecutor()
+      : SingleThreadExecutor(
+            std::make_unique<FailingSingleThreadExecutorImpl>()) {}
 };
 
-TEST(SingleThreadExecutorTest, DelayedExecuteTimerStartFailureReturnsFalse) {
-  FailingTimerSingleThreadExecutor executor;
+TEST(SingleThreadExecutorTest, DelayedExecuteImplFailureReturnsFalse) {
+  FailingSingleThreadExecutor executor;
 
   EXPECT_FALSE(executor.DelayedExecute(
       absl::Milliseconds(10), []() { FAIL() << "Task should not run"; }));
+}
+
+TEST(SingleThreadExecutorTest,
+     IsRunningOnExecutorIsFalseWhenIdleAndAfterShutdown) {
+  SingleThreadExecutor executor;
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+
+  executor.Shutdown();
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+}
+
+TEST(SingleThreadExecutorTest, IsRunningOnExecutorTrueOnlyInsideExecute) {
+  SingleThreadExecutor executor;
+  SingleThreadExecutor other_executor;
+  absl::Notification task_running;
+  absl::Notification unblock_task;
+  absl::Notification task_done;
+  std::atomic<bool> on_executor_in_task = false;
+  std::atomic<bool> on_other_executor_in_task = true;
+
+  EXPECT_TRUE(executor.Execute([&]() {
+    on_executor_in_task.store(executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+    on_other_executor_in_task.store(other_executor.IsRunningOnExecutor(),
+                                    std::memory_order_relaxed);
+    task_running.Notify();
+    unblock_task.WaitForNotification();
+    task_done.Notify();
+  }));
+
+  ASSERT_TRUE(task_running.WaitForNotificationWithTimeout(absl::Seconds(5)));
+  EXPECT_TRUE(on_executor_in_task.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_executor_in_task.load(std::memory_order_relaxed));
+  // Calling thread is not executing on `executor`, even while a task is active.
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+
+  unblock_task.Notify();
+  ASSERT_TRUE(task_done.WaitForNotificationWithTimeout(absl::Seconds(5)));
+  executor.Shutdown();
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
+}
+
+TEST(SingleThreadExecutorTest, IsRunningOnExecutorTrueInsideDelayedExecute) {
+  SingleThreadExecutor executor;
+  SingleThreadExecutor other_executor;
+  absl::Notification task_done;
+  std::atomic<bool> on_executor_in_task = false;
+  std::atomic<bool> on_other_executor_in_task = true;
+
+  EXPECT_TRUE(executor.DelayedExecute(absl::Milliseconds(10), [&]() {
+    on_executor_in_task.store(executor.IsRunningOnExecutor(),
+                              std::memory_order_relaxed);
+    on_other_executor_in_task.store(other_executor.IsRunningOnExecutor(),
+                                    std::memory_order_relaxed);
+    task_done.Notify();
+  }));
+
+  ASSERT_TRUE(task_done.WaitForNotificationWithTimeout(absl::Seconds(5)));
+  EXPECT_TRUE(on_executor_in_task.load(std::memory_order_relaxed));
+  EXPECT_FALSE(on_other_executor_in_task.load(std::memory_order_relaxed));
+
+  executor.Shutdown();
+  EXPECT_FALSE(executor.IsRunningOnExecutor());
 }
 
 TEST(SingleThreadExecutorTest, ConcurrentExecuteAndShutdown) {

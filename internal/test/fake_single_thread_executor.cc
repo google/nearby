@@ -40,11 +40,14 @@ bool FakeSingleThreadExecutor::Execute(const std::string& name,
 }
 
 void FakeSingleThreadExecutor::RunAllExecutables() {
+  bool was_running = is_running_;
+  is_running_ = true;
   // Because `SingleThreadExecutor` ensures sequencing, run all pending
   // executables in order they were added to the vector.
   for (auto& runnable_pair : runnables_) {
     runnable_pair.second();
   }
+  is_running_ = was_running;
 
   runnables_.clear();
 }
