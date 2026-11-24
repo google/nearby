@@ -157,7 +157,7 @@ std::optional<std::string> DctAdvertisement::GenerateEndpointId(
   ByteArray hash_result(4);
   hash_result.CopyAt(0, Crypto::Sha256(truncted_device_name));
   std::string endpoint_id;
-  for (const char c : hash_result) {
+  for (const uint8_t c : hash_result) {
     endpoint_id.append(1, kEndpointIdChars[c % sizeof(kEndpointIdChars)]);
   }
 
