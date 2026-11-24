@@ -57,6 +57,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/wifi_aware_service_info.h"
 #include "internal/platform/wifi_lan.h"
@@ -182,6 +183,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   bool IsRecognizedBluetoothEndpoint(const std::string& name_string,
                                      const std::string& service_id,
                                      const BluetoothDeviceName& name) const;
+  void RetireBluetoothEndpointsForMacAddress(
+      ClientProxy* client, absl::string_view service_id, MacAddress mac_address,
+      absl::string_view reason) RUN_ON_PCP_HANDLER_THREAD();
   void BluetoothDeviceDiscoveredHandler(ClientProxy* client,
                                         const std::string& service_id,
                                         BluetoothDevice device);
