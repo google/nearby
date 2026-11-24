@@ -30,13 +30,14 @@ namespace network {
 // the hex value of the character c.
 std::string UrlEncode(absl::string_view str) {
   std::ostringstream encoded_string_stream;
-  encoded_string_stream.fill(0);
+  encoded_string_stream.fill('0');
   encoded_string_stream << std::hex;
   auto it = str.begin();
   while (it != str.end()) {
     char ch = (*it);
-    if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '!' ||
-        ch == '~' || ch == '*' || ch == '\'' || ch == '(' || ch == ')') {
+    if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '-' ||
+        ch == '_' || ch == '.' || ch == '!' || ch == '~' || ch == '*' ||
+        ch == '\'' || ch == '(' || ch == ')') {
       encoded_string_stream << ch;
     } else {
       encoded_string_stream << std::uppercase;
@@ -67,11 +68,13 @@ std::string UrlDecode(absl::string_view url_string) {
       if (it + 1 != url_string.end() && it + 2 != url_string.end()) {
         char chh = *(it + 1);
         char chl = *(it + 2);
-        ch = (chh >= '0' && chh <= '9' ? chh - '0'
-                                       : std::tolower(chh) - 'a' + 10)
+        ch = (chh >= '0' && chh <= '9'
+                  ? chh - '0'
+                  : std::tolower(static_cast<unsigned char>(chh)) - 'a' + 10)
                  << 4 |
-             (chl >= '0' && chl <= '9' ? chl - '0'
-                                       : std::tolower(chl) - 'a' + 10);
+             (chl >= '0' && chl <= '9'
+                  ? chl - '0'
+                  : std::tolower(static_cast<unsigned char>(chl)) - 'a' + 10);
         decoded_string_stream << ch;
         it += 3;
         continue;

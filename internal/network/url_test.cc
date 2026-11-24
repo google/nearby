@@ -77,6 +77,47 @@ TEST(Url, TestUrlWithFragment) {
   EXPECT_EQ(0u, url->GetQueryValues("pos").size());
 }
 
+TEST(Url, TestUrlWithFragmentAndNoQuery) {
+  auto url = Url::Create("https://www.google.com/path#frag");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetPath(), "/path");
+  EXPECT_EQ(url->GetFragment(), "frag");
+  EXPECT_EQ(url->GetUrlPath(), "https://www.google.com/path#frag");
+}
+
+TEST(Url, TestQuestionMarkInFragment) {
+  auto url = Url::Create("https://www.google.com/path#frag?name=google");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetPath(), "/path");
+  EXPECT_EQ(url->GetFragment(), "frag?name=google");
+  EXPECT_THAT(url->GetQueryValues("name"), testing::IsEmpty());
+}
+
+TEST(Url, TestUserInfoIsNotPartOfHost) {
+  auto url = Url::Create("https://www.google.com@example.com/path");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetHostName(), "example.com");
+  EXPECT_EQ(url->GetPath(), "/path");
+
+  url = Url::Create("https://user:password@example.com:8443/");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetHostName(), "example.com");
+  EXPECT_EQ(url->GetPort(), 8443);
+}
+
+TEST(Url, TestIpv6Host) {
+  auto url = Url::Create("http://[::1]:8080/path");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetHostName(), "[::1]");
+  EXPECT_EQ(url->GetPort(), 8080);
+  EXPECT_EQ(url->GetUrlPath(), "http://[::1]:8080/path");
+
+  url = Url::Create("https://[2001:db8::1]/");
+  ASSERT_TRUE(url.ok());
+  EXPECT_EQ(url->GetHostName(), "[2001:db8::1]");
+  EXPECT_EQ(url->GetPort(), 443);
+}
+
 TEST(Url, TestGetUrl) {
   auto url = Url::Create("http://www.google.com/user?name=google&pos=mtv");
   ASSERT_TRUE(url.ok());
@@ -117,6 +158,16 @@ TEST(Url, TestInvalidUrl) {
   url = Url::Create("http://www.google.com:abcd/erwe");
   ASSERT_FALSE(url.ok());
   url = Url::Create("http:///www.google.com");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("https://www.google.com:70000");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("https://www.google.com:-1");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("https://user@/path");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("http://[::1/path");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("http://[::1]x/path");
   ASSERT_FALSE(url.ok());
 }
 
