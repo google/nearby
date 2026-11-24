@@ -297,8 +297,7 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
                       CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
   }
   ErrorOr<int> port = StartAcceptingConnectionsLocked(service_id, /*port=*/0,
-                                                      std::move(callback))
-                          .has_error();
+                                                      std::move(callback));
   if (port.has_error()) {
     return {port.error()};
   }
