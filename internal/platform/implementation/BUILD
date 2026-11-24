@@ -32,6 +32,7 @@ cc_library(
         "output_file.h",
         "preferences_manager.h",
         "scheduled_executor.h",
+        "single_thread_executor.h",
         "system_clock.h",
         "timer.h",
     ],
