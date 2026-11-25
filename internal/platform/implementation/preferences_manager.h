@@ -23,7 +23,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#ifndef NEARBY_CHROMIUM
 #include "nlohmann/json_fwd.hpp"
+#endif
 #include "google/protobuf/message.h"
 
 namespace nearby {
@@ -42,7 +44,9 @@ class PreferencesManager {
 
   // Sets values
 
+#ifndef NEARBY_CHROMIUM
   virtual bool Set(absl::string_view key, const nlohmann::json& value) = 0;
+#endif
 
   virtual bool SetBoolean(absl::string_view key, bool value) = 0;
   virtual bool SetInteger(absl::string_view key, int value) = 0;
@@ -64,8 +68,10 @@ class PreferencesManager {
                                const google::protobuf::Message& value) = 0;
 
   // Gets values
+#ifndef NEARBY_CHROMIUM
   virtual nlohmann::json Get(absl::string_view key,
                              const nlohmann::json& default_value) const = 0;
+#endif
 
   virtual bool GetBoolean(absl::string_view key, bool default_value) const = 0;
   virtual int GetInteger(absl::string_view key, int default_value) const = 0;
