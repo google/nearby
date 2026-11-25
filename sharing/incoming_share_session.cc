@@ -103,6 +103,7 @@ IncomingShareSession::ProcessIntroduction(
   // If transfer is for file sync, override the save path to the custom save
   // path.
   if (introduction_frame.use_case() == IntroductionFrame::FILE_SYNC) {
+    set_session_usage(ShareSessionUsage::kFileSync);
     if (!certificate().has_value() || certificate()->binding_id().empty()) {
       LOG(ERROR) << __func__ << ": Binding id is empty for file sync session.";
       return TransferMetadata::Status::kRejected;
@@ -117,7 +118,6 @@ IncomingShareSession::ProcessIntroduction(
     if (!binding->destination_directory().empty()) {
       destination_directory = FilePath(binding->destination_directory());
     }
-    set_session_usage(ShareSessionUsage::kFileSync);
   }
   int64_t file_size_sum = 0;
   int app_file_count = 0;
@@ -328,6 +328,7 @@ bool IncomingShareSession::AcceptTransfer(
           .set_usage(session_usage())
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .set_token(token())
+          .set_is_self_share(self_share())
           .build());
 
   if (TryUpgradeBandwidth()) {
@@ -518,6 +519,7 @@ void IncomingShareSession::SendFailureResponse(
   UpdateTransferMetadata(TransferMetadataBuilder()
                              .set_usage(session_usage())
                              .set_status(status)
+                             .set_is_self_share(self_share())
                              .build());
 }
 

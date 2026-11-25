@@ -227,6 +227,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionFileSyncNoCertificate) {
               Eq(TransferMetadata::Status::kRejected));
 
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
+  EXPECT_THAT(session_.session_usage(), Eq(ShareSessionUsage::kFileSync));
 }
 
 TEST_F(IncomingShareSessionTest,
@@ -241,6 +242,7 @@ TEST_F(IncomingShareSessionTest,
               Eq(TransferMetadata::Status::kRejected));
 
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
+  EXPECT_THAT(session_.session_usage(), Eq(ShareSessionUsage::kFileSync));
 }
 
 TEST_F(IncomingShareSessionTest,
@@ -256,6 +258,7 @@ TEST_F(IncomingShareSessionTest,
               Eq(TransferMetadata::Status::kRejected));
 
   EXPECT_THAT(session_.attachment_container().HasAttachments(), IsFalse());
+  EXPECT_THAT(session_.session_usage(), Eq(ShareSessionUsage::kFileSync));
 }
 
 TEST_F(IncomingShareSessionTest,
@@ -1518,7 +1521,8 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
       transfer_metadata_callback_,
       Call(_,
            AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
-                 HasUsage(ShareSessionUsage::kSharing))));
+                 HasUsage(ShareSessionUsage::kSharing),
+                 Property(&TransferMetadata::is_self_share, IsFalse()))));
   EXPECT_CALL(
       mock_event_logger_,
       Log(Matcher<const SharingLog&>(AllOf(
@@ -1556,6 +1560,34 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   ASSERT_EQ(frame.v1().type(), V1Frame::RESPONSE);
   EXPECT_EQ(frame.v1().connection_response().status(),
             ConnectionResponseFrame::ACCEPT);
+}
+
+TEST_F(IncomingShareSessionTest, AcceptTransferSelfShareSuccess) {
+  ShareTarget share_target;
+  share_target.for_self_share = true;
+  IncomingShareSession session(&clock_, task_runner_, &connections_manager_,
+                               analytics_recorder_, std::string(kEndpointId),
+                               share_target,
+                               transfer_metadata_callback_.AsStdFunction());
+  session.set_session_id(1234);
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
+  session.OnConnected(&connection_);
+  ASSERT_THAT(session.ProcessIntroduction(introduction_frame_, FilePath(),
+                                          sync_manager_, device_info_),
+              Eq(std::nullopt));
+  ASSERT_THAT(
+      session.ReadyForTransfer(
+          []() {}, [](bool is_timeout, std::optional<V1Frame> frame) {}),
+      IsTrue());
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_,
+           AllOf(HasStatus(TransferMetadata::Status::kAwaitingRemoteAcceptance),
+                 HasUsage(ShareSessionUsage::kSharing),
+                 Property(&TransferMetadata::is_self_share, IsTrue()))));
+
+  EXPECT_THAT(session.AcceptTransfer([]() {}), IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
@@ -1601,9 +1633,27 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, AllOf(HasStatus(TransferMetadata::Status::kNotEnoughSpace),
-                    HasUsage(ShareSessionUsage::kSharing))));
+                    HasUsage(ShareSessionUsage::kSharing),
+                    Property(&TransferMetadata::is_self_share, IsFalse()))));
 
   session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
+}
+
+TEST_F(IncomingShareSessionTest, SendFailureResponseSelfShare) {
+  ShareTarget share_target;
+  share_target.for_self_share = true;
+  IncomingShareSession session(&clock_, task_runner_, &connections_manager_,
+                               analytics_recorder_, std::string(kEndpointId),
+                               share_target,
+                               transfer_metadata_callback_.AsStdFunction());
+  session.set_session_id(1234);
+  EXPECT_CALL(
+      transfer_metadata_callback_,
+      Call(_, AllOf(HasStatus(TransferMetadata::Status::kNotEnoughSpace),
+                    HasUsage(ShareSessionUsage::kSharing),
+                    Property(&TransferMetadata::is_self_share, IsTrue()))));
+
+  session.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
@@ -1613,7 +1663,8 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, AllOf(HasStatus(TransferMetadata::Status::kNotEnoughSpace),
-                    HasUsage(ShareSessionUsage::kSharing))));
+                    HasUsage(ShareSessionUsage::kSharing),
+                    Property(&TransferMetadata::is_self_share, IsFalse()))));
   std::queue<std::vector<uint8_t>> frames_data;
   connections_manager_.set_send_payload_callback(
       [&](std::unique_ptr<Payload> payload,
